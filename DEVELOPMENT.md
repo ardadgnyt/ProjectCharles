@@ -2,6 +2,10 @@
 
 Sürüm: **v0.6.4 Beta** · Fikir ve yön: **HzPederPan**
 
+Charles’ın tasarımı, [Sam Green’in YouTube kanalındaki](https://www.youtube.com/@SamGreen)
+*Epic Minequest* video serisindeki Charles’tan esinlenmiştir. Proje bağımsızdır; Sam Green ile
+bir bağı yoktur.
+
 Bu belge, Charles'ın kaynak kodunda neyin nerede olduğunu, uygulamanın nasıl çalıştığını ve
 bir değişikliğin nasıl derlenip test edileceğini anlatır. Kullanıcı kurulumu için `README.md`,
 sürüm geçmişi için `CHANGELOG.md` dosyasına bak.
@@ -18,7 +22,7 @@ ProjectCharles v0.6.4 Beta/
 │   ├── install.ps1              Kurulumun kendisi
 │   ├── Create-Desktop-Shortcut.vbs  Masaüstüne kısayol oluşturur
 │   └── Reset-Charles.cmd        Yerel ayarları yedekleyip sıfırlar (dikkat: sohbetleri arşivler)
-├── README.md                    Kullanıcı rehberi
+├── README.md                    Tanıtım ve kurulum (İngilizce)
 ├── CHANGELOG.md                 Sürüm sürüm yapılan değişiklikler
 ├── DEVELOPMENT.md               Bu belge
 ├── .gitignore / .gitattributes  GitHub'a gitmeyecek dosyalar / Windows satır sonları
@@ -31,7 +35,7 @@ ProjectCharles v0.6.4 Beta/
 ├── dist/                     ÇALIŞAN ARAYÜZ (derleme çıktısı; elle düzenleme; GitHub'a gitmez)
 ├── test/                     Otomatik testler (node --test)
 ├── scripts/                  Derleme / başlatma / kurulum betikleri
-├── docs/                     Mimari, eklenti kurulumu, profil soruları
+├── docs/                     Kullanım rehberi (USER-GUIDE.md), mimari, eklenti kurulumu, profil soruları, README görselleri
 ├── licenses/                 Üçüncü taraf lisansları
 │
 ├── node_modules/             Çalışma bileşenleri (Electron, Codex, Claude Code, …)

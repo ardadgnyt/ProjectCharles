@@ -3,6 +3,12 @@
 Charles' own code, the Slime character, the app icon and the interface sounds belong to
 HzPederPan (see `LICENSE` and `LICENSE-ASSETS.md`). The components below keep their own licenses.
 
+## Inspiration
+
+Charles’s design is inspired by Charles from the *Epic Minequest* video series on Sam Green’s
+YouTube channel (https://www.youtube.com/@SamGreen). No artwork, audio or video from that series
+is included in Project Charles, and the project is not affiliated with Sam Green.
+
 ## Character engine code
 
 Parts of the animation and drawing code in `src/vendor/` (`slime/engine.ts`, `slime/outfits.ts`,

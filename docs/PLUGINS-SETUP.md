@@ -1,79 +1,132 @@
-## v3.2.2 · Kısa bağlantı rehberi
+# Plugin setup
 
-Rehber balonları kısaltıldı. Google test kullanıcıları adımı doğrudan Audience sayfasını açar ve aynı projeyi kullanmayı hatırlatır. Microsoft rehberi yeni ekranın düğme adlarını, kişisel hesap destekleyen hesap türünü ve Settings sekmesindeki public client ayarını gösterir.
+Connect your accounts in **Settings → Plugins**. Each person connects their own accounts.
+Sessions from ChatGPT plugins cannot be moved into Charles. Keys, passwords and OAuth tokens are
+encrypted for your Windows user (DPAPI), stored in `%APPDATA%\Charles` and never included in an
+installer package.
 
-# v3.2.2 · Okul e-postası (POP3 / IMAP)
+Mail, calendar and Drive access is **read-only**. Content that arrives by mail can never run
+commands or send messages on its own.
 
-Ayarlar → Eklentiler → Okul e-postası. Okulunun bilgi işlem sayfasındaki sunucu adresini, protokolü (**POP3 · TLS** veya **IMAP · TLS**) ve portu (genellikle POP3 için **995**, IMAP için **993**) gir. Tam okul e-posta adresini ve şifreni yaz; ayarları kaydet ve bağlantıyı test et.
+For Google and Microsoft, **Set up with Charles** opens the official site and shows a short
+guide next to Slime, step by step.
 
-POP3 okuma sunucudan mesaj silmez. Yeni mail takibi sabit UIDL kimlikleriyle yapılır; POP3 okunmuş durumunu bildirmez. İlk liste başlangıç kabul edilir.
-
-# v3.2.1: Charles ile kur
-
-Ayarlar → Eklentiler → Google/Microsoft → **Charles ile kur** resmi siteyi açar ve Slime yanında yönlendirme gösterir. Google için indirilen **Desktop app OAuth JSON** dosyasını seçebilirsin; API anahtarı veya servis hesabı dosyası kullanma. Microsoft için **Application (client) ID**, uygulama kaydının Overview sayfasındadır; e-posta adresi değildir.
-
-Bağlantı kurulunca mailleri ayarlardan okumak yerine sohbetten veya sesli görüşmeden iste. “Okul maillerimi özetle”, “Gmail maillerimi özetle”, “Maillerimi özetle” ve “Tavan lambasını kapat” desteklenir. Hesap/IMAP bilgileri kayıtlı olması bağlantının başarılı olduğu anlamına gelmez; **Bağlantıyı test et** ile doğrula.
-
-Temiz kurulumda yeni okunmamış mail bildirimleri açıktır. Beş dakikalık kontrol yalnızca Charles açıkken çalışır; ilk kontrol geçmişi bildirmez. Bildirim anahtar kelimeleri artık gerekli değildir. Aşağıdaki eski teknik kurulum ayrıntılarındaki anahtar kelime/panel açıklamaları yerine bu davranış geçerlidir.
-
-# Charles v3.2 · Eklenti kurulumu / Plugin setup
-
-Hesapları **Ayarlar → Eklentiler** bölümünden bağla. ChatGPT eklenti oturumları Charles'a aktarılmaz. Her kullanıcı kendi hesabını bağlar. Anahtarlar, şifreler ve OAuth oturumları Windows şifrelemesiyle yerel olarak saklanır; kurulum paketine girmez.
+- [Google: Gmail, Calendar, Drive](#google-gmail-calendar-drive)
+- [Microsoft: Outlook and Calendar](#microsoft-outlook-and-calendar)
+- [POP3 / IMAP mail (school, work, custom domain)](#pop3--imap-mail)
+- [Home Assistant](#home-assistant)
+- [Developer services](#developer-services)
+- [Notifications](#notifications)
+- [Using plugins in chat](#using-plugins-in-chat)
+- [AI accounts](#ai-accounts)
 
 ## Google: Gmail, Calendar, Drive
 
-1. [Google Cloud Console](https://console.cloud.google.com/) üzerinde bir proje oluştur. Gmail API, Google Calendar API ve Google Drive API'yi etkinleştir.
-2. OAuth consent screen / Google Auth Platform bölümünü yapılandır. Uygulama test modundaysa kendi Google hesabını test kullanıcısı ekle.
-3. OAuth Client oluştur; uygulama türü **Desktop app** olsun. Client ID ve varsa Client Secret değerini Charles'taki Google kartına girip Kaydet'e bas.
-4. **Hesaba bağlan** ile sistem tarayıcısında giriş yap. İstenen izinler Gmail, takvim ve Drive için salt okunurdur. Giriş callback adresi `http://127.0.0.1:42813/callback`; state ve PKCE denetlenir.
-5. Eklenti listesinden Gmail / Google Calendar / Google Drive seç, Listele'ye bas. Drive araması dosya adıyla çalışır. Google Docs, TXT ve Markdown içerikleri Charles'a aktarılabilir; diğer biçimlerde dosyayı Drive'da açıp Charles'a ekle.
+1. In [Google Cloud Console](https://console.cloud.google.com/), create a project (for example
+   *Charles*) and enable the **Gmail API**, **Google Calendar API** and **Google Drive API**.
+2. Configure the **Google Auth Platform** (consent screen). Set the audience to *External*. While
+   the app is in testing, add your own Google account under **Test users**.
+3. Create an OAuth client of type **Desktop app** and download its JSON file.
+4. In Charles, choose **Import Google JSON file**, then **Sign in with Google**. Sign in with the
+   account you added as a test user. The callback is `http://127.0.0.1:42813/callback`, and
+   state and PKCE are checked.
 
-Test modundaki Google uygulamaları tekrar giriş isteyebilir. Başkalarına dağıtılan bir OAuth uygulaması Google doğrulaması ve ilgili veri politikalarını gerektirebilir. Charles bu kaydı senin adına yapmaz.
+Do not use an API key or a service-account file. Apps in testing mode may ask you to sign in
+again from time to time. Publishing an OAuth app to other people requires Google’s own review.
 
-## Microsoft: Outlook ve takvim
+Drive search works by file name. Google Docs, TXT and Markdown files can be read into a chat.
+For other formats, open the file and attach it.
 
-1. [Microsoft Entra](https://entra.microsoft.com/) → App registrations → New registration. Kullanacağın hesap türlerini seç (kişisel Outlook hesabı için personal Microsoft accounts desteği gerekir).
-2. Authentication → **Mobile and desktop applications**. Redirect URI olarak `http://127.0.0.1:42813/callback` kaydet. Bu bir public desktop client'tır; Charles Microsoft client secret istemez.
-3. Delegated Microsoft Graph izinleri: `Mail.Read`, `Calendars.Read`, `offline_access`.
-4. Application (client) ID değerini Charles'a kaydet, **Hesaba bağlan** düğmesini kullan. Kurum hesabında yönetici onayı gerekebilir.
+## Microsoft: Outlook and Calendar
 
-## Okul e-postası: TLS IMAP
+1. In [Microsoft Entra](https://entra.microsoft.com/), go to **App registrations → New
+   registration**. Name: *Charles*. Account type: *Any Entra ID tenant + personal Microsoft
+   accounts* (needed for Outlook.com/Hotmail).
+2. **Authentication → Add a platform → Mobile and desktop applications**. Add the redirect URI
+   `http://127.0.0.1:42813/callback`.
+3. Under **Settings**, set **Allow public client flows** to *Yes*. Charles is a public desktop
+   client and does not need a client secret.
+4. **API permissions → Microsoft Graph → Delegated:** add `Mail.Read`, `Calendars.Read` and
+   `offline_access`.
+5. Copy the **Application (client) ID** from *Overview* (not the tenant or object ID), paste it
+   into Charles and choose **Sign in with Microsoft**.
 
-- Sunucu adresini, portu ve kullanıcı adını okulunun bilgi işlem birimiyle doğrula; IMAP veya POP3 erişiminin hesabında açık olması gerekir. Önerilen IMAP TLS portu `993`, POP3 TLS portu `995`.
-- Hesap veya uygulama şifreni yalnızca Charles ayarlarına gir. Sertifika doğrulaması kapatılamaz. INBOX salt okunur açılır; mail okunmuş işaretlenmez veya silinmez.
-- Liste son 7 gündeki en yeni 25 iletiyi getirir. Seçilen iletinin metni en fazla 30.000 karakter olarak aktarılır; büyük iletiler sınırlanır. Ekler otomatik indirilmez.
-- Okul webmail'i oturumunu kazıma veya güvenlik adımlarını atlama kullanılmaz. IMAP kurumda kapalıysa bu bağlantı çalışmaz; webmail üzerinden devam et.
+Work and school tenants may need an administrator to approve the app.
+
+## POP3 / IMAP mail
+
+For school, work or custom-domain mailboxes:
+
+1. Ask your IT department for the server address and check that IMAP or POP3 access is enabled
+   for your account.
+2. In Charles, choose **IMAP · TLS** (usually port `993`) or **POP3 · TLS** (usually port `995`),
+   enter the server, your full email address and your password (or an app password).
+3. **Save**, then **Test connection**.
+
+Certificate checks cannot be turned off. The mailbox is opened read-only: messages are never
+marked as read or deleted. Charles lists the 25 newest messages from the last 7 days and reads
+at most 30,000 characters of a message. Attachments are not downloaded. POP3 cannot report
+read/unread status, so new mail is tracked by message ID after the first check. If your school
+blocks IMAP and POP3, use its webmail instead. Charles does not scrape webmail.
 
 ## Home Assistant
 
-1. Home Assistant profilinde bir **Long-lived access token** oluştur.
-2. Sunucu URL'sini (`http://homeassistant.local:8123` gibi) ve token'ı Charles'a kaydet. Uzak sunucularda HTTPS gerekir.
-3. Listeden Home Assistant seç. Cihazın desteklenen işlemini seçip Uygula → Onayla kullan.
-4. Sohbette `/home` cihazları listeler. `/ev light.salon turn_on` gibi bir komut cihazı çalıştırır. Tam erişimde doğrudan uygulanır; diğer erişim modlarında onay kartı gösterilir.
+1. In Home Assistant, open your profile → **Security** and create a **long-lived access token**.
+2. In Charles, enter the server URL (for example `http://homeassistant.local:8123`) and the
+   token. Remote servers must use HTTPS.
+3. **Test connection.** Devices are addressed by their Home Assistant names.
 
-Desteklenen alanlar: light, switch, fan, media_player, cover, lock, scene, script ve automation. İşlem seçenekleri cihazın alanına göre gösterilir. Sunucu işlemi reddederse Charles başarılı saymaz. Home Assistant sunucusu, adresi ve token'ı gerekir; Google Home hesabı doğrudan bağlanmaz.
+Supported domains: light, switch, fan, media_player, cover, lock, scene, script and automation.
+In **Full access** mode commands run directly. In the other modes Charles shows an approval card
+first. A command the server rejects is not reported as done. Google Home accounts cannot be
+connected directly.
 
-## Bildirimler
+## Developer services
 
-Önemli mail ve takvim bildirimlerini aç. Charles çalışırken 5 dakikada bir kontrol eder; kapalıyken izlemez. İlk kontrol yalnızca başlangıç listesini kaydeder. Sonraki kontrollerde yeni okunmamış maillerin sağlayıcı önem etiketi veya belirlediğin virgülle ayrılmış kelimeler değerlendirilir. Takvimde yeni olaylar ve 15 dakika içinde başlayacak olaylar bildirilir. Aynı olay tekrar tekrar bildirilmez. Sınıflandırma yerel kurallarla yapılır; gelen mail talimatları cihaz çalıştırmaz veya mesaj göndermez.
+GitHub, Vercel, Stripe, Resend, Notion, Cal.com and n8n each take an API key or token (n8n also
+needs its address). Keys are encrypted locally, and the cards refresh about once a minute while
+the panel is open.
 
-Sohbet komutları: `/gmail`, `/outlook`, `/calendar`, `/outlook-calendar`, `/school`, `/drive aranan ad`, `/home`. “Gmail maillerimi göster”, “okul maillerimi göster” ve “takvimimi göster” de kullanılabilir. Eklenti panelinde **Charles'a sor** seçilen metni taslağa koyar; sen Gönder dediğinde seçtiğin AI sağlayıcısına gider.
+## Notifications
 
-## Cursor ve Shazam
+Turn on **Important mail and calendar notifications** to see bubbles under the island.
 
-Cursor, Ayarlar → Hesap bölümünde resmi Windows Cursor Agent üzerinden tarayıcı girişiyle bağlanır. Cursor erişimi olan kendi hesabını kullanırsın. Bağlandıktan sonra Cursor Auto model listesinde görünür. Bu sürümde Cursor bağlantısı sohbet içindir; dosya/terminal araçları kapalıdır. Proje işlemlerinde GPT/Codex kullan. Cursor kotası sayısal olarak alınamadığında kullanım paneli bunu açıkça belirtir.
+- Mail and calendars are checked every **5 minutes while Charles is running**. Nothing is
+  checked while it is closed.
+- The first check only records what is already there. After that, new unread mail is flagged
+  when the provider marks it important or when it contains one of your **important keywords**
+  (comma-separated, for example *urgent, exam, deadline*).
+- New calendar events and events starting within 15 minutes are announced, each only once.
+- Sorting uses local rules, not a background AI call.
 
-ShazamKit'in resmi Windows SDK'sı bulunmadığı için Shazam bu sürümde çalışır bir eklenti değildir. ChatGPT'deki Shazam bağlantısı taşınmaz. [Apple ShazamKit](https://developer.apple.com/shazamkit/).
+Click a bubble and Charles explains the email. It can also offer to add a deadline to your
+calendar with reminders.
 
-## English quick setup
+## Using plugins in chat
 
-Settings → General → Language → English switches the interface. Under Plugins, configure your own Google Desktop OAuth client or Microsoft public desktop application (callback `http://127.0.0.1:42813/callback`). Google requires Gmail, Calendar and Drive APIs with read-only scopes; Microsoft requires delegated Mail.Read, Calendars.Read and offline_access. Sign in using the system browser.
+Ask in plain language, by text or voice. Charles understands Turkish requests such as
+*“Okul maillerimi özetle”* (summarize my school mail), *“Önemli mail var mı?”* (any important
+mail?), *“Takvimimi göster”* (show my calendar) and *“Tavan lambasını kapat”* (turn off the
+ceiling light).
 
-School mail uses verified TLS IMAP. Enter the server, port, username and password in Settings. Confirm the server address and IMAP/POP3 availability with your school's IT department. Home Assistant requires your server URL and a long-lived token. Credentials are encrypted locally and never included in the installation package. Monitoring runs every five minutes while Charles is open. The first check establishes a baseline; later checks notify you about important new mail and calendar events. This is rule-based filtering, not a background AI call.
+There are also slash commands: `/gmail`, `/outlook`, `/calendar`, `/outlook-calendar`, `/school`,
+`/drive <file name>` and `/home`. **Ask Charles** in the plugin panel puts the selected text into
+a draft. It is sent only when you press Send.
+
+## AI accounts
+
+AI providers are connected in **Settings → Account**, not under Plugins:
+
+| Provider | How it connects |
+| --- | --- |
+| GPT | Your ChatGPT account through Codex (browser sign-in) |
+| Claude | Claude Code. It needs a plan that includes Claude Code; a free web account is not enough |
+| Gemini | Your Google account through Antigravity. Gemini Live voice uses a separate API key from AI Studio |
+| Cursor | The official Cursor Agent (browser sign-in). Chat only; use GPT/Codex for project work |
 
 ## Technical references
 
-- [Google desktop OAuth](https://developers.google.com/identity/protocols/oauth2/native-app)
+- [Google OAuth for desktop apps](https://developers.google.com/identity/protocols/oauth2/native-app)
 - [Microsoft authorization code flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow)
 - [Home Assistant REST API](https://developers.home-assistant.io/docs/api/rest/)
 - [Cursor CLI authentication](https://cursor.com/docs/cli/reference/authentication)

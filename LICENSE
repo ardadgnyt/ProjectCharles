@@ -9,6 +9,10 @@ You may download, run and study Project Charles for your own personal, non-comme
 You may not copy, redistribute, publish modified versions of, or use it commercially
 without written permission from HzPederPan.
 
+Charles's design is inspired by Charles from the Epic Minequest video series on Sam Green's
+YouTube channel (https://www.youtube.com/@SamGreen). Project Charles is an independent project
+and is not affiliated with or endorsed by Sam Green.
+
 Exceptions: third-party components keep their own licenses. They are listed in
 THIRD-PARTY-NOTICES.md, and their license texts are in the licenses/ folder and in
 node_modules/ and tools/.

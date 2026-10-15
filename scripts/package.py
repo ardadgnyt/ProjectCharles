@@ -19,7 +19,15 @@ import zipfile
 
 SKIP_DIRS = {'.git', '_to_delete', 'release'}
 # personal / machine-local files never go into an installer
-SKIP_FILES = {'Charles.zip', 'charles-manifest.json', 'Charles-creator.json', '.env'}
+SKIP_FILES = {
+    'Charles.zip',
+    'charles-manifest.json',
+    'Charles-creator.json',
+    '.env',
+    # local-only notes (kept out of GitHub and releases)
+    'docs/GITHUB.md',
+    'docs/VERIFICATION-v0.4.4.md',
+}
 STORE = ('.zip', '.gz', '.png', '.jpg', '.ico', '.mp3', '.ogg', '.wav', '.bin', '.onnx', '.woff2', '.7z', '.asar')
 PE = ('.exe', '.dll', '.node')
 CHUNK = 256 * 1024  # bigger reads come back wrong through the VM folder share

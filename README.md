@@ -15,6 +15,9 @@ into a chat and project workspace. Living on top of it all is **Slime**, a jelly
 who reacts to what you and the AI are doing. Slime thinks while the AI thinks, codes on a
 tiny laptop while the AI writes code, and gets dizzy if you shake it too hard.
 
+> Charles’s design is inspired by **Charles** from Sam Green’s *Epic Minequest* series on
+> [YouTube](https://www.youtube.com/@SamGreen).
+
 ---
 
 ## Contents
@@ -26,6 +29,7 @@ tiny laptop while the AI writes code, and gets dizzy if you shake it too hard.
 - [Your data and privacy](#your-data-and-privacy)
 - [Project layout](#project-layout)
 - [Documentation](#documentation)
+- [Credits](#credits)
 - [License](#license)
 
 ## Highlights
@@ -158,10 +162,14 @@ ProjectCharles/
 | --- | --- |
 | [CHANGELOG.md](CHANGELOG.md) | What changed in every version (Turkish) |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Code tour, data files, build and test (Turkish) |
-| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | Detailed user guide (Turkish) |
+| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | User guide: chat, project mode, voice, Slime, settings, shortcuts |
 | [docs/PLUGINS-SETUP.md](docs/PLUGINS-SETUP.md) | Connecting Google, Microsoft, mail and Home Assistant |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the parts fit together |
-| [docs/GITHUB.md](docs/GITHUB.md) | Publishing new versions to GitHub (Turkish) |
+
+## Credits
+
+- Charles’s design is inspired by **Charles** from the *Epic Minequest* video series on [Sam Green’s YouTube channel](https://www.youtube.com/@SamGreen). Project Charles is a fan-inspired, independent project and is not affiliated with or endorsed by Sam Green.
+- Parts of the character engine are derived from MIT-licensed code (see [LICENSE](LICENSE)).
 
 ## License
 
