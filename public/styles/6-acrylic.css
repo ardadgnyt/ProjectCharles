@@ -1071,3 +1071,14 @@ body[data-mic-off='true'] #voice-call {
   width: auto;
   margin: 0;
 }
+
+/* v0.6.5: no focus frame or hover box around Slime on the island (it looked like a bug and
+   cut the hat). The canvas itself reacts to clicks and hover. */
+#pet,
+#pet:hover,
+#pet:focus,
+#pet:focus-visible {
+  outline: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
