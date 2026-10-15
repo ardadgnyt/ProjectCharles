@@ -1,4 +1,5 @@
-// Links to the official Google / Microsoft OAuth setup pages.
+// Links to the official Google / Microsoft OAuth setup pages, and (v0.6.5) the Google AI
+// Studio page where the Gemini Live API key is created.
 const PAGES = {
   google: [
     'https://console.cloud.google.com/projectcreate',
@@ -12,9 +13,13 @@ const PAGES = {
   microsoft: [
     'https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade',
   ],
+  gemini: ['https://aistudio.google.com/api-keys'],
+  // Gemini account sign-in runs in the Antigravity console window; no web page to open.
+  'gemini-login': [],
 };
 function setupURL(id, step = 0) {
   const pages = PAGES[id];
+  if (pages && !pages.length && step === 0) return null;
   if (!pages || !Number.isInteger(step) || step < 0 || step >= pages.length)
     throw Error('Geçersiz kurulum adımı.');
   return pages[step];

@@ -1,3 +1,4 @@
+import { splitQuestions } from '../chat/ai-questions';
 export function voiceUI(api: any, notice: (text: string) => void, busy: () => boolean) {
   const mic = document.getElementById('voice-mic') as HTMLButtonElement;
   const cancel = document.getElementById('voice-cancel') as HTMLButtonElement;
@@ -102,9 +103,16 @@ export function voiceUI(api: any, notice: (text: string) => void, busy: () => bo
       }
     }
   }
+  document.addEventListener('mic-privacy-off', () => {
+    if (phase === 'recording' || phase === 'starting') void stop();
+  });
   mic.onclick = async () => {
     if (phase === 'recording') {
       await finish();
+      return;
+    }
+    if (document.body.dataset.micOff === 'true') {
+      notice('Mikrofon kapalı. Üstteki mikrofon simgesinden açabilirsin.');
       return;
     }
     if (document.body.dataset.liveVoice === 'active') {
@@ -215,7 +223,7 @@ export function voiceUI(api: any, notice: (text: string) => void, busy: () => bo
     },
     item(item: any) {
       if (item.type === 'agentMessage' && item.text && item.phase !== 'commentary')
-        finalText = item.text;
+        finalText = splitQuestions(item.text).visible; // v0.6.5: never read the question block
     },
     completed(ok: boolean) {
       if (ok) void speak(finalText);

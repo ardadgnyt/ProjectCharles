@@ -8,6 +8,8 @@ const DEFAULTS = {
   // null = keep using the last model picked in the chat.
   startupModel: null,
   sound: true,
+  // v0.6.5: microphone privacy switch in the panel header.
+  micOff: false,
   volume: 0.12,
   autoHide: true,
   hideSeconds: 60,
@@ -51,6 +53,11 @@ class Extras {
     fs.writeFileSync(dest + '.tmp', JSON.stringify(value, null, 2));
     fs.renameSync(dest + '.tmp', dest);
   }
+  setMicOff(value) {
+    this.prefs.micOff = !!value;
+    this.write('display.json', this.prefs);
+    return this.prefs.micOff;
+  }
   settings(value) {
     if (value) {
       this.prefs = {
@@ -58,6 +65,7 @@ class Extras {
         startupModel: this.prefs.startupModel ?? null,
         soundsV060: true,
         sound: !!value.sound,
+        micOff: !!this.prefs.micOff,
         volume: Math.max(0, Math.min(0.2, Number(value.volume) || 0)),
         autoHide: !!value.autoHide,
         hideSeconds: Math.max(10, Math.min(600, Number(value.hideSeconds) || 60)),

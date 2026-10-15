@@ -51,6 +51,61 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
           finish: true,
         },
       ],
+      // v0.6.5: Gemini account (chat) through Antigravity, a console window instead of a web page
+      'gemini-login': [
+        {
+          title: '1 · Giriş penceresini aç',
+          text: 'Aşağıdaki düğmeye bas. Charles, Gemini girişi için küçük bir siyah komut penceresi (Antigravity) açacak. Bu pencere Charles’ın kendi giriş aracıdır; güvenle kullanabilirsin.',
+        },
+        {
+          title: '2 · Google ile girişi seç',
+          text: 'Siyah pencerede giriş yöntemi sorulursa ok tuşlarıyla Google ile giriş / Login with Google seçeneğine gelip Enter’a bas. API anahtarı veya Vertex AI seçeneklerini seçme.',
+        },
+        {
+          title: '3 · Tarayıcıda hesabını seç',
+          text: 'Tarayıcıda Google sayfası açılır. Gemini için kullanacağın hesabı seçip İzin ver / Allow’a bas. Başarılı yazısını görünce tarayıcı sekmesini kapatabilirsin. Tarayıcı açılmazsa siyah penceredeki bağlantıya Ctrl tuşuyla tıkla.',
+        },
+        {
+          title: '4 · Pencerenin onayını bekle',
+          text: 'Siyah pencerede hesabın veya bir model adı görünüyorsa giriş tamamdır. Pencereyi kapatıp buraya dön. Pencere hâlâ bir şey soruyorsa Enter’a bas.',
+        },
+        {
+          title: '5 · Bağlantıyı kontrol et',
+          text: 'Bağlantıyı kontrol et’e bas. Bağlıysa Gemini modelleri mesaj kutusundaki model listesine eklenir.',
+          finish: true,
+        },
+      ],
+      // v0.6.5: Gemini Live voice key from Google AI Studio
+      gemini: [
+        {
+          title: '1 · Google AI Studio’ya giriş yap',
+          text: 'Açılan sayfada Google hesabınla giriş yap. İlk kez giriyorsan kullanım şartlarını okuyup kabul et. Ücret ödemen gerekmez.',
+          page: 0,
+        },
+        {
+          title: '2 · API anahtarı oluştur',
+          text: 'Sağ üstteki API anahtarı oluştur / Create API key düğmesine bas. Anahtara Charles adını ver.',
+          page: 0,
+        },
+        {
+          title: '3 · Proje seç',
+          text: 'Proje olarak yeni bir proje oluştur (ör. Charles) ya da faturalandırması olmayan mevcut bir projeni seç, sonra Anahtar oluştur / Create key’e bas.',
+        },
+        {
+          title: '4 · Ücretsiz katmanı kontrol et',
+          text: 'Anahtar listesinde projenin yanında Free tier / Ücretsiz katman yazmalı. Set up billing / Faturalandırma görürsen dokunma; Charles için faturalandırma açman gerekmez.',
+          page: 0,
+        },
+        {
+          title: '5 · Anahtarı kopyala',
+          text: 'Anahtarın satırına tıklayıp kopyala simgesine bas. Anahtar bir şifre gibidir; kimseyle paylaşma, ekran görüntüsünde gösterme.',
+        },
+        {
+          title: '6 · Anahtarı yapıştır ve test et',
+          text: 'Anahtarı aşağıya yapıştır, Free Tier kutusunu işaretle ve Kaydet ve test et’e bas. Anahtar Windows şifrelemesiyle yalnızca bu bilgisayarda (%APPDATA%\\Charles) saklanır.',
+          finish: true,
+        },
+      ],
       microsoft: [
         {
           title: '1 · Microsoft uygulama kaydını aç',
@@ -140,7 +195,95 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
       reopen.onclick = () => void api.pluginsSetupPage(id, current.page);
       bubble.append(reopen);
     }
-    if (current.finish) {
+    if (id === 'gemini-login' && step === 0) {
+      const open = document.createElement('button');
+      open.className = 'primary';
+      open.textContent = 'Giriş penceresini aç';
+      open.onclick = async () => {
+        open.disabled = true;
+        try {
+          const r = await api.providersLogin('gemini');
+          if (r?.signedIn) {
+            step = steps[id].length - 1;
+            render();
+            p.textContent = '';
+            const last = bubble?.querySelector('p');
+            if (last) last.textContent = 'Gemini hesabın zaten bağlı. Kurulumu bitir düğmesine basabilirsin.';
+            await saved(null);
+            return;
+          }
+          p.textContent = 'Pencere açıldı. Tamam, sonraki adım’a basıp devam et.';
+        } catch (e) {
+          p.textContent = (e as Error).message;
+        } finally {
+          open.disabled = false;
+        }
+      };
+      bubble.append(open);
+    }
+    if (current.finish && id === 'gemini-login') {
+      const check = document.createElement('button');
+      check.className = 'primary';
+      check.textContent = 'Bağlantıyı kontrol et';
+      check.onclick = async () => {
+        check.disabled = true;
+        p.textContent = 'Kontrol ediliyor…';
+        try {
+          const rows = await api.providersStatus();
+          const ok = rows?.find?.((r: any) => r.id === 'gemini')?.signedIn;
+          p.textContent = ok
+            ? 'Bağlandı. Gemini modelleri model listesinde. Kurulumu bitir düğmesine basabilirsin.'
+            : 'Henüz bağlı görünmüyor. Siyah penceredeki adımları bitirip birkaç saniye sonra tekrar dene; gerekirse Geri ile 1. adıma dön.';
+          await saved(null);
+        } catch (e) {
+          p.textContent = (e as Error).message;
+        } finally {
+          check.disabled = false;
+        }
+      };
+      bubble.append(check);
+    } else if (current.finish && id === 'gemini') {
+      const input = document.createElement('input');
+      input.type = 'password';
+      input.autocomplete = 'off';
+      input.placeholder = 'Gemini API anahtarı';
+      input.setAttribute('aria-label', 'Gemini API anahtarı');
+      const label = document.createElement('label');
+      const free = document.createElement('input');
+      free.type = 'checkbox';
+      label.append(free, ' Projem Free Tier; faturalandırması kapalı');
+      const save = document.createElement('button');
+      save.className = 'primary';
+      save.textContent = 'Kaydet ve test et';
+      save.onclick = async () => {
+        save.disabled = true;
+        try {
+          const before = await api.liveVoiceStatus();
+          saved(
+            await api.liveVoiceSave({
+              key: input.value.trim(),
+              enabled: true,
+              freeProject: free.checked,
+              voice: before?.voice || '',
+            }),
+          );
+          input.value = '';
+          p.textContent = 'Anahtar kaydedildi. Bağlantı sınanıyor; mikrofon açılmaz…';
+          try {
+            if (!(await api.liveVoiceStart())) throw Error('Bağlantı kurulamadı.');
+            p.textContent =
+              'Bağlantı başarılı. Gemini Live hazır: mikrofon düğmesine basıp konuşabilirsin. Kurulumu bitir düğmesine basabilirsin.';
+          } finally {
+            await api.liveVoiceStop();
+          }
+        } catch (e) {
+          p.textContent = (e as Error).message;
+        } finally {
+          save.disabled = false;
+        }
+      };
+      bubble.append(input, label, save);
+    } else if (current.finish) {
       if (id === 'google') {
         const load = document.createElement('button');
         load.textContent = 'Google JSON dosyasını seç';

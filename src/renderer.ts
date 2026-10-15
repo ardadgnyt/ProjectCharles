@@ -1,5 +1,5 @@
 import { settingsCards } from './settings/settings-cards';
-import { languageUI } from './settings/i18n';
+import { languageUI, t } from './settings/i18n';
 import { wakeTraining } from './voice/wake-training';
 import { pluginsUI } from './settings/plugins';
 import { shortcutsUI } from './settings/shortcuts';
@@ -12,6 +12,7 @@ import { wakeUI } from './voice/wake';
 import { usageUI, resetLabel, type LowQuota } from './island/usage';
 import { proposalsUI } from './chat/proposals';
 import { paintSoundButton } from './ui/sound-button';
+import { micPrivacyUI } from './ui/mic-button';
 import { Jelly } from './island/jelly';
 import { onboardingUI } from './island/onboarding';
 import { showGenerating, showImage, showFailed } from './chat/image-card';
@@ -31,7 +32,8 @@ import { BotEngine } from './vendor/slime/engine';
 import { Sound } from './vendor/core/sound';
 import type { BotStateName } from './vendor/core/layout';
 import { extraUI } from './settings/extras';
-import { updateMarkdown, messageSource } from './chat/markdown';
+import { updateMarkdown, messageSource, setQuestionHandler } from './chat/markdown';
+import { questionCard } from './chat/ai-questions';
 import { textReaction, answerReaction, isRateLimit } from './chat/reactions';
 
 declare global {
@@ -993,6 +995,7 @@ const voice = voiceUI(api, notice, () => busy);
 geminiLiveUI(api, notice, () => busy || voice.active());
 providersUI(api, populateModels, notice);
 shortcutsUI(api, notice);
+micPrivacyUI(api, notice);
 wakeUI(api, () => busy || voice.active(), notice);
 wakeTraining(api, notice);
 pluginsUI(api, notice);
@@ -1112,12 +1115,48 @@ document.querySelectorAll<HTMLButtonElement>('[data-prompt]').forEach(
       prompt.focus();
     }),
 );
+// v0.6.5: a question from the AI (any provider) becomes a card with answer buttons; the
+// answer goes out as the user's next message.
+setQuestionHandler((element, questions) => {
+  const card = questionCard(
+    questions,
+    (text) => {
+      if (busy) {
+        notice('Önce etkin yanıtın tamamlanmasını bekle.');
+        card.classList.remove('answered');
+        for (const b of card.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button,input'))
+          b.disabled = false;
+        return;
+      }
+      prompt.value = text;
+      ($('composer') as HTMLFormElement).requestSubmit();
+    },
+    t,
+  );
+  // Only the newest message's questions can still be answered.
+  const last = [...feed.querySelectorAll('.message')].at(-1);
+  if (last !== element) {
+    card.classList.add('answered');
+    for (const b of card.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button,input'))
+      b.disabled = true;
+  } else if (!replaying) {
+    state('question', 'Yanıtını bekliyorum');
+    Sound.play('question');
+  }
+  return card;
+});
 $('composer').addEventListener('submit', (e) => {
   e.preventDefault();
   void attempt(async () => {
     if (busy || demo || voice.active()) return;
     const text = prompt.value.trim();
     if (!text) return;
+    // Any new message closes the AI's open question cards.
+    for (const c of feed.querySelectorAll<HTMLElement>('.ai-questions:not(.answered)')) {
+      c.classList.add('answered');
+      for (const b of c.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button,input'))
+        b.disabled = true;
+    }
     // A short answer ("evet", "hayır", "sadece hatırlat") to Charles' open question
     // (calendar / quota) is answered by Charles himself, with the question as context.
     if (!features.hasDocument() && !$('composer').dataset.task) {

@@ -1,6 +1,6 @@
 # Charles — User Guide
 
-This guide covers Charles **v0.6.4 Beta** on Windows 10/11. For installation, see the
+This guide covers Charles **v0.6.5 Beta** on Windows 10/11. For installation, see the
 [README](../README.md#installation). For the full history of changes, see
 [CHANGELOG.md](../CHANGELOG.md) (Turkish).
 
@@ -49,6 +49,11 @@ message. The earlier conversation stays in history.
 
 When an AI is running low on quota, Charles offers to continue with another connected AI.
 
+**Questions from the AI.** Sometimes the AI needs a decision before it can do the work well
+(which language, which file, which option). The question appears under its answer as a card.
+Click an option or type your own answer and press **Reply**. The answer is sent as your next
+message.
+
 Past chats are listed in **History** (the list button at the top left). There you can search
 chats, sort them into folders, rename them and reopen them.
 
@@ -71,8 +76,15 @@ that were already made stay in place.
 - **Hey Charles:** turn it on in Settings → General, then say *“Hey Charles”* and talk. The
   wake word is detected on your computer, and a short training (three recordings) improves it.
   While it is on, the microphone keeps listening for the wake word.
+- **Microphone button:** the microphone icon at the top right of the panel, left of the
+  speaker, switches Charles’s microphone off for privacy. While it is off (red, crossed out),
+  Hey Charles, dictation and voice conversation do not listen at all. Click it again to turn the
+  microphone back on. The choice is remembered.
 - **Voice conversation (Gemini Live):** a real-time spoken conversation. It needs a Gemini API
-  key (Settings → Account). Audio goes to Google. Actions on your computer still go through
+  key (Settings → Account). Press **Set up with Charles** there and Slime shows you how to
+  create a free key in Google AI Studio, then saves and tests it. While a call is on, the
+  *Voice conversation active* pill on the right shows your voice level, so you can see that
+  your voice is getting through. Audio goes to Google. Actions on your computer still go through
   your connected GPT/Codex account and your Access setting.
 - **Dictation:** the microphone button turns speech into text in the message box. With
   `npm run setup:voice` (or the release package), this runs locally with Whisper.
@@ -112,7 +124,7 @@ In the Turkish interface, Slime holds a Turkish flag on 19 May, 30 August, 29 Oc
 | Page | What you will find |
 | --- | --- |
 | **General** | Language (English / Türkçe), start with Windows, sounds and volume, auto-hide and collapse, read aloud, Hey Charles, weather city, welcome tour |
-| **Account** | Sign in to ChatGPT/Codex, Claude, Gemini and Cursor; default model; Gemini Live key and voice |
+| **Account** | Sign in to ChatGPT/Codex, Claude, Gemini and Cursor (Gemini has **Set up with Charles**); default model; Gemini Live key (with **Set up with Charles**) and voice |
 | **Appearance** | Text size, panel size, character size, opacity, screen choice, chat colours, Slime studio, try expressions |
 | **Memory** | Things Charles should remember; import a summary from ChatGPT |
 | **Access** | How much the AI may do without asking (see [Project mode](#project-mode)) |
@@ -142,7 +154,7 @@ These work from any app and can be changed in Settings → Shortcuts.
 ## Things you can just say
 
 Charles handles some requests itself, without asking the AI. These shortcuts understand
-Turkish phrasing, for example:
+Turkish phrasing (browser commands also understand English), for example:
 
 | You say | Charles |
 | --- | --- |
@@ -154,6 +166,9 @@ Turkish phrasing, for example:
 | *“Önemli mail var mı?”* · *“Okul maillerimi özetle”* | checks and summarizes connected mailboxes |
 | *“Hava nasıl?”* | today’s weather for your city |
 | *“Tavan lambasını kapat”* | controls a Home Assistant device |
+| *“İnternetten … arat”* · *“Search the web for …”* | opens a Google search in your default browser |
+| *“YouTube’dan … videosunu aç”* · *“Play … on YouTube”* | opens the first matching YouTube video in your browser |
+| *“github.com sitesini aç”* · *“Open github.com”* | opens the site in your browser |
 
 Anything else, in any language, goes to the AI you selected.
 
@@ -175,6 +190,6 @@ Anything else, in any language, goes to the AI you selected.
 | Charles does not start | Only one Charles can run at a time. Quit the old one from the tray icon and start again. If you run from source, run `npm run build` first. |
 | “Sign-in required” | Settings → Account → sign in again. Finish the sign-in in the browser window that opens. |
 | No sound | Check the speaker button at the top right and Settings → General → Sounds. |
-| Hey Charles does not react | Check that the microphone is allowed in Windows privacy settings, then redo the training in Settings → General. |
+| Hey Charles does not react | Check the microphone button at the top right (red means off). Check that the microphone is allowed in Windows privacy settings, then redo the training in Settings → General. |
 | Mail is not shown | Settings → Plugins → *Test connection*. Mail is checked every five minutes while Charles is open. |
 | Something looks broken after an update | Use `setup\Reset-Charles.cmd`. Your old data is backed up first. |

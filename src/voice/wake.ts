@@ -56,7 +56,9 @@ export function wakeUI(api: any, busy: () => boolean, notice: (s: string) => voi
   void preferences();
   document.addEventListener('wake-trained', () => void preferences());
   document.addEventListener('wake-training', stop);
+  document.addEventListener('mic-privacy-off', stop);
   const occupied = () =>
+    document.body.dataset.micOff === 'true' ||
     document.body.dataset.wakeTraining === 'true' ||
     busy() ||
     document.body.dataset.liveVoice === 'active' ||
@@ -81,7 +83,12 @@ export function wakeUI(api: any, busy: () => boolean, notice: (s: string) => voi
     void ctx?.close();
     ctx = null;
     void api.wakeStop();
-    note.textContent = enabled ? 'Uyandırma dinlemesi beklemede.' : 'Kapalı';
+    note.textContent =
+      document.body.dataset.micOff === 'true'
+        ? 'Mikrofon kapalı · üstteki mikrofon simgesinden açabilirsin'
+        : enabled
+          ? 'Uyandırma dinlemesi beklemede.'
+          : 'Kapalı';
   }
   async function start() {
     if (!enabled || paused || starting || stream || occupied() || Date.now() < cooldown) return;

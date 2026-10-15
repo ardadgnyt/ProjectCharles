@@ -84,6 +84,7 @@ let dialogOpen = false,
   dropHeldUntil = 0;
 let blurTimer;
 let cursorTimer;
+const micBlocked = () => !!extras?.prefs?.micOff;
 let extras,
   serviceTimer,
   hidden = false,
@@ -132,6 +133,14 @@ function endPluginGuide() {
   win.webContents.send('plugin-guide-ended');
   detachPet(previous.detached);
   if (!previous.detached) expand(previous.expanded, true);
+}
+// v0.6.5: web search / YouTube / web address in the default browser (system/web-commands.cjs)
+function openWebCommand(cmd) {
+  return require('./system/web-commands.cjs').openWeb(cmd, {
+    openExternal: (url) => shell.openExternal(url),
+    fetch: (url, options) => fetch(url, options),
+    en: v2?.data?.language === 'en',
+  });
 }
 function placePet(point) {
   const { petBounds } = require('./core/desktop-pet.cjs');
@@ -475,6 +484,7 @@ else {
         const allow =
           wc === win?.webContents &&
           permission === 'media' &&
+          !micBlocked() &&
           Date.now() < micArmedUntil &&
           wc.getURL().startsWith('charles://app/') &&
           details.mediaTypes?.length === 1 &&
@@ -485,6 +495,7 @@ else {
         (wc, permission, origin, details) =>
           wc === win?.webContents &&
           permission === 'media' &&
+          !micBlocked() &&
           Date.now() < micArmedUntil &&
           origin.startsWith('charles://app') &&
           details.mediaType === 'audio',
@@ -582,6 +593,15 @@ else {
           if (demo || !liveRoom || liveRoom !== agent.active)
             throw Error('Sesli görüşme etkin değil.');
           let transcript = context?.transcript || liveInput || liveLastInput;
+          // v0.6.5: "YouTube'dan X aç", "internetten X ara" — no Codex needed
+          const web = require('./system/web-commands.cjs');
+          const webCommand =
+            tool === 'open_web'
+              ? web.parseWebCommand(request) ||
+                web.parseWebCommand(transcript) ||
+                (request ? { kind: 'search', query: request, url: 'https://www.google.com/search?q=' + encodeURIComponent(request) } : null)
+              : web.parseWebCommand(request) || web.parseWebCommand(transcript);
+          if (webCommand) return { result: await openWebCommand(webCommand) };
           if (
             tool === 'connected_plugin' ||
             require('./plugins/plugin-commands.cjs').parse(request) ||
@@ -1006,7 +1026,7 @@ else {
         guideBounds();
         win.showInactive();
         try {
-          if (!demo) await shell.openExternal(url);
+          if (!demo && url) await shell.openExternal(url);
         } catch (e) {
           endPluginGuide();
           throw e;
@@ -1249,6 +1269,7 @@ else {
         return result;
       });
       safeHandler('voice-arm', () => {
+        if (micBlocked()) throw Error('Mikrofon kapalı. Üstteki mikrofon simgesinden açabilirsin.');
         if (!voice.available()) throw Error('Yerel ses modeli bulunamadı.');
         if (voice.job) throw Error('Önce ses işlemini durdur.');
         voiceHeld = true;
@@ -1265,6 +1286,7 @@ else {
         return value;
       });
       safeHandler('wake-arm', () => {
+        if (micBlocked()) throw Error('Mikrofon kapalı. Üstteki mikrofon simgesinden açabilirsin.');
         if (demo || !v2.data.wakeEnabled || !wakeVoice.available())
           throw Error('Hey Charles etkin değil veya yerel model bulunamadı.');
         wakeAllowed = true;
@@ -1273,6 +1295,7 @@ else {
       });
       safeHandler('wake-stop', () => wakeVoice.stop());
       safeHandler('wake-training-arm', () => {
+        if (micBlocked()) throw Error('Mikrofon kapalı. Üstteki mikrofon simgesinden açabilirsin.');
         if (voiceHeld || voice.job) throw Error('Önce etkin ses işlemini bitir.');
         micArmedUntil = Date.now() + 15000;
         return true;
@@ -1341,6 +1364,7 @@ else {
       // Lets the renderer open the microphone while the Gemini connection is still being set
       // up (both take a while; doing them one after the other made the call button slow).
       safeHandler('live-voice-arm', () => {
+        if (micBlocked()) return false;
         if (voiceHeld || voice.job) return false;
         micArmedUntil = Date.now() + 30000;
         return true;
@@ -1367,6 +1391,28 @@ else {
         voiceHeld = false;
         voice.stop();
         lastInside = Date.now();
+      });
+      // v0.6.5: the microphone button in the panel header. While it is off nothing in Charles
+      // may open the microphone (Hey Charles, dictation, Gemini Live, wake training).
+      safeHandler('mic-privacy', (value) => {
+        if (value !== undefined && value !== null) {
+          if (typeof value !== 'boolean') throw Error('Geçersiz mikrofon tercihi.');
+          extras.setMicOff(value);
+          if (value) {
+            micArmedUntil = 0;
+            voiceHeld = false;
+            try {
+              wakeVoice.stop();
+            } catch {}
+            try {
+              liveVoice?.stop();
+            } catch {}
+            try {
+              voice.stop();
+            } catch {}
+          }
+        }
+        return micBlocked();
       });
       safeHandler('settings', (value) => {
         const result = extras.settings(value);
@@ -1754,6 +1800,14 @@ else {
               agent.local(args.prompt, message);
               return { localAction: true, message };
             }
+          }
+          // v0.6.5: "internetten X ara", "YouTube'dan X aç" → default browser
+          const web = require('./system/web-commands.cjs').parseWebCommand(args.prompt);
+          if (web) {
+            if (demo) throw Error('Önizleme modunda tarayıcı açılmaz.');
+            const message = await openWebCommand(web);
+            agent.local(args.prompt, message);
+            return { localAction: true, message };
           }
           const usage = performanceHistory.answer(args.prompt);
           if (usage) {

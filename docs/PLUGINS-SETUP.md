@@ -121,7 +121,7 @@ AI providers are connected in **Settings → Account**, not under Plugins:
 | --- | --- |
 | GPT | Your ChatGPT account through Codex (browser sign-in) |
 | Claude | Claude Code. It needs a plan that includes Claude Code; a free web account is not enough |
-| Gemini | Your Google account through Antigravity. Gemini Live voice uses a separate API key from AI Studio |
+| Gemini | Your Google account through Antigravity. Gemini Live voice uses a separate API key from AI Studio. Both have **Set up with Charles**, a step-by-step guide next to Slime |
 | Cursor | The official Cursor Agent (browser sign-in). Chat only; use GPT/Codex for project work |
 
 ## Technical references

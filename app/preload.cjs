@@ -70,6 +70,7 @@ window.addEventListener(
 );
 contextBridge.exposeInMainWorld('charles', {
   wakeEnable: (value) => invoke('wake-enable', value),
+  micPrivacy: (value) => invoke('mic-privacy', value),
   wakeArm: () => invoke('wake-arm'),
   wakeCheck: (bytes) => invoke('wake-check', bytes),
   wakeStop: () => invoke('wake-stop'),

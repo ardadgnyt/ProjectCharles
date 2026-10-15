@@ -1,4 +1,5 @@
 import MarkdownIt from 'markdown-it';
+import { splitQuestions, type AiQuestion } from './ai-questions';
 
 const markdown = new MarkdownIt({ html: false, linkify: true, breaks: true, typographer: false });
 markdown.validateLink = (href: string) => {
@@ -17,6 +18,14 @@ const copyIcon =
 const speakIcon =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4zM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/></svg>';
 const sources = new WeakMap<HTMLElement, string>();
+// v0.6.5: questions from the AI are shown as a card (src/chat/ai-questions.ts)
+const cards = new WeakMap<HTMLElement, HTMLElement>();
+let questionHandler: ((element: HTMLElement, questions: AiQuestion[]) => HTMLElement) | null = null;
+export function setQuestionHandler(
+  fn: (element: HTMLElement, questions: AiQuestion[]) => HTMLElement,
+) {
+  questionHandler = fn;
+}
 const pending = new WeakSet<HTMLElement>();
 export function updateMarkdown(element: HTMLElement, text: string, replace = false) {
   sources.set(element, (replace ? text : (sources.get(element) || '') + text).slice(-300000));
@@ -26,7 +35,8 @@ export function updateMarkdown(element: HTMLElement, text: string, replace = fal
     pending.delete(element);
     if (!element.isConnected) return;
     element.classList.add('markdown');
-    element.innerHTML = markdown.render(sources.get(element) || '');
+    const { visible, questions } = splitQuestions(sources.get(element) || '');
+    element.innerHTML = markdown.render(visible);
     const actions = document.createElement('div');
     actions.className = 'answer-tools';
     for (const [label, type] of [
@@ -52,10 +62,20 @@ export function updateMarkdown(element: HTMLElement, text: string, replace = fal
       b.dataset.answerAction = 'code';
       pre.append(b);
     }
+    if (questions.length && questionHandler) {
+      let card = cards.get(element);
+      if (!card || card.dataset.count !== String(questions.length)) {
+        card = questionHandler(element, questions);
+        card.dataset.count = String(questions.length);
+        cards.set(element, card);
+      }
+      element.append(card);
+    }
     element.parentElement?.scrollTo({ top: element.parentElement.scrollHeight });
   });
 }
 
 export function messageSource(element: HTMLElement) {
-  return sources.get(element) || element.textContent || '';
+  const source = sources.get(element);
+  return source ? splitQuestions(source).visible : element.textContent || '';
 }

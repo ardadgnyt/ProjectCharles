@@ -1,3 +1,4 @@
+import { pluginGuideUI } from './plugin-guide';
 export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: string) => void) {
   const page = document.querySelector('.settings-page[data-category=account]')!;
   // v0.5.1: no separate "main AI" setting. The model chosen in the chat decides; the main
@@ -123,7 +124,7 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
       id === 'cursor'
         ? 'Cursor hesabınla resmi Cursor Agent üzerinden bağlan. Bağlantı sohbet modunda çalışır.'
         : id === 'gemini'
-          ? 'Google hesabınla Antigravity üzerinden bağlan. Açılan pencerede Google OAuth seç. Gemini Live API bağlantısı ayrıdır.'
+          ? 'Google hesabınla Antigravity üzerinden bağlan. Nasıl yapılacağını bilmiyorsan Charles ile kur’a bas; Slime adım adım anlatır. Sesli görüşme (Gemini Live) için ayrı bir API anahtarı gerekir; aşağıdaki Gemini Live bölümüne bak.'
           : 'Claude hesabınla Claude Code üzerinden bağlan. Claude Code erişimi olan bir abonelik gerekir; ücretsiz web hesabı bu erişimi sağlamaz.';
     const result = document.createElement('p');
     result.className = 'hint';
@@ -162,7 +163,22 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
         login.disabled = false;
       }
     };
-    actions.append(login, check);
+    actions.append(login);
+    if (id === 'gemini') {
+      // v0.6.5: step-by-step sign-in next to Slime, like the plugin guides
+      const guide = pluginGuideUI(api, notice, async () => {
+        await sync();
+        await refresh();
+      });
+      const setup = document.createElement('button');
+      setup.type = 'button';
+      setup.className = 'primary';
+      setup.textContent = 'Charles ile kur';
+      setup.onclick = () => void guide('gemini-login');
+      login.classList.remove('primary');
+      actions.prepend(setup);
+    }
+    actions.append(check);
     section.append(title, note, actions, result);
     cardTail.after(section);
     cardTail = section;

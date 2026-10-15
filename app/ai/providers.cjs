@@ -5,6 +5,7 @@ const fs = require('node:fs'),
   { randomUUID } = require('node:crypto');
 const { ClaudeUsage } = require('../usage/claude-usage.cjs');
 const { launchPlan, claudeItems } = require('./provider-tools.cjs');
+const { ASK_FORMAT } = require('../core/ask-format.cjs');
 // Runs a CLI in a worker thread; resolves { error, out, err } like execFile's callback.
 function runOffThread(exe, args, options) {
   return new Promise((resolve) => {
@@ -574,6 +575,8 @@ class Providers {
             : 'Proje dosyalarını okuyup düzenleyebilirsin; komut çalıştırma iznin yok, gerekirse kullanıcıya hangi komutu çalıştırması gerektiğini söyle. ') +
           'Kullanıcıyla Türkçe konuş; sonunda değişen dosyaları kısaca özetle. Yapmadığın işlemleri yaptığını söyleme.\n'
         : 'Sen Charles, HzPederPan tarafından geliştirilmiş bir masaüstü sohbet asistanısın. Bu bağlantıda bilgisayar araçların yok. Yapmadığın işlemleri yaptığını söyleme.\n') +
+      ASK_FORMAT.trim() +
+      '\n' +
       args.prompt +
       '\n' +
       (args.attachments || []).map((a) => a.text).join('\n');

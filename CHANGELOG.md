@@ -1,8 +1,42 @@
 # ProjectCharles — Yama notları
 
-Charles’ın ilk masaüstü sürümünden v0.6.4 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+Charles’ın ilk masaüstü sürümünden v0.6.5 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.6.5 Beta — 15 Ekim 2026
+
+### Yapay zekânın soruları
+
+- GPT (Codex), Claude, Gemini ve Cursor işe devam etmeden önce bir karar veya eksik bilgi gerektiğinde artık soruyu **düğmeli bir kart** olarak soruyor. Seçeneğe tıkla ya da kendi yanıtını yazıp **Yanıtla**’ya bas; yanıt bir sonraki mesajın olarak gönderilir. Tek soru ve tek seçenekte yanıt hemen gider; çoklu seçim de destekleniyor.
+- Soru gelince Slime “Yanıtını bekliyorum” der ve kısa bir ses çalar. Eski mesajlardaki sorular kapalı görünür; yeni mesaj gönderince açık kartlar kapanır.
+- Soru bloğu sohbet metninde görünmez ve sesli okumada okunmaz. Codex’in kendi soru kartları eskisi gibi çalışıyor.
+
+### Tarayıcı komutları
+
+- Yazarak veya sesle: *“İnternetten … arat”*, *“Google’da … ara”*, *“YouTube’dan … videosunu aç”*, *“YouTube’da … ara”*, *“github.com sitesini aç”*. İngilizce: *“search the web for …”*, *“play … on YouTube”*, *“open github.com”*.
+- Varsayılan tarayıcın açılır. YouTube’da ilk eşleşen video doğrudan açılır; bulunamazsa sonuç sayfası açılır. Bu komutlar yapay zekâya gönderilmez.
+- Gemini Live sesli görüşmede de çalışıyor (“YouTube’dan lofi müzik aç” de yeter).
+
+### Gemini Live
+
+- **Daha hızlı algılama:** konuşmanın başı ve sonu daha hassas algılanıyor (sessizlik eşiği 450 ms), mikrofon sesi 4 kat daha küçük parçalarla (yaklaşık 64 ms) gönderiliyor ve araya giren parçalar artık atılmıyor. Söylediklerinin geç algılanması büyük ölçüde azaldı.
+- **Ses seviyesi göstergesi:** “Sesli görüşme açık” etiketi sağa alındı ve yanında sesinin gittiğini gösteren canlı bir seviye çubuğu var.
+- **Charles ile kur:** Ayarlar → Hesap → Gemini Live’da yeni düğme. Slime, Google AI Studio’da ücretsiz API anahtarının nasıl oluşturulacağını adım adım anlatıyor; anahtarı yapıştırınca kaydedip bağlantıyı test ediyor.
+
+### Gemini hesabı · Charles ile kur
+
+- Ayarlar → Hesap → Gemini hesabında **Charles ile kur** düğmesi. Antigravity giriş penceresini açıyor ve ne seçmen gerektiğini (Google ile giriş, tarayıcıda hesap seçimi) adım adım anlatıyor; sonunda bağlantıyı kontrol ediyor.
+
+### Mikrofon gizliliği
+
+- Panelin sağ üstünde, hoparlörün solunda yeni **mikrofon düğmesi**. Kapatınca (kırmızı, üstü çizili) Hey Charles, dikte, sesli görüşme ve uyandırma eğitimi mikrofonu hiç açamaz; açık olan dinlemeler hemen kapanır. Tercih hatırlanır.
+- Engel yalnızca arayüzde değil, ana süreçte de var: mikrofon izni kapalıyken Windows mikrofonuna erişim isteği reddedilir.
+
+### Diğer
+
+- Yeni metinlerin İngilizce çevirileri eklendi.
+- Yeni testler: soru kartı ayrıştırma, tarayıcı komutları, Gemini Live ayarları, mikrofon düğmesi ve kurulum rehberleri (toplam 162 test).
 
 ## v0.6.4 Beta — 15 Ekim 2026
 

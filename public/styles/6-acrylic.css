@@ -616,7 +616,8 @@ label:has(> #pref-volume) {
 }
 
 /* v0.6.0: speaker button (Charles' sounds), clearly different from the Spotify controls */
-#sound svg {
+#sound svg,
+#mic-privacy svg {
   width: 15px;
   height: 15px;
   fill: none;
@@ -939,4 +940,134 @@ body:not(.desktop-pet):not(.compact) header .identity {
 }
 body.compact:not(.desktop-pet) .identity {
   margin-top: 4px;
+}
+
+/* --- v0.6.5: questions from the AI (src/chat/ai-questions.ts) --------------- */
+.ai-questions {
+  margin: 12px 0 2px;
+  padding: 12px 14px;
+  border: 1px solid rgba(168, 199, 250, 0.24);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(168, 199, 250, 0.08), rgba(168, 199, 250, 0.02));
+}
+.ai-questions-title {
+  margin: 0 0 8px !important;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a8c7fa;
+}
+.ai-question + .ai-question {
+  margin-top: 12px;
+}
+.ai-question > p {
+  margin: 0 0 8px !important;
+  font-weight: 600;
+}
+.ai-question-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.ai-question-options button {
+  padding: 6px 12px;
+  border: 1px solid var(--ac-edge);
+  border-radius: 999px;
+  background: var(--ac-glass);
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.ai-question-options button:hover:not(:disabled) {
+  background: var(--ac-glass-hover);
+}
+.ai-question-options button[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--sb-accent, #f0c6a1);
+  color: #1b1b1f;
+  font-weight: 600;
+}
+.ai-question input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid var(--ac-edge);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.18);
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+}
+.ai-questions-send {
+  margin-top: 10px;
+  padding: 6px 16px;
+  border-radius: 999px;
+}
+.ai-questions.answered {
+  opacity: 0.55;
+}
+.ai-questions.answered .ai-questions-send {
+  display: none;
+}
+
+/* --- v0.6.5: voice call badge sits on the right and shows the microphone level ---- */
+body[data-live-voice="active"] #live-call-indicator {
+  justify-self: end;
+  margin-right: 2px;
+}
+#live-call-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 12px;
+}
+.live-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 16px;
+}
+.live-meter i {
+  display: block;
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: #9ce3c0;
+  opacity: 0.55;
+  transform: scaleY(0.12);
+  transform-origin: center;
+  transition: transform 70ms linear, opacity 120ms;
+}
+.live-meter.speaking i {
+  opacity: 1;
+}
+
+/* v0.6.5: microphone privacy button, left of the speaker */
+#mic-privacy rect {
+  fill: currentColor;
+  fill-opacity: 0.25;
+}
+#mic-privacy.muted {
+  color: var(--sb-danger);
+  opacity: 0.85;
+}
+body[data-mic-off='true'] #voice-mic,
+body[data-mic-off='true'] #voice-call {
+  opacity: 0.45;
+}
+
+/* v0.6.5: Gemini Live key step in the setup guide */
+#plugin-guide-bubble label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 4px;
+  font-size: 12px;
+}
+#plugin-guide-bubble label input[type='checkbox'] {
+  width: auto;
+  margin: 0;
 }

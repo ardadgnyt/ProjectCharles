@@ -2,6 +2,64 @@
 // texts that carry a number or a name. Merged into the dictionary in ./i18n.ts.
 
 export const english063: Record<string, string> = {
+  // v0.6.5
+  'Google hesabınla Antigravity üzerinden bağlan. Nasıl yapılacağını bilmiyorsan Charles ile kur’a bas; Slime adım adım anlatır. Sesli görüşme (Gemini Live) için ayrı bir API anahtarı gerekir; aşağıdaki Gemini Live bölümüne bak.': 'Connect your Google account through Antigravity. Not sure how? Press Set up with Charles and Slime walks you through it. Voice conversation (Gemini Live) needs a separate API key; see the Gemini Live section below.',
+  '1 · Giriş penceresini aç': '1 · Open the sign-in window',
+  'Aşağıdaki düğmeye bas. Charles, Gemini girişi için küçük bir siyah komut penceresi (Antigravity) açacak. Bu pencere Charles’ın kendi giriş aracıdır; güvenle kullanabilirsin.': 'Press the button below. Charles opens a small black console window (Antigravity) for the Gemini sign-in. It is Charles’s own sign-in tool and safe to use.',
+  '2 · Google ile girişi seç': '2 · Choose Login with Google',
+  'Siyah pencerede giriş yöntemi sorulursa ok tuşlarıyla Google ile giriş / Login with Google seçeneğine gelip Enter’a bas. API anahtarı veya Vertex AI seçeneklerini seçme.': 'If the black window asks for a sign-in method, use the arrow keys to pick Login with Google and press Enter. Do not choose API key or Vertex AI.',
+  '3 · Tarayıcıda hesabını seç': '3 · Pick your account in the browser',
+  'Tarayıcıda Google sayfası açılır. Gemini için kullanacağın hesabı seçip İzin ver / Allow’a bas. Başarılı yazısını görünce tarayıcı sekmesini kapatabilirsin. Tarayıcı açılmazsa siyah penceredeki bağlantıya Ctrl tuşuyla tıkla.': 'A Google page opens in your browser. Pick the account you want to use for Gemini and press Allow. When it says it succeeded, you can close the tab. If no browser opens, Ctrl+click the link in the black window.',
+  '4 · Pencerenin onayını bekle': '4 · Wait for the window to confirm',
+  'Siyah pencerede hesabın veya bir model adı görünüyorsa giriş tamamdır. Pencereyi kapatıp buraya dön. Pencere hâlâ bir şey soruyorsa Enter’a bas.': 'When the black window shows your account or a model name, you are signed in. Close it and come back here. If it is still asking something, press Enter.',
+  '5 · Bağlantıyı kontrol et': '5 · Check the connection',
+  'Bağlantıyı kontrol et’e bas. Bağlıysa Gemini modelleri mesaj kutusundaki model listesine eklenir.': 'Press Check connection. Once connected, Gemini models appear in the model list next to the message box.',
+  'Giriş penceresini aç': 'Open the sign-in window',
+  'Pencere açıldı. Tamam, sonraki adım’a basıp devam et.': 'The window is open. Press OK, next step to continue.',
+  'Gemini hesabın zaten bağlı. Kurulumu bitir düğmesine basabilirsin.': 'Your Gemini account is already connected. You can press Finish setup.',
+  'Kontrol ediliyor…': 'Checking…',
+  'Bağlandı. Gemini modelleri model listesinde. Kurulumu bitir düğmesine basabilirsin.': 'Connected. Gemini models are in the model list. You can press Finish setup.',
+  'Henüz bağlı görünmüyor. Siyah penceredeki adımları bitirip birkaç saniye sonra tekrar dene; gerekirse Geri ile 1. adıma dön.': 'Not connected yet. Finish the steps in the black window and try again in a few seconds; if needed, go Back to step 1.',
+  'Charles ile kur': 'Set up with Charles',
+  '1 · Google AI Studio’ya giriş yap': '1 · Sign in to Google AI Studio',
+  'Açılan sayfada Google hesabınla giriş yap. İlk kez giriyorsan kullanım şartlarını okuyup kabul et. Ücret ödemen gerekmez.':
+    'Sign in with your Google account on the page that opened. If this is your first time, read and accept the terms. You do not have to pay anything.',
+  '2 · API anahtarı oluştur': '2 · Create an API key',
+  'Sağ üstteki API anahtarı oluştur / Create API key düğmesine bas. Anahtara Charles adını ver.':
+    'Press Create API key at the top right. Name the key Charles.',
+  '3 · Proje seç': '3 · Choose a project',
+  'Proje olarak yeni bir proje oluştur (ör. Charles) ya da faturalandırması olmayan mevcut bir projeni seç, sonra Anahtar oluştur / Create key’e bas.':
+    'Create a new project (for example Charles) or pick an existing project without billing, then press Create key.',
+  '4 · Ücretsiz katmanı kontrol et': '4 · Check the free tier',
+  'Anahtar listesinde projenin yanında Free tier / Ücretsiz katman yazmalı. Set up billing / Faturalandırma görürsen dokunma; Charles için faturalandırma açman gerekmez.':
+    'In the key list, the project should say Free tier. If you see Set up billing, leave it alone; Charles does not need billing.',
+  '5 · Anahtarı kopyala': '5 · Copy the key',
+  'Anahtarın satırına tıklayıp kopyala simgesine bas. Anahtar bir şifre gibidir; kimseyle paylaşma, ekran görüntüsünde gösterme.':
+    'Click the key’s row and press the copy icon. A key is like a password: do not share it or show it in screenshots.',
+  '6 · Anahtarı yapıştır ve test et': '6 · Paste the key and test it',
+  'Anahtarı aşağıya yapıştır, Free Tier kutusunu işaretle ve Kaydet ve test et’e bas. Anahtar Windows şifrelemesiyle yalnızca bu bilgisayarda (%APPDATA%\\Charles) saklanır.':
+    'Paste the key below, tick the Free Tier box and press Save and test. The key is encrypted by Windows and stored only on this computer (%APPDATA%\\Charles).',
+  'Kaydet ve test et': 'Save and test',
+  'Anahtar kaydedildi. Bağlantı sınanıyor; mikrofon açılmaz…': 'Key saved. Testing the connection; the microphone stays off…',
+  'Bağlantı başarılı. Gemini Live hazır: mikrofon düğmesine basıp konuşabilirsin. Kurulumu bitir düğmesine basabilirsin.':
+    'Connected. Gemini Live is ready: press the microphone button and talk. You can press Finish setup now.',
+  'Mikrofonu kapat': 'Turn off the microphone',
+  'Mikrofonu aç': 'Turn on the microphone',
+  'Mikrofon açık · Hey Charles dinleyebilir · kapatmak için tıkla':
+    'Microphone on · Hey Charles can listen · click to turn off',
+  'Mikrofon kapalı · açmak için tıkla': 'Microphone off · click to turn on',
+  'Mikrofon kapalı. Üstteki mikrofon simgesinden açabilirsin.':
+    'The microphone is off. Turn it on with the microphone icon at the top.',
+  'Mikrofon kapalı · üstteki mikrofon simgesinden açabilirsin':
+    'Microphone off · turn it on with the microphone icon at the top',
+  'Mikrofon kapatıldı. Hey Charles, dikte ve sesli görüşme sen açana kadar dinlemez.':
+    'Microphone turned off. Hey Charles, dictation and voice conversation will not listen until you turn it back on.',
+  'Mikrofon açıldı.': 'Microphone turned on.',
+  'Devam etmeden önce bir sorum var': 'One question before I continue',
+  'Devam etmeden önce birkaç sorum var': 'A few questions before I continue',
+  'Ya da kendi yanıtını yaz…': 'Or write your own answer…',
+  'Yanıtını yaz…': 'Write your answer…',
+  'Ses seviyen': 'Your voice level',
   // island, music, sessions
   'Müziğine devam et': 'Resume your music',
   'Hazırım. Birlikte ne yapalım?': 'Ready. What shall we do together?',
