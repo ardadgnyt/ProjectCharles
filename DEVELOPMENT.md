@@ -13,9 +13,11 @@ sürüm geçmişi için `CHANGELOG.md` dosyasına bak.
 ```
 ProjectCharles v0.6.4 Beta/
 ├── Start-Charles.cmd            Charles'ı mevcut verilerle açar (Node.js gerekmez)
-├── Reset-Charles.cmd            Yerel ayarları yedekleyip sıfırlar (dikkat: sohbetleri arşivler)
-├── Create-Desktop-Shortcut.vbs  Masaüstüne kısayol oluşturur
-├── Install.cmd                  Başka bilgisayara kurulum (scripts/install.ps1'i çalıştırır)
+├── setup/                       Kurulum araçları:
+│   ├── Install.cmd              Başka bilgisayara kurulum (install.ps1'i çalıştırır)
+│   ├── install.ps1              Kurulumun kendisi
+│   ├── Create-Desktop-Shortcut.vbs  Masaüstüne kısayol oluşturur
+│   └── Reset-Charles.cmd        Yerel ayarları yedekleyip sıfırlar (dikkat: sohbetleri arşivler)
 ├── README.md                    Kullanıcı rehberi
 ├── CHANGELOG.md                 Sürüm sürüm yapılan değişiklikler
 ├── DEVELOPMENT.md               Bu belge

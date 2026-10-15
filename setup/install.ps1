@@ -3,7 +3,7 @@
 # Install.cmd tarafından çalıştırılır. Yaptıkları:
 #   1. Windows'u kontrol eder (64 bit, Windows 10 veya 11).
 #   2. Charles'ı kısa bir klasöre kopyalar (varsayılan: C:\ProjectCharles v0.6.4 Beta).
-#      Kaynak: yanındaki Charles.zip ya da Install.cmd'nin bulunduğu Charles klasörü.
+#      Kaynak: yanındaki Charles.zip ya da setup klasörünün bulunduğu Charles klasörü.
 #   3. İnternetten/USB'den gelen dosyaların "engelli" işaretini kaldırır.
 #   4. Masaüstü ve Başlat menüsü kısayolu oluşturur.
 #   5. Charles'ı açar.
@@ -28,6 +28,11 @@ function Yes($question) { return (Ask "$question (E/H)" 'E') -match '^[EeYy]' }
 
 Set-Content -Path $Log -Value "Charles kurulumu $(Get-Date -Format s)" -ErrorAction SilentlyContinue
 $Root = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\')
+# Started from <Charles>\setup without a Charles.zip: the app folder is one level up.
+if (-not (Test-Path -LiteralPath (Join-Path $Root 'Charles.zip')) -and -not (Test-Path -LiteralPath (Join-Path $Root 'node_modules\electron\dist\electron.exe'))) {
+  $parent = Split-Path -Parent $Root
+  if ($parent -and (Test-Path -LiteralPath (Join-Path $parent 'node_modules\electron\dist\electron.exe'))) { $Root = $parent }
+}
 Say ''
 Say "  ProjectCharles $Version kurulumu" 'Cyan'
 Say '  ------------------------------------' 'DarkGray'

@@ -1,88 +1,177 @@
-# ProjectCharles v0.6.4 Beta
+<p align="center">
+  <img src="docs/images/banner.png" alt="Project Charles — seven Slimes in different colours and accessories" width="100%">
+</p>
 
-> **English:** Charles is an animated AI companion that lives on the Windows 10/11 desktop
-> (Electron). A little Slime character reacts to what you and the AI are doing; the island at
-> the top of the screen shows weather, music, quota and important mail, and opens into a chat
-> and project workspace. The interface is available in Turkish and English. See
-> *Running from source* below; all personal data stays in `%APPDATA%\Charles`, never in this
-> folder.
+<p align="center">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.6.4%20beta-edc9a9?style=flat-square">
+  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
+  <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
+  <img alt="Languages" src="https://img.shields.io/badge/UI-English%20%7C%20T%C3%BCrk%C3%A7e-2b2f3a?style=flat-square">
+</p>
 
-Windows 10/11 (x64) masaüstünde yaşayan animasyonlu yapay zekâ asistanı. Fikir ve yön: **HzPederPan**.
+**Charles** is a desktop AI companion for Windows. A small *island* sits at the top of your
+screen with your AI quota, the weather, your music and important mail. Click it and it opens
+into a chat and project workspace. Living on top of it all is **Slime**, a jelly character
+who reacts to what you and the AI are doing. Slime thinks while the AI thinks, codes on a
+tiny laptop while the AI writes code, and gets dizzy if you shake it too hard.
 
-Küçük adacıkta hava durumu, Spotify, seçili yapay zekânın kalan kullanım hakkı ve önemli
-e-posta baloncukları görünür. Genişletince sohbet ve proje çalışma alanına dönüşür.
-Slime karakteri konuşmaya ve yapılan işe göre mimik değiştirir.
+---
 
-## Başka bir bilgisayara kurulum
+## Contents
 
-Kurulum klasörünü (Install.cmd + install.ps1 + Charles.zip) diğer bilgisayara kopyala ve
-**Install.cmd** dosyasına çift tıkla. Charles `C:\ProjectCharles v0.6.4 Beta` klasörüne kurulur,
-masaüstü ve Başlat menüsü kısayolu oluşturulur. Charles klasörünün tamamını kopyaladıysan aynı
-dosya bu klasörün içinde de çalışır.
+- [Highlights](#highlights)
+- [Screenshots](#screenshots)
+- [Installation](#installation)
+- [Running from source](#running-from-source)
+- [Your data and privacy](#your-data-and-privacy)
+- [Project layout](#project-layout)
+- [Documentation](#documentation)
+- [License](#license)
 
-## Başlatma
+## Highlights
 
-1. Eski Charles açıksa sistem tepsisinden **Çıkış** yap (aynı anda yalnızca bir Charles çalışır).
-2. Bu klasörde **Start-Charles.cmd** dosyasını çalıştır. Node.js gerekmez.
-3. İstersen **Create-Desktop-Shortcut.vbs** ile masaüstüne kısayol oluştur.
-   Windows açılışında başlatmak için: Ayarlar → **Windows açılınca başlat**.
+**An assistant that does things**
 
-## Kaynak koddan çalıştırma (GitHub) · Running from source
+- Chat with **ChatGPT (Codex)**, **Claude**, **Gemini** or **Cursor**, using your own accounts.
+  Switch models from the message box. When one provider runs low on quota, Charles suggests
+  another.
+- **Project mode:** pick a folder and let the AI write code in it. Every file change and
+  command can ask for your approval first.
+- **Voice:** say **“Hey Charles”** to start talking. The wake word is detected on your PC.
+  Gemini Live handles real-time conversations, and local Whisper handles dictation.
+- **Mail and calendar:** connect Gmail and Google Calendar, Outlook, or any POP3/IMAP school or
+  work mailbox. Important emails appear as a bubble under the island. Ask
+  *“Do I have any important emails?”* and Charles summarises them. It can also turn a deadline
+  into a calendar reminder.
+- **Built-in helpers:** reminders and focus timers, weather (Open-Meteo), Spotify controls,
+  screen-region capture (Ctrl + Shift + S), a memory you control, a weekly activity summary,
+  and Home Assistant, GitHub, Notion, Vercel, Stripe, Resend, Cal.com and n8n integrations.
 
-GitHub’daki depo yalnızca kaynak kodu içerir; `node_modules/`, `dist/`, `models/` ve `tools/`
-klasörleri büyük olduğu ya da bilgisayarda üretildiği için depoda yoktur. Gereken:
-Windows 10/11 x64 ve [Node.js](https://nodejs.org) 22 veya üstü.
+**A character with personality**
+
+- More than 20 expressions and work animations: happy, in love, dizzy, sleeping, researching
+  with a magnifier, coding on a laptop, drawing, getting an idea 💡 and more.
+- **Slime studio:** seven colours, an optional moustache, and hats, glasses and other
+  accessories you can mix and match. Seasonal hats appear on their own. Sunglasses slide up
+  onto the forehead when Slime makes a face.
+- **Desktop pet:** drag Slime off the island onto your desktop. Throw it and it flies, bounces
+  off the screen edges and wobbles like jelly. Poke it with the cursor and it shivers.
+- A friendly welcome tour on first launch, plus a full **English and Turkish** interface.
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/images/desktop.png" alt="The Charles island at the top of the desktop and Slime wearing big sunglasses and a banana on the desktop" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/images/screens.png" alt="The chat panel and the Slime studio in Settings" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/images/expressions-grid.png" alt="Twelve Slime expressions and work animations" width="100%">
+</p>
+
+## Installation
+
+**Requirements:** Windows 10 or 11 (64-bit). No administrator rights are needed.
+
+### Ready-made package (recommended)
+
+1. Download the installer kit from [**Releases**](../../releases). It contains `Install.cmd`,
+   `install.ps1` and `Charles.zip`.
+2. Extract it and double-click **`Install.cmd`**.
+3. The installer checks your Windows, copies Charles to `C:\ProjectCharles v0.6.4 Beta` (you
+   can choose another folder), creates Desktop and Start menu shortcuts, and starts Charles.
+4. In Charles, sign in with the AI account you want to use (**Settings → Account**).
+
+### Setup tools
+
+The [`setup/`](setup) folder holds everything for installing and maintaining Charles:
+
+| File | What it does |
+| --- | --- |
+| `setup/Install.cmd` | Installs Charles. It also works when run from inside a complete Charles folder. |
+| `setup/install.ps1` | The installer itself, started by `Install.cmd`. |
+| `setup/Create-Desktop-Shortcut.vbs` | Creates a desktop shortcut for this Charles folder. |
+| `setup/Reset-Charles.cmd` | Backs up and resets settings and chat history. It asks before doing anything. |
+
+To start Charles from its folder, run **`Start-Charles.cmd`**.
+
+## Running from source
+
+The repository contains source code only. `node_modules/`, `dist/`, the speech models in
+`models/` and the helper tools in `tools/` are created or downloaded on your machine.
+
+You need [Node.js](https://nodejs.org) 22 or newer.
 
 ```cmd
+git clone https://github.com/HzPederPan/ProjectCharles.git
+cd ProjectCharles
 npm ci
 npm run setup
 npm run build
 npm start
 ```
 
-İsteğe bağlı: bilgisayarda çalışan konuşma tanıma (Whisper) için `npm run setup:voice`
-(yaklaşık 500 MB indirir). Testler: `npm test`.
+| Command | Purpose |
+| --- | --- |
+| `npm run setup:voice` | Optional: downloads whisper.cpp and the speech model (about 500 MB) for local dictation. |
+| `npm test` | Runs the automated test suite (`node --test`). |
+| `npm run dev` | Builds the interface and starts Electron directly. |
+| `python scripts/package.py <folder> <out.zip>` | Builds `Charles.zip` for the installer kit. |
 
-## Verilerin nerede?
+The Gemini (Antigravity) and Cursor sign-in helpers are bundled in the release package. They
+are not part of this repository.
 
-Sohbet geçmişi, ayarlar, hafıza ve hesap bağlantıları bu klasörde değil,
-**`%APPDATA%\Charles`** içinde tutulur (Gezgin adres çubuğuna yazıp açabilirsin).
+## Your data and privacy
 
-- Yeni bir sürümü başka klasöre kurduğunda aynı verileri kullanmaya devam eder.
-- Başka bir bilgisayarda ilk açılışta bu klasör yoksa otomatik oluşturulur.
-- Eklenti hesapları Windows ile şifrelenir; başka bilgisayarda bunları yeniden bağlaman gerekir.
-- **Reset-Charles.cmd** ayarları sıfırlar (önce yedek alır ve onay ister). Normal kullanımda gerekmez.
+- Chats, memory, settings and **all API keys and account connections** are stored in
+  **`%APPDATA%\Charles`**, never in the app folder. Keys and passwords are encrypted with
+  Windows (DPAPI).
+- Updating Charles or installing a new version in another folder keeps your data.
+  `setup/Reset-Charles.cmd` makes a backup before it resets anything.
+- Mail, calendar and Drive connections are **read-only**. Incoming content can never run
+  commands on its own.
+- The weather location is sent to Open-Meteo. Your messages go only to the AI provider you
+  choose.
+- `.gitignore` keeps personal files, logs and large downloads out of the repository.
 
-## Bu sürümde neler var?
+## Project layout
 
-- Adacık: solda yalnızca kalan kullanım (Codex · Gemini · Claude), sağda hava durumu ve Spotify.
-- Önemli e-postalar adacığın altında baloncukla gelir; tıklayınca Charles e-postayı anlatır.
-  Sohbette "önemli mail var mı?" gibi sorular her yapay zekâda bağlı hesaplarından yanıtlanır.
-- Masaüstüne çıkan Slime daha büyük ve her zaman en üstte; ayarlar yeni tasarımda.
-- Düğmeler daha hızlı tepki verir; Claude ve Gemini yanıtlarında da Slime animasyonları çalışır.
-- v0.5.3: E-postadaki son tarihleri takvime ekleyip önceden hatırlatma önerisi; bilgisayar
-  zorlanınca terleyen Slime; kota azalınca başka yapay zekâya geçme önerisi; proje modunda
-  Claude, Gemini ve Cursor için dosya araçları.
-- v0.5.4: Mail verisi artık sohbet geçmişinde görünmüyor; takvim sorusuna yazılan
-  “evet / hayır” cevapları doğru anlaşılıyor.
-- v0.5.5: Hafif akrilik (buzlu cam) tema; yüzdeli görsel oluşturma kartı ve görseller için
-  İndir · Kopyala · Büyüt düğmeleri.
-- **v0.6.0: Yeni karakter Slime** — 7 renk, bıyıklı/bıyıksız, Fötr şapka; yeni simge ve sesler.
-  Ayarlar → Görünüm → **Slime stüdyosu**.
-- v0.6.1: Aksesuarlar Şapka · Göz · Yüz · Diğer kategorilerinde; farklı kategorilerdekiler
-  birlikte takılabiliyor. Yeni aksesuar: Tek gözlük.
-- v0.6.2: Masaüstündeki Slime için jöle fiziği (fırlatma, sekme, zıplama, titreme);
-  ilk açılışta Slime’ın kendini tanıttığı tanışma turu; muz ve büyük güneş gözlüğü.
-- v0.6.3: Özel günlerde (19 Mayıs, 30 Ağustos, 29 Ekim, 10 Kasım) Slime’ın elinde Türk bayrağı;
-  İngilizce arayüzde Türkçe kalan paneller çevrildi.
-- v0.6.4: GitHub’a hazır: İngilizce dosya adları, `.gitignore`; kapsamlı hata testi ve düzeltmeler.
+```text
+ProjectCharles/
+├── Start-Charles.cmd     start Charles from this folder
+├── setup/                installer, desktop shortcut, reset
+├── app/                  Electron main process (Node.js): AI providers, plugins, voice, system
+├── src/                  interface (TypeScript), bundled into dist/renderer.js
+│   └── vendor/slime/     the Slime character: engine, shapes, accessories
+├── public/               HTML, CSS, sounds and icons, copied into dist/
+├── scripts/              build, start, packaging and voice-setup scripts
+├── test/                 automated tests
+└── docs/                 guides and README images
+```
 
-Tüm değişiklikler: **CHANGELOG.md** · GitHub’a yükleme: **docs/GITHUB.md** · Ayrıntılı kullanım: **docs/USER-GUIDE.md** ·
-Eklenti kurulumu: **docs/PLUGINS-SETUP.md** · Geliştirici rehberi: **DEVELOPMENT.md**
+## Documentation
 
-## Lisans
+| Document | Contents |
+| --- | --- |
+| [CHANGELOG.md](CHANGELOG.md) | What changed in every version (Turkish) |
+| [DEVELOPMENT.md](DEVELOPMENT.md) | Code tour, data files, build and test (Turkish) |
+| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | Detailed user guide (Turkish) |
+| [docs/PLUGINS-SETUP.md](docs/PLUGINS-SETUP.md) | Connecting Google, Microsoft, mail and Home Assistant |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the parts fit together |
+| [docs/GITHUB.md](docs/GITHUB.md) | Publishing new versions to GitHub (Turkish) |
 
-Kod ve tasarım hakları **HzPederPan**'a aittir: Charles, Slime karakteri, simge ve sesler
-(**LICENSE**, **LICENSE-ASSETS.md**). Kişisel kullanım serbesttir; başkalarına dağıtmak yazılı izin
-gerektirir. Üçüncü taraf bileşenlerin lisansları **THIRD-PARTY-NOTICES.md**'de listelenir.
-Bu resmî bir OpenAI, Anthropic veya Google ürünü değildir.
+## License
+
+Copyright © 2026 **HzPederPan**. All rights reserved.
+
+You may download, run and study Charles for personal, non-commercial use. Redistribution,
+modified versions and commercial use require written permission. Parts of the character
+engine are derived from MIT-licensed code, and third-party components keep their own
+licenses. See [LICENSE](LICENSE), [LICENSE-ASSETS.md](LICENSE-ASSETS.md) and
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+Charles is an independent project. It is not affiliated with OpenAI, Anthropic, Google or
+Cursor.

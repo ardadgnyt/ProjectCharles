@@ -39,6 +39,13 @@ Charles’ın ilk masaüstü sürümünden v0.6.4 Beta’ya kadar eklenen özell
 - **Düzeltildi:** v0.6.3’te güneş gözlüklerinin ifade sırasında alna kayması bozulmuştu (gözlük yerinde kalıyordu); yeniden çalışıyor.
 - Kısayol çakışması uyarısı İngilizcede de çevriliyor.
 
+### README, lisans ve setup klasörü
+
+- **README** baştan İngilizce yazıldı; tanıtım görseli, masaüstü sahnesi, uygulama ekran görüntüleri ve mimik tablosu `docs/images/` içinde.
+- **LICENSE** ve **LICENSE-ASSETS.md** İngilizce (haklar aynı: kişisel kullanım serbest; dağıtım, değiştirilmiş sürüm ve ticari kullanım için HzPederPan’ın yazılı izni gerekir).
+- Kurulum dosyaları **`setup/`** klasöründe: `Install.cmd`, `install.ps1`, `Create-Desktop-Shortcut.vbs`, `Reset-Charles.cmd`. Charles’ı başlatmak için ana klasördeki **Start-Charles.cmd** kullanılmaya devam ediyor. `setup\Install.cmd` hem kurulum paketinin içinden (Charles.zip ile) hem de tam bir Charles klasörünün içinden çalışıyor.
+- İngilizce arayüzde mesaj kutusundaki ipucu yazısı (“Ask Charles…”) da çevriliyor.
+
 ### Görünüm
 
 - Adacıktaki **“Charles”** yazısı Slime’a daha az yakın: yazı biraz aşağı alındı (küçük adacıkta da).

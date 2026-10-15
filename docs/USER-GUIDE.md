@@ -30,10 +30,10 @@ v3.2.2 mail düzeltmesi: “Okul mailimi kontrol eder misin önemli bir mail var
 1. Eski Charles açıksa sistem tepsisinden **Çıkış** yap.
 2. **ProjectCharles v0.4.4 Beta.zip** dosyasının tamamını ayıkla. ZIP'in içinden çalıştırma.
 3. Çıkan klasörü kalıcı bir konuma koy. Eski kurulumun üzerine kopyalamak yerine ayrı klasör kullan.
-4. Önceki Charles ayarlarını temizlemek için **Reset-Charles.cmd** çalıştır. Eski yerel veriler yedeklenir; ChatGPT hesabının oturumu silinmez. İlk defa kuruyorsan **Start-Charles.cmd** de kullanılabilir.
+4. Önceki Charles ayarlarını temizlemek için **setup\Reset-Charles.cmd** çalıştır. Eski yerel veriler yedeklenir; ChatGPT hesabının oturumu silinmez. İlk defa kuruyorsan **Start-Charles.cmd** de kullanılabilir.
 5. İlk açılışta hava durumu şehrini seç veya **Şimdilik geç** de. Ayarlar'dan değiştirebilirsin.
 6. Ayarlar'da **Codex'e bağlan**, ardından gerekiyorsa **ChatGPT ile giriş** kullan. Kendi Codex erişimi olan hesabın ve internet gerekir.
-7. İstersen **Create-Desktop-Shortcut.vbs** dosyasını çalıştır. Otomatik başlangıç için Ayarlar → **Windows açılınca başlat** seçeneğini aç.
+7. İstersen **setup\Create-Desktop-Shortcut.vbs** dosyasını çalıştır. Otomatik başlangıç için Ayarlar → **Windows açılınca başlat** seçeneğini aç.
 
 Sonraki açılışlarda **Start-Charles.cmd** veya masaüstü kısayolunu kullan. Node.js kurulumu gerekmez. Başlatma penceresi kapansa da Charles çalışır. Dosya sürüklemek için Charles'ı normal kullanıcı olarak aç. Klasörü taşırsan kısayolu yeniden oluştur ve otomatik başlangıcı kapatıp aç.
 
@@ -328,5 +328,5 @@ Kaynak kodu geliştirmek için Node.js 24 ile `npm.cmd ci`, `npm.cmd run setup`,
 Sürükleme sırasında otomatik küçülme/gizlenme geçici olarak bekletilir. PDF, DOCX, PNG/JPG/WebP ve GIF eklenebilir. GIF küçük resmi hareketlidir; modele ilk karesi PNG olarak gönderilir, animasyonun tamamı incelenmez. Dosya seçme düğmesi de GIF kabul eder. Windows üzerinden dosya bırakırken Charles normal kullanıcı olarak çalışmalıdır.
 
 ## Temiz başlangıç ve bozuk kayıt kurtarma
-Eski Charles'ı sistem tepsisinden tamamen kapatıp Reset-Charles.cmd dosyasını çalıştır. Yerel sohbet geçmişi, kişisel ayarlar, görünüm/başlangıç tercihleri ve proje seçimi ayrı bir yerel yedek klasörüne alınır; varsayılanlarla açılır. ChatGPT oturum bilgileri değişmez. Sonraki normal açılışlarda Start-Charles.cmd kullan.
+Eski Charles'ı sistem tepsisinden tamamen kapatıp setup\Reset-Charles.cmd dosyasını çalıştır. Yerel sohbet geçmişi, kişisel ayarlar, görünüm/başlangıç tercihleri ve proje seçimi ayrı bir yerel yedek klasörüne alınır; varsayılanlarla açılır. ChatGPT oturum bilgileri değişmez. Sonraki normal açılışlarda Start-Charles.cmd kullan.
 Bozuk ayar/geçmiş uygulamayı kapatmaz; dosya korunur, varsa sağlam yedek kullanılır. Kayıtlar diske yazıldıktan sonra yerlerine taşınır ve önceki sağlam sürüm saklanır.

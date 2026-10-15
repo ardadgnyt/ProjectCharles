@@ -1,15 +1,13 @@
 Project Charles
-Copyright (c) 2026 HzPederPan. Tüm hakları saklıdır. / All rights reserved.
-
-Project Charles'ın kaynak kodu, arayüz tasarımı, "Charles" ve "Slime" adları, Slime karakteri
-(görünümü, renkleri, ifadeleri, aksesuarları ve animasyonları), uygulama simgesi ve arayüz
-sesleri HzPederPan'a aittir. Yazılı izin olmadan kopyalanamaz, dağıtılamaz veya ticari olarak
-kullanılamaz.
+Copyright (c) 2026 HzPederPan. All rights reserved.
 
 The source code, interface design, the names "Charles" and "Slime", the Slime character
 (its look, colours, expressions, accessories and animations), the app icon and the interface
-sounds of Project Charles belong to HzPederPan. They may not be copied, distributed or used
-commercially without written permission.
+sounds of Project Charles belong to HzPederPan.
+
+You may download, run and study Project Charles for your own personal, non-commercial use.
+You may not copy, redistribute, publish modified versions of, or use it commercially
+without written permission from HzPederPan.
 
 Exceptions: third-party components keep their own licenses. They are listed in
 THIRD-PARTY-NOTICES.md, and their license texts are in the licenses/ folder and in

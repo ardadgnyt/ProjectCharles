@@ -2,7 +2,8 @@ Option Explicit
 Dim shell, fso, folder, exe, shortcut
 Set shell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
-folder = fso.GetParentFolderName(WScript.ScriptFullName)
+' this file is in <Charles>\setup\; the app is one folder up
+folder = fso.GetParentFolderName(fso.GetParentFolderName(WScript.ScriptFullName))
 exe = folder & "\node_modules\electron\dist\electron.exe"
 If Not fso.FileExists(exe) Then
  MsgBox "Once ZIP dosyasinin tamamini bir klasore cikartin.", 48, "ProjectCharles v0.6.4 Beta"

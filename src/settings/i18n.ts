@@ -379,15 +379,16 @@ export function languageUI(api: any) {
   panel.append(label);
   document.querySelector('.settings-page[data-category=general]')!.prepend(panel);
   function translate(root: Node) {
-    if (
+    // (a text box's own text is never translated, but its placeholder is — see below)
+    const skipText =
       root instanceof Element &&
-      root.closest('#feed .message,#requests,.plugin-results,.history-entry,textarea,script,style')
-    )
-      return;
+      !!root.closest('#feed .message,#requests,.plugin-results,.history-entry,textarea,script,style');
     const nodes: Node[] = [];
     const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    if (root.nodeType === Node.TEXT_NODE) nodes.push(root);
-    while (walk.nextNode()) nodes.push(walk.currentNode);
+    if (!skipText) {
+      if (root.nodeType === Node.TEXT_NODE) nodes.push(root);
+      while (walk.nextNode()) nodes.push(walk.currentNode);
+    }
     for (const node of nodes) {
       const parent = node.parentElement;
       if (
