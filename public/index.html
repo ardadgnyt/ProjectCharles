@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Charles · Kişisel</title>
+    <link rel="stylesheet" href="styles/1-base.css" />
+    <link rel="stylesheet" href="styles/2-panel-layout.css" />
+    <link rel="stylesheet" href="styles/3-island.css" />
+    <link rel="stylesheet" href="styles/4-polish.css" />
+    <link rel="stylesheet" href="styles/5-design-system.css" />
+    <link rel="stylesheet" href="styles/6-acrylic.css" />
+  </head>
+  <body>
+    <main class="island">
+      <header>
+        <button
+          id="settings-toggle"
+          title="Ayarlar"
+          aria-label="Ayarlar"
+          aria-haspopup="dialog"
+          aria-controls="settings-panel"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M9.5 3h5l.6 2.5 2.1 1.2 2.5-.7 2.5 4.3-1.9 1.7v2.4l1.9 1.7-2.5 4.3-2.5-.7-2.1 1.2-.6 2.1h-5l-.6-2.1-2.1-1.2-2.5.7L1.8 16l1.9-1.7v-2.4L1.8 10.2l2.5-4.3 2.5.7 2.1-1.2z"
+              transform="translate(1 0) scale(.92)"
+            />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
+        <button
+          id="sessions-toggle"
+          aria-label="Sohbet geçmişi"
+          title="Sohbet geçmişi"
+          aria-haspopup="dialog"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="8" />
+            <path d="M8 10h8M8 14h5" /></svg
+          ><span id="session-alert" hidden>•</span>
+        </button>
+        <button id="pet" aria-label="Karaktere dokun">
+          <canvas id="slime" width="240" height="240"></canvas>
+        </button>
+        <button id="toggle" class="identity" >
+          <strong>Charles</strong
+          ><small class="version-label">v0.6.4 Beta</small><small id="status">Senin küçük kod arkadaşın.</small>
+        </button>
+        <aside id="mini-music" aria-label="Spotify">
+          <strong id="music-title">Spotify</strong
+          ><small id="music-artist">Müziğine devam et</small>
+          <div>
+            <button
+              id="music-previous"
+              title="Önceki parça"
+              aria-label="Önceki parça"
+            >
+              ⏮</button
+            ><button id="music-play" title="Oynat" aria-label="Spotify oynat">
+              ▶</button
+            ><button
+              id="music-pause"
+              title="Duraklat"
+              aria-label="Spotify duraklat"
+            >
+              Ⅱ</button
+            ><button
+              id="music-next"
+              title="Sonraki parça"
+              aria-label="Sonraki parça"
+            >
+              ⏭
+            </button>
+          </div>
+        </aside>
+        <button
+          id="dock-toggle"
+          title="Sağ köşeye taşı"
+          aria-label="Sağ köşeye taşı"
+        >
+          ›
+        </button>
+        <div class="window-actions">
+          <button id="sound" title="Sesler açık" aria-label="Sesleri kapat"></button
+          ><button id="collapse" title="Küçült" aria-label="Küçült">−</button
+          ><button id="quit" title="Çıkış" aria-label="Çıkış">×</button>
+        </div>
+      </header>
+      <dialog id="sessions-panel" aria-labelledby="sessions-title">
+        <div class="settings-heading">
+          <h2 id="sessions-title">Sohbet geçmişi</h2>
+          <button id="sessions-close" aria-label="Oturumları kapat">×</button>
+        </div>
+        <div class="settings-body">
+          <div class="row">
+            <select id="sessions" aria-label="Oturumlar"></select
+            ><button id="add-session" title="Ayrı bir iş başlat">
+              ＋ Yeni sohbet</button
+            ><button id="close-session" title="Seçili oturumu kapat">
+              Oturumu kapat
+            </button>
+          </div>
+          <input
+            id="history-search"
+            type="search"
+            placeholder="Sohbetlerde ara…"
+            aria-label="Sohbetlerde ara"
+          />
+          <div id="history-list" aria-label="Kayıtlı sohbetler"></div>
+          <p class="hint">
+            Konuşmalar bu bilgisayarda, Charles içinde saklanır.
+          </p>
+        </div>
+      </dialog>
+      <dialog id="settings-panel" aria-labelledby="settings-title">
+        <div class="settings-heading">
+          <h2 id="settings-title">Ayarlar</h2>
+          <button id="settings-close" aria-label="Ayarları kapat" autofocus>
+            ×
+          </button>
+        </div>
+        <div class="settings-body">
+          <section class="setting-section">
+            <h3>Charles v2.2.4</h3>
+            <label
+              ><input type="checkbox" id="observe-apps" /> Aktif uygulamaya göre
+              öneriler</label
+            ><label
+              ><input type="checkbox" id="auto-ai" /> Seyrek AI önerileri</label
+            >
+            <p class="hint">
+              Yalnızca uygulama adı kullanılır. AI önerileri Codex hakkından
+              harcar; en fazla 15 dakikada bir, günde 8 deneme.
+            </p>
+            <button id="weather-config">Hava durumu şehrini seç</button>
+            <p id="weather-location" class="hint"></p>
+            <p class="hint">Hava durumu: Open-Meteo</p>
+          </section>
+          <h3>Hesap</h3>
+          <div class="row">
+            <button id="connect" class="primary">Codex’e bağlan</button
+            ><button id="login" disabled>ChatGPT ile giriş</button>
+          </div>
+          <p class="hint" id="mode-hint">
+            Sohbet etmek için proje seçmen gerekmiyor.
+          </p>
+          <h3>Başlangıç</h3>
+          <label class="hint"
+            ><input type="checkbox" id="auto-start" /> Windows açılınca
+            başlat</label
+          >
+          <section class="setting-section">
+            <h3>Erişim ve onaylar</h3>
+            <select id="access-mode" aria-label="Erişim modu">
+              <option value="ask">Onay iste</option>
+              <option value="auto">Benim için onayla</option>
+              <option value="full">Tam erişim</option>
+            </select>
+            <p class="hint">
+              Onay iste: dosya ve komut izinlerini sorar. Benim için onayla:
+              projede düzenleme yapar; ek izin taleplerini Codex risk
+              değerlendirmesine gönderir. Gerekli işlemler engellenebilir veya
+              kullanıcı müdahalesi gerekebilir. Tam erişim: Charles'ın
+              dosya/komut onayları ve Codex sandbox sınırı kaldırılır; mevcut
+              Windows hesabının erişebildiği dosyalarda ve ağda işlem yapabilir.
+              Windows yönetici izinlerini aşmaz.
+            </p>
+          </section>
+          <details class="setting-section">
+            <summary>Mimikleri dene</summary>
+            <div class="row">
+              <select id="reaction-choice" aria-label="Denenecek mimik">
+                <option value="state:dizzy">Baş dönmesi</option>
+                <optgroup label="Mimikler">
+                  <option value="emote:love">Kalpler</option>
+                  <option value="emote:surprised">Şaşkınlık</option>
+                  <option value="emote:proud">Gururlanma</option>
+                  <option value="emote:wink">Göz kırpma</option>
+                  <option value="emote:yawn">Esneme</option>
+                  <option value="emote:happy">Mutluluk</option>
+                  <option value="emote:annoyed">Huysuzlanma</option>
+                </optgroup>
+                <optgroup label="Hareketler">
+                  <option value="action:greet">Selamlama</option>
+                  <option value="action:gulp">Dosya alma</option>
+                </optgroup>
+                <optgroup label="İş başında">
+                  <option value="station:web">Büyüteçle araştırma</option>
+                  <option value="station:code">Bilgisayarda kod yazma</option>
+                  <option value="station:read">Belge okuma</option>
+                  <option value="station:terminal">Komut çalıştırma</option>
+                  <option value="station:image">Çizim yapma</option>
+                  <option value="station:eureka">Fikir bulma (ampul)</option>
+                </optgroup>
+                <optgroup label="Çalışma ifadeleri">
+                  <option value="state:idle">Bekleme</option>
+                  <option value="state:thinking">Düşünme</option>
+                  <option value="state:working">Çalışma</option>
+                  <option value="state:searching">Arama</option>
+                  <option value="state:approval">Onay bekleme</option>
+                  <option value="state:question">Soru sorma</option>
+                  <option value="state:error">Hata</option>
+                  <option value="state:finished">Tamamlandı</option>
+                  <option value="state:ratelimit">Limit doldu</option>
+                  <option value="state:sleeping">Uyuma</option>
+                </optgroup></select
+              ><button id="preview-reaction">Dene</button>
+            </div>
+            <p class="hint">
+              Yalnızca karakterin tepkisini gösterir. Yaklaşık 3 saniye sonra
+              normal ifadesine döner.
+            </p>
+          </details>
+          <section id="appearance-section">
+            <h3>Görünüm</h3>
+            <div class="look-grid">
+              <label
+                >Yazı
+                <input
+                  id="look-font"
+                  type="number"
+                  min="11"
+                  max="18"
+                  value="13" /></label
+              ><label
+                >Panel
+                <input
+                  id="look-scale"
+                  type="range"
+                  min="0.85"
+                  max="1.15"
+                  step="0.05" /></label
+              ><label
+                >Karakter
+                <input
+                  id="look-pet"
+                  type="range"
+                  min="0.8"
+                  max="1.2"
+                  step="0.05" /></label
+              ><label
+                >Saydamlık
+                <input
+                  id="look-opacity"
+                  type="range"
+                  min="0.3"
+                  max="1"
+                  step="0.01" /></label
+              ><label
+                >Vurgu <input id="look-accent" type="color" value="#edc9a9"
+              /></label>
+            </div>
+            <div class="utility-actions">
+              <button id="look-save">Uygula</button
+              ><button id="look-reset">Varsayılana dön</button>
+            </div>
+            <h3>Ekran</h3>
+            <div id="screen-cards"></div>
+            <button id="screen-refresh">Ekranları yenile</button>
+          </section>
+          <section id="memory-section">
+            <h3>Hafıza</h3>
+            <p class="hint">
+              Yanıtlarda hatırlamasını istediğin bilgileri ekle.
+            </p>
+            <textarea
+              id="memory-text"
+              maxlength="2000"
+              rows="2"
+              placeholder="Örneğin: Yanıtları kısa tercih ederim."
+            ></textarea>
+            <div class="utility-actions">
+              <button id="memory-save">Kaydet</button
+              ><button id="memory-cancel">Temizle</button>
+            </div>
+            <button id="import-memory" type="button">
+              Hafıza özeti içe aktar
+            </button>
+            <p class="hint">
+              ChatGPT hafızası otomatik eşitlenmez; metin özetini içe aktarabilirsin.
+            </p>
+            <div id="memories"></div>
+          </section>
+          <h3>Bağlantılar</h3>
+          <section id="extra-settings" aria-label="Görünüm ve bağlantılar">
+            <div class="extra-scroll">
+              <div class="row">
+                <label><input id="pref-sound" type="checkbox" /> Sesler</label
+                ><label
+                  >Ses
+                  <input
+                    id="pref-volume"
+                    type="range"
+                    min="0"
+                    max="0.2"
+                    step="0.01"
+                /></label>
+              </div>
+              <div class="row">
+                <label
+                  ><input id="pref-hide" type="checkbox" /> Kullanılmadığında
+                  üst kenara gizlen</label
+                ><label
+                  ><input
+                    id="pref-seconds"
+                    type="number"
+                    min="10"
+                    max="600"
+                    value="60"
+                  />
+                  sn</label
+                >
+              </div>
+              <div class="row">
+                <label
+                  ><input id="pref-close" type="checkbox" /> Fare uzaklaşınca
+                  paneli küçült</label
+                ><label
+                  ><input
+                    id="pref-close-seconds"
+                    type="number"
+                    min="5"
+                    max="120"
+                    value="15"
+                  />
+                  sn</label
+                >
+              </div>
+              <div class="row">
+                <label hidden
+                  >Ekran
+                  <select id="pref-screen">
+                    <option value="primary">Ana ekran</option>
+                    <option value="cursor">Faremin olduğu ekran</option>
+                  </select></label
+                ><button id="save-prefs">Ayarları kaydet</button>
+              </div>
+              <div class="row">
+                <strong>Servisler</strong
+                ><label
+                  ><input id="pause-services" type="checkbox" /> Takibi
+                  duraklat</label
+                >
+              </div>
+              <p class="hint">
+                Anahtarların bu bilgisayarda şifrelenerek saklanır.
+              </p>
+              <div id="service-settings"></div>
+            </div>
+          </section>
+        </div>
+      </dialog>
+
+      <div class="content">
+        <section class="setup">
+          <div class="row mode-row">
+            <select id="mode" aria-label="Çalışma modu">
+              <option value="chat">Sohbet</option>
+              <option value="project">Proje · Kod yaz</option></select
+            ><span id="notice" role="status" hidden></span><span class="tag" id="account">Bağlı değil</span>
+          </div>
+          <button id="folder" class="folder" hidden>
+            <svg class="project-folder-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5h6l2 2h10v12H3Z"/></svg
+            ><span id="folder-name">Proje klasörü seç</span
+            ><span class="project-folder-action" aria-hidden="true">›</span>
+          </button>
+          <button id="open-project" class="text-button" hidden>
+            Proje klasörünü aç ↗
+          </button>
+        </section>
+        <div id="service-pills"></div>
+        <section id="requests" aria-label="Onay ve sorular"></section>
+        <section class="conversation">
+          <div class="row conversation-heading">
+            <span class="eyebrow">SOHBET</span
+            ><button id="new-chat" class="text-button">Yeni konuşma</button>
+          </div>
+          <div id="feed" role="log" aria-label="Sohbet ve yapılan işlemler">
+            <div id="welcome">
+              <span class="welcome-dot">✦</span>
+              <h1>Aklında ne var?</h1>
+              <p>Bir fikir, küçük bir soru, yeni bir şey.</p>
+              <div class="suggestions">
+                <button data-prompt="Merhaba Charles, biraz sohbet edelim.">
+                  Sohbet edelim</button
+                ><button
+                  data-prompt="Bugün yapacaklarımı planlamama yardım eder misin?"
+                >
+                  Birlikte planlayalım
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <details id="diff-box" hidden>
+          <summary>Son değişiklikleri gör</summary>
+          <pre id="diff"></pre>
+        </details>
+        <form id="composer">
+          <div id="attachments"></div>
+          <div id="drop-actions" hidden>
+            <span>Bununla ne yapalım?</span
+            ><button type="button" data-file-prompt="Eklediğim dosyayı özetle.">
+              Özetle</button
+            ><button
+              type="button"
+              data-file-prompt="Eklediğim dosyadaki sorunu bul ve açıkla."
+            >
+              Sorunu bul</button
+            ><button
+              type="button"
+              data-file-prompt="Eklediğim dosyanın içeriğini açıkla."
+            >
+              Açıkla
+            </button>
+          </div>
+          <div class="voice-row">
+            <div class="model-picker">
+              <select id="model" aria-label="Model seçimi" hidden disabled>
+                <option value="">Model</option></select
+              ><button
+                id="model-button"
+                type="button"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                aria-controls="model-menu"
+              >
+                Model
+              </button>
+              <div
+                id="model-menu"
+                role="listbox"
+                aria-label="Model seçimi"
+                hidden
+              ></div>
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="m5 6 3 3 3-3" />
+              </svg>
+            </div>
+            <button
+              id="voice-mic"
+              type="button"
+              aria-pressed="false"
+              aria-label="Konuş"
+              title="Konuş"
+            >
+              <svg class="mic-symbol" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="9" y="3" width="6" height="12" rx="3" />
+                <path d="M6 10v2a6 6 0 0 0 12 0v-2M12 18v3M9 21h6" /></svg
+              ><svg class="record-stop" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="6" y="6" width="12" height="12" rx="3" />
+              </svg></button
+            ><button id="voice-cancel" type="button" hidden>Sesi durdur</button
+            ><label class="read-toggle" title="Yanıtı sesli oku"
+              ><input
+                id="voice-read"
+                type="checkbox"
+                aria-label="Yanıtı sesli oku" /><svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  d="m11 5-6 4H2v6h3l6 4zM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"
+                /></svg
+            ></label>
+          </div>
+          <div id="voice-status" class="hint" role="status"></div>
+          <label for="prompt" class="sr-only">Yapılacak iş</label
+          ><textarea
+            id="prompt"
+            rows="2"
+            placeholder="Örneğin: Bu projeye koyu tema ekle…"
+            maxlength="100000"
+          ></textarea>
+          <div class="row">
+            <button
+              id="capture-button"
+              type="button"
+              title="Ekrandan alan seç · Ctrl+Shift+S"
+              aria-label="Ekrandan alan seç"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5" />
+                <rect x="7" y="7" width="10" height="10" rx="2" />
+              </svg></button
+            ><button id="attach-file" type="button">＋ Dosya</button
+            ><span id="composer-hint"></span>
+            <div>
+              <button id="stop" type="button" hidden>Durdur</button
+              ><button id="send" type="submit" class="primary" disabled>
+                Gönder ↑
+              </button>
+            </div>
+          </div>
+        </form>
+        <footer hidden aria-hidden="true"><span id="connection-light">● Yerel uygulama</span></footer>
+      </div>
+      <div
+        id="resize-handle"
+        role="separator"
+        aria-label="Panel yüksekliği"
+        aria-orientation="horizontal"
+        tabindex="0"
+      ></div>
+    </main>
+    <dialog id="setup-panel">
+      <div class="settings-heading"><h2>Charles’ı kişiselleştir</h2></div>
+      <p>Hava durumu için şehir veya ilçe seç.</p>
+      <div class="row">
+        <input
+          id="city-query"
+          placeholder="Şehir veya ilçe"
+          aria-label="Şehir veya ilçe"
+        /><button id="city-search">Ara</button>
+      </div>
+      <div id="city-results"></div>
+      <p class="hint" id="city-status"></p>
+      <p class="hint">
+        Hava durumu için seçilen konum Open-Meteo’ya gönderilir. Aktif uygulama
+        ve AI önerilerini Ayarlar’dan kapatabilirsin.
+      </p>
+      <button id="setup-skip">Şimdilik geç / Kapat</button>
+    </dialog>
+    <script src="renderer.js"></script>
+  </body>
+</html>
+

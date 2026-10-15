@@ -1,0 +1,46 @@
+Project Charles
+Copyright (c) 2026 HzPederPan. Tüm hakları saklıdır. / All rights reserved.
+
+Project Charles'ın kaynak kodu, arayüz tasarımı, "Charles" ve "Slime" adları, Slime karakteri
+(görünümü, renkleri, ifadeleri, aksesuarları ve animasyonları), uygulama simgesi ve arayüz
+sesleri HzPederPan'a aittir. Yazılı izin olmadan kopyalanamaz, dağıtılamaz veya ticari olarak
+kullanılamaz.
+
+The source code, interface design, the names "Charles" and "Slime", the Slime character
+(its look, colours, expressions, accessories and animations), the app icon and the interface
+sounds of Project Charles belong to HzPederPan. They may not be copied, distributed or used
+commercially without written permission.
+
+Exceptions: third-party components keep their own licenses. They are listed in
+THIRD-PARTY-NOTICES.md, and their license texts are in the licenses/ folder and in
+node_modules/ and tools/.
+
+--------------------------------------------------------------------------------
+MIT License — character engine code
+
+Parts of the animation and drawing code in src/vendor/ (slime/engine.ts, slime/outfits.ts,
+slime/wardrobe.ts, core/anim.ts, core/sound.ts, core/layout.ts) are derived from source code
+published under the following MIT License. Those parts may be used under its terms; the rest
+of Project Charles is covered by the notice above.
+
+MIT License
+
+Copyright (c) 2026 Louis Raillé
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

@@ -1,0 +1,40 @@
+# Dependencies and build output (made by `npm ci` and `npm run build`)
+node_modules/
+dist/
+
+# Large downloads and third-party tools (made by `npm run setup:voice` or bundled in releases)
+models/
+tools/
+
+# Release packages
+*.zip
+*.tgz
+release/
+_to_delete/
+
+# Personal / machine-local files — never commit these.
+# Charles keeps settings, chat history, memory and encrypted keys in %APPDATA%\Charles,
+# not in this folder. The files below only matter if someone copies them here by mistake.
+Charles-creator.json
+personal.json
+companion.json
+charles-history.json
+preferences.json
+*.enc.json
+*.key
+*.pem
+.env
+.env.*
+
+# Logs and OS / editor clutter
+*.log
+npm-debug.log*
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc

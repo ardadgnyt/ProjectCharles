@@ -1,0 +1,930 @@
+/* ==========================================================================
+   5 · Design system (v0.4.4 SpecialBeta → v0.5.0 Beta)
+   --------------------------------------------------------------------------
+   Loaded last. Earlier files (1-base … 4-polish) build the layout; this file
+   only refines surfaces, colour, focus and motion so the whole UI reads as one
+   system. Every colour comes from the tokens below — change them here.
+   ========================================================================== */
+
+:root {
+  --sb-surface: #121215;
+  --sb-surface-raised: #1a1a1f;
+  --sb-surface-hover: #212127;
+  --sb-line: rgba(255, 255, 255, 0.07);
+  --sb-line-strong: rgba(255, 255, 255, 0.12);
+  --sb-text: #ececf1;
+  --sb-muted: #9a9aa6;
+  --sb-accent: #f0c6a1;
+  --sb-accent-strong: #f6d2b2;
+  --sb-accent-soft: rgba(240, 198, 161, 0.1);
+  --sb-warn: #f5b971;
+  --sb-danger: #ff8a7a;
+  --sb-ok: #9ce3c0;
+  --sb-radius-island: 26px;
+  --sb-radius-card: 16px;
+  --sb-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --accent: var(--sb-accent);
+  --muted: var(--sb-muted);
+  --line: var(--sb-line);
+  --panel-surface: var(--sb-surface);
+}
+
+/* --- Island surface -------------------------------------------------------
+   v0.4.4 drew an outer drop shadow (0 8px 28px) on the island. The window is
+   transparent and the body clips at its 8 px padding, so the blurred shadow
+   was cut off and showed up as a faint rectangle around the large panel.
+   The island now uses a hairline border and an inner highlight only. */
+body:not(.desktop-pet) .island,
+body:not(.desktop-pet):not(.hidden-island) .island {
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(240, 198, 161, 0.06), transparent 60%),
+    linear-gradient(180deg, #17171b 0%, var(--sb-surface) 55%);
+  border: 1px solid var(--sb-line);
+  border-top: 0;
+  border-radius: 0 0 var(--sb-radius-island) var(--sb-radius-island);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+}
+body.docked-left:not(.desktop-pet) .island {
+  border-left: 0;
+  border-radius: 0 0 var(--sb-radius-island) 0;
+}
+body.docked-right:not(.desktop-pet) .island {
+  border-right: 0;
+  border-radius: 0 0 0 var(--sb-radius-island);
+}
+body.hidden-island:not(.desktop-pet) .island {
+  background: #0d0d10;
+  border: 0;
+  border-radius: 0 0 8px 8px;
+  box-shadow: none;
+}
+
+/* --- Header and identity -------------------------------------------------- */
+header .identity strong,
+body.compact .identity strong {
+  font-weight: 650;
+  letter-spacing: -0.4px;
+}
+header .identity .version-label,
+body.compact .identity .version-label {
+  color: var(--sb-accent);
+  opacity: 0.75;
+  letter-spacing: 0.6px;
+}
+header > #settings-toggle,
+header > #sessions-toggle,
+header > #panel-pin,
+.window-actions button {
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+header > #settings-toggle:hover,
+header > #sessions-toggle:hover,
+header > #panel-pin:hover,
+.window-actions button:hover {
+  background: var(--sb-surface-hover);
+  color: var(--sb-text);
+}
+
+/* --- Conversation --------------------------------------------------------- */
+#feed {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+.message.user {
+  background: var(--sb-accent-soft);
+  border: 1px solid rgba(240, 198, 161, 0.14);
+  border-radius: 18px 18px 6px 18px;
+}
+.message.agent.markdown,
+.message.agent {
+  line-height: 1.6;
+}
+.message.agent pre {
+  border: 1px solid var(--sb-line);
+  border-radius: 12px;
+  background: #0d0d10;
+}
+.message.agent code {
+  font-family: 'Cascadia Code', 'Cascadia Mono', Consolas, monospace;
+}
+.message.agent a {
+  color: var(--sb-accent-strong);
+  text-underline-offset: 2px;
+}
+
+/* --- Composer -------------------------------------------------------------- */
+#composer {
+  background: var(--sb-surface-raised);
+  border: 1px solid var(--sb-line);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+#composer:focus-within {
+  border-color: rgba(240, 198, 161, 0.38);
+  box-shadow: 0 0 0 3px rgba(240, 198, 161, 0.08);
+}
+#composer #send:not(:disabled) {
+  background: var(--sb-accent);
+  color: #1a1410;
+  transition:
+    transform 0.12s var(--sb-ease),
+    background-color 0.15s;
+}
+#composer #send:not(:disabled):hover {
+  background: var(--sb-accent-strong);
+  transform: scale(1.05);
+}
+
+/* --- Dialogs and cards ---------------------------------------------------- */
+#settings-panel,
+#sessions-panel,
+#personal-panel,
+#setup-panel,
+#wardrobe-panel {
+  border: 1px solid var(--sb-line-strong);
+  border-radius: 20px;
+  background: rgba(19, 19, 23, 0.98);
+}
+.plugin-card,
+.setting-section {
+  border-color: var(--sb-line);
+  border-radius: var(--sb-radius-card);
+  background: rgba(255, 255, 255, 0.015);
+}
+.settings-body button:not(.primary),
+.plugin-card button:not(.primary),
+.setting-section button:not(.primary) {
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+.settings-body button:not(.primary):hover,
+.plugin-card button:not(.primary):hover,
+.setting-section button:not(.primary):hover {
+  background: var(--sb-surface-hover);
+  border-color: var(--sb-line-strong);
+}
+button.primary {
+  background: var(--sb-accent);
+  border-color: transparent;
+  color: #1a1410;
+}
+:focus-visible {
+  outline: 2px solid rgba(240, 198, 161, 0.7);
+  outline-offset: 2px;
+}
+.plugin-keywords {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--sb-muted);
+}
+
+/* --- Remaining-usage panel on the compact island -------------------------
+   Header: coloured dot + provider name (normal case, readable size) + plan
+   badge + refresh icon. Two rings with the remaining percent inside, the
+   window name and "resets in" countdown below. Provider colour: --provider. */
+body.compact #usage-weather {
+  --provider: var(--sb-accent);
+  top: 8px;
+  height: 108px;
+  gap: 6px;
+  justify-content: center;
+}
+/* Weather on the right column, top row; Spotify sits below it. */
+body.compact #weather-idle {
+  position: absolute;
+  display: block;
+  top: 13px;
+  right: 31px;
+  left: auto;
+  width: 136px;
+  max-height: 16px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: center;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  color: #d4d4dc;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+body.compact #weather-idle:hover {
+  color: var(--sb-text);
+}
+body.compact #mini-music {
+  top: calc(50% + 11px);
+}
+body.compact #usage-weather .usage-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 16px;
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--sb-text);
+}
+body.compact #usage-weather .usage-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--provider);
+  box-shadow: 0 0 6px var(--provider);
+  flex: none;
+}
+body.compact #usage-weather .usage-name {
+  font-family: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-weight: 600;
+  font-size: 10.5px;
+  letter-spacing: 0.1px;
+  text-transform: none;
+  color: var(--sb-text);
+}
+body.compact #usage-weather .usage-extra {
+  font-size: 9px;
+  line-height: 14px;
+  font-weight: 400;
+  color: var(--sb-muted);
+  white-space: nowrap;
+}
+body.compact #usage-weather .usage-extra::before {
+  content: '·';
+  margin-right: 4px;
+}
+body.compact #usage-weather .usage-extra[hidden] {
+  display: none;
+}
+body.compact #usage-weather #usage-refresh {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sb-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    background-color 0.15s;
+}
+body.compact #usage-weather #usage-refresh[hidden] {
+  display: none;
+}
+body.compact #usage-weather #usage-refresh svg {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+body.compact #usage-weather #usage-refresh:hover:not(:disabled) {
+  color: var(--provider);
+  background: rgba(255, 255, 255, 0.06);
+}
+body.compact #usage-weather.loading #usage-refresh {
+  animation: sb-spin 0.9s linear infinite;
+}
+body.compact #usage-weather .usage-gauges {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+body.compact #usage-weather.loading .usage-gauges {
+  opacity: 0.55;
+}
+body.compact #usage-weather .usage-gauge {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 52px;
+  height: auto;
+}
+body.compact #usage-weather .usage-gauge::after {
+  display: none;
+}
+body.compact #usage-weather .usage-gauge svg {
+  display: block;
+  width: 42px;
+  height: 42px;
+}
+body.compact #usage-weather .usage-gauge path {
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+body.compact #usage-weather .usage-gauge .gauge-track {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+body.compact #usage-weather .usage-gauge .gauge-fill {
+  stroke: var(--provider);
+  transition:
+    stroke-dasharray 0.6s var(--sb-ease),
+    stroke 0.3s;
+}
+body.compact #usage-weather .usage-gauge.low .gauge-fill {
+  stroke: var(--sb-warn);
+}
+body.compact #usage-weather .usage-gauge.empty .gauge-fill {
+  stroke: var(--sb-danger);
+}
+body.compact #usage-weather .usage-gauge strong {
+  position: absolute;
+  top: 13.5px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: 12px;
+  line-height: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--sb-text);
+}
+body.compact #usage-weather .usage-gauge.empty strong {
+  color: var(--sb-danger);
+}
+body.compact #usage-weather .usage-gauge .usage-label {
+  margin-top: 2px;
+  font-size: 8.5px;
+  line-height: 11px;
+  font-weight: 500;
+  color: #b9b9c4;
+}
+body.compact #usage-weather .usage-gauge .usage-reset {
+  font-size: 7.5px;
+  line-height: 10px;
+  color: var(--sb-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+body.compact #usage-weather .usage-gauge .usage-reset:empty {
+  display: none;
+}
+body.compact #usage-weather #usage-credits {
+  font-size: 8px;
+  line-height: 10px;
+  color: var(--sb-muted);
+}
+
+@keyframes sb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #usage-weather.loading #usage-refresh {
+    animation: none;
+  }
+  .usage-gauge .gauge-fill {
+    transition: none;
+  }
+}
+
+/* --- Settings (v0.5.0) ------------------------------------------------------
+   Two-column dialog: a vertical category list on the left, the page on the
+   right. One button system: .primary = accent fill, everything else = quiet
+   surface. Cards get a clear title / description / control rhythm. */
+#settings-panel {
+  --accent: var(--sb-accent);
+  color: var(--sb-text);
+  background: rgba(17, 17, 21, 0.985);
+  border: 1px solid var(--sb-line-strong);
+  border-radius: 22px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+}
+#settings-panel[open] {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+#settings-panel .settings-heading {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px 20px;
+  border-bottom: 1px solid var(--sb-line);
+}
+#settings-panel .settings-heading h2 {
+  margin: 0;
+  font-family: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.2px;
+}
+#settings-panel .settings-heading button {
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--sb-muted);
+  font-size: 18px;
+}
+#settings-panel .settings-heading button:hover {
+  background: var(--sb-surface-hover);
+  color: var(--sb-text);
+}
+#settings-panel #settings-categories {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 2px;
+  padding: 12px 8px 12px 10px;
+  border: 0;
+  border-right: 1px solid var(--sb-line);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+#settings-panel #settings-categories button {
+  position: relative;
+  width: 100%;
+  min-height: 34px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #b4b4bf;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+#settings-panel #settings-categories button:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--sb-text);
+}
+#settings-panel #settings-categories button[aria-pressed='true'] {
+  background: var(--sb-accent-soft);
+  color: var(--sb-accent);
+  font-weight: 600;
+}
+#settings-panel #settings-categories button[aria-pressed='true']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--sb-accent);
+}
+#settings-panel .settings-body {
+  grid-column: 2;
+  grid-row: 2;
+  padding: 14px 18px 22px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+/* Cards */
+#settings-panel .setting-section,
+#settings-panel .plugin-card {
+  margin: 0 0 12px;
+  padding: 16px 16px 14px;
+  border: 1px solid var(--sb-line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01));
+}
+#settings-panel .setting-section h3,
+#settings-panel .plugin-card h3,
+#settings-panel .settings-page h3 {
+  margin: 0 0 6px;
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: -0.1px;
+  color: var(--sb-text);
+}
+#settings-panel .hint,
+#settings-panel .setting-section p {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--sb-muted);
+}
+#settings-panel .settings-page label {
+  color: #d2d2da;
+}
+
+/* Buttons: one system */
+#settings-panel .settings-body button {
+  min-height: 32px;
+  padding: 7px 13px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--sb-text);
+  font-size: 12px;
+  font-weight: 500;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    transform 0.1s;
+}
+#settings-panel .settings-body button:hover:not(:disabled) {
+  background: var(--sb-surface-hover);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+#settings-panel .settings-body button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+#settings-panel .settings-body button.primary {
+  background: var(--sb-accent);
+  border-color: transparent;
+  color: #1c140d;
+  font-weight: 600;
+}
+#settings-panel .settings-body button.primary:hover:not(:disabled) {
+  background: var(--sb-accent-strong);
+}
+#settings-panel .settings-body button:disabled {
+  opacity: 0.45;
+}
+
+/* Inputs */
+#settings-panel .settings-body input:not([type='checkbox']):not([type='range']):not([type='color']),
+#settings-panel .settings-body select {
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: 10px;
+  background: #0d0d10;
+  color: var(--sb-text);
+  font-size: 12px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+#settings-panel .settings-body input:focus-visible,
+#settings-panel .settings-body select:focus-visible {
+  outline: none;
+  border-color: rgba(240, 198, 161, 0.5);
+  box-shadow: 0 0 0 3px rgba(240, 198, 161, 0.1);
+}
+#settings-panel input[type='checkbox'],
+#settings-panel input[type='range'] {
+  accent-color: var(--sb-accent);
+}
+
+/* Narrow windows: categories back on top as a scrollable row. */
+@media (max-width: 520px) {
+  #settings-panel[open] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  #settings-panel #settings-categories {
+    grid-row: 2;
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--sb-line);
+  }
+  #settings-panel #settings-categories button {
+    width: auto;
+    white-space: nowrap;
+  }
+  #settings-panel .settings-body {
+    grid-column: 1;
+    grid-row: 3;
+  }
+}
+
+/* --- v0.5.0 fixes -------------------------------------------------------------
+   Modal backdrop: the window is transparent and larger than the panel, so the
+   default dimming layer showed up as a black rectangle around Charles. */
+dialog::backdrop,
+#settings-panel::backdrop,
+#sessions-panel::backdrop,
+#setup-panel::backdrop,
+#personal-panel::backdrop,
+#wardrobe-panel::backdrop {
+  background: transparent;
+}
+
+/* Text selection only where it is useful: chat messages, code, inputs. Labels, gauges,
+   buttons and the island behave like an app, not a web page. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+#feed .message,
+#feed .message *,
+#feed pre,
+#feed code,
+.activity pre,
+input,
+textarea,
+select,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* --- v0.5.1: Spotify block on the compact island --------------------------------
+   While music plays the block gained a progress bar, time and shuffle/repeat rows and
+   grew past the island, under the weather line. Fixed rows, one control row:
+     row 1-2  cover | title / artist
+     row 3    shuffle · ⏮ ▶ ⏭ · repeat
+     row 4    thin progress bar (time is in the bar's tooltip-free label hidden here) */
+body.compact #mini-music {
+  top: 36px;
+  transform: none;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-rows: 15px 14px 20px auto;
+  row-gap: 1px;
+  align-items: center;
+}
+body.compact #mini-music #music-art {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  width: 28px;
+  height: 28px;
+}
+body.compact #mini-music #music-title {
+  grid-column: 2;
+  grid-row: 1;
+}
+body.compact #mini-music #music-artist {
+  grid-column: 2;
+  grid-row: 2;
+}
+body.compact #mini-music:has(#music-art[hidden]) #music-title,
+body.compact #mini-music:has(#music-art[hidden]) #music-artist {
+  grid-column: 1 / -1;
+}
+body.compact #mini-music > div:not(.music-options) {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-content: center;
+}
+body.compact #mini-music .music-options {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-content: space-between;
+  height: 20px;
+  padding: 0 2px;
+  pointer-events: none;
+}
+body.compact #mini-music .music-options button {
+  pointer-events: auto;
+  height: 20px;
+  font-size: 13px;
+}
+body.compact #mini-music #music-progress {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  height: 10px;
+}
+body.compact #mini-music #music-time {
+  display: none;
+}
+
+/* v0.5.1: the "ChatGPT · plus" badge in the chat header is removed. */
+#account,
+.mode-row #account {
+  display: none !important;
+}
+
+/* --- v0.5.1: Slime studio (accessories / expressions) ---------------------------
+   Preview Slime on the left, choices on the right as a scrollable chip list. */
+#settings-panel .slime-studio .studio-body {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  margin-top: 10px;
+}
+#settings-panel .slime-preview {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 6px 8px;
+  border: 1px solid var(--sb-line);
+  border-radius: 16px;
+  background: radial-gradient(90% 70% at 50% 35%, rgba(240, 198, 161, 0.09), transparent 70%),
+    #0e0e11;
+}
+#settings-panel .slime-preview canvas {
+  width: 100px;
+  height: 100px;
+}
+#settings-panel .slime-preview small {
+  min-height: 14px;
+  font-size: 10.5px;
+  color: var(--sb-accent);
+  text-align: center;
+}
+#settings-panel .studio-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 6px;
+  max-height: 196px;
+  overflow-y: auto;
+  padding: 2px 6px 2px 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(240, 198, 161, 0.35) transparent;
+}
+#settings-panel .studio-options::-webkit-scrollbar {
+  width: 5px;
+}
+#settings-panel .studio-options::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+  background: rgba(240, 198, 161, 0.35);
+}
+#settings-panel .studio-group {
+  flex-basis: 100%;
+  margin: 6px 0 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--sb-muted);
+}
+#settings-panel .studio-group:first-child {
+  margin-top: 0;
+}
+#settings-panel .settings-body button.studio-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11.5px;
+}
+#settings-panel .studio-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+#settings-panel .settings-body button.studio-option[aria-selected='true'] {
+  border-color: rgba(240, 198, 161, 0.6);
+  background: var(--sb-accent-soft);
+  color: var(--sb-accent);
+}
+#settings-panel .settings-body button.studio-option.saved::after {
+  content: '✓';
+  margin-left: 2px;
+  font-size: 10px;
+  color: var(--sb-ok);
+}
+#settings-panel .studio-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+#settings-panel .studio-status {
+  font-size: 11px;
+  color: var(--sb-muted);
+}
+/* The old <details> marker triangle never shows on settings cards. */
+#settings-panel summary {
+  list-style: none;
+}
+#settings-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+/* --- v0.5.1: Görünüm page fits its column --------------------------------------- */
+#settings-panel #appearance-section .look-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin: 8px 0 4px;
+}
+#settings-panel #appearance-section .look-grid label {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-size: 12px;
+}
+#settings-panel #appearance-section input[type='range'] {
+  width: 100%;
+  min-width: 0;
+}
+#settings-panel #appearance-section input[type='number'] {
+  width: 76px;
+}
+#settings-panel #appearance-section input[type='color'] {
+  width: 46px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: 9px;
+  background: #0d0d10;
+  cursor: pointer;
+}
+#settings-panel #appearance-section .utility-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 18px;
+}
+#settings-panel #appearance-section .utility-actions button[hidden] {
+  display: none;
+}
+
+/* --- v0.5.1: Kısayollar rows fit the page ---------------------------------------- */
+#settings-panel .shortcut-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sb-line);
+}
+#settings-panel .shortcut-row > span {
+  grid-column: 1 / -1;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--sb-text);
+}
+#settings-panel .shortcut-row input {
+  width: 100%;
+  min-width: 0;
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: 11.5px;
+}
+#settings-panel .shortcut-row button {
+  white-space: nowrap;
+}
+#settings-panel .settings-page[data-category='shortcuts'] {
+  overflow-x: hidden;
+}
+#settings-panel .shortcut-row.shortcut-conflict input {
+  border-color: rgba(255, 138, 122, 0.6);
+}
+#settings-panel #appearance-section .look-grid label[hidden] { display: none; }
+
+/* v0.5.3: Charles' own questions in the chat (calendar / quota suggestions). */
+.message.agent.proposal {
+  border: 1px solid rgba(168, 199, 250, 0.22);
+  background: linear-gradient(180deg, rgba(168, 199, 250, 0.07), rgba(168, 199, 250, 0.02));
+}
+.proposal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.proposal-actions button {
+  padding: 6px 12px;
+  border: 1px solid var(--sb-line, rgba(255, 255, 255, 0.12));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.proposal-actions button.primary {
+  border-color: transparent;
+  background: var(--sb-accent, #f0c6a1);
+  color: #1b1b1f;
+  font-weight: 600;
+}
+.proposal-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.proposal-reply {
+  color: var(--sb-muted, #9a9aa6);
+  font-size: 12.5px;
+}
+/* v0.5.4: the question text sits in its own block so the buttons survive re-rendering. */
+.message.agent.proposal .proposal-body .answer-tools {
+  display: none;
+}

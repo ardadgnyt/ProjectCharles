@@ -1,0 +1,44 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: crosshair;
+  background: #111;
+}
+#screen {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+#shade {
+  position: absolute;
+  inset: 0;
+  background: #0005;
+  pointer-events: none;
+}
+#selection {
+  position: absolute;
+  display: none;
+  border: 2px solid #f3cfac;
+  background: #ffffff12;
+  pointer-events: none;
+}
+aside {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: 16px;
+  background: #181a20e8;
+  color: #fff;
+  font: 14px "Segoe UI";
+  pointer-events: none;
+}

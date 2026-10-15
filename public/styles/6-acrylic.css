@@ -1,0 +1,942 @@
+/* ==========================================================================
+   6 · Hafif akrilik tema (v0.5.5)
+   --------------------------------------------------------------------------
+   Loaded last. Frosted, layered surfaces: a tinted base with two soft light
+   glows and a fine grain, and translucent "glass" cards (composer, messages,
+   menus, settings) that blur what is behind them inside the panel.
+   The desktop itself is not blurred (that needs a native window material);
+   the window-wide transparency is still Ayarlar → Görünüm → Saydamlık.
+   ========================================================================== */
+
+:root {
+  --ac-base: 18, 18, 23;
+  --ac-glass: rgba(255, 255, 255, 0.045);
+  --ac-glass-strong: rgba(255, 255, 255, 0.07);
+  --ac-glass-hover: rgba(255, 255, 255, 0.09);
+  --ac-edge: rgba(255, 255, 255, 0.09);
+  --ac-edge-top: rgba(255, 255, 255, 0.14);
+  --ac-blur: blur(22px) saturate(1.35);
+  --ac-grain-soft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --ac-warm: rgba(240, 198, 161, 0.17);
+  --ac-cool: rgba(140, 170, 255, 0.13);
+  --ac-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --sb-surface-raised: rgba(255, 255, 255, 0.05);
+  --sb-surface-hover: rgba(255, 255, 255, 0.085);
+}
+
+/* --- Panel base: tinted acrylic with light glows and grain ---------------- */
+body:not(.desktop-pet):not(.hidden-island) .island {
+  background:
+    var(--ac-grain-soft),
+    radial-gradient(90% 55% at 12% -8%, var(--ac-warm), transparent 62%),
+    radial-gradient(80% 50% at 105% 105%, var(--ac-cool), transparent 60%),
+    linear-gradient(180deg, rgba(30, 30, 37, 0.97) 0%, rgba(var(--ac-base), 0.97) 42%, rgba(14, 14, 18, 0.98) 100%);
+  border-color: var(--ac-edge);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+}
+/* --- Glass cards ------------------------------------------------------------ */
+#composer,
+.message.user,
+#settings-panel .setting-section,
+.setting-section,
+.message.agent.proposal,
+.activity,
+#sessions-panel .session-row,
+.model-picker,
+select {
+  background-color: var(--ac-glass);
+  border: 1px solid var(--ac-edge);
+  border-top-color: var(--ac-edge-top);
+  backdrop-filter: var(--ac-blur);
+  -webkit-backdrop-filter: var(--ac-blur);
+}
+#composer {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)),
+    rgba(var(--ac-base), 0.55);
+  box-shadow:
+    0 10px 30px -12px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition:
+    border-color 0.2s var(--sb-ease),
+    box-shadow 0.2s var(--sb-ease);
+}
+#composer:focus-within {
+  border-color: rgba(240, 198, 161, 0.32);
+  box-shadow:
+    0 10px 34px -12px rgba(0, 0, 0, 0.6),
+    0 0 0 3px rgba(240, 198, 161, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+.message.user {
+  background:
+    linear-gradient(180deg, rgba(240, 198, 161, 0.13), rgba(240, 198, 161, 0.07)),
+    rgba(var(--ac-base), 0.4);
+  border-color: rgba(240, 198, 161, 0.16);
+  border-top-color: rgba(240, 198, 161, 0.24);
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.5);
+}
+select,
+.model-picker {
+  border-radius: 999px;
+}
+#composer .model-picker {
+  border-color: transparent;
+  background-color: transparent;
+  backdrop-filter: none;
+}
+select:hover,
+.model-picker:hover {
+  background-color: var(--ac-glass-hover);
+}
+
+/* Header buttons: round glass on hover */
+header > #settings-toggle:hover,
+header > #sessions-toggle:hover,
+header > #panel-pin:hover,
+.window-actions button:hover {
+  background: var(--ac-glass-hover);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Dialogs (settings, sessions): frosted sheet over the panel */
+#settings-panel,
+#sessions-panel {
+  background:
+    radial-gradient(80% 40% at 0% 0%, var(--ac-warm), transparent 60%),
+    linear-gradient(180deg, rgba(28, 28, 35, 0.92), rgba(16, 16, 20, 0.95));
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  border: 1px solid var(--ac-edge);
+}
+
+/* Scrollbars stay thin and light on glass */
+#feed,
+.settings-body {
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+/* --- Generated images (src/chat/image-card.ts) ----------------------------- */
+.message.agent.image-card {
+  position: relative;
+  width: min(100%, 360px);
+  max-width: 360px;
+  min-height: 0;
+  padding: 0;
+  display: block;
+  background: none;
+  overflow: visible;
+}
+.image-card.image-generating {
+  height: 248px;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid var(--ac-edge);
+  border-top-color: var(--ac-edge-top);
+  background: rgba(var(--ac-base), 0.7);
+  box-shadow:
+    0 14px 40px -18px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.image-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.image-canvas .blob {
+  position: absolute;
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(34px);
+  opacity: 0.55;
+  animation: charles-blob 9s ease-in-out infinite;
+}
+.image-canvas .b1 {
+  left: -12%;
+  top: -18%;
+  background: #f0c6a1;
+}
+.image-canvas .b2 {
+  right: -16%;
+  top: 20%;
+  background: #8fa8ff;
+  animation-delay: -3s;
+  animation-duration: 11s;
+}
+.image-canvas .b3 {
+  left: 18%;
+  bottom: -30%;
+  background: #c79bff;
+  opacity: 0.38;
+  animation-delay: -6s;
+  animation-duration: 13s;
+}
+.image-canvas .grain {
+  position: absolute;
+  inset: 0;
+  background-image: var(--ac-grain);
+  opacity: 0.09;
+  mix-blend-mode: overlay;
+}
+/* Sweep that grows with the estimated progress */
+.image-canvas::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.07) 45%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.07) 55%,
+    transparent 100%
+  );
+  background-size: 250% 100%;
+  animation: charles-sweep 2.6s linear infinite;
+}
+@keyframes charles-blob {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(18%, 12%) scale(1.12);
+  }
+  66% {
+    transform: translate(-10%, 16%) scale(0.92);
+  }
+}
+@keyframes charles-sweep {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -130% 0;
+  }
+}
+.image-progress {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+  z-index: 1;
+}
+.image-ring {
+  width: 74px;
+  height: 74px;
+  grid-area: 1 / 1;
+  transform: rotate(-90deg);
+}
+.image-ring circle {
+  fill: none;
+  stroke-width: 3;
+}
+.image-ring .track {
+  stroke: rgba(255, 255, 255, 0.12);
+}
+.image-ring .fill {
+  stroke: #fff;
+  stroke-linecap: round;
+  stroke-dasharray: calc(var(--progress, 0) * 1) 100;
+  transition: stroke-dasharray 0.35s var(--sb-ease);
+}
+.image-percent {
+  grid-area: 1 / 1;
+  align-self: center;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+.image-card .image-progress span,
+.image-card .image-label {
+  z-index: auto;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+.image-label {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+.image-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.72);
+  font-variant-numeric: tabular-nums;
+}
+.image-bar {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 16px;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.image-bar i {
+  display: block;
+  height: 100%;
+  width: calc(var(--progress, 0) * 1%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f0c6a1, #fff);
+  transition: width 0.35s var(--sb-ease);
+}
+.image-card.image-failed {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 138, 122, 0.25);
+  background: rgba(255, 138, 122, 0.06);
+}
+.image-card.image-failed .image-label {
+  margin: 0;
+  font-weight: 500;
+  color: var(--sb-danger);
+  text-shadow: none;
+}
+
+/* Finished image */
+.image-frame {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--ac-edge);
+  box-shadow: 0 16px 40px -18px rgba(0, 0, 0, 0.75);
+  background: #0d0d10;
+}
+.image-frame img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 420px;
+  cursor: zoom-in;
+}
+.image-reveal .image-frame img {
+  animation: charles-reveal 0.85s var(--sb-ease);
+}
+@keyframes charles-reveal {
+  from {
+    filter: blur(18px) saturate(1.4);
+    transform: scale(1.04);
+    opacity: 0.4;
+  }
+  to {
+    filter: none;
+    transform: none;
+    opacity: 1;
+  }
+}
+.image-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.image-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--ac-edge);
+  border-top-color: var(--ac-edge-top);
+  background: var(--ac-glass);
+  backdrop-filter: var(--ac-blur);
+  color: var(--sb-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    transform 0.15s var(--sb-ease);
+}
+.image-action:hover {
+  background: var(--ac-glass-hover);
+  border-color: rgba(240, 198, 161, 0.3);
+}
+.image-action:active {
+  transform: scale(0.97);
+}
+.image-action:first-child {
+  background: var(--sb-accent);
+  border-color: transparent;
+  color: #1b1b1f;
+  font-weight: 600;
+}
+.image-action:first-child:hover {
+  background: var(--sb-accent-strong);
+}
+.image-action.done {
+  color: var(--sb-ok);
+}
+.image-action:first-child.done {
+  color: #1b1b1f;
+  background: var(--sb-ok);
+}
+.image-action svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.image-meta {
+  margin-left: auto;
+  color: var(--sb-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Full-size view */
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: rgba(8, 8, 10, 0.72);
+  backdrop-filter: blur(16px) saturate(1.2);
+  animation: charles-fade 0.18s ease;
+  cursor: zoom-out;
+}
+.image-lightbox.closing {
+  opacity: 0;
+  transition: opacity 0.16s;
+}
+.image-lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 16px;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.8);
+}
+.image-lightbox-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--ac-edge);
+  background: var(--ac-glass-strong);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+@keyframes charles-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+body.hidden-island .image-canvas *,
+body.hidden-island .image-canvas::after,
+body.power-paused .image-canvas *,
+body.power-paused .image-canvas::after {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .image-canvas .blob,
+  .image-canvas::after,
+  .image-reveal .image-frame img {
+    animation: none;
+  }
+}
+.image-progress > * {
+  background: none;
+  box-shadow: none;
+}
+.message.agent.image-card.image-done {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.image-progress > .image-bar {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Form fields: glass instead of black boxes */
+#settings-panel select,
+#settings-panel input[type='text'],
+#settings-panel input[type='number'],
+#settings-panel input[type='search'],
+#settings-panel input[type='password'],
+#settings-panel input[type='time'],
+#settings-panel input[type='datetime-local'],
+#settings-panel textarea,
+#sessions-panel input,
+#sessions-panel select {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--ac-edge);
+  border-top-color: var(--ac-edge-top);
+  color: var(--sb-text);
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+#settings-panel input:focus,
+#settings-panel select:focus,
+#settings-panel textarea:focus,
+#sessions-panel input:focus {
+  border-color: rgba(240, 198, 161, 0.4);
+  background-color: rgba(255, 255, 255, 0.07);
+  outline: none;
+}
+select option {
+  background: #1b1b20;
+  color: var(--sb-text);
+}
+#settings-panel .settings-body input:not([type='checkbox']):not([type='range']):not([type='color']),
+#settings-panel .settings-body select,
+#settings-panel .settings-body textarea,
+#sessions-panel input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--ac-edge);
+  border-top-color: var(--ac-edge-top);
+}
+#settings-panel .settings-body input:not([type='checkbox']):not([type='range']):not([type='color']):focus,
+#settings-panel .settings-body select:focus,
+#sessions-panel input:focus {
+  background: rgba(255, 255, 255, 0.075);
+}
+
+/* "Sesler" switch and the volume slider on one line */
+label:has(> #pref-volume) {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+/* --- Slime stüdyosu ------------------------------------------------------- */
+.slime-studio .studio-controls {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.slime-studio .studio-group {
+  display: grid;
+  gap: 7px;
+}
+.slime-studio .studio-label {
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: var(--sb-muted);
+}
+.slime-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+#settings-panel .slime-studio .slime-swatch {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  min-height: 0;
+  border-radius: 10px;
+  border: 2px solid var(--swatch-edge);
+  background:
+    radial-gradient(60% 40% at 32% 26%, rgba(255, 255, 255, 0.75), transparent 70%),
+    linear-gradient(180deg, var(--swatch-top), var(--swatch));
+  cursor: pointer;
+  transition:
+    transform 0.15s var(--sb-ease),
+    box-shadow 0.15s;
+}
+#settings-panel .slime-studio .slime-swatch:hover {
+  transform: translateY(-1px) scale(1.06);
+}
+#settings-panel .slime-studio .slime-swatch[aria-checked='true'] {
+  box-shadow:
+    0 0 0 2px var(--sb-surface, #121215),
+    0 0 0 4px rgba(255, 255, 255, 0.85);
+}
+.slime-swatch.saved::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--sb-ok);
+  border: 2px solid #18181d;
+}
+.studio-segment {
+  display: inline-flex;
+  width: fit-content;
+  padding: 3px;
+  gap: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--ac-edge);
+  background: rgba(255, 255, 255, 0.04);
+}
+#settings-panel .slime-studio .studio-segment button {
+  min-height: 0;
+  padding: 5px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sb-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+#settings-panel .slime-studio .studio-segment button[aria-checked='true'] {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--sb-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.slime-studio .slime-preview {
+  background:
+    radial-gradient(70% 60% at 50% 35%, rgba(255, 255, 255, 0.07), transparent 70%),
+    rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--ac-edge);
+  border-radius: 18px;
+}
+
+/* v0.6.0: speaker button (Charles' sounds), clearly different from the Spotify controls */
+#sound svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#sound svg path:first-child {
+  fill: currentColor;
+  fill-opacity: 0.25;
+}
+#sound.muted {
+  color: var(--sb-danger);
+  opacity: 0.85;
+}
+
+/* v0.6.1: Slime stüdyosu categories (Şapka · Göz · Yüz · Diğer) */
+#settings-panel .slime-studio .studio-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid var(--ac-edge);
+  background: rgba(255, 255, 255, 0.035);
+}
+#settings-panel .slime-studio .studio-tab {
+  display: grid;
+  gap: 1px;
+  min-height: 0;
+  padding: 6px 4px 5px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--sb-muted);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+#settings-panel .slime-studio .studio-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--sb-text);
+}
+#settings-panel .slime-studio .studio-tab[aria-selected='true'] {
+  background: rgba(255, 255, 255, 0.11);
+  color: var(--sb-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.slime-studio .studio-tab-name {
+  font-size: 12px;
+  font-weight: 600;
+}
+.slime-studio .studio-tab-value {
+  overflow: hidden;
+  font-size: 10px;
+  color: var(--sb-accent);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}
+.slime-studio .studio-panels {
+  min-height: 96px;
+}
+.slime-studio .studio-note {
+  min-height: 14px;
+  color: var(--sb-warn);
+  font-size: 11px;
+}
+#settings-panel .slime-studio .studio-reset {
+  background: transparent;
+  border: 1px solid var(--ac-edge);
+}
+
+/* v0.6.1 layout: the accessory studio stacks in one column so it fits the settings panel —
+   preview on top, then colour, category tabs, choices and the buttons. */
+#settings-panel #wardrobe .studio-body {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+#settings-panel #wardrobe .slime-preview {
+  position: static;
+  flex-direction: row;
+  justify-content: center;
+  height: 150px;
+  padding: 0;
+  overflow: hidden;
+}
+#settings-panel #wardrobe .slime-preview canvas {
+  width: 160px;
+  height: 160px;
+}
+#settings-panel #wardrobe .slime-preview small {
+  display: none;
+}
+#settings-panel #wardrobe .studio-controls {
+  gap: 12px;
+}
+#settings-panel #wardrobe .slime-swatches {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 30px));
+  justify-content: space-between;
+  gap: 6px;
+}
+#settings-panel #wardrobe .slime-swatch {
+  width: 30px;
+  height: 30px;
+}
+#settings-panel #wardrobe .studio-tab {
+  min-width: 0;
+}
+#settings-panel #wardrobe .studio-tab-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#settings-panel #wardrobe .studio-panels {
+  min-height: 0;
+}
+#settings-panel #wardrobe .studio-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 6px;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+}
+#settings-panel #wardrobe .settings-body button.studio-option,
+#settings-panel #wardrobe button.studio-option {
+  width: 100%;
+  min-width: 0;
+  justify-content: flex-start;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#settings-panel #wardrobe .studio-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+#settings-panel #wardrobe .studio-actions .primary {
+  min-width: 96px;
+}
+#settings-panel #wardrobe .studio-reset {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+#settings-panel #wardrobe .studio-status {
+  margin-left: auto;
+  color: var(--sb-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* v0.6.2: desktop Slime as big as the studio preview (window 160 px, see app/core/desktop-pet.cjs) */
+body.desktop-pet header,
+body.desktop-pet .character-center,
+body.desktop-pet #pet,
+body.desktop-pet #slime {
+  width: 160px;
+  height: 160px;
+}
+
+/* --- v0.6.2: welcome tour (src/island/onboarding.ts) ------------------------ */
+.tour {
+  position: fixed;
+  inset: 98px 0 0 0;
+  z-index: 50;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: 10px 18px 18px;
+  background: linear-gradient(180deg, rgba(14, 14, 18, 0.55), rgba(14, 14, 18, 0.92) 30%);
+  backdrop-filter: blur(10px);
+  animation: charles-fade 0.25s ease;
+}
+.tour.closing {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+body.compact .tour,
+body.desktop-pet .tour,
+body.hidden-island .tour {
+  display: none;
+}
+.tour-card {
+  position: relative;
+  width: min(100%, 420px);
+  padding: 18px 18px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--ac-edge);
+  border-top-color: var(--ac-edge-top);
+  background:
+    radial-gradient(90% 60% at 0% 0%, var(--ac-warm), transparent 60%),
+    linear-gradient(180deg, rgba(36, 36, 44, 0.96), rgba(22, 22, 28, 0.97));
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.8);
+}
+/* speech-bubble tail pointing up at Slime */
+.tour-card::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateX(-50%) rotate(45deg);
+  border-left: 1px solid var(--ac-edge-top);
+  border-top: 1px solid var(--ac-edge-top);
+  background: rgb(38, 37, 44);
+}
+.tour-dots {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.tour-dots i {
+  width: 18px;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.tour-dots i.done {
+  background: rgba(240, 198, 161, 0.45);
+}
+.tour-dots i.on {
+  background: var(--sb-accent);
+}
+.tour-title {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.2px;
+}
+.tour-text {
+  min-height: 60px;
+  margin: 0 0 12px;
+  color: rgba(236, 236, 241, 0.86);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.tour-colors {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.tour-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.tour .slime-swatch {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 11px;
+  border: 2px solid var(--swatch-edge);
+  background:
+    radial-gradient(60% 40% at 32% 26%, rgba(255, 255, 255, 0.75), transparent 70%),
+    linear-gradient(180deg, var(--swatch-top), var(--swatch));
+  cursor: pointer;
+}
+.tour .slime-swatch[aria-checked='true'] {
+  box-shadow:
+    0 0 0 2px #1d1d23,
+    0 0 0 4px rgba(255, 255, 255, 0.85);
+}
+.tour-mini,
+.tour-secondary,
+.tour-skip {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--ac-edge);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--sb-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.tour-mini {
+  width: fit-content;
+}
+.tour-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.tour-actions .primary {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sb-accent);
+  color: #1b1b1f;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.tour-skip {
+  display: block;
+  margin: 10px auto 0;
+  border: 0;
+  background: none;
+  color: var(--sb-muted);
+  font-size: 11px;
+}
+
+/* v0.6.4: a little more room between Slime and the "Charles" name */
+body:not(.desktop-pet):not(.compact) header .identity {
+  margin-top: 8px;
+}
+body.compact:not(.desktop-pet) .identity {
+  margin-top: 4px;
+}

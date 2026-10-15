@@ -1,0 +1,140 @@
+/* Notification bubbles under the island. Shares the island's palette (see styles/5-design-system.css). */
+:root {
+  color-scheme: dark;
+  --surface: rgba(20, 20, 24, 0.97);
+  --line: rgba(255, 255, 255, 0.08);
+  --text: #ececf1;
+  --muted: #9a9aa6;
+  --accent: #f0c6a1;
+  --accent-soft: rgba(240, 198, 161, 0.12);
+  font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+}
+html,
+body {
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+}
+#stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 6px 6px;
+}
+.bubble {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 22px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  animation: drop 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition:
+    border-color 0.15s,
+    transform 0.15s;
+}
+.bubble:hover {
+  border-color: rgba(240, 198, 161, 0.35);
+  transform: translateY(1px);
+}
+.bubble:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 17px;
+}
+.text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.meta {
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.subject {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 17px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reason {
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reason::after {
+  content: '  · Charles anlatsın →';
+  color: var(--muted);
+}
+.close {
+  align-self: start;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 22px;
+  cursor: pointer;
+}
+.close:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+}
+.more {
+  align-self: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+}
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bubble {
+    animation: none;
+  }
+}
+/* v0.5.3: Charles' own bubbles (watchdog, calendar / quota suggestions). */
+.bubble.charles .icon {
+  background: rgba(168, 199, 250, 0.14);
+  color: #a8c7fa;
+  font-weight: 700;
+}
+.bubble.charles.sweat .icon {
+  background: rgba(125, 196, 255, 0.16);
+  color: #7dc4ff;
+}

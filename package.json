@@ -1,0 +1,33 @@
+{
+  "name": "project-charles",
+  "version": "0.6.4-beta.1",
+  "private": true,
+  "description": "Charles — Windows desktop AI companion (Electron).",
+  "author": "HzPederPan",
+  "license": "SEE LICENSE IN LICENSE",
+  "main": "app/main.cjs",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && node scripts/start.cjs",
+    "dev": "npm run build && electron .",
+    "test": "node --test test/*.test.cjs",
+    "check:codex": "node scripts/check-codex.cjs",
+    "setup": "node scripts/setup.cjs",
+    "setup:voice": "node scripts/setup-voice.cjs"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "esbuild": "0.28.2"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-code": "2.1.296",
+    "@google/gemini-cli": "0.63.0",
+    "@google/genai": "2.28.0",
+    "@openai/codex": "0.159.2",
+    "fflate": "0.8.3",
+    "imapflow": "^1.7.8",
+    "mailparser": "^3.9.38",
+    "markdown-it": "15.0.2",
+    "pdf-parse": "1.1.1"
+  }
+}
