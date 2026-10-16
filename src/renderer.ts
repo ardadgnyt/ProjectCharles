@@ -1066,6 +1066,12 @@ api.onPrimary(async (v: any) => {
   model.value = v.model;
   model.dispatchEvent(new Event('change'));
 });
+// v0.7.4: focus frames only during keyboard navigation (see 9-special.css)
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab' || e.key.startsWith('Arrow')) document.body.classList.add('keyboard-nav');
+}, true);
+window.addEventListener('pointerdown', () => document.body.classList.remove('keyboard-nav'), true);
+window.addEventListener('blur', () => document.body.classList.remove('keyboard-nav'));
 personalUI(api, notice, attempt, () => {
   touchCharacter();
   bot.triggerEmote('happy', 3);

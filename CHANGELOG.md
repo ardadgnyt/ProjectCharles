@@ -18,6 +18,7 @@ Charles’ın ilk masaüstü sürümünden v0.7.4 Beta’ya kadar eklenen özell
   - **Notepad++ ile aç** eklendi. VS Code, GitHub Desktop veya Notepad++ yüklü değilse “… bu bilgisayarda yüklü değil” uyarısı çıkıyor.
   - **Dosyada ara** artık araç çubuğunun altında kendi satırında; düğmeler panelin dışına taşmıyor, yazarken odak kaybolmuyor, “2 / 5” gibi sonuç sayısı görünüyor.
 - **Haftalık özet:** süreler “72 sa 14 dk” gibi saat ve dakika olarak gösteriliyor.
+- Ayarlar ve diğer simge düğmelerinin etrafında bazen kalan kare odak çerçevesi kaldırıldı; çerçeve artık yalnızca Tab tuşuyla gezinirken görünüyor.
 - Denenen “her yerde bas-konuş dikte” bu sürümden çıkarıldı.
 
 ## v0.7.3 Beta — 16 Ekim 2026
