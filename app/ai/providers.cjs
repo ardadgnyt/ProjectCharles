@@ -175,6 +175,7 @@ class Providers {
     // Claude quota is read with the CLI's own claude.ai session; the CLI renews it if needed.
     this.claudeUsage = new ClaudeUsage(path.join(this.dir, 'claude'), {
       refreshSession: () => this.probe('claude'),
+      ping: () => this.pingClaude(),
       cacheFile: path.join(this.dir, 'claude-usage.json'),
       log: require('../core/log.cjs').createLog(dir, 'usage'),
     });
@@ -241,6 +242,43 @@ class Providers {
       signedIn: !!this.auth[id],
       installed: fs.existsSync(this.spec(id).exe),
     }));
+  }
+  /**
+   * v0.7.4: one tiny, invisible message to Claude (Haiku, one-word system prompt, no tools,
+   * not saved as a session). It makes the Claude CLI renew its sign-in, so the quota can be
+   * read again. Never shown in a chat. → true when Claude answered.
+   */
+  async pingClaude() {
+    if (!this.auth.claude) return false;
+    const spec = this.spec('claude');
+    if (!fs.existsSync(spec.exe)) return false;
+    const { error, out } = await runOffThread(
+      spec.exe,
+      [
+        ...spec.args,
+        '-p',
+        'Reply with: ok',
+        '--model',
+        'haiku',
+        '--system-prompt',
+        'Reply with one word.',
+        '--tools',
+        '',
+        '--max-turns',
+        '1',
+        '--output-format',
+        'json',
+        '--no-session-persistence',
+      ],
+      {
+        cwd: path.join(this.dir, 'workspace'),
+        env: this.env,
+        windowsHide: true,
+        timeout: 60000,
+        maxBuffer: 256 * 1024,
+      },
+    );
+    return !error && /"type"\s*:\s*"result"/.test(String(out || ''));
   }
   /** Every selectable model, with Cursor's Composer/Grok models from the account. */
   allModels() {

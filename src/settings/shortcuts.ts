@@ -225,12 +225,15 @@ export function shortcutsUI(api: any, notice: (s: string) => void) {
   const apps = document.createElement('section');
   apps.className = 'weekly-apps';
   weekly.append(apps);
+  // v0.7.4: hours and minutes ("72 sa 14 dk") instead of a long count of minutes
   const duration = (seconds: number) =>
-    seconds < 60
-      ? Math.round(seconds) + ' sn'
-      : seconds < 3600
-        ? Math.floor(seconds / 60) + ' dk'
-        : Math.floor(seconds / 3600) + ' sa ' + Math.floor((seconds % 3600) / 60) + ' dk';
+    !seconds
+      ? '0 dk'
+      : seconds < 60
+        ? Math.round(seconds) + ' sn'
+        : seconds < 3600
+          ? Math.floor(seconds / 60) + ' dk'
+          : Math.floor(seconds / 3600) + ' sa ' + Math.floor((seconds % 3600) / 60) + ' dk';
   function summary(v: any) {
     heading.textContent = period === 'current' ? 'Bu hafta · şu ana kadar' : 'Geçen hafta';
     periodButtons.forEach((b) =>
@@ -264,9 +267,9 @@ export function shortcutsUI(api: any, notice: (s: string) => void) {
     }
     grid.replaceChildren();
     for (const [title, value] of [
-      ['Bilgisayarda toplam süre', Math.round((v.computerSeconds || 0) / 60) + ' dk'],
-      ['Aktif bilgisayar kullanımı', Math.round((v.activeSeconds || 0) / 60) + ' dk'],
-      ['Charles işlem süresi', Math.round(v.seconds / 60) + ' dk'],
+      ['Bilgisayarda toplam süre', duration(v.computerSeconds || 0)],
+      ['Aktif bilgisayar kullanımı', duration(v.activeSeconds || 0)],
+      ['Charles işlem süresi', duration(v.seconds || 0)],
       ['Oturumlar', v.sessions],
       ['İşlemler', v.turns],
       ['Dosyalar', v.files],
@@ -276,7 +279,7 @@ export function shortcutsUI(api: any, notice: (s: string) => void) {
       ['İzin istekleri', v.permissions],
       ['En çok kullanılan ajan', v.topAgent || '—'],
       ['En yoğun gün', v.busiestDay || '—'],
-      ['En uzun oturum', Math.round(v.longestSeconds / 60) + ' dk'],
+      ['En uzun oturum', duration(v.longestSeconds || 0)],
     ]) {
       const card = document.createElement('div'),
         name = document.createElement('small'),

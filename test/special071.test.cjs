@@ -41,14 +41,14 @@ test('workspace geometry: centred by default, saved place kept, clamped and resi
 test('workspace: main process switches the window and keeps the island logic out of it', () => {
   const main = read('app/main.cjs');
   assert.match(main, /function setWorkspace\(on\)/);
-  assert.match(main, /win\.setSkipTaskbar\(false\)/);
+  assert.match(main, /function createAppWindow\(\)/); // v0.7.4: a separate, normal Windows window
   assert.match(main, /if \(!win \|\| workspace\) return;/); // position() leaves the app window alone
   assert.match(main, /const ignore = workspace \? false : !inside;/); // no click-through
   assert.match(main, /if \(workspace\) return; \/\/ a normal app window may sit in the taskbar/);
   assert.match(main, /if \(pluginGuide \|\| workspace\) return detached;/);
   assert.match(main, /safeHandler\('workspace', \(on\) => setWorkspace\(on\)\)/);
   assert.match(main, /safeHandler\('workspace-window'/);
-  assert.match(main, /if \(workspace && !quitting\)/); // Alt+F4 goes back to the island
+  assert.match(main, /appWin\.on\('close'/); // Alt+F4 / × go back to the island
   assert.match(main, /previous\.workspace/); // "Charles ile kur" comes back to the app window
   for (const name of ['workspace-mail', 'workspace-calendar', 'workspace-home', 'workspace-home-action'])
     assert.match(main, new RegExp(`safeHandler\\('${name}'`), name);
@@ -73,7 +73,7 @@ test('workspace window: title bar, sidebar with folders, overview cards and chat
   assert.match(dash, /id === 'gemini' && !force/);
   assert.match(ws, /if \(\/\^claude:\/\.test\(model\)\) return 'Claude';/);
   assert.match(read('public/index.html'), /styles\/9-special\.css/);
-  assert.match(read('public/index.html'), /v0\.7\.3 Beta/);
+  assert.match(read('public/index.html'), /v0\.7\.4 Beta/);
   assert.match(read('public/styles/9-special.css'), /body\.workspace main\.island/);
   assert.match(read('src/island/desktop-pet.ts'), /classList\.contains\('workspace'\)/);
 });

@@ -45,6 +45,7 @@ export function sidePanel(d: SidePanelDeps) {
     ['vscode', 'code', 'Visual Studio Code ile aç'],
     ['github', 'github', 'GitHub Desktop ile aç'],
     ['default', 'window', 'Varsayılan uygulamada aç'],
+    ['notepadpp', 'file', 'Notepad++ ile aç'],
     ['terminal', 'terminal', 'Terminalde aç'],
     ['-', '', ''],
     ['folder', 'folder', 'Klasörde aç'],
@@ -76,8 +77,14 @@ export function sidePanel(d: SidePanelDeps) {
   findBox.type = 'search';
   findBox.placeholder = 'Dosyada ara';
   findBox.setAttribute('aria-label', 'Dosyada ara');
-  findBox.hidden = true;
-  const toolbar = el('div', 'ws-panel-bar', crumbs, el('span', 'ws-panel-actions', findBox, findB, reloadB, copyB, openWrap));
+  // v0.7.4: the search box is its own row under the toolbar (in the toolbar it pushed the
+  // buttons out of a narrow panel)
+  const findClose = iconButton('x', 'Aramayı kapat', () => toggleFind(), 'ws-icon ws-find-x');
+  const findCount = el('small', 'ws-find-count', '');
+  const findRow = el('div', 'ws-panel-findrow', icon('search'), findBox, findCount, findClose);
+  findRow.hidden = true;
+  const toolbar = el('div', 'ws-panel-bar', crumbs, el('span', 'ws-panel-actions', findB, reloadB, copyB, openWrap));
+  const top = el('div', 'ws-panel-top', toolbar, findRow);
   const body = el('div', 'ws-panel-body');
   const empty = el(
     'div',
@@ -86,7 +93,7 @@ export function sidePanel(d: SidePanelDeps) {
     el('strong', '', 'Yan panel'),
     el('p', '', 'Charles bir dosya yazınca, kod verince ya da komut çalıştırınca burada açılır. Kod kutularındaki panel düğmesiyle de açabilirsin.'),
   );
-  panel.append(splitter, head, toolbar, body);
+  panel.append(splitter, head, top, body);
 
   // width, remembered on this computer
   let width = 520;
@@ -255,10 +262,14 @@ export function sidePanel(d: SidePanelDeps) {
 
   // ── in-file search ─────────────────────────────────────────────────────────
   function toggleFind() {
-    findBox.hidden = !findBox.hidden;
-    if (!findBox.hidden) findBox.focus();
+    findRow.hidden = !findRow.hidden;
+    findB.classList.toggle('on', !findRow.hidden);
+    selBar.hidden = true;
+    if (!findRow.hidden) findBox.focus();
     else {
       findBox.value = '';
+      findCount.textContent = '';
+      (CSS as any).highlights?.delete('ws-find');
       paint();
     }
   }
@@ -271,17 +282,34 @@ export function sidePanel(d: SidePanelDeps) {
   function markFind(next = false) {
     const pre = body.querySelector<HTMLElement>('.ws-code, .ws-term');
     const q = findBox.value.trim().toLocaleLowerCase('tr');
-    if (!pre || !q) return;
+    if (!pre || !q) {
+      (CSS as any).highlights?.delete('ws-find');
+      findCount.textContent = '';
+      return;
+    }
     const text = (pre.textContent || '').toLocaleLowerCase('tr');
+    const total = text.split(q).length - 1;
     findAt = text.indexOf(q, next ? findAt + 1 : 0);
     if (findAt < 0) findAt = text.indexOf(q);
-    if (findAt < 0) return;
+    if (findAt < 0) {
+      (CSS as any).highlights?.delete('ws-find');
+      findCount.textContent = '0';
+      return;
+    }
+    findCount.textContent = text.slice(0, findAt).split(q).length + ' / ' + total;
     const range = rangeAt(pre, findAt, findAt + q.length);
     if (!range) return;
-    const sel = getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-    range.startContainer.parentElement?.scrollIntoView({ block: 'center' });
+    // v0.7.4: marked with a CSS highlight, not the text selection, so typing in the search
+    // box keeps going (selecting moved the focus into the code after the first letters)
+    const reg = (CSS as any).highlights;
+    const H = (window as any).Highlight;
+    if (reg && H) reg.set('ws-find', new H(range));
+    else {
+      const sel = getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    }
+    range.startContainer.parentElement?.scrollIntoView({ block: 'nearest' });
   }
   function rangeAt(root: HTMLElement, start: number, end: number) {
     const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -311,7 +339,10 @@ export function sidePanel(d: SidePanelDeps) {
   addChat.type = 'button';
   const editSel = el('button', '', 'Düzenle');
   editSel.type = 'button';
-  selBar.append(addChat, editSel);
+  // v0.7.4: "Düzeltme öner" asks the AI to review the selected part and suggest a fix
+  const fixSel = el('button', '', 'Düzeltme öner');
+  fixSel.type = 'button';
+  selBar.append(addChat, editSel, fixSel);
   const editBar = el('form', 'ws-edit-bar');
   editBar.hidden = true;
   const editInput = el('input');
@@ -345,12 +376,17 @@ export function sidePanel(d: SidePanelDeps) {
       picked = { text: s.text, from: s.from, to: s.to };
       const box = panel.getBoundingClientRect();
       selBar.hidden = false;
-      selBar.style.left = Math.max(8, Math.min(box.width - 200, s.rect.left - box.left)) + 'px';
+      selBar.style.left = Math.max(8, Math.min(box.width - 300, s.rect.left - box.left)) + 'px';
       selBar.style.top = Math.max(8, s.rect.bottom - box.top + 8) + 'px';
     }, 0),
   );
   body.addEventListener('scroll', () => {
     selBar.hidden = true;
+  });
+  // clicking anywhere else closes the selection buttons
+  document.addEventListener('pointerdown', (e) => {
+    const t = e.target as Node;
+    if (!selBar.hidden && !selBar.contains(t) && !body.contains(t)) selBar.hidden = true;
   });
   function quote() {
     const t = current();
@@ -372,6 +408,17 @@ export function sidePanel(d: SidePanelDeps) {
     getSelection()?.removeAllRanges();
     prompt.focus();
     prompt.setSelectionRange(prompt.value.length, prompt.value.length);
+  };
+  fixSel.onclick = () => {
+    const q = quote();
+    const prompt = document.getElementById('prompt') as HTMLTextAreaElement | null;
+    if (!q || !prompt) return;
+    prompt.value = `${q}\n\nBu kısmı incele: hataları, riskli yerleri ve iyileştirilebilecek noktaları kısaca açıkla, ardından düzeltilmiş hâlini kod kutusunda öner. Dosyayı değiştirme.`;
+    prompt.dispatchEvent(new Event('input'));
+    selBar.hidden = true;
+    picked = null;
+    getSelection()?.removeAllRanges();
+    (document.getElementById('composer') as HTMLFormElement | null)?.requestSubmit();
   };
   editSel.onclick = () => {
     selBar.hidden = true;

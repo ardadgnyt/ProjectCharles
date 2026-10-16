@@ -138,66 +138,192 @@ class WhatsAppContacts {
 }
 
 /** Opens WhatsApp with the message and, if allowed, sends it. → message for the chat */
-async function sendWhatsApp(cmd, { contacts, openExternal, pressEnter, en = false }) {
+async function sendWhatsApp(cmd, { contacts, openExternal, automate, en = false }) {
   const contact = cmd.to ? contacts.find(cmd.to) : null;
   const phone = contact?.phone.replace(/^\+/, '') || '';
   const text = encodeURIComponent(cmd.message);
-  const app = 'whatsapp://send?' + (phone ? 'phone=' + phone + '&' : '') + 'text=' + text;
-  try {
-    await openExternal(app);
-  } catch {
-    // no WhatsApp Desktop: WhatsApp Web
+  const autoSend = !!contacts.read().autoSend;
+  const sentText = (who) =>
+    en ? `Sent on WhatsApp to **${who}**: “${cmd.message}”` : `WhatsApp’ta **${who}** kişisine gönderildi: “${cmd.message}”`;
+  const typedText = (who) =>
+    en
+      ? `WhatsApp opened the chat with **${who}** and wrote “${cmd.message}”. Press send.`
+      : `WhatsApp’ta **${who}** sohbeti açıldı ve “${cmd.message}” yazıldı. Gönder’e bas.`;
+  const web = async () => {
     await openExternal('https://wa.me/' + phone + '?text=' + text);
     return en
       ? `WhatsApp Desktop was not found, so WhatsApp Web opened with your message${contact ? ' to ' + contact.name : ''}. Press send there.`
       : `WhatsApp Desktop bulunamadı; mesajın${contact ? ' ' + contact.name + ' için' : ''} WhatsApp Web’de açıldı. Orada gönder’e bas.`;
+  };
+
+  // 1) a saved number: open that chat with the text, then press Enter in WhatsApp
+  if (contact) {
+    try {
+      await openExternal('whatsapp://send?phone=' + phone + '&text=' + text);
+    } catch {
+      return web();
+    }
+    if (autoSend && automate) {
+      const r = await automate({ mode: 'enter' }).catch(() => ({ ok: false }));
+      if (r.ok) return sentText(contact.name);
+    }
+    return typedText(contact.name);
   }
-  if (!contact) {
-    const hint = cmd.to
-      ? en
-        ? `I don't have a number for “${cmd.to}”. `
-        : `“${cmd.to}” için kayıtlı numara yok. `
-      : '';
-    return en
-      ? `${hint}WhatsApp opened with the message “${cmd.message}”: pick the person and press send. You can save numbers in Settings → Plugins → WhatsApp contacts.`
-      : `${hint}WhatsApp “${cmd.message}” mesajıyla açıldı: kişiyi seçip gönder’e bas. Numaraları Ayarlar → Eklentiler → WhatsApp kişileri’ne kaydedebilirsin.`;
+
+  // 2) only a name: open WhatsApp, search the person (Ctrl+F) and write the message there
+  if (cmd.to && automate) {
+    try {
+      await openExternal('whatsapp://');
+    } catch {
+      return web();
+    }
+    const r = await automate({ mode: 'search', name: cmd.to, message: cmd.message, send: autoSend }).catch(() => ({ ok: false }));
+    if (r.ok) return r.sent ? sentText(cmd.to) : typedText(cmd.to);
   }
-  if (contacts.read().autoSend && pressEnter) {
-    const sent = await pressEnter().catch(() => false);
-    if (sent)
-      return en
-        ? `Sent on WhatsApp to **${contact.name}**: “${cmd.message}”`
-        : `WhatsApp’ta **${contact.name}** kişisine gönderildi: “${cmd.message}”`;
+
+  // 3) nobody named (or the search did not work): WhatsApp opens with the text
+  try {
+    await openExternal('whatsapp://send?text=' + text);
+  } catch {
+    return web();
   }
+  const hint = cmd.to ? (en ? `I couldn't open the chat with “${cmd.to}”. ` : `“${cmd.to}” sohbetini açamadım. `) : '';
   return en
-    ? `WhatsApp opened with your message to **${contact.name}**: “${cmd.message}”. Press send.`
-    : `WhatsApp’ta **${contact.name}** sohbeti mesajınla açıldı: “${cmd.message}”. Gönder’e bas.`;
+    ? `${hint}WhatsApp opened with the message “${cmd.message}”: pick the person and press send. You can save numbers in Settings → Plugins → WhatsApp.`
+    : `${hint}WhatsApp “${cmd.message}” mesajıyla açıldı: kişiyi seçip gönder’e bas. Numaraları Ayarlar → Eklentiler → WhatsApp’a kaydedebilirsin.`;
 }
 
 /** Runs a short PowerShell script on Windows and resolves its output. */
-function runPowerShell(script) {
+function runPowerShell(script, timeout = 15000) {
   const { execFile } = require('node:child_process');
   return new Promise((resolve) => {
     if (process.platform !== 'win32') return resolve('');
     execFile(
       path.join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe'),
-      ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script],
-      { windowsHide: true, timeout: 15000 },
+      ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
+      { windowsHide: true, timeout },
       (err, out) => resolve(err ? '' : String(out || '')),
     );
   });
 }
 
-/** Windows: wait for WhatsApp to come to the front, then press Enter once. */
-function pressEnterInWhatsApp(run = runPowerShell) {
-  const script = [
-    '$ws = New-Object -ComObject WScript.Shell',
-    'Start-Sleep -Milliseconds 2200',
-    '$ok = $false',
-    'for ($i = 0; $i -lt 10 -and -not $ok; $i++) { $ok = $ws.AppActivate("WhatsApp"); if (-not $ok) { Start-Sleep -Milliseconds 400 } }',
-    'if ($ok) { Start-Sleep -Milliseconds 500; $ws.SendKeys("{ENTER}"); "sent" } else { "no" }',
-  ].join('; ');
-  return run(script).then((out) => /sent/.test(String(out)));
+/**
+ * Windows automation for WhatsApp Desktop (v0.7.4). The window is found among the visible
+ * windows by its title (the Store app's process often has no main window handle, which is why
+ * v0.7.3 never pressed Enter), brought to the front and checked, and only then are keys sent.
+ *   mode "enter":  the chat is already open with the text → press Enter
+ *   mode "search": Ctrl+F, the person's name, Enter (first result), the message, Enter
+ * Prints "sent", "typed" or what went wrong ("no-window", "no-focus").
+ */
+const WA_SCRIPT = String.raw`
+$cfg = ConvertFrom-Json ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__CFG__')))
+$sig = @'
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+public static class CharlesWa {
+  public delegate bool EnumProc(IntPtr h, IntPtr l);
+  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc cb, IntPtr l);
+  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int n);
+  [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+  public struct RECT { public int Left, Top, Right, Bottom; }
+  static bool IsWhatsAppProcess(IntPtr h) {
+    uint pid; GetWindowThreadProcessId(h, out pid);
+    try { return System.Diagnostics.Process.GetProcessById((int)pid).ProcessName.StartsWith("WhatsApp", StringComparison.OrdinalIgnoreCase); }
+    catch { return false; }
+  }
+  public static IntPtr Find() {
+    IntPtr best = IntPtr.Zero; long area = 0; bool bestIsApp = false;
+    EnumWindows((h, l) => {
+      if (!IsWindowVisible(h)) return true;
+      var sb = new StringBuilder(256); GetWindowText(h, sb, 256);
+      var t = sb.ToString();
+      if (t.IndexOf("WhatsApp", StringComparison.OrdinalIgnoreCase) < 0) return true;
+      RECT r; GetWindowRect(h, out r);
+      long w = r.Right - r.Left, ht = r.Bottom - r.Top;
+      if (w < 300 || ht < 200) return true;   // notifications, tooltips
+      // the WhatsApp app itself wins over a browser tab titled "WhatsApp"
+      bool app = IsWhatsAppProcess(h) || t.Trim().Equals("WhatsApp", StringComparison.OrdinalIgnoreCase);
+      if ((app && !bestIsApp) || (app == bestIsApp && w * ht > area)) { area = w * ht; best = h; bestIsApp = app; }
+      return true;
+    }, IntPtr.Zero);
+    return best;
+  }
+  public static void Key(byte vk) { keybd_event(vk, 0, 0, UIntPtr.Zero); System.Threading.Thread.Sleep(40); keybd_event(vk, 0, 2, UIntPtr.Zero); }
+  public static void Ctrl(byte vk) { keybd_event(0x11, 0, 0, UIntPtr.Zero); keybd_event(vk, 0, 0, UIntPtr.Zero); System.Threading.Thread.Sleep(40); keybd_event(vk, 0, 2, UIntPtr.Zero); keybd_event(0x11, 0, 2, UIntPtr.Zero); }
+}
+'@
+Add-Type -TypeDefinition $sig
+function Focus-Wa([double]$seconds) {
+  $end = (Get-Date).AddSeconds($seconds)
+  while ((Get-Date) -lt $end) {
+    $h = [CharlesWa]::Find()
+    if ($h -ne [IntPtr]::Zero) {
+      if ([CharlesWa]::IsIconic($h)) { [CharlesWa]::ShowWindow($h, 9) | Out-Null }
+      [CharlesWa]::Key(0x12)            # Alt: lets a background process bring a window forward
+      [CharlesWa]::SetForegroundWindow($h) | Out-Null
+      Start-Sleep -Milliseconds 350
+      if ([CharlesWa]::GetForegroundWindow() -eq $h) { return $h }
+    }
+    Start-Sleep -Milliseconds 500
+  }
+  return [IntPtr]::Zero
+}
+if ($cfg.mode -eq 'enter') {
+  Start-Sleep -Milliseconds 2400       # WhatsApp opens the chat and writes the text
+  $h = Focus-Wa 12
+  if ($h -eq [IntPtr]::Zero) { 'no-focus'; exit }
+  Start-Sleep -Milliseconds 400
+  [CharlesWa]::Key(0x0D)
+  'sent'; exit
+}
+if ($cfg.mode -eq 'search') {
+  $h = Focus-Wa 15
+  if ($h -eq [IntPtr]::Zero) { 'no-focus'; exit }
+  Start-Sleep -Milliseconds 900
+  Set-Clipboard -Value $cfg.name
+  [CharlesWa]::Ctrl(0x46); Start-Sleep -Milliseconds 500     # Ctrl+F: search
+  [CharlesWa]::Ctrl(0x41); Start-Sleep -Milliseconds 150     # Ctrl+A
+  [CharlesWa]::Ctrl(0x56); Start-Sleep -Milliseconds 1300    # Ctrl+V: the name
+  [CharlesWa]::Key(0x0D); Start-Sleep -Milliseconds 1100     # Enter: first result
+  Set-Clipboard -Value $cfg.message
+  [CharlesWa]::Ctrl(0x41); Start-Sleep -Milliseconds 150     # replace any draft
+  [CharlesWa]::Ctrl(0x56); Start-Sleep -Milliseconds 450
+  if ($cfg.send) {
+    $h = Focus-Wa 4
+    if ($h -eq [IntPtr]::Zero) { 'typed'; exit }
+    [CharlesWa]::Key(0x0D)
+    'sent'; exit
+  }
+  'typed'; exit
+}
+`;
+function waScript(cfg) {
+  return WA_SCRIPT.replace('__CFG__', Buffer.from(JSON.stringify(cfg), 'utf8').toString('base64'));
+}
+/** Runs the WhatsApp automation; `clipboard` (Electron) gets its text back afterwards. */
+async function automateWhatsApp(cfg, { clipboard, run = (script) => runPowerShell(script, 45000), log = () => {} } = {}) {
+  let old = null;
+  try {
+    old = clipboard?.readText() ?? null;
+  } catch {}
+  const out = String(await run(waScript(cfg))).trim();
+  const result = /\bsent\b/.test(out) ? 'sent' : /\btyped\b/.test(out) ? 'typed' : out.split(/\s+/).pop() || 'no-output';
+  log('whatsapp', cfg.mode, result); // never the message or the name
+  if (cfg.mode === 'search' && old !== null)
+    setTimeout(() => {
+      try {
+        clipboard.writeText(old);
+      } catch {}
+    }, 400);
+  return { ok: result === 'sent' || result === 'typed', sent: result === 'sent', result };
 }
 
-module.exports = { runPowerShell, parseWhatsApp, WhatsAppContacts, sendWhatsApp, pressEnterInWhatsApp };
+module.exports = { WA_SCRIPT, waScript, automateWhatsApp, runPowerShell, parseWhatsApp, WhatsAppContacts, sendWhatsApp };

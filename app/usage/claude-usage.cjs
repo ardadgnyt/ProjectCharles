@@ -40,8 +40,12 @@ function usageWindow(value) {
 }
 
 function claudeUsage(body, plan = null) {
-  const fiveHour = usageWindow(body?.five_hour);
   const weekly = usageWindow(body?.seven_day);
+  // v0.7.4: no five_hour window means none has started since the last reset (nothing used):
+  // the whole 5-hour allowance is left
+  let fiveHour = usageWindow(body?.five_hour);
+  if (!fiveHour && weekly && (body?.five_hour === null || body?.five_hour === undefined || body?.five_hour?.utilization == null))
+    fiveHour = { remaining: 100, resetsAt: null, idle: true };
   const result = {
     provider: 'claude',
     fiveHour,
@@ -72,8 +76,13 @@ class ClaudeUsage {
       now = Date.now,
       cacheFile = null,
       log = () => {},
+      ping = null,
     } = {},
   ) {
+    // v0.7.4: a tiny, hidden Claude message that makes the CLI renew its session (and opens
+    // the 5-hour window), used by the refresh button when the quota cannot be read
+    this.ping = ping;
+    this.lastPing = 0;
     this.configDir = configDir;
     this.fetch = fetcher;
     this.refreshSession = refreshSession;
@@ -130,7 +139,22 @@ class ClaudeUsage {
     if (this.now() < (this.backoffUntil || 0))
       return this.staleCopy('Birazdan yenilenecek') || this.unavailable('Birazdan yenilenecek');
     this.pending = this.load()
-      .then((value) => {
+      .then(async (value) => {
+        const needsPing =
+          force &&
+          this.ping &&
+          value.unavailable !== 'Claude hesabı bağlı değil' &&
+          (value.unavailable || !value.fiveHour || value.fiveHour.idle) &&
+          this.now() - this.lastPing > 2 * 60 * 1000;
+        if (needsPing) {
+          this.lastPing = this.now();
+          this.log('claude usage: quiet ping to renew the session');
+          const ok = await this.ping().catch(() => false);
+          if (ok) {
+            this.backoffUntil = 0;
+            value = await this.load();
+          }
+        }
         if (!value.unavailable) {
           this.remember(value);
           return value;

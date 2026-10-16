@@ -2,7 +2,7 @@
 #
 # Install.cmd tarafından çalıştırılır. Yaptıkları:
 #   1. Windows'u kontrol eder (64 bit, Windows 10 veya 11).
-#   2. Charles'ı kısa bir klasöre kopyalar (varsayılan: C:\ProjectCharles v0.7.3 Beta).
+#   2. Charles'ı kısa bir klasöre kopyalar (varsayılan: C:\ProjectCharles v0.7.4 Beta).
 #      Kaynak: yanındaki Charles.zip ya da setup klasörünün bulunduğu Charles klasörü.
 #   3. İnternetten/USB'den gelen dosyaların "engelli" işaretini kaldırır.
 #   4. Masaüstü ve Başlat menüsü kısayolu oluşturur.
@@ -11,7 +11,7 @@
 param([string]$Root = $PSScriptRoot)
 
 $ErrorActionPreference = 'Stop'
-$Version = 'v0.7.3 Beta'
+$Version = 'v0.7.4 Beta'
 $Name = "ProjectCharles $Version"
 $DefaultTarget = "C:\$Name"
 $Log = Join-Path $env:TEMP 'Charles-kurulum.log'

@@ -162,8 +162,11 @@ body.workspace #mini-music {
   gap: 16px;
   padding: 0 10px 0 18px;
   border-bottom: 1px solid var(--ws-line);
+  /* v0.7.4: a real Windows window: Windows drags it, so Snap works; its own minimize,
+     maximize and close buttons sit at the right (titleBarOverlay), so leave room for them */
   -webkit-app-region: drag;
   user-select: none;
+  padding-right: 150px;
 }
 .ws-titlebar button,
 .ws-titlebar input {
@@ -2258,6 +2261,7 @@ body:not(.workspace) .code-tools .code-panel {
 .ws-panel {
   position: relative;
   display: grid;
+  /* v0.7.4: the island stylesheet turns text selection off; code and output can be selected */
   grid-template-rows: auto auto minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
@@ -2439,10 +2443,16 @@ body:not(.workspace) .code-tools .code-panel {
   font: inherit;
   white-space: pre;
   /* v0.7.3: the global pre rule (max-height 200px) cut the panel after ~10 lines */
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
   max-height: none;
   overflow: visible;
 }
 .ws-gutter {
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
   padding: 0 14px 0 16px;
   color: #5d5b58;
   text-align: right;
@@ -2455,6 +2465,8 @@ body:not(.workspace) .code-tools .code-panel {
 .ws-term {
   margin: 0;
   min-height: 100%;
+  -webkit-user-select: text;
+  user-select: text;
   max-height: none;
   overflow: visible;
   padding: 14px 16px;
@@ -2556,15 +2568,57 @@ body:not(.workspace) .code-tools .code-panel {
   background: #e8e6e3 !important;
   color: #1b1b1d !important;
 }
+/* v0.7.4: the search row under the panel toolbar */
+.ws-panel-findrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 14px;
+  border-bottom: 1px solid var(--ws-line);
+  color: var(--ws-muted);
+}
+.ws-panel-findrow[hidden] {
+  display: none;
+}
+.ws-panel-findrow > svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
 .ws-panel-find {
-  width: 160px;
+  flex: 1;
+  min-width: 0;
   height: 30px;
-  margin-right: 4px;
   padding: 0 10px !important;
   border: 1px solid var(--ws-line-2) !important;
   border-radius: 8px !important;
   background: var(--ws-field) !important;
   color: var(--ws-text) !important;
+}
+.ws-panel-find::-webkit-search-cancel-button {
+  display: none;
+}
+.ws-find-count {
+  flex: none;
+  min-width: 34px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+#workspace .ws-find-x {
+  width: 28px;
+  height: 28px;
+  flex: none;
+}
+#workspace .ws-panel-actions .ws-icon.on {
+  color: var(--ws-accent);
+  background: var(--ws-card-2);
+}
+.ws-panel-bar .ws-panel-crumbs {
+  flex: 1;
+}
+.ws-panel-actions {
+  flex: none;
 }
 .ws-panel-find[hidden] {
   display: none;
@@ -2589,6 +2643,9 @@ body:not(.workspace) .code-tools .code-panel {
 }
 .ws-open-list .app-default {
   color: #f2c14e !important;
+}
+.ws-open-list .app-notepadpp {
+  color: #8fd16a !important;
 }
 #composer #prompt::placeholder {
   white-space: nowrap;
@@ -3417,3 +3474,124 @@ body:not(.workspace) .code-tools .code-panel {
 .wa-card .wa-remove { width: 26px; height: 26px; padding: 0; border-radius: 8px; }
 .wa-card .wa-add { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin: 6px 0 10px; }
 .wa-card .toggle-row { display: flex; gap: 8px; align-items: center; font-size: 12.5px; }
+
+/* v0.7.4: reminder card — over the island panel and the app window */
+.reminder-alert {
+  position: fixed;
+  left: 50%;
+  top: 92px;
+  z-index: 200;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px 14px;
+  width: min(440px, calc(100vw - 32px));
+  padding: 16px 16px 14px;
+  border: 1px solid rgba(237, 201, 169, 0.55);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #2a2420, #1b1918);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  color: #f3eee9;
+  transform: translateX(-50%);
+  animation: reminder-in 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+.reminder-alert.ring {
+  animation: reminder-ring 1.1s ease-out;
+}
+.reminder-alert-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: rgba(237, 201, 169, 0.16);
+  font-size: 24px;
+}
+.reminder-alert.ring .reminder-alert-icon {
+  animation: reminder-shake 0.6s ease-in-out 2;
+}
+.reminder-alert-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.reminder-alert-text small {
+  color: #edc9a9;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.reminder-alert-text strong {
+  font-size: 16px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.reminder-alert-text span {
+  color: #b8b2ac;
+  font-size: 12px;
+}
+.reminder-alert-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.reminder-alert-actions button {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.reminder-alert-actions button.primary {
+  border-color: transparent;
+  background: #edc9a9;
+  color: #2a1d14;
+}
+body.workspace .reminder-alert {
+  top: 70px;
+}
+@keyframes reminder-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -14px) scale(0.96);
+  }
+}
+@keyframes reminder-ring {
+  0% {
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 0 rgba(237, 201, 169, 0.7);
+  }
+  100% {
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 22px rgba(237, 201, 169, 0);
+  }
+}
+@keyframes reminder-shake {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-14deg); }
+  40% { transform: rotate(12deg); }
+  60% { transform: rotate(-8deg); }
+  80% { transform: rotate(5deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reminder-alert, .reminder-alert.ring, .reminder-alert.ring .reminder-alert-icon { animation: none; }
+}
+
+::highlight(ws-find) {
+  background-color: rgba(237, 201, 169, 0.85);
+  color: #1b1410;
+}
+
+/* v0.7.4: the app window is a normal Windows window (Windows draws the frame, the rounded
+   corners and the minimize / maximize / close buttons) */
+#workspace {
+  border: 0;
+  border-radius: 0;
+}
+#workspace .ws-win,
+#workspace .ws-title-actions > .ws-sep:last-of-type,
+#workspace .ws-edge {
+  display: none !important;
+}

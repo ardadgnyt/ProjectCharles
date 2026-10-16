@@ -504,6 +504,16 @@ class Plugins {
         text: s.state,
         date: s.last_changed,
         unit: typeof s.attributes?.unit_of_measurement === 'string' ? s.attributes.unit_of_measurement : '',
+        // v0.7.4: what kind of sensor it is, and a thermostat's own readings
+        deviceClass: typeof s.attributes?.device_class === 'string' ? s.attributes.device_class : '',
+        attrs: String(s.entity_id).startsWith('climate.')
+          ? {
+              current_temperature: s.attributes?.current_temperature,
+              current_humidity: s.attributes?.current_humidity,
+              temperature: s.attributes?.temperature,
+              temperature_unit: s.attributes?.temperature_unit,
+            }
+          : undefined,
       }));
     } else throw Error('Unknown plugin');
     this.cache[kind] = rows;

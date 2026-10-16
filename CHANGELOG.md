@@ -1,8 +1,24 @@
 # ProjectCharles — Yama notları
 
-Charles’ın ilk masaüstü sürümünden v0.7.3 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+Charles’ın ilk masaüstü sürümünden v0.7.4 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.7.4 Beta — 16 Ekim 2026
+
+- **Uygulama penceresi gerçek bir Windows penceresi:** Çalışma alanı artık Windows’un kendi çerçevesiyle açılan ayrı bir pencere; adacık ile aynı sayfayı (sohbet, Slime, kartlar) paylaşıyor, hiçbir şey yeniden yüklenmiyor. Böylece Windows’un yaslama özellikleri çalışıyor: üste sürükleyince yerleşim çubuğu, kenarlara/köşelere yaslama, Win + ok tuşları, büyüt düğmesinin üzerinde bekleyince yerleşim seçenekleri; kenarlardan boyutlandırma ve Windows’un küçült / büyüt / kapat düğmeleri.
+- **× ve kapatma:** uygulama penceresinin ×’i, Alt+F4 ve görev çubuğundaki “Pencereyi kapat” Charles’ı adacığa döndürür. Adacık penceresi kapatılmaya çalışılsa da Charles kapanmaz; çıkmak için Shift + × veya sistem tepsisindeki Charles simgesi → Çıkış.
+- **Claude 5 saatlik kullanım:** 5 saatlik pencere henüz başlamadıysa artık boş kalmıyor, %100 ve “Henüz başlamadı” gösteriliyor. Kota okunamazsa yenile düğmesi arka planda, sohbette görünmeyen çok küçük bir Claude mesajı (Haiku, araçsız, kayıtsız) gönderip oturumu yeniliyor ve yeniden okuyor; en fazla iki dakikada bir.
+- **WhatsApp:** WhatsApp penceresi süreç yerine görünür pencereler arasında başlığından bulunuyor (Store sürümünde süreçte pencere görünmüyordu, bu yüzden Enter hiç basılmıyordu), öne getirilip doğrulanıyor, sonra Enter basılıyor. Numarası kayıtlı olmayan kişide WhatsApp’ta Ctrl+F ile kişi adı aranıp ilk sohbet açılıyor ve mesaj yazılıp gönderiliyor. Panodaki metin sonra geri konuyor.
+- **Hatırlatıcılar:** bildirim sesinin yanında panel açılıyor ve hatırlatmayla bir kart çıkıyor (Tamam / **10 dk ertele**); kart parlıyor, Slime tepki veriyor, cevap verilene kadar ses birkaç kez tekrarlanıyor. Windows bildirimi de gösteriliyor.
+- **Akıllı ev sensörleri:** “Evin içi kaç derece?”, “Nem oranı ne?”, “Salon kaç derece?” soruları yazılı ve sesli olarak doğrudan Home Assistant’taki sıcaklık/nem sensörlerinden ve termostatlardan cevaplanıyor. Adında “hava” geçen cihazlar (hava temizleyici, “Hava Sıkıcı”) artık dış sensör sayılmıyor. Kısayolun yakalamadığı sorularda (“hava sıkıcı sıcaklık ve nemi ölçüyor”) güncel ölçümler yapay zekâya veriliyor; “erişimim yok” demiyor.
+- **Yan panel:**
+  - Kodun bir kısmı seçilebiliyor (seçim kapalıydı) ve seçim çubuğuna **Düzeltme öner** eklendi.
+  - **Terminalde aç** çalışıyor (komut penceresi hemen kapanıyordu; Windows Terminal varsa o açılıyor).
+  - **Notepad++ ile aç** eklendi. VS Code, GitHub Desktop veya Notepad++ yüklü değilse “… bu bilgisayarda yüklü değil” uyarısı çıkıyor.
+  - **Dosyada ara** artık araç çubuğunun altında kendi satırında; düğmeler panelin dışına taşmıyor, yazarken odak kaybolmuyor, “2 / 5” gibi sonuç sayısı görünüyor.
+- **Haftalık özet:** süreler “72 sa 14 dk” gibi saat ve dakika olarak gösteriliyor.
+- Denenen “her yerde bas-konuş dikte” bu sürümden çıkarıldı.
 
 ## v0.7.3 Beta — 16 Ekim 2026
 

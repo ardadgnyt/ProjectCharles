@@ -1,6 +1,6 @@
 # Charles — User Guide
 
-This guide covers Charles **v0.7.3 Beta** on Windows 10/11. For installation, see the
+This guide covers Charles **v0.7.4 Beta** on Windows 10/11. For installation, see the
 [README](../README.md#installation). For the full history of changes, see
 [CHANGELOG.md](../CHANGELOG.md) (Turkish).
 
@@ -50,8 +50,11 @@ The window button next to the pin turns Charles into a normal Windows app (the i
   devices into place; **+ Add** picks devices from Home Assistant.
 - **Chat view:** click a chat on the left. The **side panel** button opens files Charles wrote,
   code it gave and commands it ran. Its **Open** menu opens the file in Visual Studio Code,
-  GitHub Desktop, the Terminal, the default app or the folder, or saves a copy. Select lines to
-  **Add to chat** or **Edit** them (describe the change in the bar that appears).
+  GitHub Desktop, Notepad++, the Terminal, the default app or the folder, or saves a copy.
+  Select lines to **Add to chat**, **Edit** them (describe the change in the bar that appears)
+  or ask Charles to **Suggest a fix**.
+- **A normal Windows window:** Windows' own Snap works (drag to the top or the sides, Win + arrow
+  keys, the layouts on the maximize button). Its × goes back to the island.
 
 Text that is meant to be copied (a message draft, a command, code) arrives in a box with its
 own **Copy** button, on the island and in the app window.
@@ -203,6 +206,7 @@ Turkish phrasing (browser and WhatsApp commands also understand English), for ex
 | *“Maillerimde fatura ara”* · *“Dün gelen mailleri göster”* · *“Geçen hafta Ahmet’ten gelen mailler”* · *“Search my email for invoice last week”* | searches connected mailboxes by word, sender and date (today, yesterday, this/last week or month, “last 3 days”, “15 Ekim”, “15.10.2026”, “since 10 October”) |
 | *“Hava nasıl?”* | today’s weather for your city |
 | *“Tavan lambasını kapat”* | controls a Home Assistant device |
+| *“Evin içi kaç derece?”* · *“Nem oranı ne?”* · *“How warm is it inside?”* | reads indoor temperature and humidity from Home Assistant sensors and thermostats |
 | *“İnternetten … arat”* · *“Search the web for …”* | opens a Google search in your default browser |
 | *“YouTube’dan … videosunu aç”* · *“Play … on YouTube”* | opens the first matching YouTube video in your browser |
 | *“github.com sitesini aç”* · *“Open github.com”* | opens the site in your browser |

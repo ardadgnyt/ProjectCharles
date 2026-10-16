@@ -404,7 +404,7 @@ export function workspaceDashboard(d: DashboardDeps) {
     value.setAttribute('stroke-dashoffset', (RING * (1 - left / 100)).toFixed(1));
     pct.textContent = '%' + left;
     const r = resetLabel(w.resetsAt).replace(/ 0dk$/, '').replace(/ 0sa$/, '');
-    reset.textContent = r ? '↻ ' + r : '';
+    reset.textContent = r ? '↻ ' + r : w.idle ? 'Henüz başlamadı' : '';
   }
   async function loadUsage(force = false) {
     let status: any[] = [];

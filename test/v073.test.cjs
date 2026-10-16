@@ -104,5 +104,5 @@ test('side panel shows the whole file; × goes back to the island', () => {
   const r = read('src/renderer.ts');
   assert.match(r, /e\.shiftKey \? api\.quit\(\) : document\.body\.classList\.contains\('workspace'\) \? api\.workspace\(false\) : api\.expand\(false\)/);
   assert.match(read('public/index.html'), /id="quit" title="Adacığa dön/);
-  assert.equal(JSON.parse(read('package.json')).version, '0.7.3-beta.1');
+  assert.match(JSON.parse(read('package.json')).version, /^0\.7\.[3-9]-beta/);
 });

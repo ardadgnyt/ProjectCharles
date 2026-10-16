@@ -2,7 +2,8 @@
 // a normal app window (like the Codex and Claude desktop apps) and back. This file only does
 // the geometry; app/main.cjs switches the window's behaviour.
 
-const MIN = { width: 980, height: 640 };
+// v0.7.4: smaller minimum so a window snapped to half (or a quarter) of a 1920 px screen fits
+const MIN = { width: 760, height: 480 };
 const DEFAULT = { width: 1480, height: 940 };
 
 const finite = (n) => typeof n === 'number' && Number.isFinite(n);

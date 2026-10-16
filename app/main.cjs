@@ -1,6 +1,8 @@
 const {
   app,
   BrowserWindow,
+  BaseWindow,
+  WebContentsView,
   ipcMain,
   dialog,
   screen,
@@ -142,19 +144,119 @@ function endPluginGuide() {
   detachPet(previous.detached);
   if (!previous.detached) expand(previous.expanded, true);
 }
-// ── v0.7.1 SpecialBeta: workspace window (app/core/workspace.cjs) ─────────────────
+// ── Windows: the island and the app window ─────────────────────────────────────
+// v0.7.4: two real windows share one page. The island is a transparent, frameless window;
+// the app window (Çalışma alanı) is a normal Windows window with Windows' own frame, so
+// Snap (drag to the top / sides, Win+arrows, the snap layouts on the maximize button) works.
+// The page itself (chat, Slime, everything) is one WebContentsView that moves between them.
+let islandWin = null,
+  appWin = null,
+  view = null;
+const ISLAND_ONLY = new Set(['setIgnoreMouseEvents', 'setOpacity', 'setAlwaysOnTop', 'setSkipTaskbar', 'setShape']);
+const RESIZING = new Set(['setBounds', 'setSize', 'setContentSize', 'setContentBounds']);
+function activeWindow() {
+  return workspace && appWin && !appWin.isDestroyed() ? appWin : islandWin;
+}
+/** The page fills the window it is in. */
+function fitView(w = activeWindow()) {
+  if (!view || !w || w.isDestroyed() || view.webContents.isDestroyed()) return;
+  const [width, height] = w.getContentSize();
+  view.setBounds({ x: 0, y: 0, width, height });
+}
+/** `win` stays the one object the rest of this file talks to: window calls go to the window
+ *  that is showing the page, `win.webContents` is the page. */
+function windowFacade() {
+  return new Proxy(
+    {},
+    {
+      get(_, key) {
+        if (key === 'webContents') return view.webContents;
+        if (key === 'native') return activeWindow();
+        if (key === 'loadURL') return (url) => view.webContents.loadURL(url);
+        if (key === 'isDestroyed')
+          return () => !islandWin || islandWin.isDestroyed() || !view || view.webContents.isDestroyed();
+        if (key === 'setIcon')
+          return (image) => {
+            for (const w of [islandWin, appWin]) if (w && !w.isDestroyed()) w.setIcon(image);
+          };
+        if (key === 'on' || key === 'once') return islandWin[key].bind(islandWin);
+        const w = ISLAND_ONLY.has(key) ? islandWin : activeWindow();
+        const value = w[key];
+        if (typeof value !== 'function') return value;
+        if (RESIZING.has(key))
+          return (...args) => {
+            const result = value.apply(w, args);
+            if (view && w === activeWindow()) fitView(w);
+            return result;
+          };
+        return value.bind(w);
+      },
+    },
+  );
+}
+function moveView(to) {
+  for (const w of [islandWin, appWin])
+    if (w && !w.isDestroyed() && w !== to) {
+      try {
+        w.contentView.removeChildView(view);
+      } catch {}
+    }
+  to.contentView.addChildView(view);
+  fitView(to);
+}
+function createAppWindow() {
+  if (appWin && !appWin.isDestroyed()) return appWin;
+  appWin = new BaseWindow({
+    show: false,
+    width: 1480,
+    height: 940,
+    minWidth: 760,
+    minHeight: 480,
+    title: 'Charles',
+    icon: path.join(root, 'dist/icon.png'),
+    backgroundColor: '#0d0e11',
+    // Windows' own frame and caption buttons over Charles' title bar
+    titleBarStyle: 'hidden',
+    titleBarOverlay: { color: '#0d0e11', symbolColor: '#e9e5e0', height: 52 },
+  });
+  const savedIcon = path.join(app.getPath('userData'), 'app-icon.png');
+  if (fs.existsSync(savedIcon)) appWin.setIcon(nativeImage.createFromPath(savedIcon));
+  appWin.on('resize', () => {
+    if (activeWindow() === appWin) fitView(appWin);
+  });
+  for (const ev of ['maximize', 'unmaximize', 'restore', 'enter-full-screen', 'leave-full-screen'])
+    appWin.on(ev, () => {
+      fitView(appWin);
+      sendWorkspace();
+    });
+  appWin.on('focus', () => {
+    if (activeWindow() === appWin && view && !view.webContents.isDestroyed()) view.webContents.focus();
+  });
+  appWin.on('moved', saveWorkspace);
+  appWin.on('resized', saveWorkspace);
+  // the caption ×, Alt+F4 and the taskbar's "Close window": back to the island, never quit
+  appWin.on('close', (event) => {
+    if (quitting) return;
+    event.preventDefault();
+    setWorkspace(false);
+  });
+  appWin.on('closed', () => {
+    appWin = null;
+  });
+  return appWin;
+}
 function workspaceArea() {
-  const b = win.getBounds();
+  const b = (workspace && appWin && !appWin.isDestroyed() ? appWin : islandWin).getBounds();
   return screen.getDisplayNearestPoint({
     x: Math.round(b.x + b.width / 2),
     y: Math.round(b.y + Math.min(b.height, 200) / 2),
   }).workArea;
 }
 function saveWorkspace() {
-  if (!workspace || !v2) return;
+  if (!workspace || !v2 || !appWin || appWin.isDestroyed()) return;
   v2.data.workspace = {
-    maximized: workspace.maximized,
-    bounds: workspace.maximized ? workspace.restore : win.getBounds(),
+    maximized: appWin.isMaximized(),
+    bounds: appWin.isMaximized() ? appWin.getNormalBounds() : appWin.getBounds(),
   };
   v2.save();
 }
@@ -162,17 +264,27 @@ function sendWorkspace() {
   if (win && !win.isDestroyed())
     win.webContents.send('ui-workspace', {
       on: !!workspace,
-      maximized: !!workspace?.maximized,
+      maximized: !!(workspace && appWin && !appWin.isDestroyed() && appWin.isMaximized()),
+      native: true,
     });
+}
+/** Leaves the app window without the island coming back (the plugin guide takes over). */
+function leaveWorkspaceQuietly() {
+  if (!workspace) return;
+  saveWorkspace();
+  workspace = null;
+  moveView(islandWin);
+  if (appWin && !appWin.isDestroyed()) appWin.hide();
+  sendWorkspace();
 }
 function setWorkspace(on) {
   on = !!on;
   if (!win || win.isDestroyed()) return false;
   if (on === !!workspace) {
-    if (on) {
-      if (win.isMinimized()) win.restore();
-      win.show();
-      win.focus();
+    if (on && appWin && !appWin.isDestroyed()) {
+      if (appWin.isMinimized()) appWin.restore();
+      appWin.show();
+      appWin.focus();
     }
     return on;
   }
@@ -192,79 +304,60 @@ function setWorkspace(on) {
     layoutTarget = layoutPending = null;
     const area = workspaceArea();
     const restore = workspaceBounds(v2?.data.workspace, area);
-    workspace = { maximized: !!v2?.data.workspace?.maximized, restore };
+    createAppWindow();
+    workspace = { maximized: false };
     clearInterval(petTopTimer);
-    win.setAlwaysOnTop(false);
-    win.setSkipTaskbar(false);
-    win.setIgnoreMouseEvents(false);
-    ignoringPointer = false;
     mailBubble?.suppress(true);
-    win.setBounds(workspace.maximized ? area : restore);
-    visibleBounds = win.getBounds();
+    appWin.setBounds(restore);
+    moveView(appWin);
     win.webContents.send('ui-hidden', false);
     win.webContents.send('ui-expanded', true);
+    if (v2?.data.workspace?.maximized) appWin.maximize();
+    appWin.show();
+    appWin.focus();
+    islandWin.hide();
     sendWorkspace();
-    win.show();
-    win.focus();
   } else {
     saveWorkspace();
-    if (win.isMinimized()) win.restore();
     workspace = null;
-    win.setSkipTaskbar(true);
+    moveView(islandWin);
+    if (appWin && !appWin.isDestroyed()) appWin.hide();
     mailBubble?.suppress(false);
     applyTopmost();
     sendWorkspace();
-    // v0.7.2: back to the island without the size animation from the big window (it could
-    // leave the island off screen or invisible), then make sure it is shown and on top.
+    // back to the island without a size animation from the big window, then make sure it is
+    // shown and on top
     visibleBounds = null;
     layoutTarget = layoutPending = null;
     hidden = false;
     expanded = true;
     lastInside = Date.now();
-    win.setIgnoreMouseEvents(false);
+    islandWin.setIgnoreMouseEvents(false);
     ignoringPointer = false;
     position(false);
-    win.setOpacity(1);
-    win.show();
-    win.moveTop();
-    win.focus();
+    islandWin.setOpacity(1);
+    islandWin.show();
+    islandWin.moveTop();
+    islandWin.focus();
     setTimeout(() => {
-      if (workspace || !win || win.isDestroyed()) return;
+      if (workspace || !islandWin || islandWin.isDestroyed()) return;
       position(false);
-      if (!win.isVisible()) win.show();
+      if (!islandWin.isVisible()) islandWin.show();
+      fitView(islandWin);
     }, 350);
   }
   return !!workspace;
 }
-function workspaceWindow(action, value) {
-  if (!workspace) return null;
-  const { fit, resized } = require('./core/workspace.cjs');
-  if (action === 'minimize') win.minimize();
+function workspaceWindow(action) {
+  if (!workspace || !appWin || appWin.isDestroyed()) return null;
+  if (action === 'minimize') appWin.minimize();
   else if (action === 'maximize') {
-    const area = workspaceArea();
-    if (workspace.maximized) {
-      workspace.maximized = false;
-      win.setBounds(fit(workspace.restore, area));
-    } else {
-      workspace.restore = win.getBounds();
-      workspace.maximized = true;
-      win.setBounds(area);
-    }
-    visibleBounds = win.getBounds();
-    saveWorkspace();
-    sendWorkspace();
-  } else if (action === 'bounds') return win.getBounds();
-  else if (action === 'resize') {
-    // value = { edge, dx, dy, start } from the renderer's edge handles
-    if (workspace.maximized) return win.getBounds();
-    const next = resized(value?.start, value?.edge, value?.dx, value?.dy, workspaceArea());
-    if (next) {
-      win.setBounds(next);
-      visibleBounds = next;
-    }
-  } else if (action === 'resize-end') saveWorkspace();
+    if (appWin.isMaximized()) appWin.unmaximize();
+    else appWin.maximize();
+  } else if (action === 'bounds') return appWin.getBounds();
+  else if (['resize', 'resize-end', 'drag-start', 'drag-end'].includes(action)) return appWin.getBounds(); // Windows does these now
   else throw Error('Geçersiz pencere işlemi.');
-  return win.getBounds();
+  return appWin.getBounds();
 }
 // v0.6.5: web search / YouTube / web address in the default browser (system/web-commands.cjs)
 function openWebCommand(cmd) {
@@ -288,7 +381,7 @@ function sendWhatsAppCommand(cmd) {
   return wa.sendWhatsApp(cmd, {
     contacts: whatsappContacts(),
     openExternal: (url) => shell.openExternal(url),
-    pressEnter: () => wa.pressEnterInWhatsApp(),
+    automate: (cfg) => wa.automateWhatsApp(cfg, { clipboard, log: (...a) => perfLog?.(...a) }),
     en: !!v2?.data?.language && v2.data.language !== 'tr',
   });
 }
@@ -1007,7 +1100,8 @@ else {
         return weekly.read();
       });
       watchStalls();
-      win = new BrowserWindow({
+      // v0.7.4: the island window and the page are separate (see windowFacade above)
+      islandWin = new BaseWindow({
         width: 700,
         height: 780,
         frame: false,
@@ -1020,6 +1114,8 @@ else {
         icon: path.join(root, 'dist/icon.png'),
         title: 'Charles · Kişisel',
         backgroundColor: '#00000000',
+      });
+      view = new WebContentsView({
         webPreferences: {
           preload: path.join(__dirname, 'preload.cjs'),
           contextIsolation: true,
@@ -1027,7 +1123,20 @@ else {
           sandbox: true,
           webSecurity: true,
           backgroundThrottling: false,
+          transparent: true,
         },
+      });
+      view.setBackgroundColor('#00000000');
+      islandWin.contentView.setBackgroundColor?.('#00000000');
+      islandWin.contentView.addChildView(view);
+      win = windowFacade();
+      fitView(islandWin);
+      islandWin.on('resize', () => {
+        if (activeWindow() === islandWin) fitView(islandWin);
+      });
+      // a window with a separate page does not pass the keyboard focus on by itself
+      islandWin.on('focus', () => {
+        if (activeWindow() === islandWin && !view.webContents.isDestroyed()) view.webContents.focus();
       });
       win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
       win.webContents.on('render-process-gone', () => {
@@ -1040,13 +1149,13 @@ else {
         lastInside = Date.now();
       });
       win.on('closed', () => app.quit());
-      // v0.7.1 SpecialBeta: Alt+F4 on the app window goes back to the island (like ×);
-      // quitting from the tray or the island still quits.
+      // v0.7.4: closing the island (Alt+F4, a stray close) never quits Charles; quitting is
+      // in the tray menu (and Shift + × on the panel).
       win.on('close', (event) => {
-        if (workspace && !quitting) {
-          event.preventDefault();
-          setWorkspace(false);
-        }
+        if (quitting) return;
+        event.preventDefault();
+        if (workspace) setWorkspace(false);
+        else expand(false);
       });
       win.on('blur', () => {
         clearTimeout(blurTimer);
@@ -1121,8 +1230,26 @@ else {
           reason: item.title,
         });
         win.webContents.send('personal-alert', item);
-        if (hidden) expand(false);
+        // v0.7.4: the panel opens so the reminder card is seen, and Windows shows it too
+        if (!workspace) expand(true);
+        else if (win.isMinimized()) win.restore();
         win.flashFrame(true);
+        try {
+          if (Notification.isSupported()) {
+            const n = new Notification({
+              title: item.kind === 'focus' ? 'Odak süresi bitti' : 'Hatırlatma',
+              body: String(item.title || '').slice(0, 200),
+              silent: true,
+            });
+            n.on('click', () => {
+              if (workspace) {
+                win.show();
+                win.focus();
+              } else expand(true);
+            });
+            n.show();
+          }
+        } catch {}
       }
       reminderTimer = setInterval(() => {
         try {
@@ -1165,7 +1292,7 @@ else {
       safeHandler('memory-import', async () => {
         dialogOpen = true;
         try {
-          const r = await dialog.showOpenDialog(win, {
+          const r = await dialog.showOpenDialog(win.native, {
             properties: ['openFile'],
             title: 'ChatGPT hafıza özetini seç',
             filters: [{ name: 'Metin', extensions: ['txt', 'md'] }],
@@ -1188,12 +1315,7 @@ else {
         const previous = { detached, expanded, petPosition, workspace: !!workspace };
         // The guide needs the small Slime beside the browser: leave the app window for now,
         // it comes back when the guide ends.
-        if (workspace) {
-          saveWorkspace();
-          workspace = null;
-          win.setSkipTaskbar(true);
-          sendWorkspace();
-        }
+        if (workspace) leaveWorkspaceQuietly();
         detachPet(true);
         pluginGuide = previous;
         petDrag = null;
@@ -1220,7 +1342,7 @@ else {
       safeHandler('plugins-import-google', async () => {
         dialogOpen = true;
         try {
-          const picked = await dialog.showOpenDialog(win, {
+          const picked = await dialog.showOpenDialog(win.native, {
             title: 'Google Desktop OAuth JSON dosyasını seç',
             properties: ['openFile'],
             filters: [{ name: 'Google OAuth JSON', extensions: ['json'] }],
@@ -1349,7 +1471,7 @@ else {
       safeHandler('image-save', async (dataUrl) => {
         const { ext, bytes } = imageData(dataUrl);
         const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
-        const r = await dialog.showSaveDialog(win, {
+        const r = await dialog.showSaveDialog(win.native, {
           title: 'Görseli kaydet',
           defaultPath: path.join(app.getPath('pictures'), `Charles-gorsel-${stamp}.${ext}`),
           filters: [{ name: 'Görsel', extensions: [ext] }],
@@ -1727,7 +1849,7 @@ else {
         dialogOpen = true;
         clearTimeout(blurTimer);
         try {
-          const r = await dialog.showOpenDialog(win, {
+          const r = await dialog.showOpenDialog(win.native, {
             properties: ['openDirectory'],
             title: 'Charles nerede arasın?',
           });
@@ -1762,7 +1884,7 @@ else {
       safeHandler('choose-files', async () => {
         dialogOpen = true;
         try {
-          const r = await dialog.showOpenDialog(win, {
+          const r = await dialog.showOpenDialog(win.native, {
             properties: ['openFile', 'multiSelections'],
             title: 'Charles’a dosya ekle',
           });
@@ -1817,7 +1939,7 @@ else {
         clearTimeout(blurTimer);
         let result;
         try {
-          result = await dialog.showOpenDialog(win, {
+          result = await dialog.showOpenDialog(win.native, {
             title: 'Codex’in çalışacağı proje klasörü',
             properties: ['openDirectory', 'createDirectory'],
           });
@@ -1894,6 +2016,19 @@ else {
         if (agent.current.agent.busy) throw Error('Önce çalışan işi durdurun.');
         if (!args.attachments?.length && !args.task) {
           let pluginRequest = require('./plugins/plugin-commands.cjs').parse(args.prompt);
+          // v0.7.4: indoor temperature / humidity from Home Assistant
+          if (pluginRequest?.climate && plugins.data?.configs?.home?.token) {
+            const en = !!v2?.data?.language && v2.data.language !== 'tr';
+            let message;
+            try {
+              message = require('./plugins/home-climate.cjs').climateAnswer(await plugins.list('home'), pluginRequest.climate, en);
+            } catch (e) {
+              message = e.message;
+            }
+            agent.local(args.prompt, message);
+            return { localAction: true, message };
+          }
+          if (pluginRequest?.climate) pluginRequest = null;
           if (pluginRequest?.homeName) {
             try {
               pluginRequest = require('./plugins/plugin-commands.cjs').resolveHome(
@@ -2033,6 +2168,22 @@ else {
           if (weatherAnswer) {
             agent.local(args.prompt, weatherAnswer);
             return { localAction: true, message: weatherAnswer };
+          }
+          // v0.7.4: sensor questions the shortcuts do not catch go to the AI with the readings
+          if (!args.displayPrompt && plugins.data?.configs?.home?.token) {
+            const hc = require('./plugins/home-climate.cjs');
+            if (hc.mentionsClimate(args.prompt)) {
+              try {
+                const data = hc.homeContext(await plugins.list('home'));
+                if (data) {
+                  args.displayPrompt = args.prompt;
+                  args.prompt +=
+                    '\n\nCharles kullanıcının Home Assistant’ından şu anki sıcaklık ve nem ölçümlerini okudu; aşağıdadır. Bu verilere erişimin VAR, erişemediğini söyleme; soruyu bu değerlerle yanıtla.\n<ev_sensorleri>\n' +
+                    data.slice(0, 4000) +
+                    '\n</ev_sensorleri>';
+                }
+              } catch {}
+            }
           }
           const recalled = memoryCommand(args.prompt, personal);
           if (recalled) {
@@ -2174,24 +2325,23 @@ else {
       safeHandler('file-open', async (file, how) => {
         const full = require('./core/file-preview.cjs').resolveInside(file, fileRoots());
         const dir = path.dirname(full);
+        const ow = require('./system/open-with.cjs');
+        const appFor = (url) => app.getApplicationNameForProtocol(url);
         if (how === 'folder') shell.showItemInFolder(full);
-        else if (how === 'vscode') await shell.openExternal('vscode://file/' + encodeURI(full.replace(/\\/g, '/')));
-        else if (how === 'github') await shell.openExternal('x-github-client://openLocalRepo/' + encodeURIComponent(dir));
+        else if (how === 'vscode') {
+          // v0.7.4: say so when the program is missing instead of doing nothing
+          if (!ow.hasProtocol(appFor, 'vscode://')) throw Error(ow.missing('vscode'));
+          await shell.openExternal('vscode://file/' + encodeURI(full.replace(/\\/g, '/')));
+        } else if (how === 'github') {
+          if (!ow.hasProtocol(appFor, 'x-github-client://')) throw Error(ow.missing('github'));
+          await shell.openExternal('x-github-client://openLocalRepo/' + encodeURIComponent(dir));
+        } else if (how === 'notepadpp') ow.openNotepadPlusPlus(full);
         else if (how === 'terminal') {
-          // a new console window in the file's folder (Windows Terminal if it is installed)
-          const { spawn } = require('node:child_process');
-          const child = spawn(process.platform === 'win32' ? 'cmd.exe' : 'x-terminal-emulator', [], {
-            cwd: dir,
-            detached: true,
-            stdio: 'ignore',
-            windowsHide: false,
-          });
-          child.on('error', () => {});
-          child.unref();
+          ow.openTerminal(dir);
         } else if (how === 'saveas') {
           dialogOpen = true;
           try {
-            const r = await dialog.showSaveDialog(win, { defaultPath: path.basename(full) });
+            const r = await dialog.showSaveDialog(win.native, { defaultPath: path.basename(full) });
             if (r.canceled || !r.filePath) return false;
             fs.copyFileSync(full, r.filePath);
           } finally {
@@ -2219,7 +2369,7 @@ else {
         if (typeof text !== 'string' || text.length > 5e6) throw Error('Metin çok uzun.');
         dialogOpen = true;
         try {
-          const r = await dialog.showSaveDialog(win, {
+          const r = await dialog.showSaveDialog(win.native, {
             defaultPath: String(name || 'kod.txt').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 120),
           });
           if (r.canceled || !r.filePath) return false;
@@ -2230,7 +2380,7 @@ else {
         }
       });
       safeHandler('workspace-window', (action, value) => workspaceWindow(action, value));
-      safeHandler('workspace-state', () => ({ on: !!workspace, maximized: !!workspace?.maximized }));
+      safeHandler('workspace-state', () => ({ on: !!workspace, maximized: !!(workspace && appWin && !appWin.isDestroyed() && appWin.isMaximized()) }));
       // Dashboard data (src/workspace/dashboard.ts). Short caches keep the mail, calendar and
       // Home Assistant servers from being asked on every redraw.
       const wsCache = {};

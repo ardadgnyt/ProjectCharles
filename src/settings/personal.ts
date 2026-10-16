@@ -1,3 +1,4 @@
+import { reminderAlert } from '../island/reminder-alert';
 export function personalUI(api: any, notice: (s: string) => void, attempt: any, react: () => void) {
   const $ = (id: string) => document.getElementById(id)!;
   const value = (id: string) => ($(id) as HTMLInputElement).value;
@@ -236,7 +237,8 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
   api.onPersonal(paint);
   api.onAlert((item: any) => {
     notice(item.title);
-    react();
+    // v0.7.4: a card with the reminder, repeated chime and Slime's reaction
+    reminderAlert(item, { api, notice, react });
     void attempt(async () => paint(await api.personalRead()));
   });
   let nextPoll = 0;

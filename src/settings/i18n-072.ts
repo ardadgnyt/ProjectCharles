@@ -22,6 +22,9 @@ export const english072: Record<string, string> = {
   Kod: 'Code',
   Komut: 'Command',
   'Sohbete ekle': 'Add to chat',
+  'Düzeltme öner': 'Suggest a fix',
+  'Aramayı kapat': 'Close search',
+  'Notepad++ ile aç': 'Open with Notepad++',
   'Düzenlemeyi açıkla…': 'Describe the edit…',
   'Düzenlemeyi açıkla': 'Describe the edit',
   'Terminal çıktısı': 'Terminal output',
@@ -86,6 +89,10 @@ export const english072: Record<string, string> = {
   '(Konusuz)': '(No subject)',
   'Okunuyor…': 'Reading…',
   'Son bilinen değer': 'Last known value',
+  'Henüz başlamadı': 'Not started yet',
+  '10 dk ertele': 'Snooze 10 min',
+  'Odak süresi bitti': 'Focus time is over',
+  '10 dakika sonra yeniden hatırlatacağım.': 'I’ll remind you again in 10 minutes.',
   'Adacığa dön · Shift ile tıkla: Charles’tan çık': 'Back to the island · Shift-click: quit Charles',
   // WhatsApp
   'Yazarak veya sesli “WhatsApp’tan Ahmet’e yarın geliyorum mesajını at” de. Charles, WhatsApp Desktop’ta kişinin sohbetini mesajınla açar. Kayıtlı olmayan kişide WhatsApp açılır, kişiyi sen seçersin. Numaralar sadece bu bilgisayarda tutulur.':
@@ -98,10 +105,21 @@ export const english072: Record<string, string> = {
   'Ad ve telefon numarası yaz.': 'Enter a name and phone number.',
 };
 
+const durationEn = (v: string) =>
+  v
+    .replace(/^(\d+) sa (\d+) dk$/, '$1 h $2 min')
+    .replace(/^(\d+) dk$/, '$1 min')
+    .replace(/^(\d+) sn$/, '$1 s');
 export const patterns072: [RegExp, (...m: string[]) => string][] = [
+  // v0.7.4 weekly summary: "72 sa 14 dk", "5 dk · aktif 3 dk"
+  [/^(\d+) sa (\d+) dk$/, (_, h, m) => `${h} h ${m} min`],
+  [/^(\d+) dk$/, (_, m) => `${m} min`],
+  [/^(\d+) sn$/, (_, n) => `${n} s`],
+  [/^(\d+ (?:sa \d+ dk|dk|sn)) · aktif (\d+ (?:sa \d+ dk|dk|sn))$/, (_, a, b) => `${durationEn(a)} · active ${durationEn(b)}`],
   [/^(\d+) etkinlik$/, (_, n) => `${n} ${n === '1' ? 'event' : 'events'}`],
   [/^(\d+) cihaz$/, (_, n) => `${n} ${n === '1' ? 'device' : 'devices'}`],
   [/^(\d+) cihaz · 3 sütun$/, (_, n) => `${n} ${n === '1' ? 'device' : 'devices'} · 3 columns`],
+  [/^(.+) bu bilgisayarda yüklü değil\.$/, (_, n) => `${n} is not installed on this computer.`],
   [/^Bugün · (.+)$/, (_, n) => `Today · ${n}`],
   [/^(.+) · kaldır$/, (_, n) => `${n} · remove`],
   [/^(.+) sekmesini kapat$/, (_, n) => `Close ${n} tab`],

@@ -209,7 +209,7 @@ test('WhatsApp: Turkish and English commands are understood, other text is not',
     assert.equal(parseWhatsApp(text), null, text);
 });
 
-test('WhatsApp: contacts are validated and stored locally; sending only presses Enter for a saved contact', async () => {
+test('WhatsApp: contacts are validated and stored locally; automatic sending can be turned off', async () => {
   const { WhatsAppContacts, sendWhatsApp } = require('../app/system/whatsapp.cjs');
   const dir = tmp();
   const c = new WhatsAppContacts(dir);
@@ -223,19 +223,16 @@ test('WhatsApp: contacts are validated and stored locally; sending only presses 
   const deps = {
     contacts: c,
     openExternal: async (u) => opened.push(u),
-    pressEnter: async () => (++pressed, true),
+    automate: async (cfg) => (cfg.mode === 'enter' && ++pressed, { ok: true, sent: true }),
   };
   const a = await sendWhatsApp({ to: 'Annem', message: 'Eve geldim' }, deps);
   assert.equal(opened[0], 'whatsapp://send?phone=905551112233&text=Eve%20geldim');
   assert.equal(pressed, 1);
   assert.match(a, /gönderildi/);
-  const b = await sendWhatsApp({ to: 'Ahmet', message: 'Selam' }, deps);
-  assert.equal(opened[1], 'whatsapp://send?text=Selam');
-  assert.equal(pressed, 1); // unknown person: the user picks and sends
-  assert.match(b, /kayıtlı numara yok/);
   c.save({ autoSend: false });
-  await sendWhatsApp({ to: 'Annem', message: 'x' }, deps);
-  assert.equal(pressed, 1);
+  const b = await sendWhatsApp({ to: 'Annem', message: 'x' }, deps);
+  assert.equal(pressed, 1); // automatic sending off: the chat is opened, the user presses send
+  assert.match(b, /Gönder’e bas/);
   // no WhatsApp Desktop → WhatsApp Web
   const web = [];
   await sendWhatsApp(

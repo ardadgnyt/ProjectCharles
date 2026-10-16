@@ -25,6 +25,9 @@ function parse(text) {
     [/^(evdeki cihazları (?:göster|listele)|show my home devices)$/, 'home'],
   ])
     if (pattern.test(q)) return { kind, query: '' };
+  // v0.7.4: "evin içi kaç derece?", "nem oranı ne?" → Home Assistant sensors
+  const climate = require('./home-climate.cjs').climateQuestion(t);
+  if (climate) return { climate };
   return natural(t);
 }
 module.exports = { parse, natural, resolveHome, mailQuestion };
