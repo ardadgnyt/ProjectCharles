@@ -129,9 +129,9 @@ test('Gemini: "Set up with Charles" guides for the account sign-in and the Live 
   assert.throws(() => setupURL('gemini', 3));
   const guide = read('src/settings/plugin-guide.ts');
   assert.match(guide, /'gemini-login': \[/);
-  assert.match(guide, /providersLogin\('gemini'\)/);
+  assert.match(guide, /providersLogin\(loginOf\)/); // v0.7.1: one login step for every AI
   assert.match(guide, /liveVoiceSave\(/);
   assert.match(read('src/voice/gemini-live.ts'), /id="live-guide"/);
-  assert.match(read('src/settings/providers.ts'), /guide\('gemini-login'\)/);
+  assert.match(read('src/settings/providers.ts'), /guide\(id \+ '-login'\)/);
   assert.match(read('app/main.cjs'), /if \(!demo && url\) await shell\.openExternal\(url\)/);
 });

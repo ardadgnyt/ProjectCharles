@@ -52,6 +52,56 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
         },
       ],
       // v0.6.5: Gemini account (chat) through Antigravity, a console window instead of a web page
+      // v0.7.1: every AI account has a guide
+      'gpt-login': [
+        {
+          title: '1 · ChatGPT girişini aç',
+          text: 'Aşağıdaki düğmeye bas. Varsayılan tarayıcında OpenAI’nin giriş sayfası açılır. ChatGPT aboneliğin (Plus, Pro…) Codex üzerinden Charles’ta kullanılır; ayrı bir API anahtarı gerekmez.',
+        },
+        {
+          title: '2 · Hesabınla giriş yap',
+          text: 'Tarayıcıda ChatGPT hesabını seç veya e-posta ve şifrenle giriş yap. Codex’e erişim izni istenirse İzin ver / Continue’ya bas.',
+        },
+        {
+          title: '3 · Charles’a dön',
+          text: '“Giriş başarılı / Signed in” sayfasını görünce sekmeyi kapatabilirsin. Sonra bağlantıyı kontrol et.',
+          finish: true,
+        },
+      ],
+      'claude-login': [
+        {
+          title: '1 · Giriş penceresini aç',
+          text: 'Aşağıdaki düğmeye bas. Charles, Claude Code’un küçük bir siyah giriş penceresini açar. Claude Code içeren bir abonelik (Pro veya Max) gerekir; ücretsiz web hesabı yetmez.',
+        },
+        {
+          title: '2 · Tarayıcıda yetki ver',
+          text: 'Tarayıcıda Claude hesabınla giriş yap ve Yetkilendir / Authorize’a bas. API veya Console hesabı seçme; abonelik hesabını seç.',
+        },
+        {
+          title: '3 · Kod istenirse yapıştır',
+          text: 'Tarayıcı bir kod gösterirse kopyala, siyah pencereye yapıştırıp Enter’a bas. “Login successful” görünce pencereyi kapatabilirsin.',
+        },
+        {
+          title: '4 · Bağlantıyı kontrol et',
+          text: 'Bağlantıyı kontrol et’e bas. Bağlıysa Claude modelleri mesaj kutusundaki model listesine eklenir.',
+          finish: true,
+        },
+      ],
+      'cursor-login': [
+        {
+          title: '1 · Giriş penceresini aç',
+          text: 'Aşağıdaki düğmeye bas. Charles, resmi Cursor Agent’ın giriş penceresini açar; tarayıcıda Cursor’un giriş sayfası gelir.',
+        },
+        {
+          title: '2 · Cursor hesabınla giriş yap',
+          text: 'Tarayıcıda Cursor hesabına giriş yap ve girişi onayla (Yes, log in). Sayfa “You can close this window” dediğinde sekmeyi kapatabilirsin.',
+        },
+        {
+          title: '3 · Bağlantıyı kontrol et',
+          text: 'Siyah pencerede “Logged in” görünce kapat ve Bağlantıyı kontrol et’e bas. Bağlıysa Cursor modeli listeye eklenir, kalan kullanım adacıkta turkuaz görünür.',
+          finish: true,
+        },
+      ],
       'gemini-login': [
         {
           title: '1 · Giriş penceresini aç',
@@ -195,24 +245,37 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
       reopen.onclick = () => void api.pluginsSetupPage(id, current.page);
       bubble.append(reopen);
     }
-    if (id === 'gemini-login' && step === 0) {
+    const loginOf = /^(gpt|claude|gemini|cursor)-login$/.exec(id)?.[1];
+    const NAMES: Record<string, string> = { gpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', cursor: 'Cursor' };
+    if (loginOf && step === 0) {
       const open = document.createElement('button');
       open.className = 'primary';
-      open.textContent = 'Giriş penceresini aç';
+      open.textContent = loginOf === 'gpt' ? 'ChatGPT ile giriş yap' : 'Giriş penceresini aç';
       open.onclick = async () => {
         open.disabled = true;
         try {
-          const r = await api.providersLogin('gemini');
+          let r: any;
+          if (loginOf === 'gpt') {
+            const a = await api.connect().catch(() => null);
+            if (a?.signedIn) r = { signedIn: true };
+            else {
+              await api.login();
+              r = { opened: true };
+            }
+          } else r = await api.providersLogin(loginOf);
           if (r?.signedIn) {
             step = steps[id].length - 1;
             render();
             p.textContent = '';
             const last = bubble?.querySelector('p');
-            if (last) last.textContent = 'Gemini hesabın zaten bağlı. Kurulumu bitir düğmesine basabilirsin.';
+            if (last) last.textContent = NAMES[loginOf] + ' hesabın zaten bağlı. Kurulumu bitir düğmesine basabilirsin.';
             await saved(null);
             return;
           }
-          p.textContent = 'Pencere açıldı. Tamam, sonraki adım’a basıp devam et.';
+          p.textContent =
+            loginOf === 'gpt'
+              ? 'Tarayıcıda giriş sayfası açıldı. Tamam, sonraki adım’a basıp devam et.'
+              : 'Pencere açıldı. Tamam, sonraki adım’a basıp devam et.';
         } catch (e) {
           p.textContent = (e as Error).message;
         } finally {
@@ -221,7 +284,7 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
       };
       bubble.append(open);
     }
-    if (current.finish && id === 'gemini-login') {
+    if (current.finish && loginOf) {
       const check = document.createElement('button');
       check.className = 'primary';
       check.textContent = 'Bağlantıyı kontrol et';
@@ -229,11 +292,15 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
         check.disabled = true;
         p.textContent = 'Kontrol ediliyor…';
         try {
-          const rows = await api.providersStatus();
-          const ok = rows?.find?.((r: any) => r.id === 'gemini')?.signedIn;
+          const ok =
+            loginOf === 'gpt'
+              ? !!(await api.connect())?.signedIn
+              : !!(await api.providersStatus())?.find?.((r: any) => r.id === loginOf)?.signedIn;
           p.textContent = ok
-            ? 'Bağlandı. Gemini modelleri model listesinde. Kurulumu bitir düğmesine basabilirsin.'
-            : 'Henüz bağlı görünmüyor. Siyah penceredeki adımları bitirip birkaç saniye sonra tekrar dene; gerekirse Geri ile 1. adıma dön.';
+            ? 'Bağlandı. ' + NAMES[loginOf] + ' modelleri model listesinde. Kurulumu bitir düğmesine basabilirsin.'
+            : loginOf === 'gpt'
+              ? 'Henüz bağlı görünmüyor. Tarayıcıdaki girişi bitirip birkaç saniye sonra tekrar dene.'
+              : 'Henüz bağlı görünmüyor. Siyah penceredeki adımları bitirip birkaç saniye sonra tekrar dene; gerekirse Geri ile 1. adıma dön.';
           await saved(null);
         } catch (e) {
           p.textContent = (e as Error).message;

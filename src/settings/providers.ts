@@ -69,6 +69,17 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
   gptResult.setAttribute('role', 'status');
   gptResult.textContent = 'Giriş bekleniyor';
   original.classList.add('provider-actions');
+  const guide = pluginGuideUI(api, notice, async () => {
+    await sync();
+    await refresh();
+    document.getElementById('gpt-check')?.click();
+  });
+  const gptSetup = document.createElement('button');
+  gptSetup.type = 'button';
+  gptSetup.className = 'primary';
+  gptSetup.textContent = 'Charles ile kur';
+  gptSetup.onclick = () => void guide('gpt-login');
+  original.prepend(gptSetup);
   // v0.7.0: GPT gets the same "check connection" button as the other accounts
   const gptCheck = document.createElement('button');
   gptCheck.id = 'gpt-check';
@@ -137,7 +148,7 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
         ? 'Cursor hesabınla resmi Cursor Agent üzerinden bağlan. Bağlantı sohbet modunda çalışır.'
         : id === 'gemini'
           ? 'Google hesabınla Antigravity üzerinden bağlan. Nasıl yapılacağını bilmiyorsan Charles ile kur’a bas; Slime adım adım anlatır. Sesli görüşme (Gemini Live) için ayrı bir API anahtarı gerekir; aşağıdaki Gemini Live bölümüne bak.'
-          : 'Claude hesabınla Claude Code üzerinden bağlan. Claude Code erişimi olan bir abonelik gerekir; ücretsiz web hesabı bu erişimi sağlamaz.';
+          : 'Claude hesabınla Claude Code üzerinden bağlan. Claude Code erişimi olan bir abonelik (Pro veya Max) gerekir; ücretsiz web hesabı bu erişimi sağlamaz.';
     const result = document.createElement('p');
     result.className = 'hint';
     result.setAttribute('role', 'status');
@@ -177,20 +188,15 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
       }
     };
     actions.append(login);
-    if (id === 'gemini') {
-      // v0.6.5: step-by-step sign-in next to Slime, like the plugin guides
-      const guide = pluginGuideUI(api, notice, async () => {
-        await sync();
-        await refresh();
-      });
-      const setup = document.createElement('button');
-      setup.type = 'button';
-      setup.className = 'primary';
-      setup.textContent = 'Charles ile kur';
-      setup.onclick = () => void guide('gemini-login');
-      login.classList.remove('primary');
-      actions.prepend(setup);
-    }
+    // v0.6.5 Gemini, v0.7.1 all accounts: step-by-step sign-in next to Slime. Every card has
+    // the same order: Charles ile kur · sign in / ✓ connected · check connection.
+    const setup = document.createElement('button');
+    setup.type = 'button';
+    setup.className = 'primary';
+    setup.textContent = 'Charles ile kur';
+    setup.onclick = () => void guide(id + '-login');
+    login.classList.remove('primary');
+    actions.prepend(setup);
     actions.append(check);
     section.append(title, note, actions, result);
     cardTail.after(section);

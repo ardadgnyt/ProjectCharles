@@ -1,8 +1,56 @@
 # ProjectCharles — Yama notları
 
-Charles’ın ilk masaüstü sürümünden v0.7.0 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+Charles’ın ilk masaüstü sürümünden v0.7.1 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.7.1 Beta — 16 Ekim 2026
+
+### Ayarlar: AI Modelleri ve yeni Hesap sekmesi
+
+- “Hesap” sekmesinin adı **AI Modelleri** oldu; tanışma ve yardım metinleri de buna göre güncellendi.
+- Yeni **Hesap** sekmesi (en sonda): hangi yapay zekâ hesaplarının bağlı olduğu, **Veri klasörünü aç** (`%APPDATA%\Charles`) ve iki sıfırlama düğmesi:
+  - **Hesap bağlantılarını kaldır:** eklentiler, Gemini Live anahtarı, Claude/Gemini girişleri ve ChatGPT girişi kaldırılır; sohbetler ve hafıza kalır.
+  - **Tüm verileri sıfırla:** sohbetler, hafıza, ayarlar ve tüm bağlantılar.
+  - İkisi de önce **“Emin misin?”** diye sorar. Charles yeniden başlar ve eski dosyalar `%APPDATA%\Charles\reset-backup-<zaman>` klasörüne taşınır; hiçbir şey silinmez. Bir iş çalışırken sıfırlama yapılmaz.
+
+### Yapay zekâ hesapları
+
+- Tüm kartlarda düğmeler **aynı sırada**: **Charles ile kur** · giriş (“✓ … bağlı”) · **Bağlantıyı kontrol et**.
+- **Charles ile kur** artık ChatGPT, Claude ve Cursor’da da var: Slime girişi adım adım anlatır, girişi başlatır ve sonunda bağlantıyı kontrol eder.
+- ChatGPT girişi bağlı değilken yeşil “bağlı” görünebiliyordu; düzeltildi.
+
+### Gemini Live
+
+- Diğer hesaplar gibi **“✓ Gemini Live bağlı”** durumu.
+- Panel sadeleşti: Charles ile kur · durum · test; açma anahtarı ve ses seçimi; anahtar ayarları katlanır **Anahtar ayarları** bölümünde. Açma/kapama ve ses değişikliği hemen kaydedilir.
+
+### Eklentiler
+
+- Bağlı Google/Microsoft hesabında giriş düğmesi **“✓ … bağlı”** olur; Home Assistant ve e-posta için de bağlı durumu gösterilir. Test/kaldır düğmeleri yalnızca bağlıyken görünür.
+- **Bağlantıyı kaldır**’dan sonra giriş düğmeleri yeniden kullanılabilir.
+
+### Hava durumu konumu
+
+- Şehir seçme paneli yenilendi: arama kutusu, yazarken canlı arama, il/ülke bilgisiyle sonuç satırları, ok tuşlarıyla seçim, “Şu anki konum” ve kaydedince bildirim.
+
+### Slime’ın aksesuarları
+
+- Yeni: **renkli kulaklık**, **korsan göz bandı**, **siyah papyon**, **çanlı kedi tasması** ve Slime’ın jölesine **batmış ok**.
+- Yeniden çizildi: **parti şapkası** (simetrik mavi külah, yıldızlar, yıldız patlaması), **yılbaşı şapkası** (kadife külah, kabarık kürk), **bere** (v0.7.0 biçimi, kırmızı, krem nokta şeridi ve etiket), **yuvarlak gözlük** (büyük kahve çerçeve, cam parlaması), **güneş gözlüğü**, **cadı şapkası**, **simetrik tavşan kulakları** ve **atkı**.
+- GitHub tanıtım görselleri (`docs/images/banner.png`, `docs/images/screens.png`) yeni tasarımlar ve AI Modelleri sekmesiyle yenilendi.
+
+### Düzeltmeler
+
+- Ayarlar açıkken büyük adacığın altında beliren **gri gölge** kaldırıldı.
+- Bazı düğmelerde durum `undefined` olunca sınıf ters çalışıyordu (bağlı görünme, gizli panelin açılması); düzeltildi.
+- Yeni aksesuarlar kaydedilirken “Geçersiz aksesuar” hatası verebiliyordu; kayıt listesi güncellendi.
+- İngilizce arayüzde “Default model: Otomatik · …” bildiriminde model adı Türkçe kalıyordu; düzeltildi.
+
+### Diğer
+
+- Yeni metinlerin İngilizce çevirileri (`src/settings/i18n-071.ts`).
+- Yeni testler: sıfırlama (hesaplar / tümü / komut dosyası), Hesap sekmesi, tüm yapay zekâlar için Charles ile kur, Gemini Live paneli, eklenti bağlı durumu, yeni aksesuarlar, konum seçici, çeviriler (toplam 181 test).
 
 ## v0.7.0 Beta — 16 Ekim 2026
 

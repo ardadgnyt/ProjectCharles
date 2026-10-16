@@ -14,9 +14,10 @@ const HATS = [
   'bunnyEars',
   'bow',
   'fedora',
+  'headphones', // v0.7.1
 ];
-const EYES = ['none', 'sunglasses', 'bigShades', 'roundGlasses', 'monocle'];
-const OTHER = ['none', 'pumpkin', 'scarf', 'banana'];
+const EYES = ['none', 'sunglasses', 'bigShades', 'roundGlasses', 'monocle', 'eyePatch'];
+const OTHER = ['none', 'pumpkin', 'scarf', 'banana', 'bowTie', 'catCollar', 'arrow'];
 class Personal {
   constructor(dir) {
     this.file = path.join(dir, 'personal.json');
@@ -79,6 +80,7 @@ class Personal {
           'bunnyEars',
           'fedora',
           'monocle',
+          'headphones',
         ].includes(args.value)
       )
         throw Error('Geçersiz aksesuar.');

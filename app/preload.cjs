@@ -184,6 +184,8 @@ contextBridge.exposeInMainWorld('charles', {
   chooseFolder: () => invoke('choose-folder'),
   send: (args) => invoke('send', args),
   steer: (text) => invoke('steer', text),
+  resetAll: (scope) => invoke('reset-all', scope),
+  openDataFolder: () => invoke('open-data-folder'),
   interrupt: () => invoke('interrupt'),
   openLink: (url) => invoke('open-link', url),
   newChat: (options) => invoke('new-chat', options),

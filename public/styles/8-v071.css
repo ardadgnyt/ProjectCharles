@@ -1,0 +1,306 @@
+/* v0.7.1 — city picker, account tab, plugin states, island shadow. */
+
+/* ── Weather city picker ───────────────────────────────────────────────────────── */
+#setup-panel.city-picker {
+  width: min(440px, calc(100vw - 40px));
+  max-height: calc(100vh - 60px);
+  padding: 18px 18px 14px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: 20px;
+  background:
+    radial-gradient(90% 60% at 0% 0%, rgba(240, 198, 161, 0.08), transparent 60%),
+    linear-gradient(180deg, rgba(34, 34, 41, 0.98), rgba(20, 20, 25, 0.98));
+  box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.85);
+  color: var(--sb-text);
+  overflow: hidden;
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+#setup-panel.city-picker[open] {
+  display: flex;
+}
+.city-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.city-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+.city-head p {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--sb-muted);
+}
+.city-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--sb-accent-soft);
+  color: var(--sb-accent);
+}
+.city-icon svg,
+.city-search-box svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#setup-close {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--sb-muted);
+  font-size: 18px;
+}
+#setup-close:hover {
+  background: var(--sb-surface-hover);
+  color: var(--sb-text);
+}
+.city-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 12px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--sb-muted);
+}
+.city-search-box:focus-within {
+  border-color: rgba(240, 198, 161, 0.45);
+}
+#setup-panel .city-search-box input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--sb-text);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  box-shadow: none;
+}
+#setup-panel #city-search {
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--sb-accent);
+  color: #1b1b1f;
+  font-weight: 600;
+}
+#city-current {
+  margin: -4px 2px 0;
+}
+#city-results {
+  display: grid;
+  gap: 6px;
+  max-height: 260px;
+  overflow: auto;
+}
+#city-results:empty {
+  display: none;
+}
+#setup-panel .city-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--sb-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--sb-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+#setup-panel .city-row:hover,
+#setup-panel .city-row:focus-visible {
+  border-color: rgba(240, 198, 161, 0.45);
+  background: rgba(240, 198, 161, 0.08);
+  outline: none;
+}
+.city-row > span:last-child {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.city-row strong {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.city-row small {
+  font-size: 11.5px;
+  color: var(--sb-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.city-pin {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sb-accent);
+  box-shadow: 0 0 0 4px var(--sb-accent-soft);
+}
+#city-status:empty {
+  display: none;
+}
+#city-status {
+  margin: 0 2px;
+}
+.city-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--sb-line);
+}
+.city-foot .hint {
+  margin: 0;
+  font-size: 11.5px;
+}
+#setup-panel #setup-skip {
+  flex: none;
+  margin: 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--sb-line-strong);
+  background: transparent;
+  color: var(--sb-text);
+  font-size: 12.5px;
+}
+
+/* ── Ayarlar → Hesap ───────────────────────────────────────────────────────────── */
+#settings-panel .account-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2px 0 6px;
+}
+#settings-panel .account-chip {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--sb-line-strong);
+  font-size: 12px;
+  color: var(--sb-muted);
+}
+#settings-panel .account-chip.on {
+  color: var(--sb-ok);
+  border-color: rgba(156, 227, 192, 0.3);
+  background: rgba(156, 227, 192, 0.08);
+}
+#settings-panel button.danger {
+  border: 1px solid rgba(255, 138, 122, 0.4) !important;
+  background: rgba(255, 138, 122, 0.1) !important;
+  color: var(--sb-danger) !important;
+}
+#settings-panel button.danger:hover:not(:disabled) {
+  background: rgba(255, 138, 122, 0.18) !important;
+}
+#settings-panel .reset-confirm {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 138, 122, 0.35);
+  border-radius: 12px;
+  background: rgba(255, 138, 122, 0.06);
+}
+#settings-panel .reset-confirm strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13.5px;
+  color: var(--sb-danger);
+}
+#settings-panel .reset-confirm p {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* ── Gemini Live card ──────────────────────────────────────────────────────────── */
+#settings-panel #live-card .live-options {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 6px;
+}
+#settings-panel #live-card .live-voice-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#settings-panel #live-card .live-voice-row span {
+  font-size: 13px;
+  color: var(--sb-muted);
+}
+#settings-panel #live-card .live-voice-row select {
+  flex: 1;
+  max-width: 260px;
+  margin: 0;
+}
+#settings-panel #live-card details {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--sb-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.015);
+}
+#settings-panel #live-card details[open] {
+  padding-bottom: 12px;
+}
+#settings-panel #live-card summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--sb-muted);
+}
+#settings-panel #live-card details input[type='password'] {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 6px 0 8px;
+}
+#settings-panel #live-card details label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+#settings-panel #live-state:disabled:not(.connected) {
+  opacity: 0.7;
+}
+
+/* ── Plugin cards: connected state ─────────────────────────────────────────────── */
+#settings-panel .plugin-card .provider-actions button.connected {
+  opacity: 1 !important;
+  color: var(--sb-ok) !important;
+  background: rgba(156, 227, 192, 0.1) !important;
+  border: 1px solid rgba(156, 227, 192, 0.28) !important;
+}
+
+/* ── Settings over the large island: no grey haze below it ─────────────────────── */
+/* The dialog's drop shadow (0 18px 50px) spilled past the island's bottom edge onto the
+   transparent window and showed as a grey shadow on the desktop. */
+#settings-panel,
+#settings-panel[open],
+#sessions-panel,
+#sessions-panel[open] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}

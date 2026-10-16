@@ -121,7 +121,7 @@ a draft. It is sent only when you press Send.
 
 ## AI accounts
 
-AI providers are connected in **Settings → Account**, not under Plugins:
+AI providers are connected in **Settings → AI models**, not under Plugins:
 
 | Provider | How it connects |
 | --- | --- |

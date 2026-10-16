@@ -515,29 +515,8 @@ else {
       } catch {}
       if (process.argv.includes('--reset-local')) {
         chosenCwd = null;
-        const dir = app.getPath('userData'),
-          backup = path.join(dir, 'reset-backup-' + Date.now());
-        for (const name of [
-          'personal.json',
-          'charles-history.json',
-          'display.json',
-          'preferences.json',
-          'companion.json',
-          'resource-history.sqlite',
-          'gemini-live.enc.json',
-          'plugins.enc.json',
-          'weekly.json',
-          'computer-time.json',
-          'shortcuts.json',
-        ]) {
-          for (const suffix of ['', '.bak', '.tmp']) {
-            const file = path.join(dir, name + suffix);
-            if (fs.existsSync(file)) {
-              fs.mkdirSync(backup, { recursive: true });
-              fs.renameSync(file, path.join(backup, name + suffix));
-            }
-          }
-        }
+        // v0.7.1: Ayarlar → Hesap → reset (or setup\Reset-Charles.cmd); files go to a backup
+        require('./core/reset.cjs').apply(app.getPath('userData'));
       }
       voice = new Voice(root, app.getPath('userData'));
       wakeVoice = new Voice(root, app.getPath('userData'), true);
@@ -1958,6 +1937,29 @@ else {
           hasDocument: !!args.hasDocument,
         });
       });
+      // v0.7.1: Ayarlar → Hesap → "Tüm verileri sıfırla" / "Hesap bağlantılarını kaldır"
+      safeHandler('reset-all', async (scope) => {
+        if (demo) throw Error('Önizleme modunda sıfırlanmaz.');
+        if (agent.list().some((r) => r.busy || r.pending))
+          throw Error('Önce çalışan işleri durdur.');
+        require('./core/reset.cjs').request(app.getPath('userData'), scope);
+        // ChatGPT sign-in lives in Codex's own folder: sign out through Codex itself.
+        try {
+          if (agent.current.agent.ready)
+            await agent.current.agent.rpc.request('account/logout', undefined, 10000);
+        } catch {}
+        if (scope === 'all')
+          await session.defaultSession.clearStorageData({ storages: ['localstorage'] }).catch(() => {});
+        app.relaunch({
+          args: [
+            ...process.argv.slice(1).filter((a) => a !== '--reset-local' && a !== '--autostart'),
+            '--reset-local',
+          ],
+        });
+        setTimeout(() => app.exit(0), 400);
+        return true;
+      });
+      safeHandler('open-data-folder', () => shell.openPath(app.getPath('userData')));
       safeHandler('interrupt', () => agent.interrupt());
       safeHandler('steer', (text) => {
         if (liveRoom) throw Error('Önce sesli görüşmeyi bitir.');

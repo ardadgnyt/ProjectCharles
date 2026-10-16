@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="styles/5-design-system.css" />
     <link rel="stylesheet" href="styles/6-acrylic.css" />
     <link rel="stylesheet" href="styles/7-settings-v070.css" />
+    <link rel="stylesheet" href="styles/8-v071.css" />
   </head>
   <body>
     <main class="island">
@@ -46,7 +47,7 @@
         </button>
         <button id="toggle" class="identity" >
           <strong>Charles</strong
-          ><small class="version-label">v0.7.0 Beta</small><small id="status">Senin küçük kod arkadaşın.</small>
+          ><small class="version-label">v0.7.1 Beta</small><small id="status">Senin küçük kod arkadaşın.</small>
         </button>
         <aside id="mini-music" aria-label="Spotify">
           <strong id="music-title">Spotify</strong
@@ -505,23 +506,33 @@
         tabindex="0"
       ></div>
     </main>
-    <dialog id="setup-panel">
-      <div class="settings-heading"><h2>Charles’ı kişiselleştir</h2></div>
-      <p>Hava durumu için şehir veya ilçe seç.</p>
-      <div class="row">
-        <input
-          id="city-query"
-          placeholder="Şehir veya ilçe"
-          aria-label="Şehir veya ilçe"
-        /><button id="city-search">Ara</button>
+    <dialog id="setup-panel" class="city-picker" aria-labelledby="city-title">
+      <div class="city-head">
+        <span class="city-icon" aria-hidden="true"
+          ><svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3.2" /><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" /></svg
+        ></span>
+        <div>
+          <h2 id="city-title">Hava durumu konumu</h2>
+          <p>Adacıkta havası gösterilecek şehri veya ilçeyi seç.</p>
+        </div>
+        <button id="setup-close" type="button" aria-label="Kapat">×</button>
       </div>
-      <div id="city-results"></div>
-      <p class="hint" id="city-status"></p>
-      <p class="hint">
-        Hava durumu için seçilen konum Open-Meteo’ya gönderilir. Aktif uygulama
-        ve AI önerilerini Ayarlar’dan kapatabilirsin.
-      </p>
-      <button id="setup-skip">Şimdilik geç / Kapat</button>
+      <div class="city-search-box">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg
+        ><input
+          id="city-query"
+          placeholder="Şehir veya ilçe ara…"
+          aria-label="Şehir veya ilçe"
+          autocomplete="off"
+        /><button id="city-search" type="button">Ara</button>
+      </div>
+      <div id="city-current" class="hint" hidden></div>
+      <div id="city-results" role="listbox" aria-label="Bulunan konumlar"></div>
+      <p class="hint" id="city-status" role="status"></p>
+      <div class="city-foot">
+        <p class="hint">Seçilen konum yalnızca Open-Meteo’ya gönderilir.</p>
+        <button id="setup-skip" type="button">Şimdilik geç</button>
+      </div>
     </dialog>
     <script src="renderer.js"></script>
   </body>

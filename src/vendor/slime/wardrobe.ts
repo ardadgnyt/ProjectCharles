@@ -26,6 +26,12 @@ export const OUTFIT_SELECTIONS = [
   'bigShades',
   'banana',
   'flag',
+  // v0.7.1
+  'headphones',
+  'eyePatch',
+  'bowTie',
+  'catCollar',
+  'arrow',
 ] as const;
 
 /** What can be stored in the preferences. The raw values are the Mac's, keep them stable. */
@@ -58,6 +64,11 @@ export const OUTFIT_KEYS: Record<OutfitSelection, string> = {
   bigShades: N_('Big sunglasses'),
   banana: N_('Banana'),
   flag: N_('Turkish flag'),
+  headphones: N_('Headphones'),
+  eyePatch: N_('Eye patch'),
+  bowTie: N_('Bow tie'),
+  catCollar: N_('Cat collar'),
+  arrow: N_('Arrow'),
 };
 
 // ── v0.6.1: accessory categories ─────────────────────────────────────────────
@@ -78,9 +89,10 @@ export const SLOT_ITEMS: Record<AccessorySlot, readonly string[]> = {
     'santaHat',
     'bunnyEars',
     'bow',
+    'headphones',
   ],
-  eyes: ['none', 'sunglasses', 'bigShades', 'roundGlasses', 'monocle'],
-  other: ['none', 'pumpkin', 'scarf', 'banana'],
+  eyes: ['none', 'sunglasses', 'bigShades', 'roundGlasses', 'monocle', 'eyePatch'],
+  other: ['none', 'pumpkin', 'scarf', 'banana', 'bowTie', 'catCollar', 'arrow'],
 };
 
 export interface Accessories {

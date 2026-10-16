@@ -306,8 +306,8 @@ export const english063: Record<string, string> = {
   'Gemini Live bağlanıyor…': 'Gemini Live connecting…',
   'Gemini Live · Dinliyorum · bitirmek için mikrofona bas': 'Gemini Live · Listening · press the mic to finish',
   'Gemini bağlantısı tamamlanmadan kapandı.': 'The Gemini connection closed before it finished.',
-  'Sesli görüşme için Ayarlar → Hesap bölümünden Gemini Live etkinleştir.':
-    'Enable Gemini Live in Settings → Account for voice conversations.',
+  'Sesli görüşme için Ayarlar → AI Modelleri bölümünden Gemini Live etkinleştir.':
+    'Enable Gemini Live in Settings → AI models for voice conversations.',
   'Ses bağlantısı kesildi; yeniden başlatabilirsin.': 'The voice connection dropped; you can start again.',
   'Sesli yanıt tamamlandı.': 'Voice answer finished.',
   'Ses işlemi durduruldu.': 'Voice action stopped.',
@@ -566,6 +566,11 @@ export const english063: Record<string, string> = {
 
 /** Texts with a number or a name inside: [pattern, English]. */
 export const englishPatterns: [RegExp, (...m: string[]) => string][] = [
+  // v0.7.1
+  [/^(.+) hesabın zaten bağlı\. Kurulumu bitir düğmesine basabilirsin\.$/, (_, n) => `Your ${n} account is already connected. You can press Finish setup.`],
+  [/^Bağlandı\. (.+) modelleri model listesinde\. Kurulumu bitir düğmesine basabilirsin\.$/, (_, n) => `Connected. ${n} models are in the model list. You can press Finish setup.`],
+  [/^Şu anki konum: (.+)$/, (_, n) => `Current location: ${n}`],
+  [/^Hava durumu konumu kaydedildi: (.+)$/, (_, n) => `Weather location saved: ${n}`],
   // v0.7.0
   [/^(.+) zaten bağlı\. Devam edebilirsin\.$/, (_, n) => `${n} is already connected. You can continue.`],
   [/^Soru paketi kopyalandı\. (.+) sohbetine yapıştır, yanıtın tamamını 2\. adıma yapıştır\.$/, (_, n) => `Question pack copied. Paste it into ${n}, then paste the whole answer in step 2.`],
@@ -584,7 +589,8 @@ export const englishPatterns: [RegExp, (...m: string[]) => string][] = [
   [/^Otomatik · (.+)$/, (_, n) => `Auto · ${n}`],
   [
     /^Varsayılan model: (.+)\. Sonraki mesajında kullanılacak\.$/,
-    (_, n) => `Default model: ${n}. It will be used for your next message.`,
+    (_, n) =>
+      `Default model: ${n.replace(/Otomatik/g, 'Auto').replace('Önce hesap bağla', 'Connect an account first')}. It will be used for your next message.`, // v0.7.1: the model name was left in Turkish
   ],
   [/^Konum kaydedildi: (.+)\.$/, (_, n) => `Location saved: ${n}.`],
   [/^(\d+) (Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|Eylül|Ekim|Kasım|Aralık)$/, (_, d, m) => `${MONTH_EN[m]} ${d}`],

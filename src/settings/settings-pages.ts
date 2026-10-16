@@ -35,7 +35,7 @@ export function settingsPages(api: any) {
   const pages = new Map<string, HTMLElement>();
   for (const [id, label] of [
     ['general', 'Genel'],
-    ['account', 'Hesap'],
+    ['account', 'AI Modelleri'], // v0.7.1: was "Hesap"
     ['look', 'Görünüm'],
     ['memory', 'Hafıza'],
     ['access', 'Erişim'],
@@ -43,6 +43,7 @@ export function settingsPages(api: any) {
     ['shortcuts', 'Kısayollar'],
     ['weekly', 'Haftalık özet'],
     ['performance', 'Performans'],
+    ['profile', 'Hesap'], // v0.7.1: data folder and reset
   ]) {
     const page = document.createElement('div');
     page.className = 'settings-page';

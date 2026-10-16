@@ -34,7 +34,7 @@ async function executeComputerTask({
   if (!agent.ready) await agent.connect();
   if (signal?.aborted) throw Error('İşlem iptal edildi.');
   if (!(await agent.account()).signedIn)
-    throw Error('Bilgisayar işlemleri için Ayarlar → Hesap bölümünden GPT hesabını bağla.');
+    throw Error('Bilgisayar işlemleri için Ayarlar → AI Modelleri bölümünden GPT hesabını bağla.');
   if (signal?.aborted) throw Error('İşlem iptal edildi.');
   return new Promise((resolve, reject) => {
     let finished = false,

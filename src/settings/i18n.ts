@@ -1,5 +1,6 @@
 import { english063, englishPatterns } from './i18n-063';
 import { english070 } from './i18n-070';
+import { english071 } from './i18n-071';
 const english: Record<string, string> = {
   Ayarlar: 'Settings',
   Genel: 'General',
@@ -336,7 +337,7 @@ Object.assign(english, {
   'Kaydet düğmesine tıkla, ardından kısayol tuşlarına birlikte bas. Esc ile vazgeç.':
     'Click Record keys, then press the shortcut together. Press Esc to cancel.',
 });
-Object.assign(english, english063, english070);
+Object.assign(english, english063, english070, english071);
 
 // v0.6.3: look-up that ignores line breaks/indentation from the HTML, then the patterns
 // (texts with numbers or names inside).

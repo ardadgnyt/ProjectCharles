@@ -4,7 +4,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const DEFAULTS = {
   defaultModel: '',
-  // Model chosen in Ayarlar → Hesap → Varsayılan model; used at start and for new chats.
+  // Model chosen in Ayarlar → AI Modelleri → Varsayılan model; used at start and for new chats.
   // null = keep using the last model picked in the chat.
   startupModel: null,
   sound: true,

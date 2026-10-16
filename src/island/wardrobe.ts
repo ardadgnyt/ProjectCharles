@@ -35,6 +35,7 @@ const ITEMS: Record<AccessorySlot, [string, string, string][]> = {
     ['santaHat', 'Yılbaşı şapkası', '🎅'],
     ['bunnyEars', 'Tavşan kulakları', '🐰'],
     ['bow', 'Fiyonk', '🎀'],
+    ['headphones', 'Kulaklık', '🎧'],
   ],
   eyes: [
     ['none', 'Gözlük yok', '○'],
@@ -42,12 +43,16 @@ const ITEMS: Record<AccessorySlot, [string, string, string][]> = {
     ['bigShades', 'Büyük güneş gözlüğü', '😎'],
     ['roundGlasses', 'Yuvarlak gözlük', '👓'],
     ['monocle', 'Tek gözlük', '🧐'],
+    ['eyePatch', 'Korsan göz bandı', '🏴‍☠️'],
   ],
   other: [
     ['none', 'Yok', '○'],
     ['pumpkin', 'Balkabağı', '🎃'],
     ['scarf', 'Atkı', '🧣'],
     ['banana', 'Muz', '🍌'],
+    ['bowTie', 'Papyon', '🤵'],
+    ['catCollar', 'Çanlı kedi tasması', '🔔'],
+    ['arrow', 'Batmış ok', '🏹'],
   ],
 };
 

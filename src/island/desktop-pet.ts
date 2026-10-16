@@ -5,7 +5,7 @@ export function desktopPet(api: any) {
     start = { x: 0, y: 0 },
     suppressUntil = 0;
   api.onDesktopPet((value: boolean) => {
-    document.body.classList.toggle('desktop-pet', value);
+    document.body.classList.toggle('desktop-pet', !!value);
   });
   pet.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 || document.body.classList.contains('plugin-guide-active')) return;

@@ -36,6 +36,7 @@ import { updateMarkdown, messageSource, setQuestionHandler } from './chat/markdo
 import { questionCard } from './chat/ai-questions';
 import { steerUI } from './chat/steer';
 import { settingsPolish } from './settings/polish-070';
+import { accountTab } from './settings/account-tab';
 import { textReaction, answerReaction, isRateLimit } from './chat/reactions';
 
 declare global {
@@ -44,7 +45,7 @@ declare global {
   }
 }
 const api = window.charles;
-api.onPowerPaused((v: boolean) => document.body.classList.toggle('power-paused', v));
+api.onPowerPaused((v: boolean) => document.body.classList.toggle('power-paused', !!v));
 noNativeTooltips();
 profileTransferUI(api);
 statusScroll();
@@ -407,8 +408,8 @@ function controls() {
   // connect button only shows while the local connection is missing.
   $<HTMLButtonElement>('login').disabled = !ready || busy || signedIn;
   $('login').textContent = signedIn ? '✓ ChatGPT bağlı' : 'ChatGPT ile giriş';
-  $('login').classList.toggle('connected', signedIn);
-  $('login').classList.toggle('primary', ready);
+  $('login').classList.toggle('connected', !!signedIn);
+  $('login').classList.remove('primary');
   $<HTMLButtonElement>('connect').disabled = ready || busy;
   $('connect').hidden = ready;
   $<HTMLButtonElement>('folder').disabled = busy;
@@ -794,7 +795,7 @@ async function populateModels() {
 function account(a: any) {
   if (ready) void attempt(populateModels);
   document.dispatchEvent(new CustomEvent('charles-account', { detail: a }));
-  signedIn = a.signedIn;
+  signedIn = !!a.signedIn;
   $('account').textContent = signedIn
     ? `ChatGPT · ${a.plan || 'bağlı'}`
     : a.type === 'apiKey'
@@ -1029,6 +1030,7 @@ wakeTraining(api, notice);
 pluginsUI(api, notice);
 settingsCards();
 languageUI(api);
+accountTab(api, notice);
 settingsPolish();
 document.addEventListener('charles-startup-model', (e: any) => {
   startupModel = e.detail;
@@ -1437,7 +1439,7 @@ usageUI(
   (value, celebrate = true) => {
     const changed = quotaBlocked !== value;
     quotaBlocked = value;
-    document.body.classList.toggle('quota-blocked', value);
+    document.body.classList.toggle('quota-blocked', !!value);
     if (value) state('ratelimit', 'Kullanım limitine ulaşıldı');
     else if (changed || desiredState === 'ratelimit') {
       state(busy ? 'thinking' : 'idle', busy ? 'Düşünüyorum…' : 'Hazırım.');

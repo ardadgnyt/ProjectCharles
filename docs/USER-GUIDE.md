@@ -1,6 +1,6 @@
 # Charles — User Guide
 
-This guide covers Charles **v0.7.0 Beta** on Windows 10/11. For installation, see the
+This guide covers Charles **v0.7.1 Beta** on Windows 10/11. For installation, see the
 [README](../README.md#installation). For the full history of changes, see
 [CHANGELOG.md](../CHANGELOG.md) (Turkish).
 
@@ -89,7 +89,7 @@ that were already made stay in place.
   Hey Charles, dictation and voice conversation do not listen at all. Click it again to turn the
   microphone back on. The choice is remembered.
 - **Voice conversation (Gemini Live):** a real-time spoken conversation. It needs a Gemini API
-  key (Settings → Account). Press **Set up with Charles** there and Slime shows you how to
+  key (Settings → AI models). Press **Set up with Charles** there and Slime shows you how to
   create a free key in Google AI Studio, then saves and tests it. While a call is on, the
   *Voice conversation active* pill on the right shows your voice level, so you can see that
   your voice is getting through. Audio goes to Google. Actions on your computer still go through
@@ -113,12 +113,13 @@ hops. Double-click Slime to send it back to the island.
 
 - **Colour:** green, teal, blue, purple, coral, yellow or white. The app icon follows the
   colour.
-- **Hat:** felt hat, crown, party hat, beanie, witch hat, Santa hat, bunny ears or bow. With
-  *Seasonal*, Slime picks a hat for the time of year.
-- **Eyes:** sunglasses, big sunglasses, round glasses or a monocle. Sunglasses slide up onto
+- **Hat:** felt hat, crown, party hat, beanie, witch hat, Santa hat, bunny ears, bow or
+  colourful headphones. With *Seasonal*, Slime picks a hat for the time of year.
+- **Eyes:** sunglasses, big sunglasses, round glasses, a monocle or a pirate eye patch. Sunglasses slide up onto
   the forehead when Slime makes a face.
 - **Face:** with or without a moustache.
-- **Other:** pumpkin, scarf or banana.
+- **Other:** pumpkin, scarf, banana, bow tie, cat collar with a bell, or an arrow stuck in
+  Slime's jelly.
 
 Items from different categories can be worn together, except that the pumpkin does not go
 with a hat. Press **Save** to put the outfit on Charles. **Try expressions**, on the same page,
@@ -131,15 +132,16 @@ In the Turkish interface, Slime holds a Turkish flag on 19 May, 30 August, 29 Oc
 
 | Page | What you will find |
 | --- | --- |
-| **General** | Language (English / Türkçe), start with Windows, sounds and volume, auto-hide and collapse, read aloud, Hey Charles, weather city, welcome tour |
-| **Account** | Sign in to ChatGPT/Codex, Claude, Gemini and Cursor (Gemini has **Set up with Charles**); default model; Gemini Live key (with **Set up with Charles**) and voice |
+| **General** | Language (English / Türkçe), start with Windows, sounds and volume, auto-hide and collapse, read aloud, Hey Charles, weather location (search a city or district and pick it from the list), welcome tour |
+| **AI models** | Sign in to ChatGPT/Codex, Claude, Gemini and Cursor. Every card has the same buttons: **Set up with Charles** · sign in (“✓ connected” once signed in) · **Check connection**. Default model; Gemini Live with its own connected state, voice and key settings |
 | **Appearance** | Text size, panel size, character size, screen choice, chat colours, Slime studio, try expressions |
 | **Memory** | Things Charles should remember; **Get to know me from the AI I use**: pick ChatGPT, Claude or Gemini, paste its answer and choose what to keep |
 | **Access** | How much the AI may do without asking (see [Project mode](#project-mode)) |
-| **Plugins** | Google (Gmail, Calendar, Drive), Microsoft (Outlook, Calendar), POP3/IMAP mail, Home Assistant; important-mail notifications and keywords. GitHub is listed as coming in a later version |
+| **Plugins** | Google (Gmail, Calendar, Drive), Microsoft (Outlook, Calendar), POP3/IMAP mail, Home Assistant (a connected account shows “✓ … connected”; after **Remove** you can sign in again); important-mail notifications and keywords. GitHub is listed as coming in a later version |
 | **Shortcuts** | Change any global shortcut |
 | **Weekly summary** | Time on the computer, Charles tasks, sessions, files and commands. It is shown on Monday morning |
 | **Performance** | Optional CPU, RAM and GPU history kept on this computer |
+| **Account** | Which AI accounts are connected, **Open data folder**, **Remove account connections** and **Reset all data** (both ask “Are you sure?” first) |
 
 For step-by-step plugin setup, see [PLUGINS-SETUP.md](PLUGINS-SETUP.md).
 
@@ -189,6 +191,10 @@ Anything else, in any language, goes to the AI you selected.
   stays.
 - Plugin accounts are encrypted for this Windows user. On another computer, connect them
   again.
+- **Settings → Account** can remove only the account connections (plugins, Gemini Live key,
+  Claude/Gemini sign-ins, the ChatGPT sign-in) or reset everything. It asks first, restarts
+  Charles and moves the old files into `%APPDATA%\Charles\reset-backup-<time>`; nothing is
+  deleted. Cursor keeps its own sign-in; sign out in Cursor if you want to remove it too.
 - **`setup\Reset-Charles.cmd`** backs up your data inside `%APPDATA%\Charles` and starts
   Charles fresh. It asks before doing anything.
 
@@ -197,7 +203,7 @@ Anything else, in any language, goes to the AI you selected.
 | Problem | What to try |
 | --- | --- |
 | Charles does not start | Only one Charles can run at a time. Quit the old one from the tray icon and start again. If you run from source, run `npm run build` first. |
-| “Sign-in required” | Settings → Account → sign in again. Finish the sign-in in the browser window that opens. |
+| “Sign-in required” | Settings → AI models → sign in again. Finish the sign-in in the browser window that opens. |
 | No sound | Check the speaker button at the top right and Settings → General → Sounds. |
 | Hey Charles does not react | Check the microphone button at the top right (red means off). Check that the microphone is allowed in Windows privacy settings, then redo the training in Settings → General. |
 | Mail is not shown | Settings → Plugins → *Test connection*. Mail is checked every five minutes while Charles is open. |

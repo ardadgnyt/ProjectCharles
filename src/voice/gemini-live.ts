@@ -3,8 +3,15 @@ import liveVoices from '../../public/live-voices.json';
 export function geminiLiveUI(api: any, notice: (s: string) => void, busy: () => boolean) {
   const section = document.createElement('section');
   section.className = 'setting-section';
+  // v0.7.1: simpler panel. Main row like the AI account cards (Charles ile kur · state ·
+  // test); the two everyday choices below; key details folded into "Anahtar ayarları".
+  section.id = 'live-card';
   section.innerHTML =
-    '<h3>Gemini Live · sesli görüşme</h3><p class="hint">Mikrofonla doğrudan Gemini ile konuş. Ses Google’a gönderilir; bilgisayar işlemleri bağlı GPT/Codex hesabına mevcut izin ayarlarınla aktarılır; ücretsiz katmanda içerik ürün geliştirmek için kullanılabilir. Faturalandırması kapalı Free Tier projesi kullan. Anahtarın planı Charles tarafından doğrulanamaz.</p><button type="button" id="live-guide" class="primary">Charles ile kur</button><button type="button" id="live-key-page">AI Studio’da ücretsiz anahtar oluştur</button><input id="live-key" type="password" autocomplete="off" placeholder="Gemini API anahtarı" aria-label="Gemini API anahtarı"><label><input type="checkbox" id="live-free"> Projem Free Tier; faturalandırması kapalı</label><label><input type="checkbox" id="live-enabled"> Mikrofon düğmesinde Gemini Live kullan</label><label for="live-voice">Gemini Live sesi</label><select id="live-voice" aria-label="Gemini Live sesi"></select><p class="hint">Sesi seçip Kaydet’e bas. Yeni ses sonraki görüşmede kullanılır; açık görüşme kaydederken sonlandırılır.</p><button type="button" id="live-save">Kaydet</button><button type="button" id="live-test">Bağlantıyı test et</button><button type="button" id="live-clear">Anahtarı sil</button><p id="live-setting-status" class="hint" role="status"></p>';
+    '<h3>Gemini Live · sesli görüşme</h3><p class="hint">Mikrofonla Gemini’yle gerçek zamanlı konuş. Ücretsiz bir Gemini API anahtarı gerekir; ses Google’a gönderilir.</p>' +
+    '<div class="provider-actions"><button type="button" id="live-guide" class="primary">Charles ile kur</button><button type="button" id="live-state" disabled>Anahtar eklenmedi</button><button type="button" id="live-test">Bağlantıyı test et</button></div>' +
+    '<div class="live-options"><label><input type="checkbox" id="live-enabled"> Mikrofon düğmesinde Gemini Live kullan</label><label class="live-voice-row"><span>Ses</span><select id="live-voice" aria-label="Gemini Live sesi"></select></label></div>' +
+    '<details id="live-key-settings"><summary>Anahtar ayarları</summary><p class="hint">Faturalandırması kapalı bir Free Tier projesinin anahtarını kullan. Ücretsiz katmanda içerik ürün geliştirmek için kullanılabilir. Bilgisayar işlemleri bağlı GPT/Codex hesabına izin ayarlarınla aktarılır.</p><input id="live-key" type="password" autocomplete="off" placeholder="Gemini API anahtarı" aria-label="Gemini API anahtarı"><label><input type="checkbox" id="live-free"> Projem Free Tier; faturalandırması kapalı</label><div class="button-row"><button type="button" id="live-save">Anahtarı kaydet</button><button type="button" id="live-key-page">AI Studio’yu aç</button><button type="button" id="live-clear">Anahtarı sil</button></div></details>' +
+    '<p id="live-setting-status" class="hint" role="status"></p>';
   document.querySelector('.settings-page[data-category=account]')!.append(section);
   const $ = (id: string) => document.getElementById(id)!;
   const badge = document.createElement('button');
@@ -90,11 +97,17 @@ export function geminiLiveUI(api: any, notice: (s: string) => void, busy: () => 
     key.placeholder = configured
       ? 'Kayıtlı anahtarı değiştirmek için yenisini gir'
       : 'Gemini API anahtarı';
+    // v0.7.1: a "connected" state like the AI account cards
+    const state = $('live-state');
+    state.textContent = configured ? '✓ Gemini Live bağlı' : 'Anahtar eklenmedi';
+    state.classList.toggle('connected', !!configured);
+    ($('live-test') as HTMLButtonElement).hidden = !configured;
+    ($('live-clear') as HTMLButtonElement).hidden = !configured;
     $('live-setting-status').textContent =
       s.error ||
       (configured
         ? 'Anahtar Windows şifrelemesiyle kayıtlı. Ücretsiz kota Google hesabına göre değişir.'
-        : 'Anahtar eklenmedi. Mevcut yerel ses kullanılacak.');
+        : 'Kurmak için Charles ile kur’a bas.');
   };
   void api.liveVoiceStatus().then(paint);
   $('live-key-page').onclick = () => void api.liveVoiceKeyPage();
@@ -117,6 +130,26 @@ export function geminiLiveUI(api: any, notice: (s: string) => void, busy: () => 
       $('live-setting-status').textContent = (e as Error).message;
     }
   };
+  // The switch and the voice apply at once (the key still needs "Anahtarı kaydet").
+  const quickSave = async () => {
+    try {
+      paint(
+        await api.liveVoiceSave({
+          key: '',
+          enabled: enabled.checked,
+          freeProject: free.checked,
+          voice: voice.value,
+        }),
+      );
+      await stop();
+    } catch (e) {
+      ($('live-key-settings') as HTMLDetailsElement).open = true;
+      paint(await api.liveVoiceStatus().catch(() => ({})));
+      $('live-setting-status').textContent = (e as Error).message;
+    }
+  };
+  enabled.addEventListener('change', () => void quickSave());
+  voice.addEventListener('change', () => void quickSave());
   $('live-test').onclick = async () => {
     if (active || busy()) {
       notice('Önce etkin işlemi bitir.');
@@ -325,7 +358,7 @@ export function geminiLiveUI(api: any, notice: (s: string) => void, busy: () => 
       if (!selected && !active) {
         e.preventDefault();
         e.stopImmediatePropagation();
-        notice('Sesli görüşme için Ayarlar → Hesap bölümünden Gemini Live etkinleştir.');
+        notice('Sesli görüşme için Ayarlar → AI Modelleri bölümünden Gemini Live etkinleştir.');
         return;
       }
       e.preventDefault();

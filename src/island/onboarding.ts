@@ -132,7 +132,7 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
             const r = await api.providersLogin(id);
             status.textContent = r?.signedIn
               ? t(name + ' zaten bağlı. Devam edebilirsin.')
-              : t('Açılan pencerede girişi tamamla, sonra Devam’a bas. Yardım istersen Ayarlar → Hesap → Charles ile kur.');
+              : t('Açılan pencerede girişi tamamla, sonra Devam’a bas. Yardım istersen Ayarlar → AI Modelleri → Charles ile kur.');
           }
           await api.startupModel(model).catch(() => {});
           if (model) await api.defaultModel(model).catch(() => {});
@@ -159,7 +159,7 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
     },
     {
       title: 'Önce bir yapay zekâ bağlayalım',
-      text: 'Hangi yapay zekâyı kullanıyorsun? Birini seç, girişi birlikte yapalım. Diğerlerini sonra Ayarlar → Hesap’tan ekleyebilirsin.',
+      text: 'Hangi yapay zekâyı kullanıyorsun? Birini seç, girişi birlikte yapalım. Diğerlerini sonra Ayarlar → AI Modelleri’nden ekleyebilirsin.',
       emote: 'wink',
       body: aiPicker,
       actions: [{ label: 'Şimdilik geç' }, { label: 'Devam', primary: true }],

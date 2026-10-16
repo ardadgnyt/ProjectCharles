@@ -16,6 +16,10 @@ const PAGES = {
   gemini: ['https://aistudio.google.com/api-keys'],
   // Gemini account sign-in runs in the Antigravity console window; no web page to open.
   'gemini-login': [],
+  // v0.7.1: the other AI accounts sign in from their own window / the browser
+  'gpt-login': [],
+  'claude-login': [],
+  'cursor-login': [],
 };
 function setupURL(id, step = 0) {
   const pages = PAGES[id];

@@ -38,7 +38,10 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
   page.prepend(intro);
   const fields: Record<string, Record<string, HTMLInputElement | HTMLSelectElement>> = {},
     notes: Record<string, HTMLElement> = {},
-    details: Record<string, HTMLDetailsElement> = {};
+    details: Record<string, HTMLDetailsElement> = {},
+    loginButtons: Record<string, HTMLButtonElement> = {},
+    stateButtons: Record<string, HTMLButtonElement> = {},
+    toolRows: Record<string, { test: HTMLButtonElement; remove: HTMLButtonElement; config: HTMLDetailsElement }> = {};
   const guide = pluginGuideUI(api, notice, paint);
   const names: Record<string, string> = {
     google: 'Google · Gmail / Calendar / Drive',
@@ -90,7 +93,13 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
           connect.disabled = false;
         }
       };
-      card.append(setup, connect);
+      const row = document.createElement('div');
+      row.className = 'provider-actions';
+      setup.className = 'primary';
+      row.append(setup, connect);
+      card.append(row);
+      loginButtons[id] = connect;
+      connect.dataset.label = connect.textContent!;
       const explanation = document.createElement('p');
       explanation.className = 'hint';
       explanation.textContent =
@@ -212,7 +221,19 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
         .pluginsDisconnect(id)
         .then(paint)
         .catch((e: Error) => notice(e.message));
-    card.append(config, test, remove, status);
+    // v0.7.1: a clear connected state like Ayarlar → AI Modelleri; test/remove only when
+    // something is connected, the sign-in button comes back after "Bağlantıyı kaldır".
+    const state = document.createElement('button');
+    state.type = 'button';
+    state.disabled = true;
+    state.className = 'connected plugin-state';
+    state.hidden = true;
+    const tools = document.createElement('div');
+    tools.className = 'provider-actions';
+    tools.append(state, test, remove);
+    stateButtons[id] = state;
+    toolRows[id] = { test, remove, config };
+    card.append(config, tools, status);
     last.after(card);
     last = card;
   }
@@ -233,6 +254,21 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
             config[key] || (key === 'port' ? 993 : key === 'protocol' ? 'imap' : ''),
           );
       }
+      const on = !!v.connected[id];
+      const login = loginButtons[id];
+      if (login) {
+        login.disabled = on;
+        login.classList.toggle('connected', on);
+        login.textContent = on
+          ? '✓ ' + (id === 'google' ? 'Google' : 'Microsoft') + ' bağlı'
+          : login.dataset.label || login.textContent;
+      } else {
+        stateButtons[id].hidden = !on;
+        stateButtons[id].textContent = '✓ ' + (id === 'home' ? 'Home Assistant' : 'E-posta') + ' bağlı';
+      }
+      toolRows[id].test.hidden = !on;
+      toolRows[id].remove.hidden = !on;
+      if (id === 'home' || id === 'school') toolRows[id].config.open = !on;
       notes[id].textContent = v.connected[id]
         ? id === 'home' || id === 'school'
           ? 'Bilgiler kayıtlı · bağlantıyı test et'

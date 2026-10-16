@@ -70,6 +70,13 @@ export function companionUI(
     const settings = $('settings-panel') as HTMLDialogElement;
     if (settings.open) settings.close();
     if (!setup.open) setup.showModal();
+    const current = (await api.companionRead().catch(() => null))?.preferences?.city?.name;
+    $('city-current').hidden = !current;
+    $('city-current').textContent = current ? 'Şu anki konum: ' + current : '';
+    ($('city-query') as HTMLInputElement).value = '';
+    $('city-results').replaceChildren();
+    $('city-status').textContent = '';
+    $('city-query').focus();
   };
   $('weather-config').onclick = () => attempt(showSetup);
   $('setup-skip').onclick = () =>
@@ -81,38 +88,82 @@ export function companionUI(
     e.preventDefault();
     $('setup-skip').click();
   });
-  $('city-search').onclick = () =>
-    attempt(async () => {
-      const button = $('city-search') as HTMLButtonElement;
-      button.disabled = true;
-      $('city-status').textContent = 'Aranıyor…';
-      try {
-        const cities = await api.weatherCities(($('city-query') as HTMLInputElement).value);
-        $('city-results').replaceChildren();
-        for (const city of cities) {
-          const b = document.createElement('button');
-          b.textContent = city.name;
-          b.onclick = () =>
-            attempt(async () => {
-              paint(await api.companionSave({ city, setup: true }));
-              setup.close();
-              notice('Hava durumu konumu kaydedildi.');
-            });
-          $('city-results').append(b);
-        }
-        $('city-status').textContent = cities.length
-          ? 'Bir konum seç.'
-          : 'Sonuç bulunamadı. Başka bir şehir/ilçe adı dene.';
-      } catch (e) {
-        $('city-status').textContent = (e as Error).message;
-      } finally {
-        button.disabled = false;
+  // v0.7.1: a calmer city picker — results appear while typing; each row shows the place
+  // and its region; the current city is shown on top.
+  $('setup-close').onclick = () => $('setup-skip').click();
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  let searchSeq = 0;
+  const search = async () => {
+    const query = ($('city-query') as HTMLInputElement).value.trim();
+    const seq = ++searchSeq;
+    if (query.length < 2) {
+      $('city-results').replaceChildren();
+      $('city-status').textContent = query ? 'En az iki harf yaz.' : '';
+      return;
+    }
+    $('city-status').textContent = 'Aranıyor…';
+    try {
+      const cities = await api.weatherCities(query);
+      if (seq !== searchSeq) return;
+      $('city-results').replaceChildren();
+      for (const city of cities) {
+        const [place, ...rest] = String(city.name).split(', ');
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'city-row';
+        b.setAttribute('role', 'option');
+        const pin = document.createElement('span');
+        pin.className = 'city-pin';
+        pin.setAttribute('aria-hidden', 'true');
+        const text = document.createElement('span');
+        const name = document.createElement('strong');
+        name.textContent = place;
+        const region = document.createElement('small');
+        region.textContent = rest.join(', ');
+        text.append(name, region);
+        b.append(pin, text);
+        b.onclick = () =>
+          attempt(async () => {
+            paint(await api.companionSave({ city, setup: true }));
+            setup.close();
+            notice('Hava durumu konumu kaydedildi: ' + place);
+          });
+        $('city-results').append(b);
       }
-    });
+      $('city-status').textContent = cities.length
+        ? ''
+        : 'Sonuç bulunamadı. Başka bir şehir veya ilçe adı dene.';
+    } catch (e) {
+      if (seq === searchSeq) $('city-status').textContent = (e as Error).message;
+    }
+  };
+  $('city-search').onclick = () => {
+    clearTimeout(searchTimer);
+    void search();
+  };
+  $('city-query').addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => void search(), 350);
+  });
   $('city-query').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
-      $('city-search').click();
       e.preventDefault();
+      $('city-search').click();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      ($('city-results').querySelector('button') as HTMLButtonElement | null)?.focus();
+    }
+  });
+  $('city-results').addEventListener('keydown', (e) => {
+    const rows = [...$('city-results').querySelectorAll<HTMLButtonElement>('button')];
+    const i = rows.indexOf(document.activeElement as HTMLButtonElement);
+    if (e.key === 'ArrowDown' && i >= 0) {
+      e.preventDefault();
+      rows[Math.min(rows.length - 1, i + 1)].focus();
+    } else if (e.key === 'ArrowUp' && i >= 0) {
+      e.preventDefault();
+      if (i === 0) $('city-query').focus();
+      else rows[i - 1].focus();
     }
   });
   $('import-memory').onclick = () =>

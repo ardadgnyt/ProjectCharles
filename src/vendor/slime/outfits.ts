@@ -223,244 +223,7 @@ export function eyeFrames(H: Head): EyeFrame[] {
   });
 }
 
-// ── Soft bits ─────────────────────────────────────────────────────────────────
-
-function pompom(ctx: Ctx, x: number, y: number, r: number, base = '#FFFFFF', shade = '#D5D9E2') {
-  ctx.save();
-  ctx.translate(x, y);
-  const n = 11;
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2;
-    const br = r * (0.34 + 0.06 * Math.sin(i * 2.3));
-    const bx = Math.cos(a) * r * 0.78;
-    const by = Math.sin(a) * r * 0.78;
-    ctx.fillStyle = rad(ctx, bx - br * 0.4, by - br * 0.5, 0, br * 1.3, [
-      [0, base],
-      [1, shade],
-    ]);
-    ctx.beginPath();
-    ctx.arc(bx, by, br, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.fillStyle = rad(ctx, -r * 0.3, -r * 0.35, 0, r * 1.05, [
-    [0, base],
-    [0.7, base],
-    [1, shade],
-  ]);
-  ctx.beginPath();
-  ctx.arc(0, 0, r * 0.86, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-/** Fuzzy band along a polyline (the Santa hat's trim). */
-function fuzzyBand(ctx: Ctx, arc: Pt[], thick: number, base = '#FFFFFF', shade = '#DADDE4') {
-  if (arc.length < 2) return;
-  ctx.save();
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  polyline(ctx, arc);
-  ctx.strokeStyle = shade;
-  ctx.lineWidth = thick;
-  ctx.stroke();
-  polyline(ctx, arc);
-  ctx.strokeStyle = base;
-  ctx.lineWidth = thick * 0.78;
-  ctx.stroke();
-  const step = Math.max(2, Math.floor(arc.length / 16));
-  for (let i = 0; i < arc.length; i += step) {
-    const q = arc[i];
-    const r = thick * (0.32 + 0.1 * Math.sin(i * 1.7));
-    ctx.fillStyle = rad(ctx, q.x - r * 0.3, q.y - thick * 0.35 - r * 0.3, 0, r * 1.2, [
-      [0, base],
-      [1, shade],
-    ]);
-    ctx.beginPath();
-    ctx.arc(q.x, q.y - thick * 0.32, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
-}
-
-// ── Beanie ────────────────────────────────────────────────────────────────────
-
-function beanie(ctx: Ctx, H: Head, body: Path2D, simple: boolean) {
-  const s = 1.035;
-  const yEdge = 0.42;
-  const yCuff = 0.58;
-  const head = bodyOutline(H.rx * s, H.ry * s);
-
-  // shadow on the head under the cuff
-  ctx.save();
-  ctx.clip(body);
-  ctx.clip(capClip(H, yEdge - 0.12, 1));
-  ctx.fillStyle = 'rgba(30,40,70,0.10)';
-  fillAll(ctx, H);
-  ctx.restore();
-
-  // knit body
-  ctx.save();
-  ctx.clip(capClip(H, yCuff, s));
-  ctx.fillStyle = lin(ctx, H.rx * 0.5, -H.ry * 1.1, -H.rx * 0.6, H.ry * 0.2, [
-    [0, '#7DB6FF'],
-    [1, '#2F6FE0'],
-  ]);
-  ctx.fill(head);
-  if (!simple) {
-    ctx.clip(head);
-    ctx.strokeStyle = 'rgba(20,50,140,0.16)';
-    ctx.lineWidth = H.R * 0.045;
-    ctx.lineCap = 'round';
-    for (let k = -6; k <= 6; k++) {
-      const lon = k * 0.24;
-      const pts: P3[] = [];
-      for (let i = 0; i <= 16; i++) {
-        const q = proj(H, surf(yCuff + ((1.05 - yCuff) * i) / 16, lon, s));
-        if (q.z > 0) pts.push(q);
-      }
-      if (pts.length < 2) continue;
-      polyline(ctx, pts);
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
-
-  // cuff — the band between yEdge and yCuff
-  const cuffHead = bodyOutline(H.rx * s * 1.04, H.ry * s * 1.04);
-  ctx.save();
-  ctx.clip(capClip(H, yEdge, s * 1.04));
-  ctx.clip(invert(capClip(H, yCuff, s * 1.04), H), 'evenodd');
-  ctx.fillStyle = lin(ctx, 0, -H.ry * 0.6, 0, -H.ry * 0.2, [
-    [0, '#3C7BEA'],
-    [1, '#2257C4'],
-  ]);
-  ctx.fill(cuffHead);
-  ctx.clip(cuffHead);
-  ctx.strokeStyle = 'rgba(10,30,100,0.22)';
-  ctx.lineWidth = H.R * 0.035;
-  for (let k = -14; k <= 14; k++) {
-    const lon = k * 0.115;
-    const a = proj(H, surf(yEdge, lon, s * 1.04));
-    const b = proj(H, surf(yCuff, lon, s * 1.04));
-    if (a.z < 0) continue;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // top highlight
-  ctx.save();
-  ctx.clip(capClip(H, yCuff, s));
-  ctx.clip(head);
-  ctx.fillStyle = rad(ctx, H.rx * 0.3, -H.ry * 0.85, 0, H.R * 0.45, [
-    [0, 'rgba(255,255,255,0.35)'],
-    [1, 'rgba(255,255,255,0)'],
-  ]);
-  ctx.fill(head);
-  ctx.restore();
-
-  // pompom on a short spring
-  const top = proj(H, [0, 1.08 * s, 0]);
-  pompom(
-    ctx,
-    top.x + H.physDx * H.rx * 0.25,
-    top.y - H.R * 0.12 + H.physDy * H.ry * 0.15,
-    H.R * 0.24,
-  );
-}
-
-// ── Santa hat ─────────────────────────────────────────────────────────────────
-
-function santaHat(ctx: Ctx, H: Head, body: Path2D) {
-  const s = 1.05;
-  const yEdge = 0.52;
-  const arc = frontArc(H, yEdge, s);
-  if (arc.length === 0) return;
-  const L = arc[0];
-  const Rt = arc[arc.length - 1];
-  const crown = proj(H, [0, 1.05, 0]);
-  // the tip flops to the right and down, plus the spring lag
-  const tip = {
-    x: crown.x + H.rx * (0.95 + H.physDx * 0.35),
-    y: crown.y + H.ry * (0.05 + H.physDy * 0.2),
-  };
-  const peak = { x: crown.x + H.rx * 0.25, y: crown.y - H.ry * 0.62 };
-  const bag = new Path2D();
-  bag.moveTo(L.x, L.y);
-  bag.bezierCurveTo(
-    L.x - H.rx * 0.05,
-    L.y - H.ry * 0.7,
-    peak.x - H.rx * 0.55,
-    peak.y - H.ry * 0.05,
-    peak.x,
-    peak.y,
-  );
-  bag.quadraticCurveTo(tip.x - H.rx * 0.05, peak.y - H.ry * 0.02, tip.x, tip.y);
-  bag.quadraticCurveTo(
-    tip.x - H.rx * 0.12,
-    tip.y - H.ry * 0.22,
-    peak.x + H.rx * 0.18,
-    peak.y + H.ry * 0.32,
-  );
-  bag.bezierCurveTo(
-    Rt.x + H.rx * 0.05,
-    peak.y + H.ry * 0.45,
-    Rt.x + H.rx * 0.08,
-    Rt.y - H.ry * 0.35,
-    Rt.x,
-    Rt.y,
-  );
-  for (let i = arc.length - 1; i >= 0; i--) bag.lineTo(arc[i].x, arc[i].y);
-  bag.closePath();
-
-  ctx.save();
-  ctx.clip(body);
-  ctx.clip(capClip(H, yEdge - 0.14, 1));
-  ctx.fillStyle = 'rgba(120,10,10,0.10)';
-  fillAll(ctx, H);
-  ctx.restore();
-
-  ctx.fillStyle = lin(ctx, -H.rx * 0.6, -H.ry * 1.6, H.rx * 0.7, -H.ry * 0.3, [
-    [0, '#FF6B6B'],
-    [0.55, '#E53935'],
-    [1, '#B71C1C'],
-  ]);
-  ctx.fill(bag);
-
-  // folds following the flop
-  ctx.save();
-  ctx.clip(bag);
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = 'rgba(90,0,0,0.20)';
-  for (const [a, b, w] of [
-    [0.15, 0.55, 0.1],
-    [0.45, 0.85, 0.08],
-  ]) {
-    ctx.beginPath();
-    ctx.moveTo(peak.x - H.rx * 0.1 + (Rt.x - L.x) * a * 0.3, peak.y + H.ry * 0.15);
-    ctx.quadraticCurveTo(
-      peak.x + H.rx * 0.35,
-      peak.y + H.ry * (0.05 + a * 0.3),
-      tip.x - H.rx * (0.45 - b * 0.3),
-      tip.y - H.ry * 0.12,
-    );
-    ctx.lineWidth = H.R * w;
-    ctx.stroke();
-  }
-  ctx.fillStyle = rad(ctx, peak.x - H.rx * 0.25, peak.y + H.ry * 0.05, 0, H.R * 0.5, [
-    [0, 'rgba(255,255,255,0.32)'],
-    [1, 'rgba(255,255,255,0)'],
-  ]);
-  ctx.fill(bag);
-  ctx.restore();
-
-  fuzzyBand(ctx, arc, H.R * 0.3);
-  pompom(ctx, tip.x, tip.y + H.R * 0.04, H.R * 0.22);
-}
-
-// ── Party hat ─────────────────────────────────────────────────────────────────
+// ── Felt hat ──────────────────────────────────────────────────────────────────
 
 // Felt hat: a small top hat with a red band, sitting on top of the head.
 function fedora(ctx: Ctx, H: Head, simple: boolean) {
@@ -552,88 +315,6 @@ function fedora(ctx: Ctx, H: Head, simple: boolean) {
   ctx.ellipse(0, 0, brimW, brimH, 0, 0, Math.PI);
   ctx.stroke();
   ctx.restore();
-}
-
-function partyHat(ctx: Ctx, H: Head, simple: boolean) {
-  const baseY = 0.82;
-  const baseR = 0.42;
-  const lean = -0.24 + H.physDx * 0.12;
-  const c = proj(H, [0.16, baseY + 0.06, 0]);
-  const rim: P3[] = [];
-  for (let i = 0; i <= 48; i++) {
-    const a = (i / 48) * Math.PI * 2;
-    rim.push(proj(H, [0.16 + baseR * Math.sin(a), baseY + 0.06, baseR * Math.cos(a)]));
-  }
-  const left = rim.reduce((m, q) => (q.x < m.x ? q : m));
-  const right = rim.reduce((m, q) => (q.x > m.x ? q : m));
-  const h = H.ry * 1.6;
-  const apex = { x: c.x + Math.sin(lean) * h, y: c.y - Math.cos(lean) * h };
-  const front = frontSilhouette(rim);
-
-  const cone = new Path2D();
-  cone.moveTo(left.x, left.y);
-  cone.quadraticCurveTo(
-    (left.x + apex.x) / 2 - H.rx * 0.06,
-    (left.y + apex.y) / 2,
-    apex.x - H.R * 0.05,
-    apex.y + H.R * 0.06,
-  );
-  cone.quadraticCurveTo(apex.x, apex.y - H.R * 0.03, apex.x + H.R * 0.05, apex.y + H.R * 0.06);
-  cone.quadraticCurveTo(
-    (right.x + apex.x) / 2 + H.rx * 0.06,
-    (right.y + apex.y) / 2,
-    right.x,
-    right.y,
-  );
-  for (let i = front.length - 1; i >= 0; i--) cone.lineTo(front[i].x, front[i].y);
-  cone.closePath();
-  ctx.fillStyle = lin(ctx, left.x, apex.y, right.x, left.y, [
-    [0, '#FF9BD0'],
-    [0.5, '#F15BAE'],
-    [1, '#C2187A'],
-  ]);
-  ctx.fill(cone);
-
-  ctx.save();
-  ctx.clip(cone);
-  if (!simple) {
-    ctx.fillStyle = 'rgba(255,255,255,0.92)';
-    const dots = [
-      [0.25, -0.35],
-      [0.3, 0.3],
-      [0.55, -0.05],
-      [0.72, 0.28],
-      [0.8, -0.3],
-      [0.45, 0.6],
-      [0.48, -0.65],
-    ];
-    for (const [t, u] of dots) {
-      const bx = left.x + (right.x - left.x) * (0.5 + u * 0.5);
-      const by = left.y + (right.y - left.y) * (0.5 + u * 0.5);
-      const x = bx + (apex.x - bx) * (1 - t);
-      const y = by + (apex.y - by) * (1 - t);
-      const r = H.R * 0.075 * (0.6 + t * 0.5);
-      ctx.beginPath();
-      ctx.ellipse(x, y, r, r * 0.9, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  ctx.fillStyle = lin(ctx, left.x, 0, right.x, 0, [
-    [0, 'rgba(255,255,255,0.28)'],
-    [0.35, 'rgba(255,255,255,0)'],
-    [1, 'rgba(80,0,40,0.18)'],
-  ]);
-  ctx.fill(cone);
-  ctx.restore();
-
-  if (front.length > 1) {
-    polyline(ctx, front);
-    ctx.strokeStyle = '#FFD84D';
-    ctx.lineWidth = H.R * 0.07;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-  }
-  pompom(ctx, apex.x, apex.y - H.R * 0.04, H.R * 0.16, '#FFE27A', '#F2B705');
 }
 
 // ── Crown ─────────────────────────────────────────────────────────────────────
@@ -743,213 +424,9 @@ function crownFront(ctx: Ctx, H: Head, body: Path2D, simple: boolean) {
   crownPart(ctx, H, 1, simple);
 }
 
-// ── Witch hat ─────────────────────────────────────────────────────────────────
-
-function witchBrim(H: Head): P3[] {
-  const y = 0.7;
-  const rr = 1.42;
-  const pts: P3[] = [];
-  for (let i = 0; i <= 120; i++) {
-    const a = -Math.PI + (i / 120) * 2 * Math.PI;
-    const wob = 1 + 0.035 * Math.sin(a * 3 + 0.6);
-    const droop = -0.1 * Math.pow(Math.abs(Math.sin(a)), 2); // the edges droop a little
-    pts.push(proj(H, [rr * wob * Math.sin(a), y + droop, rr * wob * Math.cos(a)]));
-  }
-  return pts;
-}
-
-function closedPath(pts: Pt[]): Path2D {
-  const p = new Path2D();
-  pts.forEach((q, i) => (i ? p.lineTo(q.x, q.y) : p.moveTo(q.x, q.y)));
-  p.closePath();
-  return p;
-}
-
 /** The whole brim, behind the head; front() paints its front half again. */
-function witchHatBack(ctx: Ctx, H: Head) {
-  ctx.fillStyle = lin(ctx, 0, -H.ry, 0, -H.ry * 0.4, [
-    [0, '#2A0A4F'],
-    [1, '#3B0F6B'],
-  ]);
-  ctx.fill(closedPath(witchBrim(H)));
-}
-
-function witchHatFront(ctx: Ctx, H: Head, body: Path2D) {
-  const all = witchBrim(H);
-  const brim = closedPath(all);
-  const fr = all.filter((p) => p.z >= 0).sort((a, b) => a.x - b.x);
-
-  ctx.save();
-  ctx.clip(body);
-  ctx.clip(capClip(H, 0.5, 1));
-  ctx.fillStyle = 'rgba(40,0,70,0.10)';
-  fillAll(ctx, H);
-  ctx.restore();
-
-  ctx.fillStyle = lin(ctx, 0, -H.ry * 0.9, 0, -H.ry * 0.3, [
-    [0, '#5B21B6'],
-    [1, '#3B0764'],
-  ]);
-  ctx.fill(brim);
-  if (fr.length > 1) {
-    polyline(ctx, fr);
-    ctx.strokeStyle = 'rgba(190,150,255,0.35)';
-    ctx.lineWidth = H.R * 0.035;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-  }
-
-  // cone: base ring r = 0.62 at y = 0.74, tall apex, the tip bends over
-  const baseR = 0.62;
-  const by = 0.74;
-  const bl = proj(H, [-baseR, by, 0]);
-  const br = proj(H, [baseR, by, 0]);
-  const c = proj(H, [0, by, 0]);
-  const lean = 0.1 + H.physDx * 0.15;
-  const top = { x: c.x + H.rx * 0.18 + Math.sin(lean) * H.ry * 0.3, y: c.y - H.ry * 1.25 };
-  const tip = {
-    x: top.x + H.rx * (0.45 + H.physDx * 0.25),
-    y: top.y + H.ry * (0.22 + H.physDy * 0.1),
-  };
-  const capFront = frontArc(H, by, baseR / ringR(by)).filter(
-    (q) => q.x >= bl.x - 1 && q.x <= br.x + 1,
-  );
-  const cone = new Path2D();
-  cone.moveTo(bl.x, bl.y);
-  cone.bezierCurveTo(
-    bl.x + H.rx * 0.12,
-    bl.y - H.ry * 0.5,
-    top.x - H.rx * 0.28,
-    top.y + H.ry * 0.25,
-    top.x - H.rx * 0.02,
-    top.y - H.ry * 0.02,
-  );
-  cone.quadraticCurveTo(top.x + H.rx * 0.25, top.y - H.ry * 0.08, tip.x, tip.y);
-  cone.quadraticCurveTo(
-    top.x + H.rx * 0.22,
-    top.y + H.ry * 0.08,
-    top.x + H.rx * 0.14,
-    top.y + H.ry * 0.22,
-  );
-  cone.bezierCurveTo(
-    br.x - H.rx * 0.18,
-    c.y - H.ry * 0.45,
-    br.x - H.rx * 0.02,
-    br.y - H.ry * 0.2,
-    br.x,
-    br.y,
-  );
-  for (let i = capFront.length - 1; i >= 0; i--) cone.lineTo(capFront[i].x, capFront[i].y);
-  cone.closePath();
-  ctx.fillStyle = lin(ctx, bl.x, top.y, br.x, bl.y, [
-    [0, '#7C3AED'],
-    [0.55, '#4C1D95'],
-    [1, '#2E1065'],
-  ]);
-  ctx.fill(cone);
-
-  ctx.save();
-  ctx.clip(cone);
-  ctx.fillStyle = lin(ctx, bl.x, 0, br.x, 0, [
-    [0, 'rgba(255,255,255,0.22)'],
-    [0.4, 'rgba(255,255,255,0)'],
-    [1, 'rgba(0,0,0,0.15)'],
-  ]);
-  ctx.fill(cone);
-  // crease where the tip bends
-  ctx.beginPath();
-  ctx.moveTo(top.x - H.rx * 0.05, top.y + H.ry * 0.05);
-  ctx.quadraticCurveTo(
-    top.x + H.rx * 0.1,
-    top.y + H.ry * 0.12,
-    top.x + H.rx * 0.2,
-    top.y + H.ry * 0.06,
-  );
-  ctx.strokeStyle = 'rgba(20,0,40,0.35)';
-  ctx.lineWidth = H.R * 0.05;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-  // orange band, just above the base
-  const fc = proj(H, [0, by, baseR]);
-  const lift = H.ry * 0.11;
-  ctx.beginPath();
-  ctx.moveTo(bl.x - 2, bl.y - lift);
-  ctx.quadraticCurveTo(fc.x, 2 * (fc.y - lift) - (bl.y + br.y) / 2, br.x + 2, br.y - lift);
-  ctx.strokeStyle = '#F97316';
-  ctx.lineWidth = H.ry * 0.17;
-  ctx.lineCap = 'butt';
-  ctx.stroke();
-  ctx.restore();
-
-  // buckle
-  const bw = H.R * 0.2;
-  const bh = H.R * 0.16;
-  ctx.save();
-  ctx.translate(fc.x, fc.y - H.ry * 0.11);
-  roundRect(ctx, -bw / 2, -bh / 2, bw, bh, bh * 0.25);
-  ctx.fillStyle = '#FCD34D';
-  ctx.fill();
-  roundRect(ctx, -bw / 2 + bw * 0.24, -bh / 2 + bh * 0.28, bw * 0.52, bh * 0.44, bh * 0.1);
-  ctx.fillStyle = '#C2410C';
-  ctx.fill();
-  ctx.restore();
-}
-
 // ── Glasses (pinned to the real eye positions) ────────────────────────────────
 
-function sunglasses(ctx: Ctx, H: Head, body: Path2D) {
-  const eyes = eyeFrames(H);
-  const w = H.R * 0.62;
-  const h = H.R * 0.46;
-  ctx.save();
-  ctx.clip(body);
-  if (H.lift) ctx.translate(0, -H.lift * H.ry * 0.56);
-  ctx.strokeStyle = '#111317';
-  ctx.lineCap = 'round';
-  const [l, r] = eyes;
-  if (l.visible && r.visible) {
-    ctx.beginPath();
-    ctx.moveTo(l.x + (w / 2) * l.fx * 0.9, l.y - h * 0.18);
-    ctx.quadraticCurveTo(
-      (l.x + r.x) / 2,
-      (l.y + r.y) / 2 - h * 0.42,
-      r.x - (w / 2) * r.fx * 0.9,
-      r.y - h * 0.18,
-    );
-    ctx.lineWidth = H.R * 0.07;
-    ctx.stroke();
-  }
-  ctx.lineWidth = H.R * 0.06;
-  for (const e of eyes) {
-    if (!e.visible) continue;
-    ctx.beginPath();
-    ctx.moveTo(e.x + ((e.sd * w) / 2) * e.fx, e.y - h * 0.2);
-    ctx.lineTo(e.sd * H.rx * 1.05, e.y - h * 0.35);
-    ctx.stroke();
-  }
-  for (const e of eyes) {
-    if (!e.visible) continue;
-    ctx.save();
-    ctx.translate(e.x, e.y);
-    ctx.scale(e.fx, e.fy);
-    roundRect(ctx, -w / 2, -h / 2, w, h, h * 0.42);
-    ctx.fillStyle = 'rgba(17,19,23,0.82)';
-    ctx.fill();
-    ctx.lineWidth = H.R * 0.05;
-    ctx.strokeStyle = '#0B0C0F';
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(-w * 0.28, -h * 0.05);
-    ctx.lineTo(-w * 0.05, -h * 0.3);
-    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
-    ctx.stroke();
-    ctx.restore();
-  }
-  ctx.restore();
-}
-
-// v0.6.2: big aviator shades — wide dark lenses joined by a thick bridge, with bright
-// zig-zag reflections (like the user's reference picture).
 function bigShades(ctx: Ctx, H: Head, body: Path2D) {
   const eyes = eyeFrames(H);
   const w = H.R * 0.82;
@@ -1196,56 +673,6 @@ function turkishFlag(ctx: Ctx, H: Head) {
   ctx.restore();
 }
 
-function roundGlasses(ctx: Ctx, H: Head, body: Path2D) {
-  const eyes = eyeFrames(H);
-  const d = H.R * 0.56;
-  ctx.save();
-  ctx.clip(body);
-  ctx.strokeStyle = '#8A4B12';
-  ctx.lineCap = 'round';
-  const [l, r] = eyes;
-  if (l.visible && r.visible) {
-    ctx.beginPath();
-    ctx.moveTo(l.x + (d / 2) * l.fx, l.y - d * 0.08);
-    ctx.quadraticCurveTo(
-      (l.x + r.x) / 2,
-      (l.y + r.y) / 2 - d * 0.3,
-      r.x - (d / 2) * r.fx,
-      r.y - d * 0.08,
-    );
-    ctx.lineWidth = H.R * 0.055;
-    ctx.stroke();
-  }
-  ctx.lineWidth = H.R * 0.05;
-  for (const e of eyes) {
-    if (!e.visible) continue;
-    ctx.beginPath();
-    ctx.moveTo(e.x + ((e.sd * d) / 2) * e.fx, e.y - d * 0.1);
-    ctx.lineTo(e.sd * H.rx * 1.05, e.y - d * 0.25);
-    ctx.stroke();
-  }
-  for (const e of eyes) {
-    if (!e.visible) continue;
-    ctx.save();
-    ctx.translate(e.x, e.y);
-    ctx.scale(e.fx, e.fy);
-    ctx.beginPath();
-    ctx.arc(0, 0, d / 2, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(190,225,255,0.18)';
-    ctx.fill();
-    ctx.lineWidth = H.R * 0.065;
-    ctx.strokeStyle = '#9A5A1A';
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, d / 2 - H.R * 0.03, Math.PI * 1.1, Math.PI * 1.45);
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-    ctx.lineWidth = H.R * 0.03;
-    ctx.stroke();
-    ctx.restore();
-  }
-  ctx.restore();
-}
-
 // ── Monocle (v0.6.1) ─────────────────────────────────────────────────────────
 // A gold-rimmed single glass on the right eye with a bead chain hanging down the cheek.
 
@@ -1302,96 +729,6 @@ function monocle(ctx: Ctx, H: Head) {
   ctx.lineCap = 'round';
   ctx.stroke();
   ctx.restore();
-}
-
-// ── Scarf ─────────────────────────────────────────────────────────────────────
-
-function scarf(ctx: Ctx, H: Head) {
-  const s = 1.05;
-  const y0 = -0.34;
-  const y1 = -0.66;
-  const top = frontArc(H, y0, s);
-  const bot = frontArc(H, y1, s);
-  if (top.length === 0 || bot.length === 0) return;
-  const band = new Path2D();
-  top.forEach((q, i) => (i ? band.lineTo(q.x, q.y) : band.moveTo(q.x, q.y)));
-  for (let i = bot.length - 1; i >= 0; i--) band.lineTo(bot[i].x, bot[i].y);
-  band.closePath();
-
-  ctx.save();
-  ctx.clip(bodyOutline(H.rx * s, H.ry * s));
-  ctx.fillStyle = lin(ctx, 0, -H.ry * 0.2, 0, H.ry * 0.7, [
-    [0, '#F87171'],
-    [1, '#B91C1C'],
-  ]);
-  ctx.fill(band);
-  ctx.save();
-  ctx.clip(band);
-  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-  ctx.lineCap = 'round';
-  for (const lon of [-1.0, -0.45, 0.1, 0.65, 1.2]) {
-    const a = proj(H, surf(y0, lon, s));
-    const b = proj(H, surf(y1, lon, s));
-    if (a.z < 0) continue;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y - 4);
-    ctx.lineTo(b.x, b.y + 4);
-    ctx.lineWidth = H.R * 0.09 * Math.max(0.3, a.z);
-    ctx.stroke();
-  }
-  ctx.restore();
-  ctx.fillStyle = lin(ctx, 0, -H.ry * 0.5, 0, H.ry * 0.3, [
-    [0, 'rgba(255,255,255,0.18)'],
-    [1, 'rgba(0,0,0,0.1)'],
-  ]);
-  ctx.fill(band);
-  ctx.restore();
-
-  // the hanging end, from the knot
-  const k = proj(H, surf((y0 + y1) / 2, -0.55, s * 1.03));
-  if (k.z <= 0) return;
-  const sw = H.physDx * H.rx * 0.12;
-  const end = new Path2D();
-  end.moveTo(k.x - H.R * 0.16, k.y);
-  end.quadraticCurveTo(
-    k.x - H.R * 0.24 + sw,
-    k.y + H.ry * 0.35,
-    k.x - H.R * 0.2 + sw * 1.4,
-    k.y + H.ry * 0.62,
-  );
-  end.lineTo(k.x + H.R * 0.06 + sw * 1.4, k.y + H.ry * 0.6);
-  end.quadraticCurveTo(k.x + H.R * 0.02 + sw, k.y + H.ry * 0.3, k.x + H.R * 0.12, k.y);
-  end.closePath();
-  ctx.fillStyle = lin(ctx, 0, k.y, 0, k.y + H.ry * 0.6, [
-    [0, '#EF4444'],
-    [1, '#B91C1C'],
-  ]);
-  ctx.fill(end);
-  ctx.save();
-  ctx.clip(end);
-  ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  for (const t of [0.35, 0.7])
-    ctx.fillRect(k.x - H.R * 0.4 + sw, k.y + H.ry * 0.62 * t, H.R * 0.8, H.R * 0.07);
-  ctx.restore();
-  // fringe
-  ctx.strokeStyle = '#DC2626';
-  ctx.lineWidth = H.R * 0.035;
-  ctx.lineCap = 'round';
-  for (let i = 0; i < 4; i++) {
-    const fx = k.x - H.R * 0.17 + sw * 1.4 + i * H.R * 0.075;
-    ctx.beginPath();
-    ctx.moveTo(fx, k.y + H.ry * 0.6);
-    ctx.lineTo(fx, k.y + H.ry * 0.72);
-    ctx.stroke();
-  }
-  // knot
-  ctx.beginPath();
-  ctx.ellipse(k.x, k.y, H.R * 0.17, H.R * 0.14, 0.2, 0, Math.PI * 2);
-  ctx.fillStyle = rad(ctx, k.x - H.R * 0.05, k.y - H.R * 0.05, 0, H.R * 0.2, [
-    [0, '#F87171'],
-    [1, '#B91C1C'],
-  ]);
-  ctx.fill();
 }
 
 // ── Pumpkin (the body colours come from the engine) ───────────────────────────
@@ -1516,31 +853,1023 @@ function bow(ctx: Ctx, H: Head) {
   ctx.restore();
 }
 
-// ── Bunny ears (always behind the head) ───────────────────────────────────────
+// ── v0.7.1 accessories ────────────────────────────────────────────────────────
 
+/** Where a small hat sits: the flat top of the head, a touch above it (like the felt hat). */
+function hatTop(H: Head) {
+  return proj({ ...H, pitch: Math.max(0, H.pitch) }, [Math.sin(H.yaw) * 0.05, 1.04, 0]);
+}
+
+function star(ctx: Ctx, x: number, y: number, r: number, points = 5, inner = 0.45, rot = -Math.PI / 2) {
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const rr = i % 2 ? r * inner : r;
+    const a = rot + (i * Math.PI) / points;
+    const px = x + Math.cos(a) * rr;
+    const py = y + Math.sin(a) * rr;
+    if (i) ctx.lineTo(px, py);
+    else ctx.moveTo(px, py);
+  }
+  ctx.closePath();
+}
+
+/** v0.7.1: the birthday party hat, symmetric — blue cone with light stripes, white dots,
+ * yellow stars, a red star burst on top and a wavy golden trim. */
+function partyHat(ctx: Ctx, H: Head, simple: boolean) {
+  const c = hatTop(H);
+  const lean = H.physDx * 0.08 + Math.sin(H.yaw) * 0.03;
+  const w = H.rx * 0.56;
+  const h = H.ry * 1.42;
+  const e = H.ry * 0.11; // base ellipse half height
+  ctx.save();
+  ctx.translate(c.x, c.y + e * 0.4);
+  ctx.rotate(lean);
+  const cone = new Path2D();
+  cone.moveTo(-w, 0);
+  cone.lineTo(0, -h);
+  cone.lineTo(w, 0);
+  cone.ellipse(0, 0, w, e, 0, 0, Math.PI);
+  cone.closePath();
+  ctx.fillStyle = lin(ctx, -w, 0, w, 0, [
+    [0, '#3f8fc4'],
+    [0.5, '#2f7db3'],
+    [1, '#246a9c'],
+  ]);
+  ctx.fill(cone);
+  ctx.save();
+  ctx.clip(cone);
+  // two lighter stripes running to the tip
+  ctx.fillStyle = 'rgba(120,205,245,0.55)';
+  for (const [a, b] of [
+    [-0.62, -0.38],
+    [0.3, 0.5],
+  ]) {
+    ctx.beginPath();
+    ctx.moveTo(0, -h);
+    ctx.lineTo(w * a, e * 0.9);
+    ctx.lineTo(w * b, e * 0.9);
+    ctx.closePath();
+    ctx.fill();
+  }
+  if (!simple) {
+    // [x across the width −1…1 at that height, t from the tip 0…1]
+    const dots: [number, number, number][] = [
+      [-0.05, 0.32, 0.075],
+      [-0.42, 0.55, 0.085],
+      [0.38, 0.62, 0.08],
+      [-0.1, 0.84, 0.095],
+      [0.62, 0.9, 0.075],
+      [-0.66, 0.92, 0.07],
+    ];
+    for (const [x, t, r] of dots) {
+      const px = x * w * t;
+      const py = -h + h * t;
+      ctx.beginPath();
+      ctx.arc(px, py, H.R * r, 0, Math.PI * 2);
+      ctx.fillStyle = '#eef1f5';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(px + H.R * r * 0.25, py, H.R * r, -Math.PI / 2, Math.PI / 2);
+      ctx.fillStyle = 'rgba(150,160,175,0.45)';
+      ctx.fill();
+    }
+    const stars: [number, number, number][] = [
+      [0.15, 0.2, 0.06],
+      [0.45, 0.4, 0.075],
+      [-0.55, 0.38, 0.07],
+      [0.1, 0.62, 0.09],
+      [-0.4, 0.76, 0.08],
+      [0.36, 0.86, 0.085],
+    ];
+    ctx.fillStyle = '#ffc93c';
+    for (const [x, t, r] of stars) {
+      star(ctx, x * w * t, -h + h * t, H.R * r);
+      ctx.fill();
+    }
+  }
+  // soft light from the left, shade on the right
+  ctx.fillStyle = lin(ctx, -w, 0, w, 0, [
+    [0, 'rgba(255,255,255,0.16)'],
+    [0.4, 'rgba(255,255,255,0)'],
+    [1, 'rgba(0,30,60,0.22)'],
+  ]);
+  ctx.fill(cone);
+  ctx.restore();
+  // wavy golden trim along the front of the base
+  const n = 9;
+  for (let i = 0; i <= n; i++) {
+    const a = Math.PI - (i / n) * Math.PI;
+    const x = Math.cos(a) * w;
+    const y = Math.sin(a) * e;
+    ctx.beginPath();
+    ctx.arc(x, y, H.R * 0.085, 0, Math.PI * 2);
+    ctx.fillStyle = i % 2 ? '#f0bf72' : '#e9b062';
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.ellipse(0, 0, w, e, 0, 0.12, Math.PI - 0.12);
+  ctx.strokeStyle = '#f5c97e';
+  ctx.lineWidth = H.R * 0.1;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  // red star burst on the tip
+  ctx.fillStyle = '#e23b3b';
+  star(ctx, 0, -h - H.R * 0.02, H.R * 0.2, 12, 0.5);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  star(ctx, -H.R * 0.03, -h - H.R * 0.05, H.R * 0.08, 6, 0.5);
+  ctx.fill();
+  ctx.restore();
+}
+
+function headphones(ctx: Ctx, H: Head, simple: boolean) {
+  const yCup = 0.3;
+  const sides = [-1, 1].map((sd) => proj(H, [sd * 1.0, yCup, 0]));
+  const top = proj({ ...H, pitch: Math.max(0, H.pitch) }, [0, 1.12, 0]);
+  const bw = H.R * 0.11;
+  ctx.save();
+  // band over the top
+  const band = new Path2D();
+  band.moveTo(sides[0].x, sides[0].y - H.ry * 0.18);
+  band.bezierCurveTo(sides[0].x - H.rx * 0.05, top.y - H.ry * 0.25, sides[1].x + H.rx * 0.05, top.y - H.ry * 0.25, sides[1].x, sides[1].y - H.ry * 0.18);
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(40,20,60,0.85)';
+  ctx.lineWidth = bw + H.R * 0.05;
+  ctx.stroke(band);
+  ctx.strokeStyle = lin(ctx, sides[0].x, 0, sides[1].x, 0, [
+    [0, '#ff5fa2'],
+    [0.35, '#b56cff'],
+    [0.7, '#4cc9f0'],
+    [1, '#3ee6a8'],
+  ]);
+  ctx.lineWidth = bw;
+  ctx.stroke(band);
+  // ear cups
+  const colors: [string, string][] = [
+    ['#ff7ab6', '#d6337a'],
+    ['#52d6f5', '#1a9cc4'],
+  ];
+  sides.forEach((p, i) => {
+    const sd = i ? 1 : -1;
+    const cw = H.rx * 0.2;
+    const chh = H.ry * 0.3;
+    ctx.save();
+    ctx.translate(p.x + sd * H.rx * 0.02, p.y);
+    // cushion
+    roundRect(ctx, -cw * 0.62, -chh * 0.95, cw * 1.24, chh * 1.9, cw * 0.6);
+    ctx.fillStyle = '#2b2236';
+    ctx.fill();
+    // shell
+    roundRect(ctx, sd * cw * 0.08 - cw * 0.55, -chh, cw * 1.1, chh * 2, cw * 0.55);
+    ctx.fillStyle = lin(ctx, 0, -chh, 0, chh, [
+      [0, colors[i][0]],
+      [1, colors[i][1]],
+    ]);
+    ctx.fill();
+    ctx.lineWidth = Math.max(1, H.R * 0.03);
+    ctx.strokeStyle = 'rgba(40,20,60,0.75)';
+    ctx.stroke();
+    if (!simple) {
+      ctx.beginPath();
+      ctx.ellipse(sd * cw * 0.08 - cw * 0.12, -chh * 0.45, cw * 0.14, chh * 0.25, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.fill();
+    }
+    ctx.restore();
+  });
+  ctx.restore();
+}
+
+function eyePatch(ctx: Ctx, H: Head, body: Path2D) {
+  const e = eyeFrames(H).find((f) => f.sd === -1);
+  if (!e || !e.visible) return;
+  const w = H.R * 0.27 * e.fx;
+  const h = H.R * 0.24 * e.fy;
+  ctx.save();
+  ctx.clip(body);
+  // strap: across the forehead to the right, and out to the left edge
+  ctx.beginPath();
+  ctx.moveTo(e.x - w * 0.9, e.y - h * 0.2);
+  ctx.lineTo(-H.rx * 1.2, e.y - H.ry * 0.22);
+  ctx.moveTo(e.x + w * 0.8, e.y - h * 0.7);
+  ctx.quadraticCurveTo(H.rx * 0.2, -H.ry * 0.62, H.rx * 1.2, -H.ry * 0.78);
+  ctx.strokeStyle = '#1b1820';
+  ctx.lineWidth = Math.max(1, H.R * 0.05);
+  ctx.stroke();
+  ctx.restore();
+  // patch
+  ctx.save();
+  ctx.translate(e.x, e.y + h * 0.05);
+  ctx.beginPath();
+  ctx.moveTo(-w, -h * 0.55);
+  ctx.quadraticCurveTo(0, -h * 0.95, w, -h * 0.7);
+  ctx.quadraticCurveTo(w * 1.1, h * 0.65, 0, h);
+  ctx.quadraticCurveTo(-w * 1.15, h * 0.6, -w, -h * 0.55);
+  ctx.closePath();
+  ctx.fillStyle = rad(ctx, -w * 0.3, -h * 0.4, 0, w * 1.4, [
+    [0, '#3a3540'],
+    [1, '#141217'],
+  ]);
+  ctx.fill();
+  ctx.lineWidth = Math.max(0.8, H.R * 0.02);
+  ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+  ctx.stroke();
+  ctx.restore();
+}
+
+function bowTie(ctx: Ctx, H: Head) {
+  const a = proj(H, surf(-0.5, 0, 1.0));
+  if (a.z < 0.1) return;
+  const s = H.R * 0.2;
+  const sq = Math.max(0.45, Math.cos(H.yaw));
+  ctx.save();
+  ctx.translate(a.x, a.y);
+  ctx.scale(sq, 1);
+  for (const sd of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(sd * s * 0.5, -s * 0.62, sd * s * 1.25, -s * 0.6);
+    ctx.quadraticCurveTo(sd * s * 1.38, 0, sd * s * 1.25, s * 0.6);
+    ctx.quadraticCurveTo(sd * s * 0.5, s * 0.62, 0, 0);
+    ctx.closePath();
+    ctx.fillStyle = lin(ctx, 0, -s, 0, s, [
+      [0, '#3a3a44'],
+      [1, '#0d0d12'],
+    ]);
+    ctx.fill();
+    ctx.lineWidth = Math.max(0.8, s * 0.07);
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.stroke();
+    // satin sheen
+    ctx.beginPath();
+    ctx.moveTo(sd * s * 0.3, -s * 0.18);
+    ctx.quadraticCurveTo(sd * s * 0.75, -s * 0.42, sd * s * 1.05, -s * 0.35);
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.lineWidth = s * 0.08;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+  roundRect(ctx, -s * 0.24, -s * 0.3, s * 0.48, s * 0.6, s * 0.14);
+  ctx.fillStyle = '#1b1b22';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+  ctx.stroke();
+  ctx.restore();
+}
+
+function catCollar(ctx: Ctx, H: Head, simple: boolean) {
+  const s = 1.04;
+  const y0 = -0.5;
+  const y1 = -0.6;
+  const top = frontArc(H, y0, s);
+  const bot = frontArc(H, y1, s);
+  if (top.length === 0 || bot.length === 0) return;
+  const band = new Path2D();
+  top.forEach((q, i) => (i ? band.lineTo(q.x, q.y) : band.moveTo(q.x, q.y)));
+  for (let i = bot.length - 1; i >= 0; i--) band.lineTo(bot[i].x, bot[i].y);
+  band.closePath();
+  ctx.save();
+  ctx.clip(bodyOutline(H.rx * s, H.ry * s));
+  ctx.fillStyle = lin(ctx, 0, -H.ry * 0.1, 0, H.ry * 0.65, [
+    [0, '#ff6f91'],
+    [1, '#c2185b'],
+  ]);
+  ctx.fill(band);
+  if (!simple) {
+    ctx.fillStyle = 'rgba(255,240,200,0.9)';
+    for (const lon of [-1.1, -0.6, 0.6, 1.1]) {
+      const p = proj(H, surf((y0 + y1) / 2, lon, s));
+      if (p.z < 0) continue;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, H.R * 0.035, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+  // bell on a ring at the front
+  const f = proj(H, surf(y1, 0, s));
+  if (f.z <= 0) return;
+  const r = H.R * 0.12;
+  ctx.save();
+  ctx.translate(f.x, f.y + r * 0.85);
+  ctx.beginPath();
+  ctx.arc(0, -r * 0.95, r * 0.3, 0, Math.PI * 2);
+  ctx.strokeStyle = '#c99a2e';
+  ctx.lineWidth = Math.max(0.8, H.R * 0.025);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = rad(ctx, -r * 0.35, -r * 0.4, 0, r * 1.2, [
+    [0, '#fff3b0'],
+    [0.5, '#f7c948'],
+    [1, '#b7861c'],
+  ]);
+  ctx.fill();
+  ctx.lineWidth = Math.max(0.6, H.R * 0.02);
+  ctx.strokeStyle = 'rgba(110,70,10,0.7)';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.75, r * 0.1);
+  ctx.lineTo(r * 0.75, r * 0.1);
+  ctx.moveTo(0, r * 0.1);
+  ctx.lineTo(0, r * 0.75);
+  ctx.strokeStyle = 'rgba(110,70,10,0.8)';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, r * 0.82, r * 0.14, 0, Math.PI * 2);
+  ctx.fillStyle = '#6e4a0e';
+  ctx.fill();
+  ctx.restore();
+}
+
+/** A small arrow stuck in Slime's sticky side, with a bit of goo around it. */
+function arrowStuck(ctx: Ctx, H: Head) {
+  const hit = proj(H, surf(0.6, 0.62, 1.0));
+  if (hit.z < -0.05) return;
+  const ang = -1.0 + H.yaw * 0.2; // pointing up and out to the right
+  const L = H.R * 0.72;
+  const dx = Math.cos(ang),
+    dy = Math.sin(ang);
+  const tail = { x: hit.x + dx * L, y: hit.y + dy * L };
+  ctx.save();
+  ctx.lineCap = 'round';
+  // shaft
+  ctx.beginPath();
+  ctx.moveTo(hit.x - dx * H.R * 0.06, hit.y - dy * H.R * 0.06);
+  ctx.lineTo(tail.x, tail.y);
+  ctx.strokeStyle = '#6b4423';
+  ctx.lineWidth = H.R * 0.1;
+  ctx.stroke();
+  ctx.strokeStyle = '#b8814a';
+  ctx.lineWidth = H.R * 0.05;
+  ctx.stroke();
+  // fletching
+  ctx.translate(tail.x, tail.y);
+  ctx.rotate(ang);
+  for (const sd of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(-H.R * 0.3, 0);
+    ctx.quadraticCurveTo(-H.R * 0.14, sd * H.R * 0.22, H.R * 0.06, sd * H.R * 0.2);
+    ctx.lineTo(-H.R * 0.02, 0);
+    ctx.closePath();
+    ctx.fillStyle = sd < 0 ? '#e23b3b' : '#f4f4f6';
+    ctx.fill();
+    ctx.lineWidth = Math.max(0.6, H.R * 0.015);
+    ctx.strokeStyle = 'rgba(80,20,20,0.55)';
+    ctx.stroke();
+  }
+  ctx.restore();
+  // sticky goo where it went in
+  ctx.save();
+  ctx.translate(hit.x, hit.y);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, H.R * 0.13, H.R * 0.09, ang, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.14)';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(-H.R * 0.02, -H.R * 0.02, H.R * 0.1, H.R * 0.06, ang, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = Math.max(0.8, H.R * 0.025);
+  ctx.stroke();
+  // a small drip
+  ctx.beginPath();
+  ctx.moveTo(-H.R * 0.04, H.R * 0.05);
+  ctx.quadraticCurveTo(-H.R * 0.06, H.R * 0.16, -H.R * 0.02, H.R * 0.2);
+  ctx.quadraticCurveTo(H.R * 0.02, H.R * 0.16, H.R * 0.02, H.R * 0.06);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fill();
+  ctx.restore();
+}
+
+// ── v0.7.1: Charles' own drawings for the classic accessories ─────────────────
+// Santa hat, witch hat, bunny ears, scarf, sunglasses and round glasses were
+// redrawn from scratch for Charles (new shapes, details and code).
+
+/** v0.7.1: the witch hat is drawn in one piece in front (nothing behind the head). */
+function witchHatBack(_ctx: Ctx, _H: Head) {}
+
+function witchHatFront(ctx: Ctx, H: Head, _body: Path2D) {
+  const c = hatTop(H);
+  const brimW = H.rx * 1.0;
+  const brimH = H.ry * 0.14;
+  const baseW = H.rx * 0.46;
+  const h = H.ry * 1.3;
+  const bend = H.rx * 0.32 + H.physDx * H.rx * 0.1;
+  const lw = Math.max(1, H.R * 0.03);
+  const ink = 'rgba(30,6,60,0.85)';
+  ctx.save();
+  ctx.translate(c.x, c.y + brimH * 0.3);
+  ctx.rotate(H.physDx * 0.04 + Math.sin(H.yaw) * 0.04);
+  // brim
+  ctx.beginPath();
+  ctx.ellipse(0, 0, brimW, brimH, 0, 0, Math.PI * 2);
+  ctx.fillStyle = lin(ctx, -brimW, 0, brimW, 0, [
+    [0, '#4c1d95'],
+    [0.5, '#5b21b6'],
+    [1, '#3b0764'],
+  ]);
+  ctx.fill();
+  ctx.lineWidth = lw;
+  ctx.strokeStyle = ink;
+  ctx.stroke();
+  // cone with a bent tip
+  const cone = new Path2D();
+  cone.moveTo(-baseW, 0);
+  cone.bezierCurveTo(-baseW * 0.9, -h * 0.45, -baseW * 0.35, -h * 0.8, bend * 0.4, -h * 0.95);
+  cone.quadraticCurveTo(bend * 0.9, -h * 1.02, bend * 1.25, -h * 0.82);
+  cone.quadraticCurveTo(bend * 0.7, -h * 0.82, baseW * 0.25, -h * 0.62);
+  cone.bezierCurveTo(baseW * 0.7, -h * 0.4, baseW * 0.92, -h * 0.2, baseW, 0);
+  cone.ellipse(0, 0, baseW, brimH * 0.5, 0, 0, Math.PI);
+  cone.closePath();
+  ctx.fillStyle = lin(ctx, -baseW, -h, baseW, 0, [
+    [0, '#7c3aed'],
+    [0.5, '#5b21b6'],
+    [1, '#3b0764'],
+  ]);
+  ctx.fill(cone);
+  ctx.save();
+  ctx.clip(cone);
+  // band with a golden buckle
+  ctx.fillStyle = '#2e1065';
+  ctx.fillRect(-baseW * 1.2, -h * 0.2, baseW * 2.4, h * 0.14);
+  ctx.fillStyle = lin(ctx, -baseW, 0, baseW, 0, [
+    [0, 'rgba(255,255,255,0.18)'],
+    [0.4, 'rgba(255,255,255,0)'],
+    [1, 'rgba(20,0,40,0.25)'],
+  ]);
+  ctx.fill(cone);
+  ctx.restore();
+  ctx.lineWidth = lw;
+  ctx.strokeStyle = ink;
+  ctx.stroke(cone);
+  const bk = h * 0.11;
+  roundRect(ctx, -bk * 0.6, -h * 0.2 - bk * 0.02, bk * 1.2, bk * 1.3, bk * 0.18);
+  ctx.lineWidth = Math.max(1, H.R * 0.035);
+  ctx.strokeStyle = '#f5c542';
+  ctx.stroke();
+  // little star on the cone
+  ctx.fillStyle = '#ffe08a';
+  star(ctx, -baseW * 0.25, -h * 0.5, H.R * 0.07);
+  ctx.fill();
+  // brim front edge over the cone base
+  ctx.beginPath();
+  ctx.ellipse(0, 0, brimW, brimH, 0, 0.02, Math.PI - 0.02);
+  ctx.lineTo(-baseW, brimH * 0.1);
+  ctx.ellipse(0, brimH * 0.1, baseW, brimH * 0.5, 0, Math.PI, 0, true);
+  ctx.closePath();
+  ctx.fillStyle = '#4c1d95';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(0, 0, brimW, brimH, 0, 0, Math.PI);
+  ctx.strokeStyle = ink;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function scarf(ctx: Ctx, H: Head) {
+  const s = 1.05;
+  const y0 = -0.36;
+  const y1 = -0.64;
+  const top = frontArc(H, y0, s);
+  const bot = frontArc(H, y1, s);
+  if (top.length === 0 || bot.length === 0) return;
+  const band = new Path2D();
+  top.forEach((q, i) => (i ? band.lineTo(q.x, q.y) : band.moveTo(q.x, q.y)));
+  for (let i = bot.length - 1; i >= 0; i--) band.lineTo(bot[i].x, bot[i].y);
+  band.closePath();
+  const red: [number, string][] = [
+    [0, '#ef4444'],
+    [1, '#b91c1c'],
+  ];
+  ctx.save();
+  ctx.clip(bodyOutline(H.rx * s, H.ry * s));
+  ctx.fillStyle = lin(ctx, 0, -H.ry * 0.3, 0, H.ry * 0.7, red);
+  ctx.fill(band);
+  ctx.save();
+  ctx.clip(band);
+  // two cream stripes running around
+  for (const yy of [-0.44, -0.56]) {
+    const line = frontArc(H, yy, s);
+    polyline(ctx, line);
+    ctx.strokeStyle = 'rgba(255,244,222,0.95)';
+    ctx.lineWidth = H.R * 0.06;
+    ctx.stroke();
+  }
+  // knit texture
+  ctx.strokeStyle = 'rgba(120,10,10,0.18)';
+  ctx.lineWidth = Math.max(0.6, H.R * 0.02);
+  for (let lon = -1.4; lon <= 1.4; lon += 0.16) {
+    const a = proj(H, surf(y0, lon, s));
+    const b = proj(H, surf(y1, lon, s));
+    if (a.z < 0) continue;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.fillStyle = lin(ctx, 0, -H.ry * 0.5, 0, H.ry * 0.4, [
+    [0, 'rgba(255,255,255,0.16)'],
+    [1, 'rgba(0,0,0,0.12)'],
+  ]);
+  ctx.fill(band);
+  ctx.restore();
+  // knot and two tails on the left
+  const k = proj(H, surf((y0 + y1) / 2, -0.62, s * 1.03));
+  if (k.z <= 0) return;
+  const sw = H.physDx * H.rx * 0.12;
+  const tail = (dx: number, len: number, tilt: number) => {
+    const t = new Path2D();
+    const w = H.R * 0.16;
+    t.moveTo(k.x + dx - w, k.y);
+    t.quadraticCurveTo(k.x + dx - w + sw + tilt, k.y + len * 0.5, k.x + dx - w * 0.9 + sw * 1.4 + tilt * 1.6, k.y + len);
+    t.lineTo(k.x + dx + w * 0.9 + sw * 1.4 + tilt * 1.6, k.y + len);
+    t.quadraticCurveTo(k.x + dx + w + sw + tilt, k.y + len * 0.5, k.x + dx + w, k.y);
+    t.closePath();
+    ctx.fillStyle = lin(ctx, 0, k.y, 0, k.y + len, red);
+    ctx.fill(t);
+    ctx.save();
+    ctx.clip(t);
+    ctx.fillStyle = 'rgba(255,244,222,0.95)';
+    for (const f of [0.38, 0.72]) ctx.fillRect(k.x - H.R, k.y + len * f, H.R * 2, H.R * 0.06);
+    ctx.restore();
+    ctx.strokeStyle = '#c62828';
+    ctx.lineWidth = H.R * 0.03;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 4; i++) {
+      const fx = k.x + dx - w * 0.75 + sw * 1.4 + tilt * 1.6 + i * w * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(fx, k.y + len);
+      ctx.lineTo(fx + tilt * 0.2, k.y + len + H.R * 0.1);
+      ctx.stroke();
+    }
+  };
+  tail(-H.R * 0.12, H.ry * 0.58, -H.R * 0.06);
+  tail(H.R * 0.08, H.ry * 0.46, H.R * 0.05);
+  ctx.beginPath();
+  ctx.ellipse(k.x, k.y, H.R * 0.18, H.R * 0.14, 0.15, 0, Math.PI * 2);
+  ctx.fillStyle = rad(ctx, k.x - H.R * 0.05, k.y - H.R * 0.05, 0, H.R * 0.22, [
+    [0, '#f87171'],
+    [1, '#a51c1c'],
+  ]);
+  ctx.fill();
+}
+
+/** Wayfarer-style shades: trapezoid lenses under a thick top bar. */
+function sunglasses(ctx: Ctx, H: Head, body: Path2D) {
+  const eyes = eyeFrames(H);
+  const w = H.R * 0.6;
+  const h = H.R * 0.42;
+  ctx.save();
+  ctx.clip(body);
+  if (H.lift) ctx.translate(0, -H.lift * H.ry * 0.56);
+  ctx.lineCap = 'round';
+  const [l, r] = eyes;
+  const frame = '#121318';
+  // temples
+  ctx.strokeStyle = frame;
+  ctx.lineWidth = H.R * 0.055;
+  for (const e of eyes) {
+    if (!e.visible) continue;
+    ctx.beginPath();
+    ctx.moveTo(e.x + ((e.sd * w) / 2) * e.fx, e.y - h * 0.35);
+    ctx.lineTo(e.sd * H.rx * 1.05, e.y - h * 0.45);
+    ctx.stroke();
+  }
+  // bridge: a straight bar
+  if (l.visible && r.visible) {
+    ctx.beginPath();
+    ctx.moveTo(l.x + (w / 2) * l.fx * 0.95, l.y - h * 0.32);
+    ctx.lineTo(r.x - (w / 2) * r.fx * 0.95, r.y - h * 0.32);
+    ctx.lineWidth = H.R * 0.075;
+    ctx.stroke();
+  }
+  for (const e of eyes) {
+    if (!e.visible) continue;
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.scale(e.fx, e.fy);
+    const lens = new Path2D();
+    lens.moveTo(-w / 2, -h / 2);
+    lens.lineTo(w / 2, -h / 2);
+    lens.quadraticCurveTo(w * 0.47, h * 0.45, w * 0.18, h / 2);
+    lens.lineTo(-w * 0.18, h / 2);
+    lens.quadraticCurveTo(-w * 0.47, h * 0.45, -w / 2, -h / 2);
+    lens.closePath();
+    ctx.fillStyle = lin(ctx, 0, -h / 2, 0, h / 2, [
+      [0, 'rgba(18,20,26,0.95)'],
+      [1, 'rgba(70,80,96,0.9)'],
+    ]);
+    ctx.fill(lens);
+    ctx.lineWidth = H.R * 0.045;
+    ctx.strokeStyle = frame;
+    ctx.stroke(lens);
+    // thick top bar
+    roundRect(ctx, -w * 0.55, -h * 0.62, w * 1.1, h * 0.26, h * 0.1);
+    ctx.fillStyle = frame;
+    ctx.fill();
+    // glint
+    ctx.save();
+    ctx.clip(lens);
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.2, -h * 0.4);
+    ctx.lineTo(-w * 0.02, -h * 0.4);
+    ctx.lineTo(-w * 0.3, h * 0.45);
+    ctx.lineTo(-w * 0.45, h * 0.45);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/** Behind the head: two tall, symmetric ears. */
 function bunnyEars(ctx: Ctx, H: Head) {
   const R = H.R;
-  const earH = R * 0.85;
+  const top = proj({ ...H, pitch: Math.max(0, H.pitch) }, [Math.sin(H.yaw) * 0.05, 0.92, 0]);
+  const earH = R * 1.15;
+  const earW = R * 0.3;
   for (const sd of [-1, 1]) {
-    const root = proj(H, [sd * 0.45, 0.92, 0]);
-    const rootL = proj(H, [sd * 0.45 - 0.22, 0.92, 0]);
-    const rootR = proj(H, [sd * 0.45 + 0.22, 0.92, 0]);
-    const hw = Math.max(R * 0.04, Math.abs(rootR.x - rootL.x) / 2);
     ctx.save();
-    ctx.translate(root.x, root.y - earH * 0.15);
+    ctx.translate(top.x + sd * H.rx * 0.4, top.y + R * 0.06);
+    ctx.rotate(sd * 0.14 + H.physDx * 0.08);
+    const ear = new Path2D();
+    ear.moveTo(-earW * 0.5, 0);
+    ear.bezierCurveTo(-earW * 1.1, -earH * 0.45, -earW * 0.75, -earH, 0, -earH);
+    ear.bezierCurveTo(earW * 0.75, -earH, earW * 1.1, -earH * 0.45, earW * 0.5, 0);
+    ear.closePath();
+    ctx.fillStyle = lin(ctx, -earW, 0, earW, 0, [
+      [0, '#ffffff'],
+      [1, '#ebe7f0'],
+    ]);
+    ctx.fill(ear);
+    ctx.lineWidth = Math.max(0.8, R * 0.025);
+    ctx.strokeStyle = 'rgba(120,110,140,0.35)';
+    ctx.stroke(ear);
     ctx.beginPath();
-    ctx.ellipse(0, 0, hw, earH / 2, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#F9F0F0';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-    ctx.lineWidth = 0.8;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.ellipse(0, -earH / 2 + R * 0.1 + earH * 0.325, hw * 0.5, earH * 0.325, 0, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(252,165,165,0.7)';
+    ctx.ellipse(0, -earH * 0.5, earW * 0.36, earH * 0.34, 0, 0, Math.PI * 2);
+    ctx.fillStyle = lin(ctx, 0, -earH * 0.85, 0, -earH * 0.15, [
+      [0, 'rgba(255,160,185,0.9)'],
+      [1, 'rgba(255,190,205,0.6)'],
+    ]);
     ctx.fill();
     ctx.restore();
   }
+}
+
+/** Round glasses: clean circles, a low curved bridge, warm tortoiseshell frames. */
+/** v0.7.1: big round glasses — thick amber-brown rims, clear lenses with diagonal glare,
+ * a softly arched bridge and arms reaching out to the sides. */
+function roundGlasses(ctx: Ctx, H: Head, body: Path2D) {
+  const eyes = eyeFrames(H);
+  const d = H.R * 0.76;
+  const rim = Math.max(1.2, H.R * 0.075);
+  const ink = 'rgba(50,24,4,0.55)';
+  const amber: [number, string][] = [
+    [0, '#b8772e'],
+    [0.5, '#9a5a1a'],
+    [1, '#7a420f'],
+  ];
+  const [l, r] = eyes;
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  // arms: straight out to the sides, a little past the body edge, with a small end knob
+  for (const e of eyes) {
+    if (!e.visible) continue;
+    const x0 = e.x + ((e.sd * d) / 2) * e.fx;
+    const y0 = e.y - d * 0.12;
+    const x1 = e.sd * H.rx * 1.06;
+    for (const [w, c] of [
+      [rim * 1.05 + 1.4, ink],
+      [rim * 1.05, '#8a4b12'],
+    ] as [number, string][]) {
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y0 - d * 0.04);
+      ctx.lineWidth = w;
+      ctx.strokeStyle = c;
+      ctx.stroke();
+    }
+  }
+  // bridge: a soft arch between the rims
+  if (l.visible && r.visible) {
+    const xa = l.x + (d / 2) * l.fx * 0.96;
+    const xb = r.x - (d / 2) * r.fx * 0.96;
+    const y = (l.y + r.y) / 2 - d * 0.06;
+    for (const [w, c] of [
+      [rim + 1.4, ink],
+      [rim, '#8a4b12'],
+    ] as [number, string][]) {
+      ctx.beginPath();
+      ctx.moveTo(xa, y);
+      ctx.quadraticCurveTo((xa + xb) / 2, y - d * 0.26, xb, y);
+      ctx.lineWidth = w;
+      ctx.strokeStyle = c;
+      ctx.stroke();
+    }
+  }
+  ctx.save();
+  ctx.clip(body);
+  for (const e of eyes) {
+    if (!e.visible) continue;
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.scale(e.fx, e.fy);
+    const rr = d / 2;
+    // lens
+    ctx.beginPath();
+    ctx.arc(0, 0, rr, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(225,245,255,0.16)';
+    ctx.fill();
+    // glare: two diagonal stripes in the upper left
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, 0, rr * 0.9, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = rr * 0.16;
+    for (const off of [-0.42, -0.12]) {
+      ctx.beginPath();
+      ctx.moveTo(-rr + off * rr, rr * 0.25 + off * rr);
+      ctx.lineTo(rr * 0.25 + off * rr, -rr + off * rr);
+      ctx.stroke();
+      ctx.lineWidth = rr * 0.09;
+    }
+    ctx.restore();
+    // rim: dark edge, coral body, light top
+    ctx.beginPath();
+    ctx.arc(0, 0, rr, 0, Math.PI * 2);
+    ctx.lineWidth = rim + 1.6;
+    ctx.strokeStyle = ink;
+    ctx.stroke();
+    ctx.lineWidth = rim;
+    ctx.strokeStyle = lin(ctx, -rr, -rr, rr, rr, amber);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, rr, Math.PI * 1.1, Math.PI * 1.45);
+    ctx.lineWidth = rim * 0.35;
+    ctx.strokeStyle = 'rgba(255,214,160,0.75)';
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+/** Pompom made of soft round tufts. */
+function pompom(ctx: Ctx, x: number, y: number, r: number, base = '#FFFFFF', shade = '#D5D9E2') {
+  ctx.save();
+  ctx.translate(x, y);
+  const n = 11;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const br = r * (0.34 + 0.06 * Math.sin(i * 2.3));
+    const bx = Math.cos(a) * r * 0.78;
+    const by = Math.sin(a) * r * 0.78;
+    ctx.fillStyle = rad(ctx, bx - br * 0.4, by - br * 0.5, 0, br * 1.3, [
+      [0, base],
+      [1, shade],
+    ]);
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = rad(ctx, -r * 0.3, -r * 0.35, 0, r * 1.05, [
+    [0, base],
+    [0.7, base],
+    [1, shade],
+  ]);
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.86, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Knitted beanie (the v0.7.0 shape), red since v0.7.1 with a cream dot stripe above the cuff,
+ * a small stitched label on the cuff and a cream pompom. */
+function beanie(ctx: Ctx, H: Head, body: Path2D, simple: boolean) {
+  const s = 1.035;
+  const yEdge = 0.42;
+  const yCuff = 0.58;
+  const head = bodyOutline(H.rx * s, H.ry * s);
+
+  // shadow on the head under the cuff
+  ctx.save();
+  ctx.clip(body);
+  ctx.clip(capClip(H, yEdge - 0.12, 1));
+  ctx.fillStyle = 'rgba(70,20,20,0.10)';
+  fillAll(ctx, H);
+  ctx.restore();
+
+  // knit body (reaches a little under the cuff so no seam shows between them)
+  ctx.save();
+  ctx.clip(capClip(H, yCuff - 0.05, s));
+  ctx.fillStyle = lin(ctx, H.rx * 0.5, -H.ry * 1.1, -H.rx * 0.6, H.ry * 0.2, [
+    [0, '#FF6B6B'],
+    [1, '#C81E2C'],
+  ]);
+  ctx.fill(head);
+  ctx.clip(head);
+  if (!simple) {
+    ctx.strokeStyle = 'rgba(110,0,15,0.18)';
+    ctx.lineWidth = H.R * 0.045;
+    ctx.lineCap = 'round';
+    for (let k = -6; k <= 6; k++) {
+      const lon = k * 0.24;
+      const pts: P3[] = [];
+      for (let i = 0; i <= 16; i++) {
+        const q = proj(H, surf(yCuff + ((1.05 - yCuff) * i) / 16, lon, s));
+        if (q.z > 0) pts.push(q);
+      }
+      if (pts.length < 2) continue;
+      polyline(ctx, pts);
+      ctx.stroke();
+    }
+    // cream stripe of little dots just above the cuff
+    for (let k = -8; k <= 8; k++) {
+      const q = proj(H, surf(yCuff + 0.11, k * 0.13, s));
+      if (q.z <= 0.35) continue;
+      ctx.beginPath();
+      ctx.arc(q.x, q.y, H.R * 0.035, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFF1DC';
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // cuff — the band between yEdge and yCuff
+  // v0.7.1: the band is built from its two front arcs, so its ends follow the head's sides
+  // (clipping with the flat body outline left small points sticking out at the sides).
+  const upper = frontArc(H, yCuff, s * 1.04);
+  const lower = frontArc(H, yEdge, s * 1.04);
+  const cuffHead = new Path2D();
+  if (upper.length && lower.length) {
+    cuffHead.moveTo(upper[0].x, upper[0].y);
+    for (const q of upper) cuffHead.lineTo(q.x, q.y);
+    for (let i = lower.length - 1; i >= 0; i--) cuffHead.lineTo(lower[i].x, lower[i].y);
+    cuffHead.closePath();
+  }
+  ctx.save();
+  ctx.fillStyle = lin(ctx, 0, -H.ry * 0.6, 0, -H.ry * 0.2, [
+    [0, '#D9293A'],
+    [1, '#A3121F'],
+  ]);
+  ctx.fill(cuffHead);
+  ctx.clip(cuffHead);
+  ctx.strokeStyle = 'rgba(90,0,10,0.24)';
+  ctx.lineWidth = H.R * 0.035;
+  for (let k = -14; k <= 14; k++) {
+    const lon = k * 0.115;
+    const a = proj(H, surf(yEdge, lon, s * 1.04));
+    const b = proj(H, surf(yCuff, lon, s * 1.04));
+    if (a.z < 0) continue;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+  }
+  // small cream label on the cuff, right of centre
+  if (!simple) {
+    const lc = proj(H, surf((yEdge + yCuff) / 2, 0.5, s * 1.04));
+    if (lc.z > 0.3) {
+      const lw = H.R * 0.2;
+      const lh = H.R * 0.1;
+      roundRect(ctx, lc.x - lw / 2, lc.y - lh / 2, lw, lh, lh * 0.3);
+      ctx.fillStyle = '#F4E3C3';
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // top highlight
+  ctx.save();
+  ctx.clip(capClip(H, yCuff, s));
+  ctx.clip(head);
+  ctx.fillStyle = rad(ctx, H.rx * 0.3, -H.ry * 0.85, 0, H.R * 0.45, [
+    [0, 'rgba(255,255,255,0.32)'],
+    [1, 'rgba(255,255,255,0)'],
+  ]);
+  ctx.fill(head);
+  ctx.restore();
+
+  // pompom on a short spring
+  const top = proj(H, [0, 1.08 * s, 0]);
+  pompom(
+    ctx,
+    top.x + H.physDx * H.rx * 0.25,
+    top.y - H.R * 0.12 + H.physDy * H.ry * 0.15,
+    H.R * 0.24,
+    '#FFF6E8',
+    '#E2D2B8',
+  );
+}
+
+/** Puffy white fur: overlapping round tufts with a soft outline and a few curl marks. */
+function furTufts(ctx: Ctx, blobs: [number, number, number][], H: Head, by0: number, by1: number) {
+  const edge = Math.max(1, H.R * 0.022);
+  ctx.save();
+  ctx.fillStyle = 'rgba(150,158,172,0.85)';
+  for (const [x, y, r] of blobs) {
+    ctx.beginPath();
+    ctx.arc(x, y, r + edge, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const g = lin(ctx, 0, by0, 0, by1, [
+    [0, '#ffffff'],
+    [0.55, '#f3f5f9'],
+    [1, '#d4dae3'],
+  ]);
+  ctx.fillStyle = g;
+  for (const [x, y, r] of blobs) {
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // little highlights and curls give the fur its texture
+  ctx.lineCap = 'round';
+  for (const [i, [x, y, r]] of blobs.entries()) {
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath();
+    ctx.arc(x - r * 0.3, y - r * 0.35, r * 0.28, 0, Math.PI * 2);
+    ctx.fill();
+    if (i % 2) continue;
+    ctx.strokeStyle = 'rgba(170,178,192,0.7)';
+    ctx.lineWidth = Math.max(0.7, r * 0.12);
+    ctx.beginPath();
+    ctx.arc(x + r * 0.15, y + r * 0.15, r * 0.45, 0.2, 1.9);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** v0.7.1: Santa hat — smooth velvet cone rising and hanging down the right side, a puffy fur
+ * cuff and a fluffy pompom at the end. */
+function santaHat(ctx: Ctx, H: Head, _body: Path2D) {
+  const c = hatTop(H);
+  const W = H.rx * 1.06;
+  const cuffH = H.ry * 0.4;
+  const cuffY = H.ry * 0.42;
+  const base = cuffY - cuffH;
+  const sway = H.physDx * H.rx * 0.1;
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.rotate(-0.06 + Math.sin(H.yaw) * 0.03);
+  const tip = { x: W * 1.02 + sway, y: cuffY + H.ry * 0.22 };
+  const cone = new Path2D();
+  cone.moveTo(-W * 0.8, base + cuffH * 0.4);
+  cone.bezierCurveTo(-W * 0.55, base - H.ry * 0.75, W * 0.2, base - H.ry * 1.0, W * 0.62, base - H.ry * 0.82);
+  cone.bezierCurveTo(W * 1.02, base - H.ry * 0.62, tip.x + W * 0.12, tip.y - H.ry * 0.55, tip.x + W * 0.04, tip.y);
+  cone.lineTo(tip.x - W * 0.1, tip.y);
+  cone.bezierCurveTo(tip.x - W * 0.08, base + H.ry * 0.1, W * 0.75, base - H.ry * 0.25, W * 0.6, base + cuffH * 0.4);
+  cone.closePath();
+  // velvet: deep red with a soft lit area, not plastic shine
+  ctx.fillStyle = lin(ctx, -W, base - H.ry, W, cuffY, [
+    [0, '#e8282b'],
+    [0.45, '#c8141c'],
+    [1, '#8c0a12'],
+  ]);
+  ctx.fill(cone);
+  ctx.save();
+  ctx.clip(cone);
+  ctx.fillStyle = rad(ctx, -W * 0.2, base - H.ry * 0.6, 0, W * 0.9, [
+    [0, 'rgba(255,110,110,0.45)'],
+    [0.6, 'rgba(255,80,80,0.12)'],
+    [1, 'rgba(255,80,80,0)'],
+  ]);
+  ctx.fill(cone);
+  // shade where the tip folds down
+  ctx.fillStyle = 'rgba(70,0,6,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(W * 0.8, base - H.ry * 0.25, W * 0.16, H.ry * 0.4, 0.25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.lineWidth = Math.max(1, H.R * 0.022);
+  ctx.strokeStyle = 'rgba(80,0,8,0.6)';
+  ctx.stroke(cone);
+  // puffy fur cuff
+  const blobs: [number, number, number][] = [];
+  const n = 9;
+  for (let i = 0; i <= n; i++) {
+    const x = -W * 0.8 + (i / n) * W * 1.6;
+    const wob = Math.sin(i * 2.3) * cuffH * 0.06;
+    blobs.push([x, base + cuffH * 0.36 + wob, cuffH * (0.42 + 0.05 * Math.sin(i * 1.7))]);
+    if (i < n) blobs.push([x + (W * 0.8) / n, base + cuffH * 0.66 - wob, cuffH * 0.38]);
+  }
+  furTufts(ctx, blobs, H, base, cuffY);
+  // pompom
+  const pr = H.R * 0.22;
+  const px = tip.x - W * 0.03;
+  const py = tip.y + pr * 0.7;
+  const puff: [number, number, number][] = [[px, py, pr * 0.7]];
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + 0.2;
+    puff.push([px + Math.cos(a) * pr * 0.55, py + Math.sin(a) * pr * 0.55, pr * 0.45]);
+  }
+  furTufts(ctx, puff, H, py - pr, py + pr);
+  ctx.restore();
 }
 
 // ── Layers and transitions ────────────────────────────────────────────────────
@@ -1590,6 +1919,9 @@ const ON_FACE: ReadonlySet<Outfit> = new Set([
   'bow',
   'scarf',
   'pumpkin',
+  'eyePatch',
+  'bowTie',
+  'catCollar',
 ]);
 const HATS: ReadonlySet<Outfit> = new Set([
   'beanie',
@@ -1598,6 +1930,7 @@ const HATS: ReadonlySet<Outfit> = new Set([
   'crown',
   'witchHat',
   'fedora',
+  'headphones',
 ]);
 
 export interface OutfitState {
@@ -1642,6 +1975,18 @@ function drawFace(ctx: Ctx, outfit: Outfit, H: Head, body: Path2D, simple: boole
     case 'bow':
       bow(ctx, H);
       break;
+    case 'eyePatch':
+      eyePatch(ctx, H, body);
+      break;
+    case 'bowTie':
+      bowTie(ctx, H);
+      break;
+    case 'catCollar':
+      catCollar(ctx, H, simple);
+      break;
+    case 'arrow':
+      arrowStuck(ctx, H);
+      break;
     default:
       break;
   }
@@ -1682,7 +2027,7 @@ export function drawOutfitBehind(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSt
 }
 
 /** Hats that need a different size on the square Slime head, scaled around the head top. */
-const SLIME_HAT_SCALE: Partial<Record<Outfit, number>> = { crown: 0.92, santaHat: 0.8 };
+const SLIME_HAT_SCALE: Partial<Record<Outfit, number>> = { crown: 0.92 };
 function slimeCrownScale(ctx: Ctx, outfit: Outfit, H: Head) {
   const k = SHAPE.kind === 'slime' ? SLIME_HAT_SCALE[outfit] : undefined;
   if (!k) return;
@@ -1738,6 +2083,10 @@ export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSta
         break;
       case 'fedora':
         fedora(l, H, simple);
+        break;
+        break;
+      case 'headphones':
+        headphones(l, H, simple);
         break;
       default:
         drawFace(l, outfit, H, body, simple);

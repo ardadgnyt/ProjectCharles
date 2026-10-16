@@ -28,7 +28,7 @@ function connectionError(error, key = '') {
     .replace(/(?:AIza[A-Za-z0-9_-]+|AQ\.[A-Za-z0-9._~-]+)/g, '[gizlendi]')
     .replace(/([?&]key=)[^&\s]+/gi, '$1[gizlendi]');
   if (/API_KEY_INVALID|API key not valid|invalid api key/i.test(text))
-    return 'Gemini API anahtarı geçersiz. Ayarlar → Hesap bölümünden yeni anahtar kaydet.';
+    return 'Gemini API anahtarı geçersiz. Ayarlar → AI Modelleri bölümünden yeni anahtar kaydet.';
   if (/unauthenticated|401/i.test(text))
     return 'Google kimlik doğrulamayı reddetti. Kaydettiğin anahtarı, API kısıtlamalarını ve bağlı hesabın erişimini kontrol et.';
   if (/RESOURCE_EXHAUSTED|quota|429/i.test(text))

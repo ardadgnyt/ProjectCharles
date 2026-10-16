@@ -44,7 +44,7 @@ export function panelMotion(api: any) {
     id = v.id;
     body.classList.add('panel-transition');
     body.classList.toggle('compact', !v.expanded);
-    body.classList.toggle('hidden-island', v.hidden);
+    body.classList.toggle('hidden-island', !!v.hidden);
     body.style.width = v.to.width + 'px';
     body.style.height = v.to.height + 'px';
     const base = baseTransform();

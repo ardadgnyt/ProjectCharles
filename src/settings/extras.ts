@@ -451,7 +451,7 @@ export function extraUI(
   api.onExtras(paint);
   api.onSettings(showSettings);
   api.onHidden((v: boolean) => {
-    document.body.classList.toggle('hidden-island', v);
+    document.body.classList.toggle('hidden-island', !!v);
     if (v) Sound.idle();
   });
   api.onPeek(() => {
