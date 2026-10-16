@@ -1101,7 +1101,10 @@ $('toggle').onclick = (e) => {
   if (e.detail === 0) void attempt(() => api.expand(!expanded));
 };
 $('collapse').onclick = () => attempt(() => api.expand(false));
-$('quit').onclick = () => attempt(() => api.quit());
+// v0.7.3: × closes the big panel back to the island (it used to quit Charles, which looked
+// like the island never came back). Quitting: Shift + ×, or the tray icon → Çıkış.
+$('quit').onclick = (e: MouseEvent) =>
+  attempt(() => (e.shiftKey ? api.quit() : document.body.classList.contains('workspace') ? api.workspace(false) : api.expand(false)));
 $('connect').onclick = () =>
   attempt(async () => {
     notice('Codex bağlantısı kuruluyor…');

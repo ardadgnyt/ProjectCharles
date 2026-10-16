@@ -1070,4 +1070,6 @@ export const spanish: Record<string, string> = {
   "remove": "quitar",
   "change location": "cambiar ubicación",
   "Command": "Comando",
+  "Last known value": "Último valor conocido",
+  "Back to the island · Shift-click: quit Charles": "Volver a la isla · Mayús+clic: salir de Charles",
 };

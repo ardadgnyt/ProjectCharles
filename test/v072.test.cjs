@@ -254,12 +254,14 @@ test('WhatsApp: hooked into chat and voice, with a settings card', () => {
   assert.match(read('src/renderer.ts'), /whatsappCard\(api, notice\)/);
 });
 
-test('version is v0.7.2 Beta everywhere', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.7.2-beta.1');
+test('version: package, lock, label and installer agree (v0.7.2 or later)', () => {
+  const v = JSON.parse(read('package.json')).version;
+  assert.match(v, /^0\.7\.[2-9]-beta\.\d+$/);
   const lock = JSON.parse(read('package-lock.json'));
-  assert.equal(lock.version, '0.7.2-beta.1');
-  assert.equal(lock.packages[''].version, '0.7.2-beta.1');
-  assert.match(read('public/index.html'), /v0\.7\.2 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.7\.2 Beta'/);
+  assert.equal(lock.version, v);
+  assert.equal(lock.packages[''].version, v);
+  const short = 'v' + v.replace(/-beta\.\d+$/, '') + ' Beta';
+  assert.ok(read('public/index.html').includes(short));
+  assert.ok(read('setup/install.ps1').includes(`$Version = '${short}'`));
   assert.match(read('CHANGELOG.md'), /## v0\.7\.2 Beta/);
 });

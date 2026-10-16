@@ -1,6 +1,6 @@
 # Charles — User Guide
 
-This guide covers Charles **v0.7.2 Beta** on Windows 10/11. For installation, see the
+This guide covers Charles **v0.7.3 Beta** on Windows 10/11. For installation, see the
 [README](../README.md#installation). For the full history of changes, see
 [CHANGELOG.md](../CHANGELOG.md) (Turkish).
 
@@ -26,6 +26,9 @@ When Charles starts, a small island sits at the top of the screen.
 - **Below the island:** bubbles for important new emails and calendar reminders. Click a bubble
   and Charles explains the email.
 
+The **×** on the large panel closes it back to the island; Charles keeps running. To quit,
+Shift-click the × or use the tray icon → Çıkış (Quit).
+
 Use the **‹ ›** arrows to dock the island to the left or right corner. The pin button keeps the
 large panel open. When the pointer moves away, the panel collapses on its own. You can change
 this in Settings → General.
@@ -33,7 +36,7 @@ this in Settings → General.
 ## The app window
 
 The window button next to the pin turns Charles into a normal Windows app (the island hides).
-**Back to the island** at the top right, or the × at the top left, brings the island back.
+**Back to the island** or the × at the top right brings the island back.
 
 - **Left column:** Slime, then your chats: new chat, search, folders (drag a chat onto a folder)
   and recent chats.

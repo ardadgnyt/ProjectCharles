@@ -84,6 +84,8 @@ export const english072: Record<string, string> = {
   'E-posta': 'Email',
   '(Konusuz)': '(No subject)',
   'Okunuyor…': 'Reading…',
+  'Son bilinen değer': 'Last known value',
+  'Adacığa dön · Shift ile tıkla: Charles’tan çık': 'Back to the island · Shift-click: quit Charles',
   // WhatsApp
   'Yazarak veya sesli “WhatsApp’tan Ahmet’e yarın geliyorum mesajını at” de. Charles, WhatsApp Desktop’ta kişinin sohbetini mesajınla açar. Kayıtlı olmayan kişide WhatsApp açılır, kişiyi sen seçersin. Numaralar sadece bu bilgisayarda tutulur.':
     'Type or say “Send Ahmet ‘I’m coming tomorrow’ on WhatsApp”. Charles opens the contact’s chat in WhatsApp Desktop with your message. For an unsaved contact WhatsApp opens and you pick the person. Numbers stay on this computer.',

@@ -42,6 +42,36 @@ const MODELS = [
   ['claude:opus', 'Claude · Opus'],
   ['claude:haiku', 'Claude · Haiku'],
 ];
+// v0.7.3: Cursor's own models (Composer, Grok) next to Auto. The list comes from the signed-in
+// account (`cursor-agent models`); only the Composer and Grok families are offered.
+const CURSOR_FALLBACK = [['composer-2.5', 'Composer 2.5']];
+const stripAnsi = (s) => String(s || '').replace(/\x1b\[[0-9;?]*[ -\/]*[@-~]/g, '');
+function prettyCursorName(id) {
+  return id
+    .split('-')
+    .map((w) => (/^\d/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join(' ')
+    .replace(/^Grok (\d)/, 'Grok $1');
+}
+/** `cursor-agent models` output → [[id, name]] for the Composer and Grok models. */
+function parseCursorModels(text) {
+  const out = [];
+  const seen = new Set();
+  for (const raw of stripAnsi(text).split(/\r?\n/)) {
+    const line = raw.replace(/^[\s*•>\-–]+/, '').trim();
+    const m = line.match(/^([a-z0-9][a-z0-9._-]*)(?:\s+[-–—:|]\s+(.+?))?\s*$/i);
+    if (!m) continue;
+    const id = m[1].toLowerCase();
+    if (!/^(composer|grok)(?:[-.]|$)/.test(id) || seen.has(id)) continue;
+    seen.add(id);
+    const name = String(m[2] || '')
+      .replace(/\s*\((?:current|default|selected)[^)]*\)\s*/gi, ' ')
+      .trim();
+    out.push([id, name || prettyCursorName(id)]);
+    if (out.length >= 12) break;
+  }
+  return out;
+}
 function subscriptionEnv(env, dir) {
   const result = { ...env };
   for (const k of Object.keys(result))
@@ -81,6 +111,13 @@ class Providers {
     for (const p of ['claude', 'gemini/.gemini', 'workspace'])
       fs.mkdirSync(path.join(this.dir, p), { recursive: true });
     this.env = subscriptionEnv(process.env, this.dir);
+    try {
+      const saved = JSON.parse(fs.readFileSync(path.join(this.dir, 'cursor-models.json'), 'utf8'));
+      if (Array.isArray(saved))
+        this.cursorModels = saved.filter(
+          (x) => Array.isArray(x) && /^(composer|grok)[a-z0-9._-]*$/.test(x[0]) && typeof x[1] === 'string',
+        );
+    } catch {}
     this.enabledFile = path.join(this.dir, 'enabled.json');
     try {
       this.enabled = JSON.parse(fs.readFileSync(this.enabledFile, 'utf8'));
@@ -205,8 +242,35 @@ class Providers {
       installed: fs.existsSync(this.spec(id).exe),
     }));
   }
+  /** Every selectable model, with Cursor's Composer/Grok models from the account. */
+  allModels() {
+    const cursor = (this.cursorModels && this.cursorModels.length ? this.cursorModels : CURSOR_FALLBACK).map(
+      ([id, name]) => ['cursor:' + id, 'Cursor · ' + name],
+    );
+    return [MODELS[0], ...cursor, ...MODELS.slice(1)];
+  }
+  /** Reads the Composer/Grok models of the signed-in Cursor account (cached on disk). */
+  async refreshCursorModels() {
+    const spec = this.spec('cursor');
+    if (!fs.existsSync(spec.exe)) return this.cursorModels;
+    const { error, out } = await runOffThread(spec.exe, [...spec.args, 'models'], {
+      cwd: path.join(this.dir, 'workspace'),
+      env: this.env,
+      windowsHide: true,
+      timeout: 20000,
+      maxBuffer: 1024 * 1024,
+    });
+    const list = error ? [] : parseCursorModels(out);
+    if (list.length) {
+      this.cursorModels = list;
+      try {
+        fs.writeFileSync(path.join(this.dir, 'cursor-models.json'), JSON.stringify(list));
+      } catch {}
+    }
+    return this.cursorModels;
+  }
   models() {
-    return MODELS.filter(([id]) => this.auth[id.split(':')[0]]).map(([id, name]) => ({
+    return this.allModels().filter(([id]) => this.auth[id.split(':')[0]]).map(([id, name]) => ({
       id,
       name,
       isDefault: false,
@@ -296,6 +360,8 @@ class Providers {
         this.auth[id] = value;
       }
       this.authChecked = Date.now();
+      // v0.7.3: Cursor's Composer and Grok models (in the background, the list is cached)
+      if (this.auth.cursor) void this.refreshCursorModels().catch(() => {});
       return this.status();
     })();
     try {
@@ -374,7 +440,7 @@ class Providers {
     );
   }
   async send(agent, args) {
-    if (!MODELS.some(([id]) => id === args.model)) throw Error('Model bulunamadı.');
+    if (!this.allModels().some(([id]) => id === args.model)) throw Error('Model bulunamadı.');
     const [provider, model] = args.model.split(':');
     await this.refreshAuth();
     if (!this.auth[provider]) throw Error('Önce ayarlardan bu sağlayıcıyı bağla.');
@@ -455,6 +521,9 @@ class Providers {
       finished = true;
       clearTimeout(timeout);
       this.jobs.delete(agent);
+      // v0.7.3: the Claude CLI renews its session while answering, so the quota can be read
+      // again with the fresh token right away
+      if (provider === 'claude') this.claudeUsage.invalidate();
       let text = '';
       if (!error) {
         try {
@@ -606,4 +675,5 @@ module.exports = {
   Providers,
   subscriptionEnv,
   MODELS,
+  parseCursorModels,
 };

@@ -431,7 +431,7 @@ export function workspaceDashboard(d: DashboardDeps) {
           c.col.classList.toggle('off', !u.fiveHour && !u.weekly);
           setRing(c.five, u.fiveHour, u.labels?.fiveHour || '5 saatlik');
           setRing(c.week, u.weekly, u.labels?.weekly || 'Haftalık');
-          c.note.textContent = !u.fiveHour && !u.weekly ? u.unavailable || 'Bilgi yok' : '';
+          c.note.textContent = !u.fiveHour && !u.weekly ? u.unavailable || 'Bilgi yok' : u.stale ? 'Son bilinen değer' : '';
         } catch (err) {
           c.col.classList.add('off');
           c.note.textContent = (err as Error).message.slice(0, 60);

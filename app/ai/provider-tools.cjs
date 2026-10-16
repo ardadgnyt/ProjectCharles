@@ -91,6 +91,8 @@ function launchPlan({ provider, model, mode, access, projectDir, workspace }) {
   // never answers (v0.7.0 fix). It trusts only this folder: Charles' own empty workspace in
   // chat mode, or the project folder the user picked. It is not --force / --yolo.
   const cli = ['-p', '--output-format', 'json', '--trust', '--workspace', cwd];
+  // v0.7.3: Composer / Grok; "auto" leaves the choice to Cursor
+  if (model && model !== 'auto' && /^[a-z0-9][a-z0-9._-]*$/.test(model)) cli.push('--model', model);
   if (!tools) cli.push('--mode', 'ask');
   else if (level === 'ask') cli.push('--mode', 'plan');
   else cli.push('--sandbox', 'enabled');

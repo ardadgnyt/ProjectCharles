@@ -1070,4 +1070,6 @@ export const chinese: Record<string, string> = {
   "remove": "移除",
   "change location": "更改位置",
   "Command": "命令",
+  "Last known value": "最近一次读取的值",
+  "Back to the island · Shift-click: quit Charles": "返回灵动岛 · Shift+点击：退出 Charles",
 };

@@ -1,8 +1,16 @@
 # ProjectCharles — Yama notları
 
-Charles’ın ilk masaüstü sürümünden v0.7.2 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+Charles’ın ilk masaüstü sürümünden v0.7.3 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.7.3 Beta — 16 Ekim 2026
+
+- **Cursor modelleri:** model listesinde Cursor · Auto’nun yanında hesabındaki **Composer** ve **Grok** modelleri de var. Liste Cursor hesabından okunur ve saklanır; okunamazsa Composer 2.5 gösterilir.
+- **Yan panel:** kod ve terminal sekmeleri ilk 10 satırdan sonra kesiliyordu (genel `pre` kuralındaki 200 px sınırı). Artık dosyanın tamamı görünür ve aşağı kaydırılır.
+- **Claude kalan kullanımı:** oturum yenilenmediğinde eski bir okuma (“%5 · şimdi” gibi, sıfırlama zamanı geçmiş) gerçek değer gibi gösteriliyordu. Sıfırlama zamanı geçmiş eski değerler artık gösterilmiyor; kalanlar “Son bilinen değer” notuyla görünür. Oturum reddedilirse Claude aracı oturumu yeniler ve bir kez daha denenir; her Claude yanıtından sonra kullanım taze oturumla yeniden okunur.
+- **× düğmesi:** büyük paneldeki × artık Charles’ı kapatmıyor, adacığa döndürüyor (uygulama penceresinde de). Charles’tan çıkmak için Shift + × veya sistem tepsisindeki (saatin yanı) Charles simgesi → Çıkış.
+- Yeni testler: Cursor model listesi, Claude kullanımının tazeliği, yan panel yüksekliği, × davranışı (toplam 210 test).
 
 ## v0.7.2 Beta — 16 Ekim 2026
 

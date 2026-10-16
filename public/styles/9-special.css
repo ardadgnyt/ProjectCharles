@@ -2438,6 +2438,9 @@ body:not(.workspace) .code-tools .code-panel {
   margin: 0;
   font: inherit;
   white-space: pre;
+  /* v0.7.3: the global pre rule (max-height 200px) cut the panel after ~10 lines */
+  max-height: none;
+  overflow: visible;
 }
 .ws-gutter {
   padding: 0 14px 0 16px;
@@ -2452,6 +2455,8 @@ body:not(.workspace) .code-tools .code-panel {
 .ws-term {
   margin: 0;
   min-height: 100%;
+  max-height: none;
+  overflow: visible;
   padding: 14px 16px;
   color: #d8e6d6;
   background: #0b0c0e;

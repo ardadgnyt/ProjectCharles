@@ -1070,4 +1070,6 @@ export const german: Record<string, string> = {
   "remove": "entfernen",
   "change location": "Ort ändern",
   "Command": "Befehl",
+  "Last known value": "Letzter bekannter Wert",
+  "Back to the island · Shift-click: quit Charles": "Zurück zur Insel · Umschalt-Klick: Charles beenden",
 };

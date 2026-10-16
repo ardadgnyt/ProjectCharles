@@ -105,12 +105,30 @@ class ClaudeUsage {
       fs.writeFileSync(this.cacheFile, JSON.stringify(value));
     } catch {}
   }
+  /**
+   * v0.7.3: the last good reading, without the windows that have reset since. Old numbers
+   * whose reset time has passed (e.g. "5% left · resets now") are wrong, not just old.
+   */
+  staleCopy(reason = 'Oturum yenilenince görünecek') {
+    if (!this.good) return null;
+    const now = this.now() / 1000;
+    const fresh = (w) => (w && (!w.resetsAt || w.resetsAt > now) ? w : null);
+    const fiveHour = fresh(this.good.fiveHour);
+    const weekly = fresh(this.good.weekly);
+    if (!fiveHour && !weekly) return null;
+    return { ...this.good, fiveHour, weekly, stale: true, staleReason: reason, updatedAt: this.now() };
+  }
+  /** Forget the cached reading (after a Claude chat the CLI has a fresh session). */
+  invalidate() {
+    this.cache = null;
+    this.backoffUntil = 0;
+  }
   async read(force = false) {
     if (this.pending) return this.pending;
     if (!force && this.cache && this.now() - this.cache.updatedAt < 60000) return this.cache;
     // After a "too many requests" answer, wait before asking again.
     if (this.now() < (this.backoffUntil || 0))
-      return this.good ? { ...this.good, stale: true } : this.unavailable('Birazdan yenilenecek');
+      return this.staleCopy('Birazdan yenilenecek') || this.unavailable('Birazdan yenilenecek');
     this.pending = this.load()
       .then((value) => {
         if (!value.unavailable) {
@@ -119,14 +137,16 @@ class ClaudeUsage {
         }
         // Keep the last good numbers through temporary failures (network, rate limit,
         // a session the CLI has not renewed yet) instead of blanking the gauges.
-        if (this.good && value.unavailable !== 'Claude hesabı bağlı değil')
-          return (this.cache = { ...this.good, stale: true, updatedAt: this.now() });
+        if (this.good && value.unavailable !== 'Claude hesabı bağlı değil') {
+          const old = this.staleCopy(value.unavailable);
+          if (old) return (this.cache = old);
+        }
         return value;
       })
       .finally(() => (this.pending = null));
     return this.pending;
   }
-  async load() {
+  async load(retry = true) {
     let credentials = readCredentials(this.configDir);
     if (credentials && credentials.expiresAt && credentials.expiresAt < this.now() + 60000) {
       this.log('claude token expiring; asking CLI to renew');
@@ -146,8 +166,15 @@ class ClaudeUsage {
         signal: AbortSignal.timeout(15000),
       });
       this.log('claude usage status', response.status);
-      if (response.status === 401 || response.status === 403)
+      if (response.status === 401 || response.status === 403) {
+        // the token was revoked or renewed elsewhere: let the CLI renew it and try once more
+        if (retry) {
+          await this.refreshSession?.().catch(() => {});
+          const next = readCredentials(this.configDir);
+          if (next && next.accessToken !== credentials.accessToken) return this.load(false);
+        }
         return (this.cache = this.unavailable('Oturum yenilenince görünecek'));
+      }
       if (response.status === 429) {
         const wait = Number(response.headers?.get?.('retry-after')) || 300;
         this.backoffUntil = this.now() + Math.min(3600, Math.max(60, wait)) * 1000;
