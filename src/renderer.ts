@@ -36,6 +36,9 @@ import { updateMarkdown, messageSource, setQuestionHandler } from './chat/markdo
 import { questionCard } from './chat/ai-questions';
 import { steerUI } from './chat/steer';
 import { settingsPolish } from './settings/polish-070';
+import { workspaceUI as appWindowUI } from './workspace/workspace';
+import { gcalCard } from './settings/gcal-card';
+import { whatsappCard } from './settings/whatsapp-card';
 import { accountTab } from './settings/account-tab';
 import { textReaction, answerReaction, isRateLimit } from './chat/reactions';
 
@@ -389,7 +392,7 @@ window.setInterval(() => {
 function controls() {
   $<HTMLButtonElement>('sessions-toggle').disabled = dispatching;
   const steering = busy && !dispatching;
-  $<HTMLButtonElement>('send').disabled = demo || (busy && !(steering && prompt.value.trim()));
+  $<HTMLButtonElement>('send').disabled = demo || (busy && !prompt.value.trim());
   $('send').title = steering ? t('Ek talimat gönder · Ctrl+Enter') : '';
   document.body.classList.toggle('steering', steering);
   mode.disabled = busy;
@@ -535,10 +538,17 @@ feed.addEventListener('click', (e) => {
   if (action) {
     e.preventDefault();
     const message = action.closest<HTMLElement>('.message')!;
+    const block = action.closest<HTMLElement>('.code-block');
     const text =
-      action.dataset.answerAction === 'code'
-        ? action.closest('pre')?.querySelector('code')?.textContent || ''
+      action.dataset.answerAction === 'code' || action.dataset.answerAction === 'code-panel'
+        ? (block || action.closest('pre'))?.querySelector('code')?.textContent || ''
         : messageSource(message);
+    if (action.dataset.answerAction === 'code-panel') {
+      document.dispatchEvent(
+        new CustomEvent('charles-code-panel', { detail: { code: text, language: block?.dataset.language || '' } }),
+      );
+      return;
+    }
     if (action.dataset.answerAction === 'speak') void voice.read(text);
     else
       void attempt(async () => {
@@ -639,6 +649,8 @@ function activity(item: any) {
         ? [item.command, item.cwd, item.aggregatedOutput].filter(Boolean).join('\n').slice(-100000)
         : JSON.stringify(item, null, 2).slice(-100000);
   feed.scrollTop = feed.scrollHeight;
+  // v0.7.2: the app window's side panel shows written files and terminal output
+  document.dispatchEvent(new CustomEvent('charles-activity', { detail: { item, replaying } }));
 }
 function requestCard(r: any) {
   if (requests.has(r.id)) return;
@@ -779,6 +791,8 @@ async function populateModels() {
   const generation = ++modelRefresh;
   const list = await api.models();
   if (generation !== modelRefresh) return;
+  // keep the current list when nothing came back but models were already listed
+  if (!list.length && [...model.options].some((o) => o.value)) return;
   const old = model.value || defaultModel;
   model.replaceChildren();
   const gpt = list.filter(
@@ -868,6 +882,7 @@ function event(e: any) {
         busy = true;
         state('thinking', readingDocument ? 'Belgeyi okuyorum 📖' : 'Düşünüyorum…');
         controls();
+        if (!replaying) void steer.started();
       }
       if (!replaying && method === 'item/completed') voice.item(p.item);
       if (method === 'item/started' || method === 'item/completed') {
@@ -912,7 +927,7 @@ function event(e: any) {
         for (const node of feed.querySelectorAll<HTMLElement>('.image-generating'))
           showFailed(
             node,
-            document.documentElement.lang === 'en'
+            document.documentElement.lang !== 'tr'
               ? 'Image generation ended.'
               : 'Görsel oluşturma sona erdi.',
           );
@@ -949,6 +964,8 @@ function event(e: any) {
         // an error they come back into the message box to be edited or sent again.
         if (!replaying) {
           if (status === 'completed') window.setTimeout(sendQueued, 500);
+          // "Şimdi" stopped the answer on purpose: send the queued instruction right away.
+          else if (steer.takeInterjection()) window.setTimeout(sendQueued, 300);
           else {
             const queued = steer.take();
             if (queued) prompt.value = prompt.value ? prompt.value + '\n' + queued : queued;
@@ -1028,9 +1045,17 @@ micPrivacyUI(api, notice);
 wakeUI(api, () => busy || voice.active(), notice);
 wakeTraining(api, notice);
 pluginsUI(api, notice);
+gcalCard(api, notice);
+whatsappCard(api, notice);
 settingsCards();
 languageUI(api);
 accountTab(api, notice);
+// v0.7.1 SpecialBeta: the workspace (app) window
+appWindowUI({
+  api,
+  notice,
+  version: document.querySelector('.version-label')?.textContent?.trim() || '',
+});
 settingsPolish();
 document.addEventListener('charles-startup-model', (e: any) => {
   startupModel = e.detail;
@@ -1194,6 +1219,12 @@ $('composer').addEventListener('submit', (e) => {
       await steer.send(prompt.value);
       return;
     }
+    // v0.7.1 SpecialBeta: while the previous message is still being sent, keep this one
+    // (it used to be ignored silently).
+    if (busy && dispatching && !demo && prompt.value.trim()) {
+      steer.hold(prompt.value);
+      return;
+    }
     if (busy || demo || voice.active()) return;
     const text = prompt.value.trim();
     if (!text) return;
@@ -1300,6 +1331,10 @@ const steer = steerUI({
   },
   notice,
   t,
+  running: () => busy && !dispatching,
+  interrupt: async () => {
+    await api.interrupt();
+  },
 });
 // After an answer, send what was queued meanwhile.
 function sendQueued() {
@@ -1380,6 +1415,15 @@ const proposals = proposalsUI({
 // Kota bekçisi: under 10 % left → suggest another connected provider's model.
 const quotaProvider = (v: string) => (/^(gemini|claude|cursor):/.test(v) ? v.split(':')[0] : 'gpt');
 function onLowQuota(q: LowQuota) {
+  // v0.7.2: the model list may not be filled yet (or a refresh failed): read it first, so the
+  // other connected AIs are offered instead of "no other AI".
+  if ([...model.options].filter((o) => o.value).length === 0)
+    void populateModels()
+      .catch(() => {})
+      .then(() => lowQuota(q));
+  else lowQuota(q);
+}
+function lowQuota(q: LowQuota) {
   const seen = new Set<string>([q.provider]);
   const alternatives: HTMLOptionElement[] = [];
   for (const o of Array.from(model.options)) {

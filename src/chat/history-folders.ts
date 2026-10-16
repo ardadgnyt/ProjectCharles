@@ -1,3 +1,6 @@
+export const FOLDER_ICON =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.2c0-1 .8-1.7 1.7-1.7h4.1l2 2.2h7.5c1 0 1.7.8 1.7 1.7v8.4c0 1-.8 1.7-1.7 1.7H5.2c-1 0-1.7-.8-1.7-1.7Z"/><path d="M3.5 10h17"/></svg>';
+
 export function historyFolders(
   api: any,
   open: (id: string) => Promise<void>,
@@ -170,12 +173,22 @@ export function historyFolders(
       row.dataset.folderId = f.id;
       draggable(row, 'folder', f.id);
       drop(row, f.id);
-      const enter = button('▸ ' + f.name, async () => {
+      // v0.7.1 SpecialBeta: a folder icon (like the projects in Claude and Codex) instead of
+      // the side arrow, so folders and chats are told apart at a glance.
+      const enter = button('', async () => {
         current = f.id;
         search.value = '';
         paint();
-      });
+      }, f.name);
       enter.className = 'folder-open';
+      const icon = document.createElement('span');
+      icon.className = 'folder-icon';
+      icon.innerHTML = FOLDER_ICON;
+      const name = document.createElement('span');
+      name.className = 'folder-name';
+      name.translate = false;
+      name.textContent = f.name;
+      enter.append(icon, name);
       const count = document.createElement('small');
       count.className = 'folder-count';
       count.textContent = String(state.rooms.filter((r: any) => r.folderId === f.id).length);

@@ -1,5 +1,6 @@
 import { paintSoundButton } from '../ui/sound-button';
 import { historyFolders } from '../chat/history-folders';
+import { setRoomActions } from '../workspace/bridge';
 import { animationLoop } from '../island/animation-loop';
 import { Sound } from '../vendor/core/sound';
 import { BotEngine, hexToRGB } from '../vendor/slime/engine';
@@ -230,14 +231,25 @@ export function extraUI(
       $('prompt').focus();
     });
   });
-  const renderHistory = historyFolders(
-    api,
-    async (id) => {
+  const openRoom = async (id: string) => {
+    files = [];
+    attachments();
+    closeRooms();
+    await switchRoom(await api.sessionSelect(id));
+  };
+  // v0.7.1 SpecialBeta: the workspace window opens and starts chats the same way.
+  setRoomActions({
+    open: openRoom,
+    create: async () => {
       files = [];
       attachments();
       closeRooms();
-      await switchRoom(await api.sessionSelect(id));
+      await switchRoom(await api.sessionNew());
     },
+  });
+  const renderHistory = historyFolders(
+    api,
+    openRoom,
     async (result) => {
       closeRooms();
       await switchRoom(result);
@@ -253,6 +265,7 @@ export function extraUI(
     s.replaceChildren();
     for (const r of rooms) s.add(new Option(r.name, r.id, false, r.active));
     renderHistory();
+    document.dispatchEvent(new CustomEvent('charles-rooms', { detail: rooms }));
   }
   $('sessions').onchange = () =>
     attempt(async () => {

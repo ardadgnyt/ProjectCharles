@@ -10,6 +10,13 @@ const OAUTH = {
     scope:
       'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly',
   },
+  // v0.7.1 SpecialBeta: Google Takvim with write access (add events). Uses the same Google
+  // OAuth client as the Google plugin; only the calendar permission is asked.
+  gcal: {
+    authorize: 'https://accounts.google.com/o/oauth2/v2/auth',
+    token: 'https://oauth2.googleapis.com/token',
+    scope: 'https://www.googleapis.com/auth/calendar.events',
+  },
   microsoft: {
     authorize: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
     token: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
@@ -90,9 +97,9 @@ class Plugins {
         ]),
       ),
       connected: Object.fromEntries(
-        ['google', 'microsoft', 'home', 'school'].map((id) => [
+        ['google', 'gcal', 'microsoft', 'home', 'school'].map((id) => [
           id,
-          id === 'google' || id === 'microsoft'
+          id === 'google' || id === 'microsoft' || id === 'gcal'
             ? !!this.data.tokens[id]
             : !!this.data.configs[id]?.[id === 'home' ? 'token' : 'password'],
         ]),
@@ -157,10 +164,20 @@ class Plugins {
     return this.status();
   }
   disconnect(id) {
-    if (!['google', 'microsoft', 'home', 'school'].includes(id)) throw Error('Invalid plugin');
+    if (!['google', 'gcal', 'microsoft', 'home', 'school'].includes(id)) throw Error('Invalid plugin');
     this.epoch[id] = (this.epoch[id] || 0) + 1;
     this.pending.get(id)?.();
     delete this.data.tokens[id];
+    if (id === 'gcal') {
+      this.cache = {};
+      this.save();
+      return this.status();
+    }
+    // Google Takvim uses the Google client: removing Google removes it too
+    if (id === 'google') {
+      this.epoch.gcal = (this.epoch.gcal || 0) + 1;
+      delete this.data.tokens.gcal;
+    }
     delete this.data.configs[id];
     for (const kind of id === 'google'
       ? ['gmail', 'calendar', 'drive']
@@ -211,11 +228,20 @@ class Plugins {
       return r.json();
     }
   }
+  /** OAuth client settings; Google Takvim shares the Google plugin's client. */
+  oauthConfig(id) {
+    return this.data.configs[id] || (id === 'gcal' ? this.data.configs.google : undefined);
+  }
   async login(id) {
     if (!OAUTH[id]) throw Error('Invalid OAuth provider');
     if (this.pending.has(id)) throw Error('Login already open');
-    const c = this.data.configs[id];
-    if (!c?.clientId) throw Error('Save OAuth Client ID first');
+    const c = this.oauthConfig(id);
+    if (!c?.clientId)
+      throw Error(
+        id === 'gcal'
+          ? 'Önce yukarıdaki Google eklentisini “Charles ile kur” ile kur; Google Takvim aynı uygulama kaydını kullanır.'
+          : 'Save OAuth Client ID first',
+      );
     const epoch = this.epoch[id] || 0,
       state = crypto.randomBytes(24).toString('hex'),
       verifier = crypto.randomBytes(32).toString('base64url'),
@@ -286,7 +312,7 @@ class Plugins {
           state,
           code_challenge: crypto.createHash('sha256').update(verifier).digest('base64url'),
           code_challenge_method: 'S256',
-          ...(id === 'google' ? { access_type: 'offline', prompt: 'consent' } : {}),
+          ...(id === 'google' || id === 'gcal' ? { access_type: 'offline', prompt: 'consent' } : {}),
         }).toString();
         void this.open(url.href).catch(finish);
       });
@@ -297,7 +323,7 @@ class Plugins {
     let t = this.data.tokens[id];
     if (!t) throw Error('Hesap bağlı değil. Ayarlar → Eklentiler bölümünde ilgili hesabı bağla.');
     if (t.expires > Date.now() + 60000) return t.access_token;
-    const c = this.data.configs[id],
+    const c = this.oauthConfig(id),
       epoch = this.epoch[id] || 0;
     if (!t.refresh_token) throw Error('Reconnect account');
     const next = await this.json(OAUTH[id].token, {
@@ -405,7 +431,7 @@ class Plugins {
         end = new Date(+now + 7 * 86400000);
       if (kind === 'calendar') {
         const d = await this.get(
-          'google',
+          this.data.tokens.gcal ? 'gcal' : 'google',
           'https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=50&timeMin=' +
             encodeURIComponent(now.toISOString()) +
             '&timeMax=' +
@@ -477,6 +503,7 @@ class Plugins {
         title: s.attributes?.friendly_name || s.entity_id,
         text: s.state,
         date: s.last_changed,
+        unit: typeof s.attributes?.unit_of_measurement === 'string' ? s.attributes.unit_of_measurement : '',
       }));
     } else throw Error('Unknown plugin');
     this.cache[kind] = rows;
@@ -750,15 +777,107 @@ class Plugins {
     }
     return { ...row, text: text.slice(0, 30000) };
   }
+  // v0.7.1 SpecialBeta: the workspace calendar shows a whole month and can add events.
+  async calendarRange(from, to) {
+    const id = this.data.tokens.gcal ? 'gcal' : this.data.tokens.google ? 'google' : null;
+    if (!id) return [];
+    const a = new Date(from),
+      b = new Date(to);
+    if (Number.isNaN(+a) || Number.isNaN(+b) || b <= a || b - a > 100 * 86400000)
+      throw Error('Geçersiz tarih aralığı.');
+    const d = await this.get(
+      id,
+      'https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=250&timeMin=' +
+        encodeURIComponent(a.toISOString()) +
+        '&timeMax=' +
+        encodeURIComponent(b.toISOString()),
+    );
+    return (d.items || [])
+      .filter((m) => m.status !== 'cancelled')
+      .map((m) => ({
+        id: m.id,
+        title: m.summary || 'Etkinlik',
+        date: m.start?.dateTime || m.start?.date,
+        end: m.end?.dateTime || m.end?.date,
+        allDay: !m.start?.dateTime,
+        description: String(m.description || '').slice(0, 2000),
+        reminder: m.reminders?.useDefault === false ? (m.reminders.overrides?.[0]?.minutes ?? null) : undefined,
+        kind: 'calendar',
+      }));
+  }
+  /** The Google event body for an add or an edit (v0.7.2: end time, note, reminder). */
+  eventBody(ev) {
+    const title = String(ev?.title || '').trim().slice(0, 200);
+    if (!title) throw Error('Etkinliğe bir ad ver.');
+    const start = new Date(ev.start);
+    if (Number.isNaN(+start)) throw Error('Geçerli bir başlangıç zamanı seç.');
+    const allDay = !!ev.allDay;
+    const day = (d) =>
+      d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    let end = ev.end ? new Date(ev.end) : null;
+    if (!end || Number.isNaN(+end) || end <= start)
+      end = new Date(+start + Math.max(5, Math.min(24 * 60, Number(ev.minutes) || 60)) * 60000);
+    const body = allDay
+      ? { summary: title, start: { date: day(start) }, end: { date: day(new Date(+start + 86400000)) } }
+      : { summary: title, start: { dateTime: start.toISOString() }, end: { dateTime: end.toISOString() } };
+    if (ev.description !== undefined) body.description = String(ev.description || '').slice(0, 2000);
+    if (ev.reminder !== undefined)
+      body.reminders =
+        ev.reminder === null || ev.reminder === ''
+          ? { useDefault: true }
+          : { useDefault: false, overrides: [{ method: 'popup', minutes: Math.max(0, Math.min(40320, Number(ev.reminder) || 0)) }] };
+    return body;
+  }
+  async calendarUpdate(id, ev) {
+    if (!this.data.tokens.gcal) throw Error('Etkinlik düzenlemek için Ayarlar → Eklentiler → Google Takvim’i bağla.');
+    if (typeof id !== 'string' || !/^[\w-]{1,200}$/.test(id)) throw Error('Geçersiz etkinlik.');
+    const r = await this.json('https://www.googleapis.com/calendar/v3/calendars/primary/events/' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + (await this.token('gcal')), 'Content-Type': 'application/json' },
+      body: JSON.stringify(this.eventBody(ev)),
+    });
+    delete this.cache.calendar;
+    return { id: r.id, title: r.summary };
+  }
+  async calendarDelete(id) {
+    if (!this.data.tokens.gcal) throw Error('Etkinlik silmek için Ayarlar → Eklentiler → Google Takvim’i bağla.');
+    if (typeof id !== 'string' || !/^[\w-]{1,200}$/.test(id)) throw Error('Geçersiz etkinlik.');
+    const r = await this.fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + (await this.token('gcal')) },
+      redirect: 'error',
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!r.ok && r.status !== 410 && r.status !== 404) throw Error('Etkinlik silinemedi (HTTP ' + r.status + ').');
+    delete this.cache.calendar;
+    return true;
+  }
+  async calendarAdd(ev) {
+    if (!this.data.tokens.gcal)
+      throw Error('Etkinlik eklemek için Ayarlar → Eklentiler → Google Takvim’i bağla.');
+    const body = this.eventBody(ev);
+    const r = await this.json('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + (await this.token('gcal')),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    delete this.cache.calendar;
+    return { id: r.id, title: r.summary, date: r.start?.dateTime || r.start?.date, link: r.htmlLink || null };
+  }
   async homeAction(entity, action, signal) {
     if (!/^[a-z_]+\.[a-zA-Z0-9_]+$/.test(entity)) throw Error('Invalid entity');
     const domain = entity.split('.')[0],
       allowed = {
         light: ['turn_on', 'turn_off', 'toggle'],
         switch: ['turn_on', 'turn_off', 'toggle'],
+        input_boolean: ['turn_on', 'turn_off', 'toggle'],
         fan: ['turn_on', 'turn_off'],
         media_player: ['media_play', 'media_pause', 'turn_on', 'turn_off'],
         cover: ['open_cover', 'close_cover', 'stop_cover'],
+        climate: ['turn_on', 'turn_off'],
         lock: ['lock', 'unlock'],
         scene: ['turn_on'],
         script: ['turn_on'],
@@ -781,7 +900,8 @@ class Plugins {
     this.log?.('poll start');
     try {
       const kinds = [
-        ...(this.data.tokens.google ? ['gmail', 'calendar'] : []),
+        ...(this.data.tokens.google ? ['gmail'] : []),
+        ...(this.data.tokens.google || this.data.tokens.gcal ? ['calendar'] : []),
         ...(this.data.tokens.microsoft ? ['outlook', 'outlook-calendar'] : []),
         ...(this.data.configs.school ? ['school'] : []),
       ];

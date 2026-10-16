@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.7.1%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.7.2%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
   <img alt="Languages" src="https://img.shields.io/badge/UI-English%20%7C%20T%C3%BCrk%C3%A7e-2b2f3a?style=flat-square">
@@ -52,6 +52,16 @@ tiny laptop while the AI writes code, and gets dizzy if you shake it too hard.
   finish.
 - **Browser commands:** say or type *“search the web for …”* or *“play … on YouTube”* and
   Charles opens it in your default browser.
+- **WhatsApp:** say or type *“send Ahmet ‘I’m coming tomorrow’ on WhatsApp”*. Charles opens the
+  chat in WhatsApp Desktop with your message, and can send it right away to contacts you saved
+  in Settings → Plugins → WhatsApp.
+- **App window:** turn the island into a full Windows app with a chat list in folders, an
+  overview (Spotify, reminders, calendar, important mail, smart home, remaining usage) and a
+  roomy chat with a **side panel** for files, code and terminal output. Open files in VS Code,
+  GitHub Desktop, the Terminal or your default app; select lines to add them to the chat or ask
+  for an edit.
+- **Copy boxes:** text meant to be copied — a message draft, a command, code — comes in its own
+  box with a copy button and syntax colours.
 - **Set up with Charles:** Slime walks you through connecting ChatGPT, Claude, Gemini, Cursor,
   Google, Microsoft and the Gemini Live API key, step by step. Connected accounts and plugins
   show a clear “✓ connected” state.
@@ -59,6 +69,9 @@ tiny laptop while the AI writes code, and gets dizzy if you shake it too hard.
   work mailbox. Important emails appear as a bubble under the island. Ask
   *“Do I have any important emails?”* and Charles summarises them, or search by word and date:
   *“find emails from John last week”*. It can also turn a deadline into a calendar reminder.
+- **Calendar and smart home editors:** a big month/week calendar to add, edit and delete
+  events (synced with Google Calendar), public holidays for your language's country, and a
+  drag-and-drop layout for your Home Assistant devices.
 - **Built-in helpers:** reminders and focus timers, weather (Open-Meteo), Spotify controls,
   screen-region capture (Ctrl + Shift + S), a memory you control, a weekly activity summary,
   and Home Assistant. (A GitHub connection is planned for a later version.)
@@ -69,12 +82,13 @@ tiny laptop while the AI writes code, and gets dizzy if you shake it too hard.
   with a magnifier, coding on a laptop, drawing, getting an idea 💡 and more.
 - **Slime studio:** seven colours, an optional moustache, and hats, glasses and other
   accessories you can mix and match — from a party hat, beanie and crown to headphones, a
-  pirate eye patch, a bow tie, a cat collar with a bell and an arrow stuck in the jelly.
+  pirate eye patch, a bow tie, a leash and an arrow stuck in the jelly.
   Seasonal hats appear on their own. Sunglasses slide up
   onto the forehead when Slime makes a face.
 - **Desktop pet:** drag Slime off the island onto your desktop. Throw it and it flies, bounces
   off the screen edges and wobbles like jelly. Poke it with the cursor and it shivers.
-- A friendly welcome tour on first launch, plus a full **English and Turkish** interface.
+- A friendly welcome tour on first launch, and an interface in **Turkish, English, German,
+  French, Spanish and Simplified Chinese**.
 
 ## Screenshots
 
@@ -99,7 +113,7 @@ tiny laptop while the AI writes code, and gets dizzy if you shake it too hard.
 1. Download the installer kit from [**Releases**](../../releases). It contains `Install.cmd`,
    `install.ps1` and `Charles.zip`.
 2. Extract it and double-click **`Install.cmd`**.
-3. The installer checks your Windows, copies Charles to `C:\ProjectCharles v0.7.1 Beta` (you
+3. The installer checks your Windows, copies Charles to `C:\ProjectCharles v0.7.2 Beta` (you
    can choose another folder), creates Desktop and Start menu shortcuts, and starts Charles.
 4. In Charles, sign in with the AI account you want to use (**Settings → AI models**).
 

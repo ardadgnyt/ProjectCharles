@@ -120,7 +120,7 @@ test('wardrobe: five new accessories in their slots, accepted by the personal st
     assert.ok(w.OUTFIT_KEYS[k], k);
   }
   const island = read('src/island/wardrobe.ts');
-  for (const label of ['Kulaklık', 'Korsan göz bandı', 'Papyon', 'Çanlı kedi tasması', 'Batmış ok'])
+  for (const label of ['Kulaklık', 'Korsan göz bandı', 'Papyon', 'Tasma', 'Batmış ok'])
     assert.ok(island.includes(label), label);
   const { Personal } = require('../app/personal/personal.cjs');
   const p = new Personal(tmp());

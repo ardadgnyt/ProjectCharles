@@ -239,16 +239,28 @@ class Agent extends EventEmitter {
   // v0.7.0: add an instruction to the running turn (Codex app-server turn/steer).
   async steer(text) {
     this.requireReady();
+    // v0.7.1 SpecialBeta: right after sending, turn/start may not have answered yet; wait a
+    // moment for the turn id instead of refusing (the message used to fall back to the queue).
+    for (let i = 0; this.busy && !this.turnId && i < 40; i++)
+      await new Promise((resolve) => setTimeout(resolve, 100));
     if (!this.busy || !this.turnId || !this.threadId) throw Error('Şu an çalışan bir iş yok.');
-    const r = await this.rpc.request(
-      'turn/steer',
-      {
-        threadId: this.threadId,
-        expectedTurnId: this.turnId,
-        input: [{ type: 'text', text, text_elements: [] }],
-      },
-      15000,
-    );
+    const input = [{ type: 'text', text, text_elements: [] }];
+    const send = () =>
+      this.rpc.request(
+        'turn/steer',
+        { threadId: this.threadId, expectedTurnId: this.turnId, input },
+        15000,
+      );
+    let r;
+    try {
+      r = await send();
+    } catch (e) {
+      // The turn id can change between our last event and the request (a new turn started);
+      // try once more with the newest id before giving up.
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      if (!this.busy || !this.turnId) throw e;
+      r = await send();
+    }
     return { turnId: r?.turnId || this.turnId };
   }
   async interrupt() {

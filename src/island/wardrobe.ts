@@ -3,7 +3,8 @@
 // different categories are worn together (the pumpkin does not go with a hat). Everything is
 // tried on a preview Slime first; "Kaydet" puts it on Charles.
 import { BotEngine } from '../vendor/slime/engine';
-import { clashes, type AccessorySlot, type Accessories } from '../vendor/slime/wardrobe';
+import { clashes, seasonalOutfit, type AccessorySlot, type Accessories } from '../vendor/slime/wardrobe';
+import { accessoryIcon } from '../vendor/slime/outfits';
 import { slimePreview, wearable, accessoriesOf } from '../settings/slime-preview';
 import { updateAppIcon } from './app-icon';
 import {
@@ -51,7 +52,7 @@ const ITEMS: Record<AccessorySlot, [string, string, string][]> = {
     ['scarf', 'Atkı', '🧣'],
     ['banana', 'Muz', '🍌'],
     ['bowTie', 'Papyon', '🤵'],
-    ['catCollar', 'Çanlı kedi tasması', '🔔'],
+    ['catCollar', 'Tasma', '🔔'],
     ['arrow', 'Batmış ok', '🏹'],
   ],
 };
@@ -124,7 +125,22 @@ export function wardrobeUI(api: any, bot: BotEngine) {
       const b = el('button', 'studio-option');
       b.type = 'button';
       b.setAttribute('role', 'option');
-      b.append(el('span', 'studio-icon', icon), document.createTextNode(label));
+      // v0.7.1 SpecialBeta: a small picture of the accessory itself instead of an emoji
+      const pic = el('span', 'studio-icon');
+      const outfit = value === 'auto' ? seasonalOutfit(new Date()) : value;
+      if (value !== 'none') {
+        try {
+          const img = document.createElement('img');
+          img.src = accessoryIcon(outfit as any, 40);
+          img.alt = '';
+          pic.append(img);
+          pic.classList.add('picture');
+          if (value === 'auto') pic.classList.add('auto');
+        } catch {
+          pic.textContent = icon;
+        }
+      } else pic.textContent = icon;
+      b.append(pic, document.createTextNode(label));
       b.onclick = () => pickItem(slot, value);
       list.append(b);
       itemButtons.set(slot + ':' + value, b);

@@ -67,7 +67,7 @@ export const OUTFIT_KEYS: Record<OutfitSelection, string> = {
   headphones: N_('Headphones'),
   eyePatch: N_('Eye patch'),
   bowTie: N_('Bow tie'),
-  catCollar: N_('Cat collar'),
+  catCollar: N_('Leash'),
   arrow: N_('Arrow'),
 };
 

@@ -1,6 +1,6 @@
 # Charles — User Guide
 
-This guide covers Charles **v0.7.1 Beta** on Windows 10/11. For installation, see the
+This guide covers Charles **v0.7.2 Beta** on Windows 10/11. For installation, see the
 [README](../README.md#installation). For the full history of changes, see
 [CHANGELOG.md](../CHANGELOG.md) (Turkish).
 
@@ -29,6 +29,29 @@ When Charles starts, a small island sits at the top of the screen.
 Use the **‹ ›** arrows to dock the island to the left or right corner. The pin button keeps the
 large panel open. When the pointer moves away, the panel collapses on its own. You can change
 this in Settings → General.
+
+## The app window
+
+The window button next to the pin turns Charles into a normal Windows app (the island hides).
+**Back to the island** at the top right, or the × at the top left, brings the island back.
+
+- **Left column:** Slime, then your chats: new chat, search, folders (drag a chat onto a folder)
+  and recent chats.
+- **Overview:** Spotify, reminders, calendar, important emails, a message box, smart home and
+  remaining usage for every connected AI.
+- **Calendar:** dots for Google Calendar, Outlook, reminders and holidays. **Edit** opens a big
+  month/week calendar where you add, change and delete events. Public holidays and special days
+  follow the interface language (Türkçe → Turkey, English → USA, Deutsch → Germany, Français →
+  France, Español → Spain, 中文 → China).
+- **Smart home:** device tiles with on/off switches. **Edit** opens a layout where you drag
+  devices into place; **+ Add** picks devices from Home Assistant.
+- **Chat view:** click a chat on the left. The **side panel** button opens files Charles wrote,
+  code it gave and commands it ran. Its **Open** menu opens the file in Visual Studio Code,
+  GitHub Desktop, the Terminal, the default app or the folder, or saves a copy. Select lines to
+  **Add to chat** or **Edit** them (describe the change in the bar that appears).
+
+Text that is meant to be copied (a message draft, a command, code) arrives in a box with its
+own **Copy** button, on the island and in the app window.
 
 ## Chatting
 
@@ -132,12 +155,12 @@ In the Turkish interface, Slime holds a Turkish flag on 19 May, 30 August, 29 Oc
 
 | Page | What you will find |
 | --- | --- |
-| **General** | Language (English / Türkçe), start with Windows, sounds and volume, auto-hide and collapse, read aloud, Hey Charles, weather location (search a city or district and pick it from the list), welcome tour |
+| **General** | Language (Türkçe, English, Deutsch, Français, Español, 中文), start with Windows, sounds and volume, auto-hide and collapse, read aloud, Hey Charles, weather location (search a city or district and pick it from the list), welcome tour |
 | **AI models** | Sign in to ChatGPT/Codex, Claude, Gemini and Cursor. Every card has the same buttons: **Set up with Charles** · sign in (“✓ connected” once signed in) · **Check connection**. Default model; Gemini Live with its own connected state, voice and key settings |
 | **Appearance** | Text size, panel size, character size, screen choice, chat colours, Slime studio, try expressions |
 | **Memory** | Things Charles should remember; **Get to know me from the AI I use**: pick ChatGPT, Claude or Gemini, paste its answer and choose what to keep |
 | **Access** | How much the AI may do without asking (see [Project mode](#project-mode)) |
-| **Plugins** | Google (Gmail, Calendar, Drive), Microsoft (Outlook, Calendar), POP3/IMAP mail, Home Assistant (a connected account shows “✓ … connected”; after **Remove** you can sign in again); important-mail notifications and keywords. GitHub is listed as coming in a later version |
+| **Plugins** | Google (Gmail, Calendar, Drive), Microsoft (Outlook, Calendar), POP3/IMAP mail, Home Assistant, Google Calendar (add events), WhatsApp contacts (a connected account shows “✓ … connected”; after **Remove** you can sign in again); important-mail notifications and keywords. GitHub is listed as coming in a later version |
 | **Shortcuts** | Change any global shortcut |
 | **Weekly summary** | Time on the computer, Charles tasks, sessions, files and commands. It is shown on Monday morning |
 | **Performance** | Optional CPU, RAM and GPU history kept on this computer |
@@ -164,7 +187,7 @@ These work from any app and can be changed in Settings → Shortcuts.
 ## Things you can just say
 
 Charles handles some requests itself, without asking the AI. These shortcuts understand
-Turkish phrasing (browser commands also understand English), for example:
+Turkish phrasing (browser and WhatsApp commands also understand English), for example:
 
 | You say | Charles |
 | --- | --- |
@@ -180,6 +203,7 @@ Turkish phrasing (browser commands also understand English), for example:
 | *“İnternetten … arat”* · *“Search the web for …”* | opens a Google search in your default browser |
 | *“YouTube’dan … videosunu aç”* · *“Play … on YouTube”* | opens the first matching YouTube video in your browser |
 | *“github.com sitesini aç”* · *“Open github.com”* | opens the site in your browser |
+| *“WhatsApp’tan Ahmet’e yarın geliyorum mesajını at”* · *“Send see you at 5 to Ahmet on WhatsApp”* | opens the chat in WhatsApp Desktop with the message; sends it to contacts saved in Settings → Plugins → WhatsApp (if automatic sending is on) |
 
 Anything else, in any language, goes to the AI you selected.
 

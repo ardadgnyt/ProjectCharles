@@ -37,6 +37,32 @@ again from time to time. Publishing an OAuth app to other people requires Google
 Drive search works by file name. Google Docs, TXT and Markdown files can be read into a chat.
 For other formats, open the file and attach it.
 
+## Google Calendar (add events)
+
+Available since v0.7.2 Beta. The Google plugin above only reads your calendar. To add
+events from the workspace window, open **Settings → Plugins → Google Calendar** and press
+**Connect Google Calendar**. It uses the same Google app registration, so set up the Google
+plugin first. Google asks for one permission: view and edit events on your calendars.
+
+If Google shows an "access blocked" or "app not verified" page, open Google Cloud → Google
+Auth Platform → Data access and add the scope `https://www.googleapis.com/auth/calendar.events`,
+then try again. The Google Calendar API must be enabled (it is part of the Google setup).
+
+## WhatsApp
+
+Available since v0.7.2 Beta. No account or key is needed: Charles opens **WhatsApp Desktop**
+(from the Microsoft Store) with your message. If it is not installed, WhatsApp Web opens instead.
+
+1. Open **Settings → Plugins → WhatsApp** and add the people you message often: a name
+   (for example *Annem*) and the phone number with the country code (*+90 555 111 22 33*).
+2. Say or type *“WhatsApp’tan Annem’e akşam geliyorum mesajını at”*.
+3. For a saved contact, Charles opens the chat and presses send for you (turn this off with
+   **Send automatically to saved contacts**; then you press send). For anyone else, WhatsApp
+   opens with the message and you pick the person.
+
+Numbers are stored only on this computer (`%APPDATA%\Charles\whatsapp.json`). The message goes
+from your own WhatsApp; Charles never sends anything unless you ask for it.
+
 ## Microsoft: Outlook and Calendar
 
 1. In [Microsoft Entra](https://entra.microsoft.com/), go to **App registrations → New

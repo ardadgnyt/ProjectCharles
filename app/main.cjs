@@ -109,6 +109,8 @@ let petDrag = null,
   petPosition = null,
   pluginGuide = null,
   panelPinned = false,
+  quitting = false,
+  workspace = null, // v0.7.1 SpecialBeta: { maximized, restore } while the app window is open
   classifier = null,
   classifierTimer = null;
 function guideBounds() {
@@ -132,15 +134,162 @@ function endPluginGuide() {
   mailBubble?.suppress(false);
   petPosition = previous.petPosition;
   win.webContents.send('plugin-guide-ended');
+  if (previous.workspace) {
+    detachPet(false);
+    setWorkspace(true);
+    return;
+  }
   detachPet(previous.detached);
   if (!previous.detached) expand(previous.expanded, true);
+}
+// ── v0.7.1 SpecialBeta: workspace window (app/core/workspace.cjs) ─────────────────
+function workspaceArea() {
+  const b = win.getBounds();
+  return screen.getDisplayNearestPoint({
+    x: Math.round(b.x + b.width / 2),
+    y: Math.round(b.y + Math.min(b.height, 200) / 2),
+  }).workArea;
+}
+function saveWorkspace() {
+  if (!workspace || !v2) return;
+  v2.data.workspace = {
+    maximized: workspace.maximized,
+    bounds: workspace.maximized ? workspace.restore : win.getBounds(),
+  };
+  v2.save();
+}
+function sendWorkspace() {
+  if (win && !win.isDestroyed())
+    win.webContents.send('ui-workspace', {
+      on: !!workspace,
+      maximized: !!workspace?.maximized,
+    });
+}
+function setWorkspace(on) {
+  on = !!on;
+  if (!win || win.isDestroyed()) return false;
+  if (on === !!workspace) {
+    if (on) {
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.focus();
+    }
+    return on;
+  }
+  const { workspaceBounds } = require('./core/workspace.cjs');
+  if (on) {
+    if (pluginGuide) endPluginGuide();
+    stopPetPhysics();
+    petDrag = null;
+    if (detached) {
+      detached = false;
+      win.webContents.send('ui-desktop-pet', false);
+    }
+    hidden = false;
+    expanded = true;
+    clearTimeout(blurTimer);
+    clearTimeout(layoutTimer);
+    layoutTarget = layoutPending = null;
+    const area = workspaceArea();
+    const restore = workspaceBounds(v2?.data.workspace, area);
+    workspace = { maximized: !!v2?.data.workspace?.maximized, restore };
+    clearInterval(petTopTimer);
+    win.setAlwaysOnTop(false);
+    win.setSkipTaskbar(false);
+    win.setIgnoreMouseEvents(false);
+    ignoringPointer = false;
+    mailBubble?.suppress(true);
+    win.setBounds(workspace.maximized ? area : restore);
+    visibleBounds = win.getBounds();
+    win.webContents.send('ui-hidden', false);
+    win.webContents.send('ui-expanded', true);
+    sendWorkspace();
+    win.show();
+    win.focus();
+  } else {
+    saveWorkspace();
+    if (win.isMinimized()) win.restore();
+    workspace = null;
+    win.setSkipTaskbar(true);
+    mailBubble?.suppress(false);
+    applyTopmost();
+    sendWorkspace();
+    // v0.7.2: back to the island without the size animation from the big window (it could
+    // leave the island off screen or invisible), then make sure it is shown and on top.
+    visibleBounds = null;
+    layoutTarget = layoutPending = null;
+    hidden = false;
+    expanded = true;
+    lastInside = Date.now();
+    win.setIgnoreMouseEvents(false);
+    ignoringPointer = false;
+    position(false);
+    win.setOpacity(1);
+    win.show();
+    win.moveTop();
+    win.focus();
+    setTimeout(() => {
+      if (workspace || !win || win.isDestroyed()) return;
+      position(false);
+      if (!win.isVisible()) win.show();
+    }, 350);
+  }
+  return !!workspace;
+}
+function workspaceWindow(action, value) {
+  if (!workspace) return null;
+  const { fit, resized } = require('./core/workspace.cjs');
+  if (action === 'minimize') win.minimize();
+  else if (action === 'maximize') {
+    const area = workspaceArea();
+    if (workspace.maximized) {
+      workspace.maximized = false;
+      win.setBounds(fit(workspace.restore, area));
+    } else {
+      workspace.restore = win.getBounds();
+      workspace.maximized = true;
+      win.setBounds(area);
+    }
+    visibleBounds = win.getBounds();
+    saveWorkspace();
+    sendWorkspace();
+  } else if (action === 'bounds') return win.getBounds();
+  else if (action === 'resize') {
+    // value = { edge, dx, dy, start } from the renderer's edge handles
+    if (workspace.maximized) return win.getBounds();
+    const next = resized(value?.start, value?.edge, value?.dx, value?.dy, workspaceArea());
+    if (next) {
+      win.setBounds(next);
+      visibleBounds = next;
+    }
+  } else if (action === 'resize-end') saveWorkspace();
+  else throw Error('Geçersiz pencere işlemi.');
+  return win.getBounds();
 }
 // v0.6.5: web search / YouTube / web address in the default browser (system/web-commands.cjs)
 function openWebCommand(cmd) {
   return require('./system/web-commands.cjs').openWeb(cmd, {
     openExternal: (url) => shell.openExternal(url),
     fetch: (url, options) => fetch(url, options),
-    en: v2?.data?.language === 'en',
+    en: !!v2?.data?.language && v2.data.language !== 'tr',
+  });
+}
+// v0.7.2: "WhatsApp'tan Ahmet'e … mesajını at"
+let waContacts = null;
+function whatsappContacts() {
+  if (!waContacts) {
+    const { WhatsAppContacts } = require('./system/whatsapp.cjs');
+    waContacts = new WhatsAppContacts(app.getPath('userData'));
+  }
+  return waContacts;
+}
+function sendWhatsAppCommand(cmd) {
+  const wa = require('./system/whatsapp.cjs');
+  return wa.sendWhatsApp(cmd, {
+    contacts: whatsappContacts(),
+    openExternal: (url) => shell.openExternal(url),
+    pressEnter: () => wa.pressEnterInWhatsApp(),
+    en: !!v2?.data?.language && v2.data.language !== 'tr',
   });
 }
 function placePet(point) {
@@ -215,7 +364,7 @@ function releasePet(samples) {
   }, 16);
 }
 function movePetDrag(point) {
-  if (!petDrag || pluginGuide) return;
+  if (!petDrag || pluginGuide || workspace) return;
   // pointer samples for the throw velocity (window position over time)
   petDrag.samples.push({
     t: Date.now(),
@@ -239,7 +388,7 @@ function movePetDrag(point) {
   }
 }
 function detachPet(value) {
-  if (pluginGuide) return detached;
+  if (pluginGuide || workspace) return detached;
   if (!value) stopPetPhysics();
   detached = !!value;
   hidden = false;
@@ -263,6 +412,11 @@ function detachPet(value) {
 // regular always-on-top level so menus and dialogs of other apps can still cover it.
 function applyTopmost() {
   if (!win || win.isDestroyed()) return;
+  if (workspace) {
+    clearInterval(petTopTimer);
+    win.setAlwaysOnTop(false);
+    return;
+  }
   const strong = detached || panelPinned;
   win.setAlwaysOnTop(true, strong ? 'screen-saver' : 'floating');
   clearInterval(petTopTimer);
@@ -282,7 +436,7 @@ function finishLayout(id) {
   win.webContents.send('ui-layout-done', { id, width: target.width, height: target.height });
 }
 function position(animate = false) {
-  if (!win) return;
+  if (!win || workspace) return;
   if (pluginGuide) {
     guideBounds();
     return;
@@ -368,6 +522,15 @@ function position(animate = false) {
 }
 function expand(value, focus = false) {
   if (pluginGuide) return expanded;
+  if (workspace) {
+    // The app window stays as it is; "open" only brings it to the front.
+    if (value || focus) {
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.focus();
+    }
+    return true;
+  }
   if (detached && value) {
     detached = false;
     petDrag = null;
@@ -573,6 +736,16 @@ else {
           if (demo || !liveRoom || liveRoom !== agent.active)
             throw Error('Sesli görüşme etkin değil.');
           let transcript = context?.transcript || liveInput || liveLastInput;
+          // v0.7.2: WhatsApp message by voice
+          const wa = require('./system/whatsapp.cjs');
+          const waArgs = tool === 'whatsapp_message' ? context?.args || {} : null;
+          const waCommand =
+            wa.parseWhatsApp(request) ||
+            wa.parseWhatsApp(transcript) ||
+            (waArgs && String(waArgs.message || '').trim()
+              ? { to: String(waArgs.to || '').trim().slice(0, 60), message: String(waArgs.message).trim().slice(0, 2000) }
+              : null);
+          if (waCommand) return { result: await sendWhatsAppCommand(waCommand) };
           // v0.6.5: "YouTube'dan X aç", "internetten X ara" — no Codex needed
           const web = require('./system/web-commands.cjs');
           const mailAsk =
@@ -809,9 +982,9 @@ else {
           if (!demo) {
             const n = new Notification({
               title:
-                v2.data.language === 'en' ? 'Charles · Weekly summary' : 'Charles · Haftalık özet',
+                v2.data.language !== 'tr' ? 'Charles · Weekly summary' : 'Charles · Haftalık özet',
               body:
-                v2.data.language === 'en'
+                v2.data.language !== 'tr'
                   ? 'Your weekly summary is ready.'
                   : 'Haftalık özetin hazır.',
             });
@@ -867,12 +1040,21 @@ else {
         lastInside = Date.now();
       });
       win.on('closed', () => app.quit());
+      // v0.7.1 SpecialBeta: Alt+F4 on the app window goes back to the island (like ×);
+      // quitting from the tray or the island still quits.
+      win.on('close', (event) => {
+        if (workspace && !quitting) {
+          event.preventDefault();
+          setWorkspace(false);
+        }
+      });
       win.on('blur', () => {
         clearTimeout(blurTimer);
         blurTimer = setTimeout(() => {
           if (
             !win.isDestroyed() &&
             !win.isFocused() &&
+            !workspace &&
             !panelPinned &&
             !dialogOpen &&
             Date.now() > dropHeldUntil &&
@@ -885,6 +1067,7 @@ else {
       });
       win.on('focus', () => clearTimeout(blurTimer));
       win.on('minimize', () => {
+        if (workspace) return; // a normal app window may sit in the taskbar
         win.restore();
         expand(false);
       });
@@ -1002,7 +1185,15 @@ else {
       safeHandler('plugins-setup-start', async (id) => {
         const url = require('./plugins/oauth-setup.cjs').setupURL(id);
         if (pluginGuide) endPluginGuide();
-        const previous = { detached, expanded, petPosition };
+        const previous = { detached, expanded, petPosition, workspace: !!workspace };
+        // The guide needs the small Slime beside the browser: leave the app window for now,
+        // it comes back when the guide ends.
+        if (workspace) {
+          saveWorkspace();
+          workspace = null;
+          win.setSkipTaskbar(true);
+          sendWorkspace();
+        }
         detachPet(true);
         pluginGuide = previous;
         petDrag = null;
@@ -1062,6 +1253,7 @@ else {
         return true;
       });
       safeHandler('pet-drag', (active, origin) => {
+        if (workspace) return false; // the Slime stays inside the app window
         if (active === true) {
           const now = screen.getCursorScreenPoint();
           const p =
@@ -1683,8 +1875,14 @@ else {
         return id;
       });
       safeHandler('models', async () => {
-        await agent.providers.refreshAuth();
-        return [...(await agent.models().catch(() => [])), ...agent.providers.models()];
+        // v0.7.2: a failing sign-in check (e.g. one provider's quota or network) must not empty
+        // the whole list; the other connected AIs stay selectable.
+        await agent.providers.refreshAuth().catch(() => {});
+        let extra = [];
+        try {
+          extra = agent.providers.models();
+        } catch {}
+        return [...(await agent.models().catch(() => [])), ...extra];
       });
       safeHandler('send', async (args) => {
         if (liveRoom) throw Error('Önce sesli görüşmeyi bitir.');
@@ -1726,7 +1924,7 @@ else {
           }
           if (pluginRequest?.search) {
             // v0.7.0: keyword / date search in the connected mailboxes
-            const en = v2?.data?.language === 'en';
+            const en = !!v2?.data?.language && v2.data.language !== 'tr';
             const ms = require('./plugins/mail-search.cjs');
             let rows;
             try {
@@ -1809,6 +2007,14 @@ else {
               agent.local(args.prompt, message);
               return { localAction: true, message };
             }
+          }
+          // v0.7.2: "WhatsApp'tan Ahmet'e 'geliyorum' mesajını at"
+          const waCommand = require('./system/whatsapp.cjs').parseWhatsApp(args.prompt);
+          if (waCommand) {
+            if (demo) throw Error('Önizleme modunda WhatsApp açılmaz.');
+            const message = await sendWhatsAppCommand(waCommand);
+            agent.local(args.prompt, message);
+            return { localAction: true, message };
           }
           // v0.6.5: "internetten X ara", "YouTube'dan X aç" → default browser
           const web = require('./system/web-commands.cjs').parseWebCommand(args.prompt);
@@ -1932,7 +2138,7 @@ else {
           memory:
             personal.memory() +
             '\nResponse language: ' +
-            (v2.data.language === 'en' ? 'English' : 'Turkish'),
+            ({ en: 'English', de: 'German', fr: 'French', es: 'Spanish', zh: 'Simplified Chinese' }[v2.data.language] || 'Turkish'),
           access: personal.data.access,
           hasDocument: !!args.hasDocument,
         });
@@ -1961,6 +2167,202 @@ else {
       });
       safeHandler('open-data-folder', () => shell.openPath(app.getPath('userData')));
       safeHandler('interrupt', () => agent.interrupt());
+      safeHandler('workspace', (on) => setWorkspace(on));
+      // v0.7.2: side panel — files the AI wrote, opened read-only or in another program
+      const fileRoots = () => [path.join(app.getPath('userData'), 'chat-workspace'), chosenCwd, agent.current?.cwd];
+      safeHandler('file-preview', (file) => require('./core/file-preview.cjs').preview(file, fileRoots()));
+      safeHandler('file-open', async (file, how) => {
+        const full = require('./core/file-preview.cjs').resolveInside(file, fileRoots());
+        const dir = path.dirname(full);
+        if (how === 'folder') shell.showItemInFolder(full);
+        else if (how === 'vscode') await shell.openExternal('vscode://file/' + encodeURI(full.replace(/\\/g, '/')));
+        else if (how === 'github') await shell.openExternal('x-github-client://openLocalRepo/' + encodeURIComponent(dir));
+        else if (how === 'terminal') {
+          // a new console window in the file's folder (Windows Terminal if it is installed)
+          const { spawn } = require('node:child_process');
+          const child = spawn(process.platform === 'win32' ? 'cmd.exe' : 'x-terminal-emulator', [], {
+            cwd: dir,
+            detached: true,
+            stdio: 'ignore',
+            windowsHide: false,
+          });
+          child.on('error', () => {});
+          child.unref();
+        } else if (how === 'saveas') {
+          dialogOpen = true;
+          try {
+            const r = await dialog.showSaveDialog(win, { defaultPath: path.basename(full) });
+            if (r.canceled || !r.filePath) return false;
+            fs.copyFileSync(full, r.filePath);
+          } finally {
+            dialogOpen = false;
+          }
+        } else if (how === 'default') {
+          const err = await shell.openPath(full);
+          if (err) throw Error(err);
+        } else throw Error('Geçersiz açma şekli.');
+        return true;
+      });
+      // v0.7.2: a code block from an answer becomes a real file in Charles' chat folder, so it can
+      // be opened in VS Code, GitHub Desktop, a terminal or the default app
+      safeHandler('file-write-code', (name, text) => {
+        if (typeof text !== 'string' || text.length > 5e6) throw Error('Metin çok uzun.');
+        const safe = String(name || 'kod.txt').replace(/[\\/:*?"<>|]+/g, '_').replace(/^\.+/, '').slice(0, 80) || 'kod.txt';
+        const dir = path.join(app.getPath('userData'), 'chat-workspace', 'kod');
+        fs.mkdirSync(dir, { recursive: true });
+        const file = path.join(dir, safe);
+        fs.writeFileSync(file, text, 'utf8');
+        return file;
+      });
+      // a code block from an answer, saved as a file
+      safeHandler('file-save-text', async (name, text) => {
+        if (typeof text !== 'string' || text.length > 5e6) throw Error('Metin çok uzun.');
+        dialogOpen = true;
+        try {
+          const r = await dialog.showSaveDialog(win, {
+            defaultPath: String(name || 'kod.txt').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 120),
+          });
+          if (r.canceled || !r.filePath) return false;
+          fs.writeFileSync(r.filePath, text, 'utf8');
+          return true;
+        } finally {
+          dialogOpen = false;
+        }
+      });
+      safeHandler('workspace-window', (action, value) => workspaceWindow(action, value));
+      safeHandler('workspace-state', () => ({ on: !!workspace, maximized: !!workspace?.maximized }));
+      // Dashboard data (src/workspace/dashboard.ts). Short caches keep the mail, calendar and
+      // Home Assistant servers from being asked on every redraw.
+      const wsCache = {};
+      const cached = async (key, ms, force, load) => {
+        const c = wsCache[key];
+        if (!force && c && Date.now() - c.at < ms) return c.value;
+        const value = await load();
+        wsCache[key] = { at: Date.now(), value };
+        return value;
+      };
+      safeHandler('workspace-mail', () =>
+        (mailBubble?.items || [])
+          .filter((i) => i.kind !== 'charles')
+          .slice(0, 8)
+          .map((i) => ({
+            id: i.id,
+            kind: i.kind,
+            title: String(i.title || '').slice(0, 200),
+            from: String(i.from || '').slice(0, 200),
+            date: i.date || null,
+            at: i.at || null,
+            reason: String(i.reason || '').slice(0, 300),
+            preview: String(i.preview || '').slice(0, 300),
+          })),
+      );
+      safeHandler('workspace-mail-open', (id, recent) => {
+        let item = (mailBubble?.items || []).find((i) => i.id === id);
+        // a mail from "Tümünü gör" (not in the important list)
+        if (!item && recent && ['gmail', 'outlook', 'school'].includes(recent.kind) && typeof recent.mailId === 'string')
+          item = {
+            id,
+            kind: recent.kind,
+            mailId: recent.mailId.slice(0, 500),
+            title: String(recent.title || '').slice(0, 300),
+            from: String(recent.from || '').slice(0, 300),
+            date: recent.date || null,
+            preview: String(recent.preview || '').slice(0, 2000),
+          };
+        if (!item) throw Error('Bu e-posta artık listede değil.');
+        mailBubble.onOpen?.(item);
+        return true;
+      });
+      safeHandler('workspace-calendar', (force, range) => {
+        const from = range?.from ? new Date(range.from) : new Date();
+        const to = range?.to ? new Date(range.to) : new Date(Date.now() + 7 * 86400000);
+        const key = 'calendar|' + from.toISOString().slice(0, 10) + '|' + to.toISOString().slice(0, 10);
+        return cached(key, 300000, force === true, async () => {
+          const google = !!(plugins?.data.tokens.google || plugins?.data.tokens.gcal);
+          const microsoft = !!plugins?.data.tokens.microsoft;
+          const rows = [];
+          if (google)
+            try {
+              rows.push(...(await plugins.calendarRange(from, to)));
+            } catch {}
+          if (microsoft)
+            try {
+              rows.push(...(await plugins.list('outlook-calendar')).map((r) => ({ ...r, kind: 'outlook-calendar' })));
+            } catch {}
+          return {
+            connected: google || microsoft,
+            writable: !!plugins?.data.tokens.gcal,
+            rows: rows.slice(0, 300),
+          };
+        });
+      });
+      const dropCalendarCache = () => {
+        for (const k of Object.keys(wsCache)) if (k.startsWith('calendar')) delete wsCache[k];
+      };
+      safeHandler('workspace-calendar-update', async (id, ev) => {
+        const r = await plugins.calendarUpdate(id, ev);
+        dropCalendarCache();
+        return r;
+      });
+      safeHandler('workspace-calendar-delete', async (id) => {
+        const r = await plugins.calendarDelete(id);
+        dropCalendarCache();
+        return r;
+      });
+      safeHandler('workspace-calendar-add', async (ev) => {
+        const r = await plugins.calendarAdd(ev);
+        for (const k of Object.keys(wsCache)) if (k.startsWith('calendar')) delete wsCache[k];
+        return r;
+      });
+      // "Tümünü gör": the newest mails of every connected account, important or not
+      safeHandler('workspace-mail-recent', async () => {
+        const rows = (await plugins.list('mail')).filter((r) => !r.mailError);
+        return rows
+          .sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0))
+          .slice(0, 6)
+          .map((r) => {
+            const source = r.mailKind || String(r.id).split('|')[0];
+            const prefix = source + ' · ';
+            return {
+              id: r.id,
+              kind: source,
+              mailId: String(r.id).slice(source.length + 1),
+              title: String(r.title || '').startsWith(prefix) ? String(r.title).slice(prefix.length) : String(r.title || ''),
+              from: String(r.from || '').slice(0, 200),
+              date: r.date || null,
+              preview: String(r.text || '').slice(0, 300),
+              unread: !!r.unread,
+            };
+          });
+      });
+      // v0.7.2: WhatsApp contacts (whatsapp.json in the app data)
+      safeHandler('whatsapp-read', () => whatsappContacts().read());
+      safeHandler('whatsapp-save', (v) => whatsappContacts().save(v));
+      // Smart home card: which devices, in which order (companion.json)
+      safeHandler('workspace-home-layout', (ids) => {
+        if (ids !== undefined) {
+          if (!Array.isArray(ids) || ids.length > 24 || !ids.every((x) => typeof x === 'string' && /^[a-z_]+\.[a-zA-Z0-9_]+$/.test(x)))
+            throw Error('Geçersiz cihaz listesi.');
+          v2.data.workspaceHome = [...new Set(ids)];
+          v2.save();
+        }
+        return Array.isArray(v2.data.workspaceHome) ? v2.data.workspaceHome : null;
+      });
+      safeHandler('workspace-home', (force) =>
+        cached('home', 60000, force === true, async () => {
+          if (!plugins?.data.configs.home?.token) return { connected: false, rows: [] };
+          try {
+            return { connected: true, rows: (await plugins.list('home')).slice(0, 400) };
+          } catch (e) {
+            return { connected: true, error: e.message, rows: [] };
+          }
+        }),
+      );
+      safeHandler('workspace-home-action', async (entity, action) => {
+        const r = await plugins.homeAction(entity, action);
+        delete wsCache.home;
+        return r;
+      });
       safeHandler('steer', (text) => {
         if (liveRoom) throw Error('Önce sesli görüşmeyi bitir.');
         return agent.steer(text);
@@ -1995,12 +2397,15 @@ else {
           point.y >= visible.y &&
           point.y < visible.y + visible.height;
         // Transparent space belongs to the desktop, not to the larger native surface.
-        const ignore = !inside;
+        // The workspace window is a normal window: it always takes the pointer.
+        const ignore = workspace ? false : !inside;
         if (ignore !== ignoringPointer) {
           win.setIgnoreMouseEvents(ignore, { forward: true });
           ignoringPointer = ignore;
         }
-        if (inside) {
+        if (workspace) {
+          lastInside = Date.now();
+        } else if (inside) {
           lastInside = Date.now();
           if (hidden) {
             expand(false);
@@ -2078,6 +2483,7 @@ else {
       app.quit();
     });
   app.on('before-quit', () => {
+    quitting = true;
     mailBubble?.destroy();
     clearInterval(classifierTimer);
     classifier?.stop();

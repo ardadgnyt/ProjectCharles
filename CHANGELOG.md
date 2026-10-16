@@ -1,8 +1,95 @@
 # ProjectCharles — Yama notları
 
-Charles’ın ilk masaüstü sürümünden v0.7.1 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+Charles’ın ilk masaüstü sürümünden v0.7.2 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.7.2 Beta — 16 Ekim 2026
+
+v0.7.1 SpecialBeta’da denenen **uygulama penceresi (Çalışma alanı)** bu sürümle herkese açıldı. Ayrıntıları aşağıdaki SpecialBeta bölümünde.
+
+### Yeni diller
+
+- **Deutsch, Français, Español ve 中文（简体）** eklendi (Ayarlar → Genel → dil). Arayüz metinlerinin tamamı bu dillere çevrildi; çevirisi henüz olmayan yeni bir metin İngilizce görünür.
+- Yanıt dili, sesli görüşme (Gemini Live) dili, tarihler ve takvimdeki ay/gün adları seçili dile uyar.
+
+### Kod ve kopyalanabilir metin kutuları
+
+- Kopyalanacak metinler (mesaj taslağı, komut, kod) artık kendi **kutusunda ve kendi Kopyala düğmesiyle** gelir; hem adacıkta hem uygulama penceresinde. Yapay zekâlara kopyalanacak metni kutuya koymaları söylenir.
+- Kod kutularında dil etiketi ve renklendirme (Python, JavaScript/TypeScript, JSON, HTML/CSS, C/C++/C#, Java, Go, Rust, PowerShell/Bash, SQL…).
+
+### Yan panel (uygulama penceresi)
+
+- Sohbetin sağında açılan **dosya / kod / terminal paneli**: Charles bir dosya yazınca, kod verince veya komut çalıştırınca sekme olarak açılır; kod kutularındaki panel düğmesiyle de açılır. Satır numaraları, dosyada arama, yeniden okuma, kopyalama; genişliği sürükleyerek ayarlanır.
+- **Aç** menüsü: Visual Studio Code ile aç, GitHub Desktop ile aç, varsayılan uygulamada aç, Terminalde aç, klasörde göster, Farklı kaydet… Kod sekmeleri de bu seçeneklerle açılabilir (önce dosyaya yazılır).
+- Metin seçince **Sohbete ekle** (seçili satırlar dosya adı ve satır aralığıyla mesaj kutusuna eklenir) ve **Düzenle** (“Düzenlemeyi açıkla” çubuğu açılır, yazılan istek o parçayla birlikte gönderilir).
+
+### Takvim
+
+- Takvim kartı yenilendi: ay ızgarası, renkli noktalar (Google Takvim, Outlook, hatırlatıcı, tatil), seçili günün etkinlik listesi.
+- **Düzenle** büyük bir takvim penceresi açar: ay ve hafta görünümü, etkinlik ekleme, düzenleme ve silme (başlık, tarih, tüm gün, başlangıç/bitiş, takvim, hatırlatma, not). Google Takvim etkinlikleri doğrudan Google Takvim’de güncellenir.
+- Seçili dilin ülkesindeki **resmî tatiller ve özel günler** kendiliğinden gösterilir (Türkiye, ABD, Almanya, Fransa, İspanya, Çin); dil değişince takvim de değişir.
+
+### Akıllı ev
+
+- Akıllı ev kartı yenilendi: 3 sütunlu cihaz kutuları, simge, durum ve anahtar; klima, perde ve TV de açılıp kapanabiliyor.
+- **Düzenle** ayrı bir pencere açar: cihazlar **sürükle-bırak** ile istenen hücreye taşınır, × ile kaldırılır; **+ Ekle** cihaz seçme penceresini (aramalı) açar.
+
+### WhatsApp
+
+- Yazarak veya sesli: **“WhatsApp’tan Ahmet’e yarın geliyorum mesajını at”**. Charles WhatsApp Desktop’ta kişinin sohbetini mesajla açar. Ayarlar → Eklentiler → **WhatsApp**’a kaydedilen kişilere mesaj otomatik gönderilebilir (kapatılabilir); kayıtlı olmayan kişide WhatsApp mesajla açılır, kişiyi kullanıcı seçer. Numaralar yalnızca bu bilgisayarda tutulur. WhatsApp Desktop yoksa WhatsApp Web açılır.
+
+### Düzeltmeler
+
+- Kota uyarısı (“Bağlı başka bir yapay zekâ yok”) adacıktaki model seçiciyi bozup yalnızca “Model” bırakıyordu: bir hesabın oturum yenilemesi hata verince tüm liste boşalıyordu. Artık hata yutulur, eski liste korunur.
+- Uygulama penceresinin sol üstündeki × artık her durumda adacığa döner (önceden pencere kapanıp adacık gelmeyebiliyordu).
+- Hava durumu şehri seçili olduğu hâlde yeniden sorulabiliyordu: tercihler dosyasındaki tek bir geçersiz alan tüm dosyanın atılmasına yol açıyordu. Alanlar artık tek tek doğrulanıyor.
+- Uygulama penceresinde Gemini’nin kalan kullanımı pencere açılınca hemen gösteriliyor (yenile düğmesine gerek yok).
+- “Çanlı kedi tasması” etiketi sığmıyordu: artık **Tasma** (İngilizce: Leash).
+
+### Diğer
+
+- Yeni testler: diller ve çeviri tamlığı, tatiller, yan panelin klasör sınırı, takvim düzenleme/silme, WhatsApp komutları ve kişileri, tercihlerin alan alan doğrulanması, model listesi, kopyalama kutuları (toplam 206 test).
+
+## v0.7.1 SpecialBeta — 16 Ekim 2026 (deneme sürümü)
+
+Büyük güncellemenin ilk adımı. Önce yalnızca bu bilgisayarda deneniyor.
+
+### Uygulama penceresi (Çalışma alanı)
+
+- Adacıkta “Paneli açık tut”un yanındaki yeni düğme Charles’ı **normal bir Windows uygulamasına** dönüştürür (Codex ve Claude uygulamaları gibi); adacık kaybolur. Sağ üstteki **Adacığa dön** (veya ×, Alt+F4) adacığı geri getirir. Pencere görev çubuğunda görünür, taşınır, kenarlarından boyutlandırılır, ekranı kaplayabilir; yeri ve boyutu hatırlanır.
+- **Sol sütun:** Charles (canlı Slime, sürüm, durum) ve **Sohbetler**: Yeni sohbet, arama, açılır **Klasörler** (klasör içindeki sohbetler ağaç gibi) ve **Son sohbetler**. Sohbetler sürüklenip klasöre bırakılabilir; ⋯ menüsünde adlandır, sabitle, klasöre taşı, sil.
+- **Genel bakış:** Spotify (kapak, kontroller, ilerleme), Hatırlatıcılar (ekle, tamamla), Takvim (ay görünümü, etkinlik ve hatırlatıcı noktaları, sıradaki etkinlik), Önemli e-postalar (tıklayınca Charles anlatır), mesaj kutusu, Akıllı ev (Home Assistant ışıkları, sıcaklık, sahneler) ve Kalan kullanım (Codex, Claude, Gemini, Cursor).
+- **Sohbet görünümü:** soldan bir sohbete tıklayınca geniş sohbet ekranı açılır: “← Genel bakış”, sohbet adı ve klasör yolu, sohbette arama, ⋯ işlemleri; kullanıcı mesajları sağda, Charles’ın yanıtları avatar, ad ve model rozetiyle; geniş mesaj çubuğu.
+- **Ayarlar** bu pencerede soldan menülü, daha geniş ve rahat bir pencerede açılır.
+- Sohbet, onaylar ve sesli özellikler adacıktakiyle aynı koddan çalışır; pencere ile adacık arasında geçince hiçbir şey kaybolmaz.
+
+### İkinci tur düzenlemeler
+
+- **Slime stüdyosu:** aksesuar düğmelerindeki emojilerin yerine aksesuarın kendisinin küçük resmi.
+- **Mesaj çubuğu (uygulama penceresi):** +, yazı, model seçimi, mikrofon, sesli sohbet ve gönder aynı hizada; yazı ortalı duruyor, uzun mesajda düğmeler son satırda kalıyor.
+- **Akıllı ev:** kalemle düzenleme modu: cihaz ekle (arama ile Home Assistant cihaz listesinden), sırala (← →), kaldır; seçim kaydedilir. Işık, priz, fan, kilit ve otomasyon anahtarları, sensör değerleri ve sahneler. Anahtarlar tıklanınca hemen döner, kartlar yeniden çizilmeden güncellenir (kasma giderildi).
+- **E-postalar:** “Tümünü gör” bağlı tüm hesaplardaki en yeni 6 e-postayı gösterir (önemli olup olmamasına bakmadan); tıklanınca Charles anlatır. “Önemlilere dön” ile geri gelinir.
+- **Kalan kullanım:** adacıktaki gibi halkalar: her yapay zekâ için 5 saatlik (Cursor’da Auto) ve haftalık (Cursor’da aylık) kalan yüzde ve yenilenme süresi.
+- **Google Takvim eklentisi:** Ayarlar → Eklentiler’de yeni kart. Google eklentisinin uygulama kaydıyla yalnızca takvim izni ister. Bağlanınca Takvim kartı Google Takvim ile eşitlenir: ayın tüm etkinlikleri görünür, bir güne tıklayınca o günün etkinlikleri listelenir, **+** ile etkinlik eklenir (süre veya tüm gün) ve Google Takvim’e kaydedilir.
+- Sol alttaki “Bağlı · Tüm servisler hazır” yazısı kaldırıldı.
+- Adacıktaki uygulama penceresi düğmesi pin düğmesine yaklaştırıldı.
+
+### Sohbet geçmişi
+
+- Klasörlerin yanındaki yan ok yerine **klasör simgesi** var; klasörler ve sohbetler bir bakışta ayrılıyor.
+
+### Ek talimat
+
+- GPT çalışmaya başlarken (iş numarası daha gelmemişken) gönderilen ek talimat artık beklenip iletiliyor; reddedilirse bir kez daha deneniyor.
+- Mesaj gönderilirken yazılan ikinci mesaj artık kaybolmuyor; sıraya alınıyor ve iş başlayınca GPT’ye ek talimat olarak gidiyor.
+- Sıradaki mesajda **Şimdi** düğmesi: çalışan yanıtı durdurup mesajı hemen gönderir (Claude, Gemini ve Cursor’da da araya girmek için).
+- İletilemeyen ek talimatlar için açıklayıcı bildirim.
+
+### Diğer
+
+- Kullanıcının kendi içeriği (sohbet ve klasör adları, e-posta konuları, hatırlatıcılar) İngilizce arayüzde çevrilmeye çalışılmıyor.
+- Yeni testler: pencere boyutları, ana süreç geçişleri, kenar çubuğu ve kartlar, klasör simgesi, ek talimat bekleme/yeniden deneme, Google Takvim, çeviriler (toplam 190 test).
 
 ## v0.7.1 Beta — 16 Ekim 2026
 

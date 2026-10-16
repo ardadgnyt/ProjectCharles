@@ -4,6 +4,9 @@
 //  • Claude, Gemini and Cursor answer in one go, so the message waits in a small queue above
 //    the message box and is sent as soon as the current answer is finished.
 // Queued messages can be removed with ×, or pulled back into the box with a click.
+// v0.7.1 SpecialBeta: "Şimdi" on a queued message stops the running answer and sends the
+// message right away (a real interruption for Claude, Gemini and Cursor too). A message
+// written while the request is still being sent is queued instead of being dropped.
 
 export type SteerDeps = {
   api: any;
@@ -14,6 +17,10 @@ export type SteerDeps = {
   shown: (text: string) => void; // adds the user's extra instruction to the chat
   notice: (s: string) => void;
   t: (s: string) => string;
+  /** Is an answer running right now (for the "Şimdi" button)? */
+  running?: () => boolean;
+  /** Stops the running answer. */
+  interrupt?: () => Promise<void>;
 };
 
 export function steerUI(d: SteerDeps) {
@@ -23,6 +30,7 @@ export function steerUI(d: SteerDeps) {
   box.setAttribute('aria-live', 'polite');
   d.composer.insertBefore(box, d.bar);
   const queue: string[] = [];
+  let interjecting = false;
 
   function paint() {
     box.replaceChildren();
@@ -53,7 +61,25 @@ export function steerUI(d: SteerDeps) {
         queue.splice(i, 1);
         paint();
       };
-      item.append(tag, body, remove);
+      item.append(tag, body);
+      if (d.running?.() && d.interrupt) {
+        const now = document.createElement('button');
+        now.type = 'button';
+        now.className = 'steer-now';
+        now.textContent = d.t('Şimdi');
+        now.title = d.t('Yanıtı durdur ve bunu hemen gönder');
+        now.onclick = () => {
+          interjecting = true;
+          now.disabled = true;
+          void d.interrupt!().catch((e: Error) => {
+            interjecting = false;
+            now.disabled = false;
+            d.notice(e.message);
+          });
+        };
+        item.append(now);
+      }
+      item.append(remove);
       box.append(item);
     });
   }
@@ -75,7 +101,45 @@ export function steerUI(d: SteerDeps) {
     }
     queue.push(text);
     paint();
-    if (d.external()) d.notice(d.t('Ek talimat sıraya alındı; yanıt bitince gönderilecek.'));
+    d.notice(
+      d.t(
+        d.external()
+          ? 'Ek talimat sıraya alındı; yanıt bitince gönderilecek. Hemen göndermek için “Şimdi”ye bas.'
+          : 'Ek talimat şu an iletilemedi; yanıt bitince gönderilecek.',
+      ),
+    );
+  }
+
+  /** Keeps text for after the current request (used while a message is still being sent). */
+  function hold(text: string) {
+    text = text.trim();
+    if (!text) return;
+    d.prompt.value = '';
+    d.prompt.dispatchEvent(new Event('input'));
+    queue.push(text);
+    paint();
+  }
+
+  /** A turn just started: GPT gets the messages held while sending as real extra instructions. */
+  async function started() {
+    paint();
+    if (d.external() || !queue.length) return;
+    const text = queue.splice(0).join('\n\n');
+    paint();
+    try {
+      await d.api.steer(text);
+      d.shown(text);
+    } catch {
+      queue.unshift(text);
+      paint();
+    }
+  }
+
+  /** True once after "Şimdi" stopped the answer: the queue should go out right away. */
+  function takeInterjection() {
+    const was = interjecting;
+    interjecting = false;
+    return was;
   }
 
   /** The queued text to send next (all queued messages together), or null. */
@@ -87,7 +151,8 @@ export function steerUI(d: SteerDeps) {
   }
   function clear() {
     queue.length = 0;
+    interjecting = false;
     paint();
   }
-  return { send, take, clear, size: () => queue.length };
+  return { send, hold, take, clear, paint, started, takeInterjection, size: () => queue.length };
 }

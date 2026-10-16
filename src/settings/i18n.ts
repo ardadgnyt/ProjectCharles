@@ -1,6 +1,12 @@
 import { english063, englishPatterns } from './i18n-063';
 import { english070 } from './i18n-070';
 import { english071 } from './i18n-071';
+import { englishSpecial, specialPatterns } from './i18n-special';
+import { english072, patterns072 } from './i18n-072';
+import { german } from './lang/de';
+import { french } from './lang/fr';
+import { spanish } from './lang/es';
+import { chinese } from './lang/zh';
 const english: Record<string, string> = {
   Ayarlar: 'Settings',
   Genel: 'General',
@@ -337,7 +343,7 @@ Object.assign(english, {
   'Kaydet düğmesine tıkla, ardından kısayol tuşlarına birlikte bas. Esc ile vazgeç.':
     'Click Record keys, then press the shortcut together. Press Esc to cancel.',
 });
-Object.assign(english, english063, english070, english071);
+Object.assign(english, english063, english070, english071, englishSpecial, english072);
 
 // v0.6.3: look-up that ignores line breaks/indentation from the HTML, then the patterns
 // (texts with numbers or names inside).
@@ -348,25 +354,83 @@ function toEnglish(source: string): string | undefined {
   if (!key) return undefined;
   const hit = english[source.trim()] ?? collapsed.get(key);
   if (hit !== undefined) return hit;
-  for (const [re, fn] of englishPatterns) {
+  for (const [re, fn] of [...englishPatterns, ...specialPatterns, ...patterns072]) {
     const m = key.match(re);
     if (m) return fn(...(m as unknown as string[]));
   }
   return undefined;
 }
 
-let currentLanguage: 'tr' | 'en' = 'tr';
+// v0.7.2: German, French, Spanish and Chinese translate from the English text. A text with
+// no entry there stays in English.
+export type Language = 'tr' | 'en' | 'de' | 'fr' | 'es' | 'zh';
+export const LANGUAGES: [Language, string][] = [
+  ['tr', 'Türkçe'],
+  ['en', 'English'],
+  ['de', 'Deutsch'],
+  ['fr', 'Français'],
+  ['es', 'Español'],
+  ['zh', '中文（简体）'],
+];
+const fromEnglishTables: Partial<Record<Language, Record<string, string>>> = {
+  de: german,
+  fr: french,
+  es: spanish,
+  zh: chinese,
+};
+const collapsedTables = new Map<Language, Map<string, string>>();
+function fromEnglish(language: Language, en: string): string {
+  const table = fromEnglishTables[language];
+  if (!table) return en;
+  let collapsedTable = collapsedTables.get(language);
+  if (!collapsedTable) {
+    collapsedTable = new Map(Object.entries(table).map(([k, v]) => [k.replace(/\s+/g, ' ').trim(), v]));
+    collapsedTables.set(language, collapsedTable);
+  }
+  const key = en.replace(/\s+/g, ' ').trim();
+  const hit = table[en] ?? collapsedTable.get(key);
+  if (hit !== undefined) return hit;
+  // numbers inside ("3 devices" → "{n} devices")
+  const numbers = key.match(/\d+(?:[.,]\d+)?/g);
+  if (numbers) {
+    const template = collapsedTable.get(key.replace(/\d+(?:[.,]\d+)?/g, '{n}'));
+    if (template !== undefined) {
+      let i = 0;
+      return template.replace(/\{n\}/g, () => numbers[i++] ?? '');
+    }
+  }
+  // "<name> · actions": translate the known part after the dot
+  const dot = key.match(/^(.+) · ([^·]+)$/);
+  if (dot && collapsedTable.has(dot[2])) return dot[1] + ' · ' + collapsedTable.get(dot[2]);
+  return en;
+}
+/** A Turkish UI text in `language`; undefined when there is no translation. */
+function translated(language: Language, source: string): string | undefined {
+  if (language === 'tr') return undefined;
+  const en = toEnglish(source);
+  if (en === undefined) return undefined;
+  return language === 'en' ? en : fromEnglish(language, en);
+}
+
+let currentLanguage: Language = 'tr';
 /** The UI language (v0.6.3). */
 export function uiLanguage() {
   return currentLanguage;
 }
 /** Translate a Turkish UI text now (for text that is typed out or built piece by piece). */
 export function t(text: string): string {
-  return currentLanguage === 'en' ? (toEnglish(text) ?? text) : text;
+  return translated(currentLanguage, text) ?? text;
+}
+/** An English text (from the island engine) in the UI language. */
+export function fromEnglishText(en: string): string {
+  return currentLanguage === 'tr' || currentLanguage === 'en' ? en : fromEnglish(currentLanguage, en);
 }
 
 export function languageUI(api: any) {
-  let language = 'tr';
+  let language: Language = 'tr';
+  // a text we wrote earlier in any language → still the same Turkish source
+  const isTranslationOf = (old: string, current: string) =>
+    LANGUAGES.some(([code]) => code !== 'tr' && translated(code, old) === current);
   const originals = new WeakMap<Node, string>(),
     attributes = new WeakMap<Element, Map<string, string>>();
   const panel = document.createElement('section');
@@ -375,8 +439,8 @@ export function languageUI(api: any) {
   label.textContent = 'Dil / Language';
   const select = document.createElement('select');
   select.id = 'language';
-  select.add(new Option('Türkçe', 'tr'));
-  select.add(new Option('English', 'en'));
+  for (const [code, name] of LANGUAGES) select.add(new Option(name, code));
+  select.setAttribute('translate', 'no');
   label.append(select);
   panel.append(label);
   document.querySelector('.settings-page[data-category=general]')!.prepend(panel);
@@ -384,7 +448,7 @@ export function languageUI(api: any) {
     // (a text box's own text is never translated, but its placeholder is — see below)
     const skipText =
       root instanceof Element &&
-      !!root.closest('#feed .message,#requests,.plugin-results,.history-entry,textarea,script,style');
+      !!root.closest('#feed .message,#requests,.plugin-results,.history-entry,[translate="no"],textarea,script,style');
     const nodes: Node[] = [];
     const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     if (!skipText) {
@@ -396,23 +460,23 @@ export function languageUI(api: any) {
       if (
         !parent ||
         parent.closest(
-          '#feed .message,#requests,.plugin-results,.history-entry,textarea,script,style',
+          '#feed .message,#requests,.plugin-results,.history-entry,[translate="no"],textarea,script,style',
         )
       )
         continue;
       const current = node.textContent || '',
         old = originals.get(node);
-      const source = old && (current === old || current === toEnglish(old)) ? old : current;
+      const source = old && (current === old || isTranslationOf(old, current)) ? old : current;
       const en = toEnglish(source);
       if (en === undefined || en === source.trim()) continue;
       originals.set(node, source);
-      const next = language === 'en' ? en : source;
+      const next = language === 'tr' ? source : (translated(language, source) ?? source);
       if (current !== next) node.textContent = next;
     }
     const elements =
       root instanceof Element ? [root, ...root.querySelectorAll('[aria-label],[placeholder],[title]')] : [];
     for (const el of elements) {
-      if (el.closest('#feed .message,.plugin-results,.history-entry')) continue;
+      if (el.closest('#feed .message,.plugin-results,.history-entry,[translate="no"]')) continue;
       let saved = attributes.get(el);
       if (!saved) {
         saved = new Map();
@@ -422,18 +486,18 @@ export function languageUI(api: any) {
         const current = el.getAttribute(key);
         if (!current) continue;
         const old = saved.get(key),
-          source = old && (current === old || current === toEnglish(old)) ? old : current;
+          source = old && (current === old || isTranslationOf(old, current)) ? old : current;
         const en = toEnglish(source);
         if (en === undefined || en === source) continue;
         saved.set(key, source);
-        const next = language === 'en' ? en : source;
+        const next = language === 'tr' ? source : (translated(language, source) ?? source);
         if (next !== current) el.setAttribute(key, next);
       }
     }
   }
   function apply(value: string) {
-    language = value === 'en' ? 'en' : 'tr';
-    currentLanguage = language as 'tr' | 'en';
+    language = (LANGUAGES.find(([code]) => code === value)?.[0] || 'tr') as Language;
+    currentLanguage = language;
     select.value = language;
     document.documentElement.lang = language;
     translate(document.body);
@@ -465,4 +529,9 @@ export function languageUI(api: any) {
 /** The English for a Turkish UI text, if there is one (tests). */
 export function englishFor(text: string): string | undefined {
   return toEnglish(text);
+}
+
+/** Every Turkish → English pair (tests, translation tooling). */
+export function englishEntries(): [string, string][] {
+  return Object.entries(english);
 }

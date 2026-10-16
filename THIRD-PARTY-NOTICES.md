@@ -17,6 +17,9 @@ code published under the MIT License. As that license requires, its copyright an
 notice is included in `LICENSE` and kept in `licenses/engine-MIT-LICENSE.txt`. The Slime character, its drawing, the icon
 and the sounds are not taken from that source.
 
+Some of the stroke icons of the workspace window (`src/workspace/icons.ts`) and the idea of its
+sidebar layout are adapted from the same MIT-licensed source; the same notice applies.
+
 Versions of dependencies and their registry integrity hashes are pinned in `package-lock.json`. Their own license files remain in the installed packages.
 
 Markdown formatting uses markdown-it 15.0.2. License notices for its bundled dependencies are retained in `licenses/`. Raw HTML and remote images are disabled; only HTTP(S) links are actionable.

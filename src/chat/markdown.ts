@@ -1,5 +1,7 @@
 import MarkdownIt from 'markdown-it';
 import { splitQuestions, type AiQuestion } from './ai-questions';
+import { highlightInto, LANGUAGE_NAMES } from './highlight';
+import { t } from '../settings/i18n';
 
 const markdown = new MarkdownIt({ html: false, linkify: true, breaks: true, typographer: false });
 markdown.validateLink = (href: string) => {
@@ -15,6 +17,10 @@ markdown.renderer.rules.image = (tokens: any[], index: number) =>
   markdown.utils.escapeHtml(tokens[index].content || '[Görsel]');
 const copyIcon =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/></svg>';
+const codeIcon =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8.5 7-5 5 5 5M15.5 7l5 5-5 5"/></svg>';
+const panelIcon =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M14 5v14"/></svg>';
 const speakIcon =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4zM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/></svg>';
 const sources = new WeakMap<HTMLElement, string>();
@@ -52,15 +58,41 @@ export function updateMarkdown(element: HTMLElement, text: string, replace = fal
       actions.append(b);
     }
     element.append(actions);
+    // v0.7.2: code and text to copy sit in a box with a header (language, open in the side
+    // panel, copy) like ChatGPT, Claude and Gemini
     for (const pre of element.querySelectorAll('pre')) {
+      const code = pre.querySelector('code');
+      const lang = (/language-([\w+#-]+)/.exec(code?.className || '')?.[1] || '').toLowerCase();
+      const box = document.createElement('div');
+      box.className = 'code-block';
+      box.dataset.language = lang;
+      const head = document.createElement('div');
+      head.className = 'code-head';
+      const label = document.createElement('span');
+      label.className = 'code-lang';
+      label.innerHTML = codeIcon;
+      label.append(document.createTextNode(t(LANGUAGE_NAMES[lang] || (lang ? lang.toUpperCase() : 'Metin'))));
+      const tools = document.createElement('span');
+      tools.className = 'code-tools';
+      const panel = document.createElement('button');
+      panel.type = 'button';
+      panel.className = 'code-panel';
+      panel.title = t('Yan panelde aç');
+      panel.setAttribute('aria-label', t('Yan panelde aç'));
+      panel.innerHTML = panelIcon;
+      panel.dataset.answerAction = 'code-panel';
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'code-copy';
-      b.title = 'Kodu kopyala';
-      b.setAttribute('aria-label', 'Kodu kopyala');
+      b.title = t('Kopyala');
+      b.setAttribute('aria-label', t('Kopyala'));
       b.innerHTML = copyIcon;
       b.dataset.answerAction = 'code';
-      pre.append(b);
+      tools.append(panel, b);
+      head.append(label, tools);
+      pre.before(box);
+      box.append(head, pre);
+      if (code && lang) highlightInto(code, code.textContent || '', lang);
     }
     if (questions.length && questionHandler) {
       let card = cards.get(element);

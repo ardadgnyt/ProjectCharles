@@ -221,6 +221,6 @@ export function companionUI(
   void attempt(async () => {
     const value = await api.companionRead();
     paint(value);
-    if (!value.preferences.setup) await showSetup();
+    if (!value.preferences.setup && !value.preferences.city) await showSetup();
   });
 }

@@ -8,7 +8,12 @@ export function desktopPet(api: any) {
     document.body.classList.toggle('desktop-pet', !!value);
   });
   pet.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0 || document.body.classList.contains('plugin-guide-active')) return;
+    if (
+      e.button !== 0 ||
+      document.body.classList.contains('plugin-guide-active') ||
+      document.body.classList.contains('workspace') // v0.7.1 SpecialBeta: stays in the app window
+    )
+      return;
     down = true;
     document.body.classList.add('pet-dragging');
     moved = false;

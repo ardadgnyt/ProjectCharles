@@ -1,0 +1,108 @@
+// v0.7.2 Beta: English for the new texts (side panel, code boxes, calendar and smart home
+// editors, WhatsApp). The other languages (de, fr, es, zh) translate from this English.
+export const english072: Record<string, string> = {
+  // code boxes and the side panel
+  Metin: 'Text',
+  'Yan panelde aç': 'Open in side panel',
+  'Yan panel': 'Side panel',
+  'Yan paneli aç veya kapat': 'Open or close the side panel',
+  'Paneli kapat': 'Close panel',
+  'Dosyayı yeniden oku': 'Reload file',
+  'Başka bir programda aç': 'Open in another app',
+  'Visual Studio Code ile aç': 'Open with Visual Studio Code',
+  'GitHub Desktop ile aç': 'Open with GitHub Desktop',
+  'Varsayılan uygulamada aç': 'Open in default app',
+  'Terminalde aç': 'Open in Terminal',
+  'Klasörde aç': 'Show in folder',
+  'Farklı kaydet…': 'Save as…',
+  'Dosyada ara': 'Find in file',
+  'Charles bir dosya yazınca, kod verince ya da komut çalıştırınca burada açılır. Kod kutularındaki panel düğmesiyle de açabilirsin.':
+    'Files Charles writes, code it gives and commands it runs open here. You can also use the panel button on code boxes.',
+  Terminal: 'Terminal',
+  Kod: 'Code',
+  Komut: 'Command',
+  'Sohbete ekle': 'Add to chat',
+  'Düzenlemeyi açıkla…': 'Describe the edit…',
+  'Düzenlemeyi açıkla': 'Describe the edit',
+  'Terminal çıktısı': 'Terminal output',
+  'Koddan bir parça': 'A piece of code',
+  'Dosya büyük: ilk 600 KB gösteriliyor.': 'Large file: showing the first 600 KB.',
+  // calendar
+  'Resmî tatil': 'Public holiday',
+  'Özel gün': 'Special day',
+  Hatırlatıcı: 'Reminder',
+  'Bu gün için etkinlik yok.': 'No events on this day.',
+  'Google Takvim’i Eklentiler’den bağlayınca etkinliklerin burada görünür.':
+    'Connect Google Calendar in Plugins to see your events here.',
+  'Takvimi düzenle': 'Edit calendar',
+  'Etkinliklerini ve hatırlatmalarını yönet': 'Manage your events and reminders',
+  Bugün: 'Today',
+  Önceki: 'Previous',
+  Ay: 'Month',
+  Hafta: 'Week',
+  Etkinlik: 'Event',
+  'YENİ ETKİNLİK': 'NEW EVENT',
+  'SEÇİLİ ETKİNLİK': 'SELECTED EVENT',
+  'Yeni etkinlik': 'New event',
+  Varsayılan: 'Default',
+  'Etkinlik anında': 'At the time of the event',
+  '10 dakika önce': '10 minutes before',
+  '30 dakika önce': '30 minutes before',
+  '1 saat önce': '1 hour before',
+  '1 gün önce': '1 day before',
+  'Not ekle…': 'Add a note…',
+  Bitiş: 'End',
+  Başlık: 'Title',
+  Tarih: 'Date',
+  Hatırlatma: 'Reminder',
+  Not: 'Note',
+  'Son değişiklikler henüz kaydedilmedi': 'Latest changes are not saved yet',
+  'Charles hatırlatıcısı': 'Charles reminder',
+  'Resmî tatiller ve özel günler seçili dile göre otomatik gösterilir.':
+    'Public holidays and special days follow the selected language automatically.',
+  'Outlook etkinlikleri şimdilik yalnızca görüntülenir.': 'Outlook events are view-only for now.',
+  'Google Takvim’e eklemek için Ayarlar → Eklentiler → Google Takvim’i bağla. Şimdilik Charles hatırlatıcısı olarak kaydedilir.':
+    'To add to Google Calendar, connect it in Settings → Plugins → Google Calendar. For now it is saved as a Charles reminder.',
+  'Hatırlatıcı için gelecekte bir zaman seç.': 'Pick a time in the future for the reminder.',
+  'Silindi.': 'Deleted.',
+  // smart home
+  Sahne: 'Scene',
+  'Işıkları, prizleri ve sahneleri buradan kontrol etmek için Home Assistant’ı bağla.':
+    'Connect Home Assistant to control lights, plugs and scenes from here.',
+  'Gösterilecek cihaz yok. Düzenle ile cihaz ekleyebilirsin.': 'No devices to show. Use Edit to add devices.',
+  'Akıllı evi düzenle': 'Edit smart home',
+  'Cihaz yerleşimi': 'Device layout',
+  'Cihazları sürükleyip istediğin hücreye bırak.': 'Drag devices and drop them into any cell.',
+  'Yeni cihazlar eklendikçe alt satırlar oluşur.': 'New rows appear as you add devices.',
+  Bitti: 'Done',
+  'Buraya bırak': 'Drop here',
+  'Home Assistant’taki cihazlarından seç': 'Choose from your Home Assistant devices',
+  'Cihaz ara (ışık, priz, TV, perde, klima, sensör, sahne…)':
+    'Search devices (light, plug, TV, curtain, AC, sensor, scene…)',
+  Tamam: 'OK',
+  // dashboard
+  'E-posta': 'Email',
+  '(Konusuz)': '(No subject)',
+  'Okunuyor…': 'Reading…',
+  // WhatsApp
+  'Yazarak veya sesli “WhatsApp’tan Ahmet’e yarın geliyorum mesajını at” de. Charles, WhatsApp Desktop’ta kişinin sohbetini mesajınla açar. Kayıtlı olmayan kişide WhatsApp açılır, kişiyi sen seçersin. Numaralar sadece bu bilgisayarda tutulur.':
+    'Type or say “Send Ahmet ‘I’m coming tomorrow’ on WhatsApp”. Charles opens the contact’s chat in WhatsApp Desktop with your message. For an unsaved contact WhatsApp opens and you pick the person. Numbers stay on this computer.',
+  'Ad (ör. Annem)': 'Name (e.g. Mom)',
+  'Kişi ekle': 'Add contact',
+  'Kayıtlı kişilere mesajı otomatik gönder (kapalıysa sen gönder’e basarsın)':
+    'Send automatically to saved contacts (when off, you press send)',
+  'Kişiyi sil': 'Delete contact',
+  'Ad ve telefon numarası yaz.': 'Enter a name and phone number.',
+};
+
+export const patterns072: [RegExp, (...m: string[]) => string][] = [
+  [/^(\d+) etkinlik$/, (_, n) => `${n} ${n === '1' ? 'event' : 'events'}`],
+  [/^(\d+) cihaz$/, (_, n) => `${n} ${n === '1' ? 'device' : 'devices'}`],
+  [/^(\d+) cihaz · 3 sütun$/, (_, n) => `${n} ${n === '1' ? 'device' : 'devices'} · 3 columns`],
+  [/^Bugün · (.+)$/, (_, n) => `Today · ${n}`],
+  [/^(.+) · kaldır$/, (_, n) => `${n} · remove`],
+  [/^(.+) sekmesini kapat$/, (_, n) => `Close ${n} tab`],
+  [/^(\d+) dakika$/, (_, n) => `${n} min`],
+  [/^(\d+) saat$/, (_, n) => `${n} h`],
+  [/^(\d+) saat (\d+) dk$/, (_, h, m) => `${h} h ${m} min`],
+];

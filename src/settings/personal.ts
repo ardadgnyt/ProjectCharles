@@ -205,6 +205,8 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
       document.dispatchEvent(
         new CustomEvent('charles-music', { detail: r.ok && r.state === 'Playing' }),
       );
+      // v0.7.1 SpecialBeta: the workspace's Spotify card shows the same state
+      document.dispatchEvent(new CustomEvent('charles-media-state', { detail: r }));
       $('music-play').hidden = r.ok && r.state === 'Playing';
       $('music-pause').hidden = !r.ok || r.state !== 'Playing';
       for (const id of ['music-next', 'music-previous'])

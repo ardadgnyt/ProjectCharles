@@ -14,7 +14,7 @@ const TALL = ['partyHat', 'witchHat', 'santaHat', 'bunnyEars', 'fedora'];
 
 /** v0.6.3: the Turkish flag is a Turkish-language feature only. */
 export function flagAllowed() {
-  return document.documentElement.lang !== 'en';
+  return (document.documentElement.lang || 'tr') === 'tr';
 }
 
 /** Stored accessory values → what the engine wears today ("auto" resolved). */

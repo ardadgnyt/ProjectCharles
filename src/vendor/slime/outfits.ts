@@ -2084,7 +2084,6 @@ export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSta
       case 'fedora':
         fedora(l, H, simple);
         break;
-        break;
       case 'headphones':
         headphones(l, H, simple);
         break;
@@ -2096,6 +2095,66 @@ export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSta
 }
 
 // ── Wardrobe icons ────────────────────────────────────────────────────────────
+
+const accessoryIcons = new Map<string, string>();
+/**
+ * v0.7.1 SpecialBeta: a picture of the accessory alone (no Slime), trimmed to its own shape
+ * and fitted into a box `px` high (1.4× as wide) — used in the Slime studio instead of emoji.
+ */
+export function accessoryIcon(outfit: Outfit, px = 40): string {
+  const key = outfit + ':' + px;
+  const hit = accessoryIcons.get(key);
+  if (hit) return hit;
+  const R = 70;
+  const size = 900;
+  const work = document.createElement('canvas');
+  work.width = work.height = size;
+  const ctx = work.getContext('2d')!;
+  const H = makeHead(R);
+  const st: OutfitState = { presence: 1, morph: 0 };
+  ctx.save();
+  if (outfit === 'pumpkin') {
+    // the pumpkin is the whole body: show it on a little Slime
+    ctx.scale(size / 40, size / 40);
+    iconSlime(ctx, 40, outfit);
+  } else {
+    ctx.translate(size / 2, size / 2 + R * 0.4);
+    drawOutfitBehind(ctx, outfit, H, st);
+    drawOutfitFront(ctx, outfit, H, st);
+  }
+  ctx.restore();
+  const data = ctx.getImageData(0, 0, size, size).data;
+  let x0 = size,
+    y0 = size,
+    x1 = -1,
+    y1 = -1;
+  for (let y = 0; y < size; y += 2)
+    for (let x = 0; x < size; x += 2)
+      if (data[(y * size + x) * 4 + 3] > 10) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+  // a slightly wide box: glasses and collars are wide, hats tall
+  const out = document.createElement('canvas');
+  const scale = 2; // sharp on high-DPI screens
+  const bw = Math.round(px * 1.4) * scale,
+    bh = px * scale;
+  out.width = bw;
+  out.height = bh;
+  if (x1 > x0 && y1 > y0) {
+    const o = out.getContext('2d')!;
+    const w = x1 - x0 + 2,
+      h = y1 - y0 + 2;
+    const k = Math.min((bw * 0.96) / w, (bh * 0.94) / h);
+    o.imageSmoothingQuality = 'high';
+    o.drawImage(work, x0, y0, w, h, (bw - w * k) / 2, (bh - h * k) / 2, w * k, h * k);
+  }
+  const url = out.toDataURL('image/png');
+  accessoryIcons.set(key, url);
+  return url;
+}
 
 const INK = 'rgb(26,20,18)';
 

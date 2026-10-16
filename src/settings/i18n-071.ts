@@ -89,6 +89,7 @@ export const english071: Record<string, string> = {
   Kulaklık: 'Headphones',
   'Korsan göz bandı': 'Pirate eye patch',
   Papyon: 'Bow tie',
-  'Çanlı kedi tasması': 'Cat collar with bell',
+  'Çanlı kedi tasması': 'Leash',
+  Tasma: 'Leash',
   'Batmış ok': 'Stuck arrow',
 };
