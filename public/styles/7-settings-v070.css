@@ -1,0 +1,555 @@
+/* v0.7.0 — extra instructions while the AI works, calmer question card, settings polish. */
+
+/* ── Extra instructions (chat/steer.ts) ─────────────────────────────────────────── */
+#steer-queue {
+  display: grid;
+  gap: 6px;
+  margin: 2px 2px 8px;
+}
+.steer-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 6px 6px 10px;
+  border: 1px dashed rgba(240, 198, 161, 0.28);
+  border-radius: 12px;
+  background: rgba(240, 198, 161, 0.05);
+  animation: steer-in 0.18s var(--sb-ease);
+}
+.steer-tag {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sb-accent);
+}
+#composer .steer-text {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sb-text);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: text;
+}
+#composer .steer-remove {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 8px;
+  color: var(--sb-muted);
+  background: transparent;
+  font-size: 16px;
+  line-height: 24px;
+}
+#composer .steer-remove:hover {
+  color: var(--sb-text);
+  background: var(--sb-surface-hover);
+}
+@keyframes steer-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+/* While the AI works, stop and send sit side by side; send means "add this". */
+body.steering #composer #send:not(:disabled) {
+  background: var(--sb-accent);
+}
+.message.user.steer {
+  border-style: dashed;
+  border-color: rgba(240, 198, 161, 0.3);
+}
+.steer-badge {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sb-accent);
+}
+
+/* ── Account cards ─────────────────────────────────────────────────────────────── */
+/* A card whose only content is hidden (it was an empty bubble under Cursor). */
+.settings-card:not(:has(> :not([hidden]))) {
+  display: none !important;
+}
+#settings-panel .provider-actions button.connected,
+#settings-panel .provider-actions button.connected:disabled {
+  opacity: 1 !important;
+  color: var(--sb-ok) !important;
+  background: rgba(156, 227, 192, 0.1) !important;
+  border: 1px solid rgba(156, 227, 192, 0.28) !important;
+  cursor: default;
+}
+
+/* ── One look for every settings card ──────────────────────────────────────────── */
+#settings-panel .settings-page .settings-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+    rgba(18, 18, 22, 0.55);
+  border: 1px solid var(--sb-line);
+  border-radius: 16px;
+  padding: 16px 18px;
+  margin: 0 0 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+#settings-panel .settings-page .settings-card > h3:first-child,
+#settings-panel .settings-page .settings-card h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0.005em;
+}
+#settings-panel .settings-page .settings-card h4 {
+  margin: 14px 0 6px;
+  font-size: 12.5px;
+  color: var(--sb-text);
+}
+#settings-panel .settings-page .settings-card .hint {
+  margin: 4px 0 10px;
+  line-height: 1.55;
+}
+#settings-panel .settings-page .settings-card .hint:last-child {
+  margin-bottom: 0;
+}
+/* Buttons side by side: always a gap, wrap when narrow. */
+#settings-panel .button-row,
+#settings-panel .settings-page .utility-actions,
+#settings-panel .settings-page .provider-actions,
+#settings-panel .settings-page .settings-card > .row:has(> button) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+#settings-panel .button-row > button,
+#settings-panel .settings-page .utility-actions > button,
+#settings-panel .settings-page .provider-actions > button {
+  margin: 0 !important;
+}
+/* Switch rows and label + value rows */
+#settings-panel .settings-page .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 6px 0;
+}
+#settings-panel .settings-page .row > label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+#settings-panel .settings-page .row input[type='number'] {
+  width: 72px;
+  margin: 0;
+}
+#settings-panel .settings-page .row input[type='range'] {
+  min-width: 110px;
+}
+
+/* Language: globe symbol + select, with room between them */
+#settings-panel .language-row {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+#settings-panel .language-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--sb-accent-soft);
+  color: var(--sb-accent);
+  flex: none;
+}
+#settings-panel .language-icon svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+#settings-panel .language-row select {
+  min-width: 150px;
+  margin: 0;
+}
+
+/* GitHub "coming soon" row (developer services) */
+#settings-panel .coming-soon {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--sb-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  opacity: 0.85;
+  cursor: not-allowed;
+}
+#settings-panel .coming-soon svg {
+  width: 22px;
+  height: 22px;
+  fill: var(--sb-muted);
+  flex: none;
+}
+#settings-panel .coming-soon div {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+#settings-panel .coming-soon strong {
+  font-size: 13px;
+}
+#settings-panel .coming-soon span {
+  font-size: 12px;
+  color: var(--sb-muted);
+}
+#settings-panel .coming-soon .soon-badge {
+  flex: none;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--sb-accent);
+  background: var(--sb-accent-soft);
+}
+#settings-panel .settings-page .row:has(input[type='number']),
+#settings-panel .settings-page .row:has(input[type='range']) {
+  flex-wrap: nowrap;
+  justify-content: space-between;
+}
+#settings-panel .settings-page .row:has(input[type='number']) > label:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Memory page ───────────────────────────────────────────────────────────────── */
+#settings-panel #memories-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--sb-line);
+}
+#settings-panel #memories-heading:has(+ #memories:empty) {
+  display: none;
+}
+#settings-panel #memories {
+  display: grid;
+  gap: 8px;
+}
+#settings-panel #memories .utility-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: start;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--sb-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+#settings-panel #memories .utility-item p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  max-height: 7.5em;
+  overflow: auto;
+}
+#settings-panel #memories .utility-item button {
+  margin: 0 !important;
+  padding: 4px 10px;
+  font-size: 11.5px;
+}
+#settings-panel #profile-transfer {
+  margin-top: 12px;
+  padding: 2px 0 0;
+  border: 0;
+  background: none;
+}
+#settings-panel .ai-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 10px;
+}
+#settings-panel .ai-pick button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+#settings-panel .ai-pick button i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+#settings-panel .button-row > button,
+#settings-panel #profile-transfer-card #import-memory {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  flex: none;
+}
+#settings-panel #profile-transfer-card #import-memory {
+  margin: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--sb-text);
+}
+#settings-panel #profile-transfer summary {
+  margin: 4px 0 10px;
+  font-size: 12px;
+  color: var(--sb-muted);
+  cursor: pointer;
+}
+#settings-panel #profile-transfer .button-row > button {
+  font-size: 12px;
+}
+
+/* ── Welcome tour: pick any AI ─────────────────────────────────────────────────── */
+.tour-ai {
+  display: grid;
+  gap: 8px;
+  margin: -2px 0 12px;
+}
+.tour-ai-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.tour-ai-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--ac-edge);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--sb-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+.tour-ai-option:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+.tour .tour-ai-option[aria-pressed='true'] {
+  border-color: rgba(240, 198, 161, 0.65) !important;
+  background: rgba(240, 198, 161, 0.12) !important;
+}
+.tour-ai-option i {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+}
+.tour-ai-text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.tour-ai-text strong {
+  font-size: 13px;
+}
+.tour-ai-text small {
+  font-size: 11px;
+  color: var(--sb-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tour-ai-status {
+  min-height: 1.4em;
+  margin: 0;
+  font-size: 12px;
+  color: var(--sb-muted);
+}
+
+/* ── Questions from the AI (chat/ai-questions.ts): calm, one at a time ─────────── */
+#feed .ai-questions {
+  margin: 12px 0 4px;
+  padding: 14px 14px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
+    rgba(20, 20, 25, 0.6);
+  box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.7);
+  outline: none;
+}
+#feed .ai-q-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+#feed .ai-q-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--sb-accent);
+}
+#feed .ai-q-steps {
+  display: flex;
+  gap: 4px;
+}
+#feed .ai-q-steps i {
+  width: 14px;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.14);
+}
+#feed .ai-q-steps i.done {
+  background: rgba(240, 198, 161, 0.45);
+}
+#feed .ai-q-steps i.on {
+  background: var(--sb-accent);
+}
+#feed .ai-q-question {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--sb-text);
+}
+#feed .ai-q-options {
+  display: grid;
+  gap: 6px;
+}
+#feed .ai-q-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--sb-text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s;
+}
+#feed .ai-q-option:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+#feed .ai-q-option[aria-checked='true'],
+#feed .ai-q-option[aria-pressed='true'] {
+  border-color: rgba(240, 198, 161, 0.55);
+  background: rgba(240, 198, 161, 0.09);
+}
+#feed .ai-q-option kbd {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--sb-muted);
+  font: inherit;
+  font-size: 11px;
+}
+#feed .ai-q-option[aria-pressed='true'] kbd {
+  background: var(--sb-accent);
+  color: #1b1b1f;
+}
+#feed .ai-q-other {
+  display: block;
+  margin-top: 6px;
+}
+#feed .ai-q-other input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 11px;
+  background: transparent;
+  color: var(--sb-text);
+  font: inherit;
+  font-size: 13px;
+}
+#feed .ai-q-other input:focus {
+  outline: none;
+  border-style: solid;
+  border-color: rgba(240, 198, 161, 0.5);
+}
+#feed .ai-q-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+#feed .ai-q-foot button {
+  margin: 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+}
+#feed .ai-q-back {
+  margin-right: auto !important;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--sb-muted);
+}
+#feed .ai-q-summary p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 0 0 4px;
+  font-size: 12.5px;
+}
+#feed .ai-q-summary span {
+  color: var(--sb-muted);
+}
+#feed .ai-questions.answered {
+  padding-bottom: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: none;
+}
+#feed .ai-questions.expired .ai-q-other,
+#feed .ai-questions.expired .ai-q-foot {
+  display: none;
+}
+#feed .ai-questions.expired .ai-q-option {
+  opacity: 0.55;
+  cursor: default;
+}
+#feed .message.user.steer .edit-message {
+  display: none;
+}

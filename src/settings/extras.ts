@@ -5,15 +5,12 @@ import { Sound } from '../vendor/core/sound';
 import { BotEngine, hexToRGB } from '../vendor/slime/engine';
 const $ = (id: string) => document.getElementById(id)!;
 const input = (id: string) => $(id) as HTMLInputElement;
+// v0.7.0: only GitHub is listed, as a "coming in a later version" card. Vercel, Stripe,
+// Resend, Notion, Cal.com and n8n were removed from Settings.
 const labels: Record<string, string> = {
   github: 'GitHub',
-  vercel: 'Vercel',
-  stripe: 'Stripe',
-  resend: 'Resend',
-  notion: 'Notion',
-  calcom: 'Cal.com',
-  n8n: 'n8n',
 };
+const COMING_SOON = true;
 const colors = ['#76cfb3', '#d7b6f9', '#9ab8ff', '#ffb3b3', '#e1cf9b', '#a3d9f2', '#efad88'];
 export function extraUI(
   api: any,
@@ -300,7 +297,7 @@ export function extraUI(
         status.textContent = s.configured
           ? s.result?.error || s.result?.rows?.join('\n') || 'Bağlı · Yenile ile verileri al'
           : 'Bağlantı kurulmadı';
-      if (!s.configured) continue;
+      if (!s.configured || COMING_SOON || !(s.id in labels)) continue;
       const b = document.createElement('button');
       b.className = 'service-pill';
       const c = document.createElement('canvas');
@@ -324,7 +321,25 @@ export function extraUI(
   function init(value: any, displays: any[], rooms: any[]) {
     for (const d of displays) ($('pref-screen') as HTMLSelectElement).add(new Option(d.name, d.id));
     $('service-settings').replaceChildren();
-    for (const id of Object.keys(labels)) {
+    if (COMING_SOON) {
+      const card = document.createElement('div');
+      card.className = 'coming-soon';
+      card.innerHTML =
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>';
+      const text = document.createElement('div');
+      const name = document.createElement('strong');
+      name.textContent = 'GitHub bağlantısı';
+      const note = document.createElement('span');
+      note.textContent = 'İleriki sürümlerde gelecek';
+      text.append(name, note);
+      const badge = document.createElement('span');
+      badge.className = 'soon-badge';
+      badge.textContent = 'Yakında';
+      card.append(text, badge);
+      card.setAttribute('aria-disabled', 'true');
+      $('service-settings').append(card);
+    }
+    for (const id of COMING_SOON ? [] : Object.keys(labels)) {
       const d = document.createElement('details');
       d.id = `service-${id}`;
       const title = document.createElement('summary');

@@ -55,7 +55,7 @@ test('Appearance range validation and reset', () => {
       font: 18,
       scale: 1.15,
       pet: 0.8,
-      opacity: 0.3,
+      opacity: 1, // v0.7.0: opacity is no longer adjustable
       accent: '#edc9a9',
     });
   } finally {

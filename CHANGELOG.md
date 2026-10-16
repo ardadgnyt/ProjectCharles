@@ -1,8 +1,54 @@
 # ProjectCharles — Yama notları
 
-Charles’ın ilk masaüstü sürümünden v0.6.5 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+Charles’ın ilk masaüstü sürümünden v0.7.0 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.7.0 Beta — 16 Ekim 2026
+
+### Mail arama
+
+- Bağlı mail hesaplarında **kelimeye, gönderene ve tarihe göre arama**; yazarak veya sesle: *“Maillerimde fatura ara”*, *“Dün gelen mailleri göster”*, *“Geçen hafta Ahmet’ten gelen mailler”*, *“15 Ekim’deki maillerde staj geçen mailleri bul”*, *“Son 3 günde gelen maillerde "proje teslim" ara”*. İngilizce de olur: *“Search my email for invoice last week”*.
+- Anlaşılan tarihler: bugün, dün, bu/geçen hafta, bu/geçen ay, son N gün/hafta/ay, N gün önce, “15 Ekim”, “15.10.2026”, “Ekim ayında”, “10 Ekim’den beri”.
+- Bulunanlar konu, gönderen, tarih ve kısa önizlemeyle listelenir. Sonuna *özetle* eklersen mailler okunur ve seçili yapay zekâ özetler. Gmail ve Outlook aramayı sunucuda yapar; IMAP gelen kutusunda sunucuda arar; POP3’te arama olmadığı için en yeni 100 mail taranır.
+- Gemini Live sesli görüşmede de çalışır.
+
+### İş sürerken ek talimat
+
+- Yapay zekâ çalışırken yazmaya devam edebilirsin: **Ctrl + Enter** (veya Enter) ile ek talimat gönder. Claude’daki gibi.
+- **GPT (Codex)** talimatı o an çalışan işin içinde alır (Codex `turn/steer`). Mesaj sohbette “Ek talimat” etiketiyle görünür.
+- **Claude, Gemini ve Cursor** yanıtı tek seferde verdiği için mesaj, kutunun üstünde **Sırada** satırında bekler ve yanıt biter bitmez gönderilir. Tıklayınca düzenlemek için kutuya geri gelir, × ile sıradan çıkar. Durdurursan sıradaki mesaj kutuya geri konur.
+
+### Yapay zekânın soruları
+
+- Soru kartı yenilendi: **sorular tek tek** gelir (üstte adım çizgileri), seçenekler numaralı satırlar halindedir, en altta “Başka bir şey yaz…” alanı vardır. Tek seçimli soruda seçince bir sonrakine geçilir; sonuncuda yanıtlar gönderilir. 1–4 tuşlarıyla da seçilebilir; yanıtlandıktan sonra kart kısa bir özete döner.
+- Claude neredeyse her mesajda (tek harf yazınca bile) soru soruyordu. Tüm yapay zekâlara verilen kural sıkılaştırıldı: varsayılan, makul bir varsayımla doğrudan yanıt vermek; selamlaşma, sohbet, bilgi soruları, kısa/anlamsız mesajlarda soru kartı kullanılmaz.
+- İş sürerken bir soruyu yanıtlarsan yanıt ek talimat olarak gider.
+
+### Cursor
+
+- **Cursor modeli yanıt vermiyordu:** Cursor Agent yazdırma modunda “Workspace Trust Required” uyarısında durup kapanıyordu. Charles artık yalnızca kendi çalışma klasörüne (veya senin seçtiğin proje klasörüne) güven bilgisini veriyor (`--trust`). İzin atlatan `--force`/`--yolo` kullanılmıyor.
+- **Kalan kullanım:** adacıkta Cursor kotası artık görünüyor: bu fatura dönemindeki **Auto** ve **Aylık** paydan kalan yüzde ve sıfırlanma süresi. Bilgi, Cursor’un kendi kullanım servisinden Cursor oturumunla okunur; hiçbir şey yazılmaz.
+- Cursor’un adacık rengi **turkuaz** oldu.
+
+### Ayarlar
+
+- **Hesap:** Claude, Gemini ve Cursor da GPT gibi bağlıyken “✓ … bağlı” durumuna geçiyor (giriş düğmesi pasif). GPT kartına **Bağlantıyı kontrol et** eklendi; Codex bağlantı düğmesi yalnızca bağlantı yokken görünüyor. Cursor kartının altındaki **boş baloncuk** kaldırıldı.
+- **Genel:** “Dil / Language” yazısı yerine **dünya simgesi**; seçim kutusuyla arasında boşluk var. Hava durumu kartına başlık eklendi; süre kutuları kendi satırında.
+- **Düğmeler:** ayarların her yerinde yan yana duran düğmeler artık boşluklu ve dar ekranda alt satıra geçiyor (Hey Charles eğitimi, Gemini Live, eklentiler…).
+- **Kartlar:** tüm ayar kartları aynı arka plan, kenar, başlık ve boşluk düzeninde.
+- **Görünüm:** **Saydamlık** ayarı kaldırıldı; Charles her zaman tam görünür.
+- **Hafıza:** “ChatGPT’den beni tanı” yerine **Kullandığım AI ile beni tanı**. Ayrı, düzenli bir kart: ChatGPT, Claude veya Gemini’yi seç → soru paketi kopyalanır ve o yapay zekâ tarayıcıda açılır → yanıtı yapıştır → kaydedilecekleri seç. Kayıtlı bilgiler kendi başlığı altında, kart kart listeleniyor.
+- **Eklentiler:** Vercel, Stripe, Resend, Notion, Cal.com ve n8n kaldırıldı. **GitHub bağlantısı** “İleriki sürümlerde gelecek” olarak duruyor, şimdilik kullanılamaz.
+
+### Tanışma
+
+- Yapay zekâ adımı artık ChatGPT odaklı değil: **ChatGPT, Claude, Gemini ve Cursor** seçenek düğmeleri var. Seçtiğinin girişi başlatılır ve Charles o modelle açılacak şekilde ayarlanır.
+
+### Diğer
+
+- Yeni metinlerin İngilizce çevirileri eklendi (`src/settings/i18n-070.ts`).
+- Yeni testler: mail arama (Türkçe/İngilizce tarih ve kelime), Gmail/Outlook sorguları, sesli arama, ek talimat (turn/steer), Cursor güven bayrağı ve kota, soru kartı kuralı, ayar değişiklikleri (toplam 171 test).
 
 ## v0.6.5 Beta — 15 Ekim 2026
 

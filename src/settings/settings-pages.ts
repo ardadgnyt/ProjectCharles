@@ -76,7 +76,7 @@ export function settingsPages(api: any) {
     else if (heading === 'Başlangıç') category = 'general';
     else if (heading === 'Bağlantılar') category = 'connections';
     let target = category;
-    if (node.id === 'memory-section') target = 'memory';
+    if (node.id === 'memory-section' || node.id === 'profile-transfer-card') target = 'memory';
     else if (node.querySelector('#access-mode')) target = 'access';
     else if (
       node.querySelector('#look-save') ||

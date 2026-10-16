@@ -83,9 +83,8 @@ connected directly.
 
 ## Developer services
 
-GitHub, Vercel, Stripe, Resend, Notion, Cal.com and n8n each take an API key or token (n8n also
-needs its address). Keys are encrypted locally, and the cards refresh about once a minute while
-the panel is open.
+A GitHub connection is planned for a later version and is shown as *coming soon*. The Vercel,
+Stripe, Resend, Notion, Cal.com and n8n cards were removed in v0.7.0.
 
 ## Notifications
 
@@ -109,6 +108,13 @@ Ask in plain language, by text or voice. Charles understands Turkish requests su
 mail?), *“Takvimimi göster”* (show my calendar) and *“Tavan lambasını kapat”* (turn off the
 ceiling light).
 
+**Mail search** (v0.7.0) looks through every connected mailbox by word, sender and date:
+*“Maillerimde fatura ara”*, *“Dün gelen mailleri göster”*, *“Geçen hafta Ahmet’ten gelen
+mailler”*, *“15 Ekim’deki maillerde staj geçen mailleri bul”*, *“Search my email for invoice
+last week”*. Gmail and Outlook search on the server; IMAP searches the inbox on the server;
+POP3 has no search, so Charles looks through the newest 100 messages. Add *özetle* to have the
+AI summarize what was found.
+
 There are also slash commands: `/gmail`, `/outlook`, `/calendar`, `/outlook-calendar`, `/school`,
 `/drive <file name>` and `/home`. **Ask Charles** in the plugin panel puts the selected text into
 a draft. It is sent only when you press Send.
@@ -122,7 +128,7 @@ AI providers are connected in **Settings → Account**, not under Plugins:
 | GPT | Your ChatGPT account through Codex (browser sign-in) |
 | Claude | Claude Code. It needs a plan that includes Claude Code; a free web account is not enough |
 | Gemini | Your Google account through Antigravity. Gemini Live voice uses a separate API key from AI Studio. Both have **Set up with Charles**, a step-by-step guide next to Slime |
-| Cursor | The official Cursor Agent (browser sign-in). Chat only; use GPT/Codex for project work |
+| Cursor | The official Cursor Agent (browser sign-in). The island shows what is left of the plan this billing cycle (Auto and monthly) in turquoise |
 
 ## Technical references
 

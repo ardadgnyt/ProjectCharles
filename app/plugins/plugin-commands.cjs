@@ -40,6 +40,9 @@ function norm(value) {
     .trim();
 }
 function natural(text) {
+  // v0.7.0: "maillerimde fatura ara", "dün gelen mailleri göster" (keyword / date search)
+  const search = require('./mail-search.cjs').parseMailSearch(text);
+  if (search) return search;
   const q = norm(text)
     .replace(/[?!.]+$/, '')
     .replace(/^(?:hey charles[, ]*|charles[, ]*|lutfen |simdi |bana )+/, '')

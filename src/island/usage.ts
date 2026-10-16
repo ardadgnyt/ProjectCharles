@@ -1,3 +1,4 @@
+import { t } from '../settings/i18n';
 // Remaining-quota gauges on the compact island.
 //
 // The gauges always describe the provider behind the model currently selected in the
@@ -14,14 +15,14 @@ const NAMES: Record<Provider, string> = {
 };
 // Codex quota is cheap to read from the running app-server; Claude is one HTTPS call.
 // Gemini starts the Antigravity CLI, so it is refreshed only on demand.
-const PERIODIC: Partial<Record<Provider, number>> = { gpt: 60000, claude: 300000 };
-const MANUAL_REFRESH: Provider[] = ['gemini', 'claude'];
+const PERIODIC: Partial<Record<Provider, number>> = { gpt: 60000, claude: 300000, cursor: 300000 };
+const MANUAL_REFRESH: Provider[] = ['gemini', 'claude', 'cursor'];
 
 const COLORS: Record<Provider, string> = {
   gpt: '#f2f2f5',
   gemini: '#a8c7fa',
   claude: '#e8a27c',
-  cursor: '#c9c9d4',
+  cursor: '#3fd8c8', // v0.7.0: turquoise
 };
 const REFRESH_ICON =
   '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 6.4A5.3 5.3 0 1 0 13 10"/><path d="M13.4 2.8v3.8H9.6"/></svg>';
@@ -146,6 +147,10 @@ export function usageUI(
     renew.title = name + ' kotasını yenile';
     for (const key of ['fiveHour', 'weekly']) {
       const g = panel.querySelector<HTMLElement>('[data-window="' + key + '"]')!;
+      // v0.7.0: Cursor names its windows itself (Auto / Aylık)
+      g.querySelector('.usage-label')!.textContent = t(
+        v?.labels?.[key] || (key === 'fiveHour' ? '5 saat' : 'Haftalık'),
+      );
       const remaining = v?.[key]?.remaining;
       g.querySelector('strong')!.textContent =
         typeof remaining === 'number' ? Math.round(remaining) + '%' : '—';
@@ -247,7 +252,7 @@ export function usageUI(
     } else if (e.type === 'agent' && e.data?.method === 'turn/completed') {
       // A finished answer used quota: re-read the provider that answered.
       if (provider === 'gpt') void refresh(true);
-      else if (provider === 'claude') void refresh(false, true); // main process caches 60 s
+      else if (provider === 'claude' || provider === 'cursor') void refresh(false, true); // main process caches 60 s
     } else if (e.type === 'disconnected' && provider === 'gpt') paint(null);
   });
   // Main AI changed in settings: switch to its quota right away.

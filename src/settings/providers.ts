@@ -69,6 +69,12 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
   gptResult.setAttribute('role', 'status');
   gptResult.textContent = 'Giriş bekleniyor';
   original.classList.add('provider-actions');
+  // v0.7.0: GPT gets the same "check connection" button as the other accounts
+  const gptCheck = document.createElement('button');
+  gptCheck.id = 'gpt-check';
+  gptCheck.type = 'button';
+  gptCheck.textContent = 'Bağlantıyı kontrol et';
+  original.append(gptCheck);
   gpt.append(original, gptResult);
   primary.after(gpt);
   document.getElementById('mode-hint')!.hidden = true;
@@ -95,7 +101,13 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
             : !s.installed
               ? 'Giriş aracı eksik; paketin tamamını çıkar.'
               : 'Giriş yapılmadı';
-        if (button) button.disabled = !s.installed;
+        // v0.7.0: like GPT, a connected account's sign-in button turns into a "connected" state
+        if (button) {
+          const name = button.dataset.name || '';
+          button.disabled = !s.installed || !!s.signedIn;
+          button.classList.toggle('connected', !!s.signedIn);
+          button.textContent = s.signedIn ? '✓ ' + name + ' bağlı' : name + ' ile giriş';
+        }
       }
       const signature = JSON.stringify(rows);
       if (signature !== last) {
@@ -136,6 +148,7 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
     const login = document.createElement('button');
     login.id = 'provider-login-' + id;
     login.textContent = name + ' ile giriş';
+    login.dataset.name = name;
     login.type = 'button';
     login.className = 'primary';
     buttons.set(id, login);

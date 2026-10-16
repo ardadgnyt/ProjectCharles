@@ -187,7 +187,8 @@ class Personal {
         font: clamp(args.font, 11, 18, 13),
         scale: clamp(args.scale, 0.85, 1.15, 1),
         pet: clamp(args.pet, 0.8, 1.2, 1),
-        opacity: clamp(args.opacity, 0.3, 1, 1),
+        // v0.7.0: the opacity setting was removed; Charles is always fully opaque
+        opacity: 1,
         accent: /^#[0-9a-f]{6}$/i.test(args.accent) ? args.accent : '#edc9a9',
       };
     } else throw Error('Geçersiz kişisel ayar.');

@@ -87,7 +87,10 @@ function launchPlan({ provider, model, mode, access, projectDir, workspace }) {
     return { cli, cwd, timeoutMs, tools, geminiSettings: geminiSettings(level, tools) };
   }
   // cursor
-  const cli = ['-p', '--output-format', 'json', '--workspace', cwd];
+  // --trust: print mode stops at Cursor's "Workspace Trust Required" prompt otherwise and
+  // never answers (v0.7.0 fix). It trusts only this folder: Charles' own empty workspace in
+  // chat mode, or the project folder the user picked. It is not --force / --yolo.
+  const cli = ['-p', '--output-format', 'json', '--trust', '--workspace', cwd];
   if (!tools) cli.push('--mode', 'ask');
   else if (level === 'ask') cli.push('--mode', 'plan');
   else cli.push('--sandbox', 'enabled');

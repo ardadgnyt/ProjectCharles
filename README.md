@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.6.5%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.7.0%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
   <img alt="Languages" src="https://img.shields.io/badge/UI-English%20%7C%20T%C3%BCrk%C3%A7e-2b2f3a?style=flat-square">
@@ -45,19 +45,22 @@ tiny laptop while the AI writes code, and gets dizzy if you shake it too hard.
   Gemini Live handles real-time conversations (with a live voice-level meter), and local Whisper
   handles dictation. The **microphone button** at the top right switches all listening off
   until you switch it back on.
-- **Questions from the AI:** when GPT, Claude, Gemini or Cursor needs a decision before it
-  continues, the question appears as a card with answer buttons.
+- **Questions from the AI:** when GPT, Claude, Gemini or Cursor really needs a decision before
+  it continues, it asks one question at a time in a calm card with answer options.
+- **Add instructions while it works:** type while the AI is still answering and press
+  **Ctrl + Enter**. GPT takes it right away; Claude, Gemini and Cursor get it as soon as they
+  finish.
 - **Browser commands:** say or type *“search the web for …”* or *“play … on YouTube”* and
   Charles opens it in your default browser.
 - **Set up with Charles:** Slime walks you through connecting Google, Microsoft, your Gemini
   account and the Gemini Live API key, step by step.
 - **Mail and calendar:** connect Gmail and Google Calendar, Outlook, or any POP3/IMAP school or
   work mailbox. Important emails appear as a bubble under the island. Ask
-  *“Do I have any important emails?”* and Charles summarises them. It can also turn a deadline
-  into a calendar reminder.
+  *“Do I have any important emails?”* and Charles summarises them, or search by word and date:
+  *“find emails from John last week”*. It can also turn a deadline into a calendar reminder.
 - **Built-in helpers:** reminders and focus timers, weather (Open-Meteo), Spotify controls,
   screen-region capture (Ctrl + Shift + S), a memory you control, a weekly activity summary,
-  and Home Assistant, GitHub, Notion, Vercel, Stripe, Resend, Cal.com and n8n integrations.
+  and Home Assistant. (A GitHub connection is planned for a later version.)
 
 **A character with personality**
 
@@ -93,7 +96,7 @@ tiny laptop while the AI writes code, and gets dizzy if you shake it too hard.
 1. Download the installer kit from [**Releases**](../../releases). It contains `Install.cmd`,
    `install.ps1` and `Charles.zip`.
 2. Extract it and double-click **`Install.cmd`**.
-3. The installer checks your Windows, copies Charles to `C:\ProjectCharles v0.6.5 Beta` (you
+3. The installer checks your Windows, copies Charles to `C:\ProjectCharles v0.7.0 Beta` (you
    can choose another folder), creates Desktop and Start menu shortcuts, and starts Charles.
 4. In Charles, sign in with the AI account you want to use (**Settings → Account**).
 

@@ -56,7 +56,11 @@ export function answerText(questions: AiQuestion[], answers: string[]) {
   return questions.map((q, i) => `${q.question} → ${answers[i]}`).join('\n');
 }
 
-/** The card under the message. `send` posts the answer as the user's next message. */
+/**
+ * The card under the message (v0.7.0, Claude-like): one question at a time, options as
+ * numbered rows, a free-answer row at the bottom. A single-choice pick moves on by itself;
+ * the last answer sends everything as the user's next message. Number keys 1–4 pick.
+ */
 export function questionCard(
   questions: AiQuestion[],
   send: (text: string) => void,
@@ -64,79 +68,155 @@ export function questionCard(
 ) {
   const card = document.createElement('div');
   card.className = 'ai-questions';
-  const title = document.createElement('p');
-  title.className = 'ai-questions-title';
-  title.textContent = t(questions.length > 1 ? 'Devam etmeden önce birkaç sorum var' : 'Devam etmeden önce bir sorum var');
-  card.append(title);
+  card.tabIndex = -1;
   const answers: string[] = questions.map(() => '');
-  const submit = document.createElement('button');
-  submit.type = 'button';
-  submit.className = 'primary ai-questions-send';
-  submit.textContent = t('Yanıtla');
-  const done = (text: string) => {
+  let index = 0;
+
+  const head = document.createElement('div');
+  head.className = 'ai-q-head';
+  const label = document.createElement('span');
+  label.className = 'ai-q-label';
+  label.textContent = t('Charles soruyor');
+  const steps = document.createElement('span');
+  steps.className = 'ai-q-steps';
+  head.append(label, steps);
+  const body = document.createElement('div');
+  body.className = 'ai-q-body';
+  const foot = document.createElement('div');
+  foot.className = 'ai-q-foot';
+  card.append(head, body, foot);
+
+  const done = () => {
     card.classList.add('answered');
-    for (const b of card.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button,input'))
-      b.disabled = true;
-    send(text);
+    const summary = document.createElement('div');
+    summary.className = 'ai-q-summary';
+    questions.forEach((q, i) => {
+      const line = document.createElement('p');
+      const qs = document.createElement('span');
+      qs.textContent = q.question;
+      const a = document.createElement('strong');
+      a.textContent = answers[i];
+      line.append(qs, a);
+      summary.append(line);
+    });
+    body.replaceChildren(summary);
+    foot.replaceChildren();
+    steps.textContent = '';
+    label.textContent = t('Yanıtlandı');
+    send(answerText(questions, answers.map((a) => a.trim())));
   };
-  const refresh = () => {
-    submit.disabled = answers.some((a) => !a.trim());
+  const next = () => {
+    if (index < questions.length - 1) {
+      index++;
+      render();
+    } else done();
   };
-  questions.forEach((q, i) => {
-    const box = document.createElement('div');
-    box.className = 'ai-question';
-    const label = document.createElement('p');
-    label.textContent = q.question;
-    box.append(label);
-    const opts = document.createElement('div');
-    opts.className = 'ai-question-options';
-    const chosen = new Set<string>();
-    for (const o of q.options) {
+
+  function render() {
+    const q = questions[index];
+    steps.replaceChildren();
+    if (questions.length > 1)
+      questions.forEach((_, i) => {
+        const dot = document.createElement('i');
+        if (i < index) dot.className = 'done';
+        if (i === index) dot.className = 'on';
+        steps.append(dot);
+      });
+    const title = document.createElement('p');
+    title.className = 'ai-q-question';
+    title.textContent = q.question;
+    const list = document.createElement('div');
+    list.className = 'ai-q-options';
+    list.setAttribute('role', q.multi ? 'group' : 'radiogroup');
+    const chosen = new Set(answers[index] ? answers[index].split(', ') : []);
+    q.options.forEach((o, i) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.textContent = o;
+      b.className = 'ai-q-option';
+      b.setAttribute(q.multi ? 'aria-pressed' : 'aria-checked', String(chosen.has(o)));
+      if (!q.multi) b.setAttribute('role', 'radio');
+      const n = document.createElement('kbd');
+      n.textContent = String(i + 1);
+      const text = document.createElement('span');
+      text.textContent = o;
+      b.append(n, text);
       b.onclick = () => {
+        if (card.classList.contains('answered')) return;
         if (q.multi) {
           if (chosen.has(o)) chosen.delete(o);
           else chosen.add(o);
           b.setAttribute('aria-pressed', String(chosen.has(o)));
-          answers[i] = [...chosen].join(', ');
-        } else {
-          for (const x of opts.querySelectorAll('button')) x.setAttribute('aria-pressed', 'false');
-          b.setAttribute('aria-pressed', 'true');
-          answers[i] = o;
+          answers[index] = q.options.filter((x) => chosen.has(x)).join(', ');
           input.value = '';
-          // one question, one choice: answer right away
-          if (questions.length === 1) return done(o);
+          paintFoot();
+        } else {
+          answers[index] = o;
+          next();
         }
-        refresh();
       };
-      opts.append(b);
-    }
+      list.append(b);
+    });
+    const other = document.createElement('label');
+    other.className = 'ai-q-other';
     const input = document.createElement('input');
     input.type = 'text';
     input.maxLength = 2000;
-    input.placeholder = t(q.options.length ? 'Ya da kendi yanıtını yaz…' : 'Yanıtını yaz…');
+    input.placeholder = t(q.options.length ? 'Başka bir şey yaz…' : 'Yanıtını yaz…');
+    if (answers[index] && !q.options.includes(answers[index]) && !q.multi) input.value = answers[index];
     input.oninput = () => {
       if (input.value.trim()) {
-        for (const x of opts.querySelectorAll('button')) x.setAttribute('aria-pressed', 'false');
         chosen.clear();
+        for (const x of list.querySelectorAll('button'))
+          x.setAttribute(q.multi ? 'aria-pressed' : 'aria-checked', 'false');
       }
-      answers[i] = input.value;
-      refresh();
+      answers[index] = input.value;
+      paintFoot();
     };
     input.onkeydown = (e) => {
-      if (e.key === 'Enter' && !submit.disabled) {
+      if (e.key === 'Enter' && input.value.trim()) {
         e.preventDefault();
-        submit.click();
+        e.stopPropagation();
+        next();
       }
     };
-    if (q.options.length) box.append(opts);
-    box.append(input);
-    card.append(box);
+    other.append(input);
+    body.replaceChildren(title, ...(q.options.length ? [list] : []), other);
+    paintFoot();
+    function paintFoot() {
+      foot.replaceChildren();
+      if (index > 0) {
+        const back = document.createElement('button');
+        back.type = 'button';
+        back.className = 'ai-q-back';
+        back.textContent = t('Geri');
+        back.onclick = () => {
+          index--;
+          render();
+        };
+        foot.append(back);
+      }
+      const go = document.createElement('button');
+      go.type = 'button';
+      go.className = 'primary ai-q-next';
+      go.textContent = t(index < questions.length - 1 ? 'Devam' : 'Yanıtla');
+      go.disabled = !answers[index].trim();
+      // single choice moves on by itself; the button is for typed or multiple answers
+      go.hidden = !q.multi && q.options.length > 0 && !input.value.trim();
+      go.onclick = next;
+      foot.append(go);
+      foot.hidden = !foot.querySelector('button:not([hidden])');
+    }
+    if (!q.options.length) setTimeout(() => input.focus(), 0);
+  }
+  card.addEventListener('keydown', (e) => {
+    if (card.classList.contains('answered') || (e.target as HTMLElement).tagName === 'INPUT') return;
+    const n = Number(e.key);
+    const option = n >= 1 ? card.querySelectorAll<HTMLButtonElement>('.ai-q-option')[n - 1] : null;
+    if (option) {
+      e.preventDefault();
+      option.click();
+    }
   });
-  submit.onclick = () => done(answerText(questions, answers.map((a) => a.trim())));
-  refresh();
-  card.append(submit);
+  render();
   return card;
 }

@@ -236,6 +236,21 @@ class Agent extends EventEmitter {
       throw e;
     }
   }
+  // v0.7.0: add an instruction to the running turn (Codex app-server turn/steer).
+  async steer(text) {
+    this.requireReady();
+    if (!this.busy || !this.turnId || !this.threadId) throw Error('Şu an çalışan bir iş yok.');
+    const r = await this.rpc.request(
+      'turn/steer',
+      {
+        threadId: this.threadId,
+        expectedTurnId: this.turnId,
+        input: [{ type: 'text', text, text_elements: [] }],
+      },
+      15000,
+    );
+    return { turnId: r?.turnId || this.turnId };
+  }
   async interrupt() {
     this.requireReady();
     if (!this.turnId) {

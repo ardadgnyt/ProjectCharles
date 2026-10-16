@@ -1,6 +1,6 @@
 # Charles — User Guide
 
-This guide covers Charles **v0.6.5 Beta** on Windows 10/11. For installation, see the
+This guide covers Charles **v0.7.0 Beta** on Windows 10/11. For installation, see the
 [README](../README.md#installation). For the full history of changes, see
 [CHANGELOG.md](../CHANGELOG.md) (Turkish).
 
@@ -51,8 +51,16 @@ When an AI is running low on quota, Charles offers to continue with another conn
 
 **Questions from the AI.** Sometimes the AI needs a decision before it can do the work well
 (which language, which file, which option). The question appears under its answer as a card.
-Click an option or type your own answer and press **Reply**. The answer is sent as your next
-message.
+It asks one question at a time: click an option (or press its number), or type your own
+answer. After the last question, the answers are sent as your next message. Charles tells every
+AI to ask only when a wrong guess would really cost time, so ordinary chats are not
+interrupted.
+
+**Extra instructions while it works.** You do not have to wait for an answer to finish. Type
+in the message box and press **Ctrl + Enter** (or Enter). GPT receives the instruction inside
+the running task. Claude, Gemini and Cursor answer in one go, so the message waits in a small
+*Queued* row above the box and is sent as soon as the answer is done; click it to edit, or ×
+to remove it.
 
 Past chats are listed in **History** (the list button at the top left). There you can search
 chats, sort them into folders, rename them and reopen them.
@@ -125,10 +133,10 @@ In the Turkish interface, Slime holds a Turkish flag on 19 May, 30 August, 29 Oc
 | --- | --- |
 | **General** | Language (English / Türkçe), start with Windows, sounds and volume, auto-hide and collapse, read aloud, Hey Charles, weather city, welcome tour |
 | **Account** | Sign in to ChatGPT/Codex, Claude, Gemini and Cursor (Gemini has **Set up with Charles**); default model; Gemini Live key (with **Set up with Charles**) and voice |
-| **Appearance** | Text size, panel size, character size, opacity, screen choice, chat colours, Slime studio, try expressions |
-| **Memory** | Things Charles should remember; import a summary from ChatGPT |
+| **Appearance** | Text size, panel size, character size, screen choice, chat colours, Slime studio, try expressions |
+| **Memory** | Things Charles should remember; **Get to know me from the AI I use**: pick ChatGPT, Claude or Gemini, paste its answer and choose what to keep |
 | **Access** | How much the AI may do without asking (see [Project mode](#project-mode)) |
-| **Plugins** | Google (Gmail, Calendar, Drive), Microsoft (Outlook, Calendar), POP3/IMAP mail, Home Assistant, GitHub, Vercel, Stripe, Resend, Notion, Cal.com, n8n; important-mail notifications and keywords |
+| **Plugins** | Google (Gmail, Calendar, Drive), Microsoft (Outlook, Calendar), POP3/IMAP mail, Home Assistant; important-mail notifications and keywords. GitHub is listed as coming in a later version |
 | **Shortcuts** | Change any global shortcut |
 | **Weekly summary** | Time on the computer, Charles tasks, sessions, files and commands. It is shown on Monday morning |
 | **Performance** | Optional CPU, RAM and GPU history kept on this computer |
@@ -164,6 +172,7 @@ Turkish phrasing (browser commands also understand English), for example:
 | *“Bunu hatırla: …”* · *“Bana … diye hitap et”* | saves to memory / sets how Charles addresses you |
 | *“Ne çalışıyorduk?”* | recalls your current study topic |
 | *“Önemli mail var mı?”* · *“Okul maillerimi özetle”* | checks and summarizes connected mailboxes |
+| *“Maillerimde fatura ara”* · *“Dün gelen mailleri göster”* · *“Geçen hafta Ahmet’ten gelen mailler”* · *“Search my email for invoice last week”* | searches connected mailboxes by word, sender and date (today, yesterday, this/last week or month, “last 3 days”, “15 Ekim”, “15.10.2026”, “since 10 October”) |
 | *“Hava nasıl?”* | today’s weather for your city |
 | *“Tavan lambasını kapat”* | controls a Home Assistant device |
 | *“İnternetten … arat”* · *“Search the web for …”* | opens a Google search in your default browser |

@@ -483,6 +483,132 @@ class Plugins {
     delete this.errors[kind];
     return rows;
   }
+  // v0.7.0: keyword / date search (app/plugins/mail-search.cjs parses the request).
+  // s = { keywords, since, until } with ISO dates; until is exclusive.
+  async search(kind, s) {
+    const { inRange, matches } = require('./mail-search.cjs');
+    const keywords = String(s?.keywords || '').slice(0, 80);
+    const since = s?.since ? new Date(s.since) : null,
+      until = s?.until ? new Date(s.until) : null;
+    const ymd = (d) => d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+    let rows = [];
+    if (kind === 'mail') {
+      const kinds = [
+        ...(this.data.tokens.google ? ['gmail'] : []),
+        ...(this.data.tokens.microsoft ? ['outlook'] : []),
+        ...(this.data.configs.school?.password ? ['school'] : []),
+      ];
+      if (!kinds.length)
+        throw Error('Henüz mail hesabı bağlı değil. Ayarlar → Eklentiler bölümünden bir hesap bağla.');
+      for (const source of kinds) {
+        try {
+          const items = await this.search(source, s);
+          rows.push(...items.map((r) => ({ ...r, id: source + '|' + r.id, title: r.title, account: source, mailKind: source })));
+        } catch (e) {
+          rows.push({ id: source + '|error', title: source + ' bağlantı hatası', text: e.message, mailError: true });
+        }
+      }
+      const errors = rows.filter((r) => r.mailError);
+      rows = rows.filter((r) => !r.mailError).sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0));
+      if (!rows.length && errors.length === kinds.length) throw Error(errors.map((r) => r.text).join(' · '));
+      this.cache.mail = [...(this.cache.mail || []).filter((r) => !rows.some((x) => x.id === r.id)), ...rows].slice(-200);
+      return rows;
+    }
+    if (kind === 'gmail') {
+      const q = [
+        keywords.replace(/[()"]/g, ' ').trim(),
+        since ? 'after:' + ymd(since) : '',
+        until ? 'before:' + ymd(until) : '',
+        keywords || since || until ? '' : 'in:inbox',
+      ]
+        .filter(Boolean)
+        .join(' ');
+      rows = await this.list('gmail', q);
+    } else if (kind === 'outlook') {
+      const select = '$select=id,subject,from,bodyPreview,receivedDateTime,importance,isRead';
+      const url = keywords
+        ? 'https://graph.microsoft.com/v1.0/me/messages?$top=40&' + select + '&$search=' + encodeURIComponent('"' + keywords.replace(/"/g, ' ') + '"')
+        : 'https://graph.microsoft.com/v1.0/me/messages?$top=40&$orderby=receivedDateTime%20desc&' + select +
+          '&$filter=' + encodeURIComponent([since ? 'receivedDateTime ge ' + since.toISOString() : '', until ? 'receivedDateTime lt ' + until.toISOString() : ''].filter(Boolean).join(' and ') || 'receivedDateTime ge 1970-01-01T00:00:00Z');
+      const d = await this.get('microsoft', url);
+      rows = (d.value || []).map((m) => ({
+        id: m.id,
+        title: m.subject,
+        from: m.from?.emailAddress?.address || '',
+        text: m.bodyPreview,
+        date: m.receivedDateTime,
+        important: m.importance === 'high',
+        unread: !m.isRead,
+      }));
+      this.cache.outlook = [...(this.cache.outlook || []).filter((r) => !rows.some((x) => x.id === r.id)), ...rows].slice(-200);
+    } else if (kind === 'school') {
+      rows = await this.schoolSearch({ keywords, since, until });
+    } else throw Error('Bu hesapta mail araması yapılamaz.');
+    // Providers search loosely (Gmail stems, Outlook ignores dates in $search): check again here.
+    return rows
+      .filter((r) => inRange(r, { since: since?.toISOString(), until: until?.toISOString() }))
+      .filter((r) => kind === 'gmail' || kind === 'outlook' || r.serverMatched || matches(r, keywords))
+      .sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0));
+  }
+  async schoolSearch({ keywords, since, until }) {
+    const c = this.data.configs.school;
+    if (!c?.password)
+      throw Error(
+        'Okul e-postası bağlı değil. Ayarlar → Eklentiler → Okul e-postası bölümünde POP3/IMAP sunucusu, e-posta adresi ve şifreni kaydet.',
+      );
+    if (c.protocol === 'pop3') {
+      // POP3 has no search: look through the newest 100 headers.
+      this.schoolQueue = (this.schoolQueue || Promise.resolve())
+        .catch(() => {})
+        .then(() => require('./pop3.cjs').readPOP3(c, null, undefined, 100));
+      const rows = await this.schoolQueue;
+      this.cache.school = rows;
+      return rows;
+    }
+    const { ImapFlow } = require('imapflow'),
+      client = new ImapFlow({
+        host: c.host,
+        port: c.port,
+        secure: true,
+        auth: { user: c.user, pass: c.password },
+        logger: false,
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 30000,
+        tls: { rejectUnauthorized: true },
+      });
+    try {
+      await client.connect();
+      const lock = await client.getMailboxLock('INBOX', { readOnly: true });
+      try {
+        const query = {};
+        if (since) query.since = since;
+        if (until) query.before = until;
+        if (keywords) query.or = [{ subject: keywords }, { from: keywords }, { body: keywords }];
+        if (!Object.keys(query).length) query.all = true;
+        const uids = ((await client.search(query, { uid: true })) || []).slice(-30);
+        const rows = [];
+        if (uids.length)
+          for await (const m of client.fetch(uids.join(','), { envelope: true, flags: true }, { uid: true }))
+            rows.push({
+              id: String(client.mailbox.uidValidity) + ':' + m.uid,
+              title: m.envelope.subject || '',
+              from: (m.envelope.from || []).map((x) => x.address).join(', '),
+              date: m.envelope.date?.toISOString(),
+              text: '',
+              unread: !m.flags.has('\\Seen'),
+              important: m.flags.has('\\Flagged'),
+            });
+        this.cache.school = [...(this.cache.school || []).filter((r) => !rows.some((x) => x.id === r.id)), ...rows].slice(-200);
+        // Body matches are already filtered by the server.
+        return rows.map((r) => ({ ...r, serverMatched: true }));
+      } finally {
+        lock.release();
+      }
+    } finally {
+      await client.logout().catch(() => client.close());
+    }
+  }
   async school(selected) {
     const c = this.data.configs.school;
     if (!c?.password)

@@ -566,6 +566,10 @@ export const english063: Record<string, string> = {
 
 /** Texts with a number or a name inside: [pattern, English]. */
 export const englishPatterns: [RegExp, (...m: string[]) => string][] = [
+  // v0.7.0
+  [/^(.+) zaten bağlı\. Devam edebilirsin\.$/, (_, n) => `${n} is already connected. You can continue.`],
+  [/^Soru paketi kopyalandı\. (.+) sohbetine yapıştır, yanıtın tamamını 2\. adıma yapıştır\.$/, (_, n) => `Question pack copied. Paste it into ${n}, then paste the whole answer in step 2.`],
+  [/^ChatGPT bağlı · (.+)$/, (_, n) => `ChatGPT connected · ${n}`],
   [/^(\d+) saatlik (.+) kalan kullanım: (.+)$/, (_, h, n, v) => `${h}-hour ${n} remaining: ${v}`],
   [/^Haftalık (.+) kalan kullanım: (.+)$/, (_, n, v) => `Weekly ${n} remaining: ${v}`],
   [/^(.+) kotasını yenile$/, (_, n) => `Refresh ${n} quota`],

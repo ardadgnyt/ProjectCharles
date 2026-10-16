@@ -479,6 +479,18 @@ class Sessions extends EventEmitter {
     r.updatedAt = Date.now();
     this.save();
   }
+  // v0.7.0: extra instruction while GPT (Codex) is working. Other providers answer in one
+  // go; the interface queues their extra messages and sends them after the answer.
+  async steer(text) {
+    const r = this.current;
+    if (typeof text !== 'string' || !text.trim() || text.length > 20000) throw Error('Geçersiz mesaj.');
+    if (r.agent.providerModel) throw Error('Bu model çalışırken ek talimat alamaz; mesaj sıraya alınır.');
+    const result = await r.agent.steer(text.trim());
+    r.events.push({ type: 'history-user', data: text.trim(), steer: true });
+    r.updatedAt = Date.now();
+    this.save();
+    return result;
+  }
   interrupt() {
     if (this.providers?.interrupt(this.current.agent)) return;
     return this.current.agent.interrupt();

@@ -34,6 +34,8 @@ import type { BotStateName } from './vendor/core/layout';
 import { extraUI } from './settings/extras';
 import { updateMarkdown, messageSource, setQuestionHandler } from './chat/markdown';
 import { questionCard } from './chat/ai-questions';
+import { steerUI } from './chat/steer';
+import { settingsPolish } from './settings/polish-070';
 import { textReaction, answerReaction, isRateLimit } from './chat/reactions';
 
 declare global {
@@ -385,7 +387,10 @@ window.setInterval(() => {
 }, 1000);
 function controls() {
   $<HTMLButtonElement>('sessions-toggle').disabled = dispatching;
-  $<HTMLButtonElement>('send').disabled = busy || demo;
+  const steering = busy && !dispatching;
+  $<HTMLButtonElement>('send').disabled = demo || (busy && !(steering && prompt.value.trim()));
+  $('send').title = steering ? t('Ek talimat gönder · Ctrl+Enter') : '';
+  document.body.classList.toggle('steering', steering);
   mode.disabled = busy;
   $('folder').hidden = mode.value !== 'project';
   $('open-project').hidden = mode.value !== 'project' || !cwd;
@@ -393,10 +398,19 @@ function controls() {
     mode.value === 'chat'
       ? 'Sohbet etmek için proje seçmen gerekmiyor.'
       : 'Seçili projede kod yazılır. Codex izin istediğinde burada karar verirsin.';
-  prompt.placeholder =
-    mode.value === 'chat' ? 'Charles’a bir şey sor…' : 'Örneğin: Bu projeye koyu tema ekle…';
-  $<HTMLButtonElement>('login').disabled = !ready || busy;
+  prompt.placeholder = steering
+    ? t('Ek talimat yaz… Ctrl+Enter ile gönder')
+    : mode.value === 'chat'
+      ? 'Charles’a bir şey sor…'
+      : 'Örneğin: Bu projeye koyu tema ekle…';
+  // v0.7.0: one clear state per account card: "✓ ChatGPT bağlı" once signed in; the Codex
+  // connect button only shows while the local connection is missing.
+  $<HTMLButtonElement>('login').disabled = !ready || busy || signedIn;
+  $('login').textContent = signedIn ? '✓ ChatGPT bağlı' : 'ChatGPT ile giriş';
+  $('login').classList.toggle('connected', signedIn);
+  $('login').classList.toggle('primary', ready);
   $<HTMLButtonElement>('connect').disabled = ready || busy;
+  $('connect').hidden = ready;
   $<HTMLButtonElement>('folder').disabled = busy;
   $<HTMLButtonElement>('new-chat').disabled = busy;
   model.disabled = !ready || busy;
@@ -803,7 +817,7 @@ function event(e: any) {
       Sound.play('approval');
       break;
     case 'history-user':
-      row(e.data, 'user', e.attachments || []);
+      markSteer(row(e.data, 'user', e.attachments || []), !!e.steer);
       break;
     case 'history-local':
       updateMarkdown(row('', 'agent'), e.data, true);
@@ -930,6 +944,15 @@ function event(e: any) {
             Sound.play('finish');
           }
         }
+        // v0.7.0: queued extra instructions go out after a finished answer; after a stop or
+        // an error they come back into the message box to be edited or sent again.
+        if (!replaying) {
+          if (status === 'completed') window.setTimeout(sendQueued, 500);
+          else {
+            const queued = steer.take();
+            if (queued) prompt.value = prompt.value ? prompt.value + '\n' + queued : queued;
+          }
+        }
       }
       break;
     }
@@ -938,6 +961,11 @@ function event(e: any) {
 api.onEvent(event);
 async function switchRoom(r: any) {
   await voice.stop();
+  try {
+    steer.clear();
+  } catch {
+    /* not created yet during start-up */
+  }
   for (const card of requests.values()) card.remove();
   requests.clear();
   userOrdinal = 0;
@@ -1001,6 +1029,7 @@ wakeTraining(api, notice);
 pluginsUI(api, notice);
 settingsCards();
 languageUI(api);
+settingsPolish();
 document.addEventListener('charles-startup-model', (e: any) => {
   startupModel = e.detail;
 });
@@ -1059,6 +1088,22 @@ $('connect').onclick = () =>
       controls();
     }
   });
+// v0.7.0: Settings → Account → GPT → "Bağlantıyı kontrol et"
+document.getElementById('gpt-check')?.addEventListener('click', () =>
+  attempt(async () => {
+    const button = $<HTMLButtonElement>('gpt-check');
+    button.disabled = true;
+    try {
+      const a = await api.connect();
+      ready = true;
+      account(a);
+      notice(a.signedIn ? 'ChatGPT bağlı · ' + (a.plan || 'hesap hazır') : 'ChatGPT ile giriş düğmesine tıkla.');
+    } finally {
+      button.disabled = false;
+      controls();
+    }
+  }),
+);
 $('login').onclick = () =>
   attempt(async () => {
     await api.login();
@@ -1121,13 +1166,7 @@ setQuestionHandler((element, questions) => {
   const card = questionCard(
     questions,
     (text) => {
-      if (busy) {
-        notice('Önce etkin yanıtın tamamlanmasını bekle.');
-        card.classList.remove('answered');
-        for (const b of card.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button,input'))
-          b.disabled = false;
-        return;
-      }
+      // While another answer is running this goes out as an extra instruction (steer).
       prompt.value = text;
       ($('composer') as HTMLFormElement).requestSubmit();
     },
@@ -1136,7 +1175,7 @@ setQuestionHandler((element, questions) => {
   // Only the newest message's questions can still be answered.
   const last = [...feed.querySelectorAll('.message')].at(-1);
   if (last !== element) {
-    card.classList.add('answered');
+    card.classList.add('answered', 'expired');
     for (const b of card.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button,input'))
       b.disabled = true;
   } else if (!replaying) {
@@ -1148,6 +1187,11 @@ setQuestionHandler((element, questions) => {
 $('composer').addEventListener('submit', (e) => {
   e.preventDefault();
   void attempt(async () => {
+    // v0.7.0: while the AI is working, a message is an extra instruction (see chat/steer.ts)
+    if (busy && !dispatching && !demo && !voice.active() && prompt.value.trim()) {
+      await steer.send(prompt.value);
+      return;
+    }
     if (busy || demo || voice.active()) return;
     const text = prompt.value.trim();
     if (!text) return;
@@ -1205,6 +1249,7 @@ $('composer').addEventListener('submit', (e) => {
         busy = false;
         controls();
         state('finished', 'Tamamlandı!');
+        window.setTimeout(sendQueued, 300);
       }
     } catch (e) {
       busy = false;
@@ -1231,7 +1276,50 @@ api.onMailExplain((request: any) =>
     ($('composer') as HTMLFormElement).requestSubmit();
   }),
 );
+// Steering: extra instructions while the AI works (Enter or Ctrl+Enter).
+function markSteer(el: HTMLElement, on = true) {
+  if (!on) return el;
+  el.classList.add('steer');
+  const tag = document.createElement('span');
+  tag.className = 'steer-badge';
+  tag.textContent = t('Ek talimat');
+  el.prepend(tag);
+  return el;
+}
+const steer = steerUI({
+  api,
+  composer: $('composer'),
+  bar: $('composer-bar'),
+  prompt,
+  external: () => /^(gemini|claude|cursor):/.test(model.value || ''),
+  shown: (text) => {
+    markSteer(row(text, 'user'));
+    feed.scrollTop = feed.scrollHeight;
+  },
+  notice,
+  t,
+});
+// After an answer, send what was queued meanwhile.
+function sendQueued() {
+  if (busy || dispatching || requests.size) return;
+  const next = steer.take();
+  if (!next) return;
+  // A half-written message in the box is not lost: then the queued text joins it and waits.
+  if (prompt.value.trim()) {
+    prompt.value = next + '\n' + prompt.value;
+    notice(t('Sıradaki talimat mesaj kutusuna eklendi; hazır olunca gönder.'));
+    return;
+  }
+  prompt.value = next;
+  ($('composer') as HTMLFormElement).requestSubmit();
+}
+prompt.addEventListener('input', () => controls());
 prompt.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.ctrlKey && !e.isComposing) {
+    e.preventDefault();
+    ($('composer') as HTMLFormElement).requestSubmit();
+    return;
+  }
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
     e.preventDefault();
     ($('composer') as HTMLFormElement).requestSubmit();

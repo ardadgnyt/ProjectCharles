@@ -146,7 +146,7 @@ class POP3 {
     }
   }
 }
-async function readPOP3(config, selected, connect) {
+async function readPOP3(config, selected, connect, limit = 25) {
   const client = new POP3(config, connect);
   try {
     await client.open();
@@ -157,7 +157,7 @@ async function readPOP3(config, selected, connect) {
       return String((await client.message(id.number)).text || '').slice(0, 30000);
     }
     const rows = [];
-    for (const id of ids.slice(-25).reverse()) {
+    for (const id of ids.slice(-limit).reverse()) {
       const m = await client.message(id.number, true);
       rows.push({
         id: 'pop3:' + id.uid,

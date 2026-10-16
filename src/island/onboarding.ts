@@ -92,6 +92,64 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
     return box;
   }
 
+  // v0.7.0: the AI step offers every provider, not only ChatGPT. The chosen one is signed
+  // in (browser for ChatGPT, the provider's own sign-in window for the others) and becomes
+  // the model Charles starts with.
+  function aiPicker() {
+    const box = el('div', 'tour-ai');
+    const status = el('p', 'tour-ai-status');
+    status.setAttribute('role', 'status');
+    const options: [string, string, string, string, string][] = [
+      ['gpt', 'ChatGPT', 'ChatGPT hesabınla', '#e9e9ee', ''],
+      ['claude', 'Claude', 'Claude aboneliğinle', '#e8a27c', 'claude:sonnet'],
+      ['gemini', 'Gemini', 'Google hesabınla', '#a8c7fa', 'gemini:auto'],
+      ['cursor', 'Cursor', 'Cursor hesabınla', '#3fd8c8', 'cursor:auto'],
+    ];
+    const grid = el('div', 'tour-ai-grid');
+    for (const [id, name, sub, color, model] of options) {
+      const b = el('button', 'tour-ai-option');
+      b.type = 'button';
+      b.dataset.provider = id;
+      b.setAttribute('aria-pressed', 'false');
+      const dot = el('i');
+      dot.style.background = color;
+      const label = el('span', 'tour-ai-text');
+      label.append(el('strong', '', name), el('small', '', t(sub)));
+      b.append(dot, label);
+      b.onclick = async () => {
+        for (const x of grid.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+        b.disabled = true;
+        status.textContent = t('Giriş açılıyor…');
+        try {
+          if (id === 'gpt') {
+            const a = await api.connect().catch(() => null);
+            if (a?.signedIn) status.textContent = t('ChatGPT zaten bağlı. Devam edebilirsin.');
+            else {
+              await api.login();
+              status.textContent = t('Tarayıcıda girişi tamamla; ben buradayım.');
+            }
+          } else {
+            const r = await api.providersLogin(id);
+            status.textContent = r?.signedIn
+              ? t(name + ' zaten bağlı. Devam edebilirsin.')
+              : t('Açılan pencerede girişi tamamla, sonra Devam’a bas. Yardım istersen Ayarlar → Hesap → Charles ile kur.');
+          }
+          await api.startupModel(model).catch(() => {});
+          if (model) await api.defaultModel(model).catch(() => {});
+          bot.triggerEmote('happy', 1);
+          Sound.play('pop');
+        } catch (e) {
+          status.textContent = (e as Error).message;
+        } finally {
+          b.disabled = false;
+        }
+      };
+      grid.append(b);
+    }
+    box.append(grid, status);
+    return box;
+  }
+
   const steps: Step[] = [
     {
       title: 'Merhaba! Ben Charles 👋',
@@ -101,24 +159,10 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
     },
     {
       title: 'Önce bir yapay zekâ bağlayalım',
-      text: 'Konuşabilmem için ChatGPT hesabınla giriş yap; tarayıcıda açılacak sayfadan onaylaman yeterli. Claude, Gemini veya Cursor kullanıyorsan onları sonra Ayarlar → Hesap’tan ekleyebilirsin.',
+      text: 'Hangi yapay zekâyı kullanıyorsun? Birini seç, girişi birlikte yapalım. Diğerlerini sonra Ayarlar → Hesap’tan ekleyebilirsin.',
       emote: 'wink',
-      actions: [
-        { label: 'Şimdilik geç' },
-        {
-          label: 'ChatGPT ile giriş yap',
-          primary: true,
-          run: async () => {
-            try {
-              await api.login();
-              notice('Tarayıcıda girişi tamamla; ben buradayım.');
-            } catch (e) {
-              notice((e as Error).message);
-              return false;
-            }
-          },
-        },
-      ],
+      body: aiPicker,
+      actions: [{ label: 'Şimdilik geç' }, { label: 'Devam', primary: true }],
     },
     {
       title: 'Rengimi sen seç',

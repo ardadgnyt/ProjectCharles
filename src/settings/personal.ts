@@ -17,8 +17,9 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
     document.documentElement.style.setProperty('--accent', a.accent);
     document.documentElement.style.setProperty('--chat-font', a.font + 'px');
     $('slime').style.transform = `scale(${a.pet})`;
-    for (const k of ['font', 'scale', 'opacity', 'pet', 'accent'])
+    for (const k of ['font', 'scale', 'pet', 'accent'])
       ($('look-' + k) as HTMLInputElement).value = String(a[k]);
+    ($('look-opacity') as HTMLInputElement).value = '1';
     $('memories').replaceChildren();
     for (const m of data.memories) {
       const row = document.createElement('div');
