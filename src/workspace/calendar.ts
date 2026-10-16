@@ -6,6 +6,7 @@
 import { el, icon, iconButton } from './icons';
 import { modal } from './modal';
 import { holidaysBetween } from './holidays';
+import { t } from '../settings/i18n';
 
 type Item = {
   id: string;
@@ -298,7 +299,7 @@ export function calendarCard(d: CalendarDeps) {
   fNote.placeholder = 'Not ekle…';
   fNote.maxLength = 2000;
   const fInfo = el('p', 'ws-empty');
-  const times = el('div', 'ws-field-row', field('Başlangıç', fStart), field('Bitiş', fEnd));
+  const times = el('div', 'ws-field-row', field('Başlangıç saati', fStart), field('Bitiş', fEnd));
   const allDayRow = el('label', 'ws-check-row', fAllDay, el('span', '', 'Tüm gün'));
   const form = el(
     'div',
@@ -352,7 +353,7 @@ export function calendarCard(d: CalendarDeps) {
     const base = x?.date || date || new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), 10, 0);
     if (!x && !date && sameDay(selected, new Date())) base.setHours(new Date().getHours() + 1, 0, 0, 0);
     fLabel.textContent = x ? 'SEÇİLİ ETKİNLİK' : 'YENİ ETKİNLİK';
-    fHeading.textContent = x ? x.title : 'Yeni etkinlik';
+    fHeading.textContent = x ? x.title : t('Yeni etkinlik');
     fTitle.value = x?.title || '';
     fDate.value = ymd(base);
     fAllDay.checked = !!x?.allDay;

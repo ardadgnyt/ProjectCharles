@@ -52,6 +52,7 @@ export const english072: Record<string, string> = {
   '1 gün önce': '1 day before',
   'Not ekle…': 'Add a note…',
   Bitiş: 'End',
+  'Başlangıç saati': 'Start time',
   Başlık: 'Title',
   Tarih: 'Date',
   Hatırlatma: 'Reminder',

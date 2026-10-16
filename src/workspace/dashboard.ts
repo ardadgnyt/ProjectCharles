@@ -6,6 +6,7 @@ import { el, icon, iconButton } from './icons';
 import { resetLabel } from '../island/usage';
 import { calendarCard } from './calendar';
 import { homeCard } from './home';
+import { t } from '../settings/i18n';
 
 export type DashboardDeps = {
   api: any;
@@ -256,7 +257,7 @@ export function workspaceDashboard(d: DashboardDeps) {
     (s.replace(/<.*?>/g, '').replace(/["']/g, '').trim().split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('') || '✉').toLocaleUpperCase('tr');
   function mailRow(m: any, recent: boolean) {
     const calendarItem = String(m.kind).includes('calendar');
-    const sender = calendarItem ? SOURCES[m.kind] || 'Takvim' : (m.from || SOURCES[m.kind] || 'E-posta').replace(/<.*?>/g, '').replace(/"/g, '').trim();
+    const sender = calendarItem ? t(SOURCES[m.kind] || 'Takvim') : (m.from || SOURCES[m.kind] || 'E-posta').replace(/<.*?>/g, '').replace(/"/g, '').trim();
     const when = m.date || m.at ? new Date(m.date || m.at) : null;
     const from = el('span', 'ws-mail-from', sender);
     from.translate = false;
