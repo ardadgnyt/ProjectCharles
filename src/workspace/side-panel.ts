@@ -138,14 +138,15 @@ export function sidePanel(d: SidePanelDeps) {
     } else hide();
   }
 
-  function open(tab: Tab) {
+  /** `reveal` false: the tab is added or updated but the panel stays as it is (v0.7.4). */
+  function open(tab: Tab, reveal = true) {
     const old = tabs.findIndex((t) => t.id === tab.id);
     if (old >= 0) tabs[old] = tab;
     else tabs.push(tab);
     while (tabs.length > 8) tabs.shift();
-    active = tab.id;
-    show();
-    paint();
+    if (reveal || panel.hidden || !active) active = tab.id;
+    if (reveal) show();
+    if (!panel.hidden) paint();
   }
   function closeTab(id: string) {
     const i = tabs.findIndex((t) => t.id === id);
@@ -490,20 +491,27 @@ export function sidePanel(d: SidePanelDeps) {
   // what the AI does: written files and commands
   let terminal = '';
   const commands = new Map<string, string>();
+  // v0.7.4: Charles' own work (drawing a picture, its chat folder, its data) is not shown; the
+  // panel opens by itself only for files written in the user's project, never for commands
+  const internal = (p: string) =>
+    /(chat-workspace|AppData[\\/]Roaming[\\/]Charles|[\\/]\.codex[\\/]|generated_images|[\\/]providers[\\/]workspace)/i.test(String(p || '')) ||
+    /\.(png|jpe?g|gif|webp|bmp|ico)$/i.test(String(p || ''));
   document.addEventListener('charles-activity', (e: any) => {
     const { item, replaying } = e.detail || {};
     if (!item || replaying || !d.isOpen()) return;
     if (item.type === 'fileChange' && item.status === 'completed') {
-      for (const c of (item.changes || []).slice(0, 4)) if (c?.path && c.kind?.type !== 'delete') void loadFile(c.path);
+      for (const c of (item.changes || []).slice(0, 4))
+        if (c?.path && c.kind?.type !== 'delete' && !internal(c.path)) void loadFile(c.path);
     }
     if (item.type === 'commandExecution') {
+      if (!item.cwd || internal(item.cwd) || internal(item.command || '')) return;
       commands.set(item.id, `$ ${item.command || ''}\n${item.aggregatedOutput || ''}`.trimEnd());
       terminal = [...commands.values()].slice(-20).join('\n\n');
       const was = tabs.find((t) => t.id === 'terminal');
       if (was) {
         was.text = terminal;
-        if (active === 'terminal') paint();
-      } else open({ id: 'terminal', kind: 'terminal', title: 'Terminal', language: '', text: terminal });
+        if (active === 'terminal' && !panel.hidden) paint();
+      } else open({ id: 'terminal', kind: 'terminal', title: 'Terminal', language: '', text: terminal }, false);
     }
   });
 

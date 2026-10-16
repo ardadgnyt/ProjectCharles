@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.7.4%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.7.5%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
   <img alt="Languages: English, Türkçe, Deutsch, Français, Español, 中文" src="https://img.shields.io/badge/UI-English%20%7C%20T%C3%BCrk%C3%A7e%20%7C%20Deutsch%20%7C%20Fran%C3%A7ais%20%7C%20Espa%C3%B1ol%20%7C%20%E4%B8%AD%E6%96%87-2b2f3a?style=flat-square">
@@ -125,7 +125,7 @@ tiny laptop while the AI writes code, and gets dizzy if you shake it too hard.
 1. Download the installer kit from [**Releases**](../../releases). It contains `Install.cmd`,
    `install.ps1` and `Charles.zip`.
 2. Extract it and double-click **`Install.cmd`**.
-3. The installer checks your Windows, copies Charles to `C:\ProjectCharles v0.7.4 Beta` (you
+3. The installer checks your Windows, copies Charles to `C:\ProjectCharles v0.7.5 Beta` (you
    can choose another folder), creates Desktop and Start menu shortcuts, and starts Charles.
 4. In Charles, sign in with the AI account you want to use (**Settings → AI models**).
 

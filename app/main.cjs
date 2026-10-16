@@ -214,10 +214,10 @@ function createAppWindow() {
     minHeight: 480,
     title: 'Charles',
     icon: path.join(root, 'dist/icon.png'),
-    backgroundColor: '#0d0e11',
+    backgroundColor: '#010101',
     // Windows' own frame and caption buttons over Charles' title bar
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#0d0e11', symbolColor: '#e9e5e0', height: 52 },
+    titleBarOverlay: { color: '#010101', symbolColor: '#f5eee5', height: 52 },
   });
   const savedIcon = path.join(app.getPath('userData'), 'app-icon.png');
   if (fs.existsSync(savedIcon)) appWin.setIcon(nativeImage.createFromPath(savedIcon));

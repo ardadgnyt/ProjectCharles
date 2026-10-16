@@ -1,8 +1,13 @@
 # ProjectCharles — Yama notları
 
-Charles’ın ilk masaüstü sürümünden v0.7.4 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+Charles’ın ilk masaüstü sürümünden v0.7.5 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.7.5 Beta — 17 Ekim 2026
+
+- **Siyah-krem tema:** gri-mavi yüzeyler sıcak siyaha, yazılar, çizgiler ve vurgular kreme döndü. Adacık hafif şeffaflığını koruyor; uygulama penceresi, kartlar, yan panel, terminal, ayarlar ve sohbet listesi aynı renklerde. Windows başlık çubuğunun rengi de yeni arka plana uyuyor.
+- **Adacıkta Spotify tuşları:** daire ve kutular kalktı; Windows medya paneli gibi sade, ince ikonlar (önceki / oynat-duraklat / sonraki), üzerine gelince yumuşak bir vurgu. Küçük adacıkta boyutlar adacığa göre küçülüyor.
 
 ## v0.7.4 Beta — 16 Ekim 2026
 
@@ -19,6 +24,7 @@ Charles’ın ilk masaüstü sürümünden v0.7.4 Beta’ya kadar eklenen özell
   - **Dosyada ara** artık araç çubuğunun altında kendi satırında; düğmeler panelin dışına taşmıyor, yazarken odak kaybolmuyor, “2 / 5” gibi sonuç sayısı görünüyor.
 - **Haftalık özet:** süreler “72 sa 14 dk” gibi saat ve dakika olarak gösteriliyor.
 - Ayarlar ve diğer simge düğmelerinin etrafında bazen kalan kare odak çerçevesi kaldırıldı; çerçeve artık yalnızca Tab tuşuyla gezinirken görünüyor.
+- Yan panel “resim çiz” gibi işlerde kendiliğinden açılıp Charles’ın kendi iç komutlarını terminalde gösteriyordu. Artık Charles’ın kendi işleri (görsel oluşturma, sohbet klasörü, veri klasörü) panelde görünmüyor; komutlar paneli hiç kendiliğinden açmıyor (Terminal sekmesi panel açıkken güncelleniyor), panel yalnızca projendeki bir dosya yazılınca açılıyor.
 - Denenen “her yerde bas-konuş dikte” bu sürümden çıkarıldı.
 
 ## v0.7.3 Beta — 16 Ekim 2026

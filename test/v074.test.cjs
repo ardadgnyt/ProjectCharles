@@ -161,3 +161,11 @@ test('app window: a real Windows window (Snap, caption buttons) sharing the page
   assert.ok(!fs.existsSync(path.join(root, 'app/system/push-to-talk.cjs')));
   assert.doesNotMatch(read('src/renderer.ts'), /pushToTalk/);
 });
+
+test('side panel: Charles’ own work (pictures, its chat folder) does not open the panel or the terminal', () => {
+  const sp = read('src/workspace/side-panel.ts');
+  assert.match(sp, /function open\(tab: Tab, reveal = true\)/);
+  assert.match(sp, /if \(!item\.cwd \|\| internal\(item\.cwd\) \|\| internal\(item\.command \|\| ''\)\) return;/);
+  assert.match(sp, /text: terminal \}, false\)/); // commands never pop the panel open
+  assert.match(sp, /chat-workspace\|AppData/);
+});
