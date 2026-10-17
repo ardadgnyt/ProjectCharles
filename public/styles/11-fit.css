@@ -1,0 +1,102 @@
+/* v0.7.6 — the app window when it is narrow (snapped to half the screen, side panel open…).
+   The cards size themselves from their own width (container queries) instead of the screen
+   width, so nothing spills out of a card and the overview never scrolls sideways. */
+
+.ws-home-view {
+  container: ws-home / inline-size;
+}
+#workspace .ws-home {
+  overflow-x: hidden;
+}
+#workspace .ws-col > *,
+#workspace .ws-home > * {
+  min-width: 0;
+}
+#workspace .ws-dash {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+/* two columns only when both have room */
+@container ws-home (max-width: 820px) {
+  #workspace .ws-home {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@container ws-home (min-width: 821px) {
+  #workspace .ws-home {
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  }
+}
+
+/* Spotify */
+#workspace .ws-music-body {
+  grid-template-columns: 150px minmax(0, 1fr);
+}
+#workspace .ws-music-controls {
+  gap: 4px;
+  min-width: 0;
+}
+#workspace .ws-music-controls > * {
+  flex-shrink: 1;
+  min-width: 0;
+}
+@container (max-width: 470px) {
+  #workspace .ws-music-body {
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 14px;
+  }
+  #workspace .ws-play {
+    width: 40px;
+    height: 40px;
+  }
+}
+@container (max-width: 340px) {
+  #workspace .ws-music-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #workspace .ws-art {
+    display: none;
+  }
+}
+
+/* remaining usage: 4 providers in a row when they fit, else 2 × 2 */
+#workspace .ws-usage-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@container (min-width: 640px) {
+  #workspace .ws-usage-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+#workspace .ws-usage-col {
+  min-width: 0;
+}
+#workspace .ws-rings {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+@container (max-width: 330px) {
+  #workspace .ws-usage-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* e-mails and reminders: long names are cut with "…" instead of pushing the time out */
+#workspace .ws-mail-row > *,
+#workspace .ws-list > * > * {
+  min-width: 0;
+}
+@container (max-width: 520px) {
+  #workspace .ws-mail-row {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+  #workspace .ws-mail-from {
+    display: none;
+  }
+}
+
+/* smart home tiles */
+#workspace .ws-home-grid {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}

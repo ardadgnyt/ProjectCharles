@@ -1,8 +1,17 @@
 # ProjectCharles — Yama notları
 
-Charles’ın ilk masaüstü sürümünden v0.7.5 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+Charles’ın ilk masaüstü sürümünden v0.7.6 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.7.6 Beta — 17 Ekim 2026
+
+- **Görev çubuğu simgesi:** uygulama penceresi açıkken görev çubuğunda boş Windows program simgesi yerine Charles’ın (Slime renginde) simgesi görünüyor. Pencere kendi uygulama kimliğini ve simgesini Windows’a bildiriyor; Slime rengi değişince görev çubuğu da güncelleniyor.
+- **Dar pencerede düzen:** pencere küçültüldüğünde veya ekranın yarısına yaslandığında kartlar artık ekran genişliğine değil kendi genişliklerine göre yerleşiyor:
+  - Genel bakış iki sütun sığmıyorsa tek sütuna iniyor; yana kayan çubuk çıkmıyor.
+  - Spotify kartında kapak küçülüyor (çok darda gizleniyor), tuşlar ve ilerleme çubuğu kartın dışına taşmıyor.
+  - **Kalan kullanım** halkaları sığmazsa 2 × 2 diziliyor.
+  - E-posta satırlarında uzun adlar “…” ile kısalıyor, saat dışarı itilmiyor; akıllı ev kutucukları genişliğe göre diziliyor.
 
 ## v0.7.5 Beta — 17 Ekim 2026
 

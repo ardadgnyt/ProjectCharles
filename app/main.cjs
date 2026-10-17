@@ -178,6 +178,7 @@ function windowFacade() {
         if (key === 'setIcon')
           return (image) => {
             for (const w of [islandWin, appWin]) if (w && !w.isDestroyed()) w.setIcon(image);
+            if (appWin && !appWin.isDestroyed()) setImmediate(() => taskbarIcon(appWin));
           };
         if (key === 'on' || key === 'once') return islandWin[key].bind(islandWin);
         const w = ISLAND_ONLY.has(key) ? islandWin : activeWindow();
@@ -204,6 +205,25 @@ function moveView(to) {
   to.contentView.addChildView(view);
   fitView(to);
 }
+// v0.7.6: the taskbar showed a blank program icon for the app window. The window gets the
+// Slime icon as an image and Windows gets the app id + the .ico path for its taskbar button.
+const APP_ID = 'ProjectCharles.Charles';
+function taskbarIcon(w) {
+  if (!w || w.isDestroyed()) return;
+  const saved = path.join(app.getPath('userData'), 'app-icon.png');
+  const image = nativeImage.createFromPath(fs.existsSync(saved) ? saved : path.join(root, 'dist/icon.png'));
+  if (!image.isEmpty()) w.setIcon(image);
+  if (process.platform !== 'win32' || typeof w.setAppDetails !== 'function') return;
+  const ico = path.join(root, 'dist', 'charles.ico');
+  try {
+    w.setAppDetails({
+      appId: APP_ID,
+      appIconPath: fs.existsSync(ico) ? ico : path.join(root, 'public', 'charles.ico'),
+      appIconIndex: 0,
+      relaunchDisplayName: 'Charles',
+    });
+  } catch {}
+}
 function createAppWindow() {
   if (appWin && !appWin.isDestroyed()) return appWin;
   appWin = new BaseWindow({
@@ -219,8 +239,9 @@ function createAppWindow() {
     titleBarStyle: 'hidden',
     titleBarOverlay: { color: '#010101', symbolColor: '#f5eee5', height: 52 },
   });
-  const savedIcon = path.join(app.getPath('userData'), 'app-icon.png');
-  if (fs.existsSync(savedIcon)) appWin.setIcon(nativeImage.createFromPath(savedIcon));
+  taskbarIcon(appWin);
+  // v0.7.6: Windows sometimes drops a frameless-caption window's icon until it is shown
+  appWin.once('show', () => taskbarIcon(appWin));
   appWin.on('resize', () => {
     if (activeWindow() === appWin) fitView(appWin);
   });
@@ -710,6 +731,7 @@ function eventToUi(event) {
     expand(false);
   if (event.type === 'resolved') win.flashFrame(false);
 }
+if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', () => {

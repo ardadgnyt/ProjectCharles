@@ -1,6 +1,6 @@
 # Charles — User Guide
 
-This guide covers Charles **v0.7.5 Beta** on Windows 10/11. For installation, see the
+This guide covers Charles **v0.7.6 Beta** on Windows 10/11. For installation, see the
 [README](../README.md#installation). For the full history of changes, see
 [CHANGELOG.md](../CHANGELOG.md) (Turkish).
 
