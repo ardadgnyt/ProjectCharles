@@ -1,8 +1,15 @@
 # ProjectCharles — Yama notları
 
-Charles’ın ilk masaüstü sürümünden v0.7.7 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+Charles’ın ilk masaüstü sürümünden v0.7.8 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.7.8 Beta — 17 Ekim 2026
+
+- **Dosya bırakma ve takılı kalan krem çerçeve:** v0.7.7’de büyük paneldeki Slime animasyonu, bırakılan dosyayı mesaj kutusuna ekleyen dinleyicinin yerini alıyordu; dosya eklenmiyor, adacığın ve büyük panelin etrafındaki krem çerçeve ile + yerindeki kutu Slime ekranda kalıyordu. Artık iki dinleyici birlikte çalışıyor. Ayrıca pencere içinde metin seçip sürüklemek ya da kart/cihaz taşımak artık “dosya bırakma” durumunu açmıyor; sürükleme pencerenin içinde bitse, iptal edilse ya da pencereden çıksa da durum kapanıyor.
+- **Akıllı ev düzenleyicisi:** cihazlar sürükle bırakla yeniden yerleştirilebiliyor. Sürüklerken tahta her harekette yeniden çiziliyordu; sürüklenen kutu sayfadan kalkınca sürükleme hemen bitiyordu. Artık yalnızca “Buraya bırak” yeri hareket ediyor.
+- **Sohbetin üstü daha sade:** “Şu an ne yapıyorum?” ve “İş kuyruğu” yan yana ve daha küçük; kuyruk açılınca listesi en fazla birkaç kart yüksekliğinde. Dar pencerede yine alt alta.
+- **Kurulum:** `install.ps1` içindeki “Windows 11’in” yazısındaki kıvrık kesme işareti PowerShell’de dizeyi kapatıyordu ve kurulum 52. satırda sözdizimi hatası veriyordu. Düzeltildi; kurulum dosyalarında kıvrık tırnak kalmadığı testle denetleniyor.
 
 ## v0.7.7 Beta — 17 Ekim 2026
 

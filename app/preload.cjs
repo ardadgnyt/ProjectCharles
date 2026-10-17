@@ -4,8 +4,16 @@ const invoke = async (channel, ...args) => {
   if (!r.ok) throw new Error(r.error);
   return r.value;
 };
-let dropCallback,
-  lastDropSignal = 0;
+// v0.7.8: several listeners (the message box and the app window's Slime); v0.7.7 had one
+// slot, so the second listener replaced the first and dropped files were never attached.
+const dropCallbacks = new Set();
+const dropCallback = (v) => {
+  for (const cb of dropCallbacks)
+    try {
+      cb(v);
+    } catch {}
+};
+let lastDropSignal = 0;
 function dropActive(active) {
   if (active && Date.now() - lastDropSignal < 350) return;
   lastDropSignal = Date.now();
@@ -58,12 +66,12 @@ window.addEventListener(
           )
         : invoke('drop-text', text);
     } catch (error) {
-      dropCallback?.({ error: error.message });
+      dropCallback({ error: error.message });
       return;
     }
     task.then(
-      (items) => dropCallback?.({ items }),
-      (error) => dropCallback?.({ error: error.message }),
+      (items) => dropCallback({ items }),
+      (error) => dropCallback({ error: error.message }),
     );
   },
   true,
@@ -103,7 +111,7 @@ contextBridge.exposeInMainWorld('charles', {
   memoryImport: () => invoke('memory-import'),
   onCompanion: (cb) => ipcRenderer.on('companion-changed', (_e, value) => cb(value)),
   onFileDrop: (cb) => {
-    dropCallback = cb;
+    if (typeof cb === 'function') dropCallbacks.add(cb);
   },
   capture: () => invoke('capture'),
   onCapture: (cb) => ipcRenderer.on('capture-attachment', (_e, item) => cb(item)),

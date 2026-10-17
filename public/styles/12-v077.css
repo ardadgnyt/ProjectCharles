@@ -1508,3 +1508,134 @@ body.workspace.dropping #composer,
 body.workspace.dropping .ws-ask {
   box-shadow: 0 0 0 2px rgba(238, 210, 178, 0.35);
 }
+
+/* ── v0.7.8: "Şu an ne yapıyorum?" and the work queue side by side, more compact ── */
+.ws-chat-view .ws-work {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 14px 0;
+}
+.ws-chat-view {
+  container: ws-chat / inline-size;
+}
+.ws-chat-view .ws-work > .ws-now {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px 8px 12px;
+  border-radius: 13px;
+}
+.ws-chat-view .ws-work > .ws-queue {
+  flex: 0 0 300px;
+  min-width: 0;
+  border-radius: 13px;
+}
+/* nothing running: the queue alone takes the row */
+.ws-chat-view .ws-work:has(> .ws-now[hidden]) > .ws-queue {
+  flex: 1 1 auto;
+}
+.ws-chat-view .ws-now-head {
+  gap: 8px;
+  min-height: 28px;
+}
+.ws-chat-view .ws-now-heading {
+  font-size: 13px;
+  white-space: nowrap;
+}
+.ws-chat-view .ws-now-clock,
+.ws-chat-view .ws-now-eta {
+  font-size: 11.5px;
+}
+#workspace .ws-chat-view .ws-now-btn {
+  height: 26px;
+  padding: 0 8px;
+  gap: 5px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+#workspace .ws-chat-view .ws-now-fold {
+  width: 26px;
+  height: 26px;
+}
+.ws-chat-view .ws-now-body {
+  gap: 5px;
+  padding: 5px 0 0 17px;
+}
+.ws-chat-view .ws-now-task {
+  font-size: 12px;
+}
+.ws-chat-view .ws-now-step-label {
+  font-size: 12.5px;
+}
+.ws-chat-view .ws-now-steps i {
+  height: 3px;
+}
+#workspace .ws-chat-view .ws-now-file {
+  height: 22px;
+  padding: 0 7px;
+  font-size: 11.5px;
+}
+.ws-chat-view .ws-now-wait {
+  padding: 5px 8px;
+  font-size: 12px;
+}
+#workspace .ws-chat-view .ws-q-head {
+  height: 44px;
+  padding: 0 10px;
+}
+.ws-chat-view .ws-q-body {
+  gap: 7px;
+  padding: 0 8px 8px;
+  max-height: 210px;
+}
+.ws-chat-view .ws-q-form {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ws-chat-view .ws-q-form input:not([type='checkbox']) {
+  flex: 1 1 100%;
+  padding: 7px 10px;
+  font-size: 12.5px;
+}
+.ws-chat-view .ws-q-after-opt {
+  font-size: 11.5px;
+}
+#workspace .ws-chat-view .ws-q-form button.ws-primary {
+  height: 30px;
+  margin-left: auto;
+  padding: 0 10px;
+  border-radius: 9px;
+  font-size: 12.5px;
+}
+.ws-chat-view .ws-q-card {
+  grid-template-columns: 22px minmax(0, 1fr) auto 14px;
+  gap: 7px;
+  padding: 6px 6px 6px 8px;
+  border-radius: 10px;
+}
+.ws-chat-view .ws-q-num {
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+}
+.ws-chat-view .ws-q-text {
+  font-size: 12.5px;
+}
+#workspace .ws-chat-view .ws-q-actions .ws-icon {
+  width: 24px;
+  height: 24px;
+}
+/* the queue's head lines up with the work panel's head */
+.ws-chat-view .ws-q-head strong {
+  font-size: 12.5px;
+}
+/* a narrow window: one under the other again */
+@container ws-chat (max-width: 700px) {
+  .ws-chat-view .ws-work {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ws-chat-view .ws-work > .ws-queue {
+    flex: none;
+  }
+}

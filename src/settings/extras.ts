@@ -200,30 +200,51 @@ export function extraUI(
     });
   });
   let dragDepth = 0;
+  // v0.7.8: only files or text dragged in from outside Charles light up the drop area.
+  // Dragging selected text, a card or a device inside the window used to switch it on too,
+  // and when such a drag ended inside the page the cream frame stayed.
+  let internalDrag = false;
+  const endDrop = () => {
+    dragDepth = 0;
+    if (!document.body.classList.contains('dropping')) return;
+    document.body.classList.remove('dropping');
+    bot.resetMorph();
+  };
+  document.addEventListener('dragstart', () => (internalDrag = true), true);
+  document.addEventListener(
+    'dragend',
+    () => {
+      internalDrag = false;
+      endDrop();
+    },
+    true,
+  );
+  document.addEventListener('drop', () => window.setTimeout(endDrop, 0), true);
+  // the mouse moving normally again means no drag is going on any more
+  document.addEventListener('pointermove', (e) => {
+    if (e.buttons === 0 && document.body.classList.contains('dropping')) endDrop();
+  });
+  window.addEventListener('blur', () => window.setTimeout(() => !document.hasFocus() && dragDepth === 0 && endDrop(), 0));
+  const external = (e: DragEvent) => !internalDrag && !!e.dataTransfer?.types.some((t) => t === 'Files' || t === 'text/plain');
   document.addEventListener('dragenter', (e) => {
-    if (!e.dataTransfer?.types.some((t) => t === 'Files' || t === 'text/plain')) return;
+    if (!external(e)) return;
     e.preventDefault();
     dragDepth++;
     document.body.classList.add('dropping');
     bot.animateMorph(1);
   });
   document.addEventListener('dragover', (e) => {
-    if (e.dataTransfer?.types.some((t) => t === 'Files' || t === 'text/plain')) {
+    if (external(e)) {
       e.preventDefault();
-      e.dataTransfer.dropEffect = 'copy';
+      e.dataTransfer!.dropEffect = 'copy';
     }
   });
   document.addEventListener('dragleave', () => {
-    if (--dragDepth <= 0) {
-      dragDepth = 0;
-      document.body.classList.remove('dropping');
-      bot.resetMorph();
-    }
+    if (!document.body.classList.contains('dropping')) return;
+    if (--dragDepth <= 0) endDrop();
   });
   api.onFileDrop((result: any) => {
-    dragDepth = 0;
-    document.body.classList.remove('dropping');
-    bot.resetMorph();
+    endDrop();
     void attempt(async () => {
       if (result.error) throw Error(result.error);
       await api.expand(true);

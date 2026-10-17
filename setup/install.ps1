@@ -2,7 +2,7 @@
 #
 # Install.cmd tarafından çalıştırılır. Yaptıkları:
 #   1. Windows'u kontrol eder (64 bit, Windows 10 veya 11).
-#   2. Charles'ı kısa bir klasöre kopyalar (varsayılan: C:\ProjectCharles v0.7.7 Beta).
+#   2. Charles'ı kısa bir klasöre kopyalar (varsayılan: C:\ProjectCharles v0.7.8 Beta).
 #      Kaynak: yanındaki Charles.zip ya da setup klasörünün bulunduğu Charles klasörü.
 #   3. İnternetten/USB'den gelen dosyaların "engelli" işaretini kaldırır.
 #   4. Masaüstü ve Başlat menüsü kısayolu oluşturur.
@@ -11,7 +11,7 @@
 param([string]$Root = $PSScriptRoot)
 
 $ErrorActionPreference = 'Stop'
-$Version = 'v0.7.7 Beta'
+$Version = 'v0.7.8 Beta'
 $Name = "ProjectCharles $Version"
 $DefaultTarget = "C:\$Name"
 $Log = Join-Path $env:TEMP 'Charles-kurulum.log'
@@ -49,7 +49,7 @@ Say "$winName (derleme $($os.Build)), işlemci: $arch" 'Green'
 if ($arch -eq 'ARM64') {
   # Charles is an x64 app; Windows 11 on ARM runs it through its built-in x64 emulation.
   if ($os.Build -lt 22000) { Fail 'Bu bilgisayarın işlemcisi ARM64. Charles burada yalnızca Windows 11 ile (x64 öykünmesi) çalışabilir.' }
-  Say 'ARM işlemci: Charles, Windows 11’in x64 öykünmesiyle çalışacak (biraz daha yavaş olabilir).' 'Yellow'
+  Say 'ARM işlemci: Charles, Windows 11''in x64 öykünmesiyle çalışacak (biraz daha yavaş olabilir).' 'Yellow'
 } elseif ($arch -ne 'AMD64') {
   Fail "Bu işlemci türü ($arch) desteklenmiyor. Charles 64 bit (x64) Windows gerektirir."
 }
@@ -169,7 +169,7 @@ if ($null -eq $bad) {
   }
   if ($bad.Count) {
     Fail ("Bazı dosyalar hâlâ bozuk ($($bad.Count) dosya, ör. $($bad[0])). Charles.zip kopyalanırken bozulmuş olabilir; " +
-      'kurulum klasörünü yeniden kopyalayıp tekrar dene. Klasör OneDrive içindeyse önce “Bu cihazda her zaman tut” seç.')
+      'kurulum klasörünü yeniden kopyalayıp tekrar dene. Klasör OneDrive içindeyse önce "Bu cihazda her zaman tut" seç.')
   }
   Say 'Dosyalar onarıldı.' 'Green'
 } else {

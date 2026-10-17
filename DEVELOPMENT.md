@@ -1,6 +1,6 @@
 # ProjectCharles — Geliştirici Rehberi (DEVELOPMENT)
 
-Sürüm: **v0.7.7 Beta** · Fikir ve yön: **HzPederPan**
+Sürüm: **v0.7.8 Beta** · Fikir ve yön: **HzPederPan**
 
 Charles’ın tasarımı, [Sam Green’in YouTube kanalındaki](https://www.youtube.com/@SamGreen)
 *Epic Minequest* video serisindeki Charles’tan esinlenmiştir. Proje bağımsızdır; Sam Green ile
@@ -15,7 +15,7 @@ sürüm geçmişi için `CHANGELOG.md` dosyasına bak.
 ## 1. Ana klasörün düzeni
 
 ```
-ProjectCharles v0.7.7 Beta/
+ProjectCharles v0.7.8 Beta/
 ├── Start-Charles.cmd            Charles'ı mevcut verilerle açar (Node.js gerekmez)
 ├── setup/                       Kurulum araçları:
 │   ├── Install.cmd              Başka bilgisayara kurulum (install.ps1'i çalıştırır)

@@ -229,7 +229,7 @@ export function homeCard(d: HomeDeps) {
         error = (e as Error).message;
       }
       paint();
-      if (editor.isOpen()) paintEditor();
+      if (editor.isOpen() && !dragId) paintEditor();
       if (connected && error) retryLater();
       else retries = 0;
     })().finally(() => (loading = null));
@@ -252,12 +252,18 @@ export function homeCard(d: HomeDeps) {
   doneB.type = 'button';
   doneB.onclick = () => editor.close();
   editor.foot.append(editCount, el('span', 'ws-foot-actions', doneB));
+  // v0.7.8: the board is drawn once per change; while a device is dragged only the "Buraya
+  // bırak" slot moves. (v0.7.7 redrew the board on every move, which removed the dragged
+  // cell from the page — Chromium then ended the drag, so nothing could be moved.)
   let dragId = '';
   let dropAt = -1;
+  const slot = el('div', 'ws-cell ws-slot', icon('plus'), el('span', '', 'Buraya bırak'));
+  const DRAG_TYPE = 'application/x-charles-device';
+  let cells: HTMLElement[] = [];
+  let free: HTMLElement | null = null;
   function paintEditor() {
     const ids = shown();
-    board.replaceChildren();
-    const cells: HTMLElement[] = [];
+    cells = [];
     ids.forEach((id, i) => {
       const r = rows.find((x) => x.id === id);
       if (!r) return;
@@ -267,56 +273,63 @@ export function homeCard(d: HomeDeps) {
       const cell = el('div', 'ws-cell', el('span', 'ws-cell-icon', icon(iconFor(r.id, r.title))), name, el('span', 'ws-grip', icon('grip')), remove);
       cell.draggable = true;
       cell.dataset.index = String(i);
+      cell.dataset.id = id;
       cell.ondragstart = (e) => {
         dragId = id;
+        dropAt = -1;
         e.dataTransfer!.effectAllowed = 'move';
-        e.dataTransfer!.setData('text/plain', id);
+        e.dataTransfer!.setData(DRAG_TYPE, id);
         window.setTimeout(() => cell.classList.add('dragging'), 0);
       };
       cell.ondragend = () => {
-        dragId = '';
-        dropAt = -1;
-        paintEditor();
+        cell.classList.remove('dragging');
+        slot.remove();
+        // dropped outside the board: nothing changes
+        if (dragId) {
+          dragId = '';
+          dropAt = -1;
+        }
       };
       cells.push(cell);
     });
-    // the drop slot follows the pointer ("Buraya bırak")
-    const slot = el('div', 'ws-cell ws-slot', icon('plus'), el('span', '', 'Buraya bırak'));
-    const free = el('div', 'ws-cell ws-free');
+    free = el('div', 'ws-cell ws-free');
     free.onclick = () => openPicker();
     free.title = 'Cihaz ekle';
-    const nodes: HTMLElement[] = [...cells];
-    if (dragId && dropAt >= 0) nodes.splice(Math.min(dropAt, nodes.length), 0, slot);
-    nodes.push(free);
-    board.append(...nodes);
+    board.replaceChildren(...cells, free);
     editCount.textContent = ids.length + ' cihaz · 3 sütun';
+  }
+  function placeSlot(at: number) {
+    if (at === dropAt && slot.isConnected) return;
+    dropAt = at;
+    const before = cells.filter((c) => c.dataset.id !== dragId)[at] || free;
+    board.insertBefore(slot, before);
   }
   board.ondragover = (e) => {
     if (!dragId) return;
     e.preventDefault();
-    const target = (e.target as HTMLElement).closest<HTMLElement>('.ws-cell');
-    if (!target || target.classList.contains('ws-slot')) return;
-    let at = target.classList.contains('ws-free') ? shown().length : Number(target.dataset.index);
-    const r = target.getBoundingClientRect();
-    if (!target.classList.contains('ws-free') && e.clientX > r.left + r.width / 2) at += 1;
-    if (at !== dropAt) {
-      dropAt = at;
-      paintEditor();
+    e.dataTransfer!.dropEffect = 'move';
+    // the place among the other cells nearest to the pointer
+    const others = cells.filter((c) => c.dataset.id !== dragId);
+    let at = others.length;
+    for (let i = 0; i < others.length; i++) {
+      const r = others[i].getBoundingClientRect();
+      const row = e.clientY < r.bottom;
+      if (row && (e.clientY < r.top || e.clientX < r.left + r.width / 2)) {
+        at = i;
+        break;
+      }
     }
+    placeSlot(at);
   };
   board.ondrop = (e) => {
     e.preventDefault();
     if (!dragId) return;
-    const ids = shown();
-    const from = ids.indexOf(dragId);
-    let to = dropAt < 0 ? ids.length : dropAt;
-    if (from >= 0) {
-      ids.splice(from, 1);
-      if (to > from) to -= 1;
-    }
-    ids.splice(Math.max(0, Math.min(to, ids.length)), 0, dragId);
+    const ids = shown().filter((x) => x !== dragId);
+    const at = dropAt < 0 ? ids.length : Math.min(dropAt, ids.length);
+    ids.splice(at, 0, dragId);
     dragId = '';
     dropAt = -1;
+    slot.remove();
     void save(ids);
   };
 
