@@ -48,3 +48,10 @@ test('installer has no curly quotes (PowerShell reads ‘ ’ as quote marks)', 
     });
   }
 });
+
+test('v0.7.9: the chat view has a row for the work strip, so the chat starts at the top', () => {
+  const css = read('public/styles/12-v077.css');
+  assert.match(css, /\.ws-chat-view \{\s*grid-template-rows: auto auto minmax\(0, 1fr\) auto;/);
+  assert.match(css, /\.ws-chat-view > \.ws-chat-body \{\s*grid-row: 3;/);
+  assert.match(css, /\.ws-chat-view > \.ws-panel \{\s*grid-row: 1 \/ span 4;/);
+});

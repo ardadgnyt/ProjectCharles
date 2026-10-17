@@ -1639,3 +1639,30 @@ body.workspace.dropping .ws-ask {
     flex: none;
   }
 }
+
+/* ── v0.7.9: the chat starts at the top again ──────────────────────────────────
+   v0.7.7 put the work strip between the chat head and the chat, but the chat view kept its
+   three rows (head · chat · hint): the strip took the stretching row and pushed the chat,
+   the mode picker and the first messages far down. Four rows now: head · strip · chat · hint. */
+.ws-chat-view {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+.ws-chat-view > .ws-chat-head {
+  grid-row: 1;
+}
+.ws-chat-view > .ws-work {
+  grid-row: 2;
+}
+.ws-chat-view > .ws-chat-body {
+  grid-row: 3;
+}
+.ws-chat-view > .ws-composer-hint {
+  grid-row: 4;
+}
+.ws-chat-view > .ws-panel {
+  grid-row: 1 / span 4;
+}
+/* nothing to show in the strip: it takes no room */
+.ws-chat-view .ws-work:not(:has(> .ws-now:not([hidden]))):not(:has(> .ws-queue)) {
+  display: none;
+}

@@ -1,8 +1,12 @@
 # ProjectCharles — Yama notları
 
-Charles’ın ilk masaüstü sürümünden v0.7.8 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+Charles’ın ilk masaüstü sürümünden v0.7.9 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.7.9 Beta — 17 Ekim 2026
+
+- **Büyük panelde sohbet yine en üstten başlıyor:** v0.7.7’de sohbetin üstüne eklenen “Şu an ne yapıyorum?” / “İş kuyruğu” şeridi, sohbet ekranının esneyen satırını alıyordu; kısa bir sohbet ve Sohbet/Proje seçicisi ekranın ortasına, aşağıya itiliyordu. Sohbet ekranı artık dört satır (başlık · şerit · sohbet · ipucu); seçici ve ilk mesajlar şeridin hemen altından başlıyor.
 
 ## v0.7.8 Beta — 17 Ekim 2026
 
