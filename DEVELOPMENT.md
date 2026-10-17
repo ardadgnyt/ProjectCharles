@@ -1,6 +1,6 @@
 # ProjectCharles — Geliştirici Rehberi (DEVELOPMENT)
 
-Sürüm: **v0.7.6 Beta** · Fikir ve yön: **HzPederPan**
+Sürüm: **v0.7.7 Beta** · Fikir ve yön: **HzPederPan**
 
 Charles’ın tasarımı, [Sam Green’in YouTube kanalındaki](https://www.youtube.com/@SamGreen)
 *Epic Minequest* video serisindeki Charles’tan esinlenmiştir. Proje bağımsızdır; Sam Green ile
@@ -15,7 +15,7 @@ sürüm geçmişi için `CHANGELOG.md` dosyasına bak.
 ## 1. Ana klasörün düzeni
 
 ```
-ProjectCharles v0.7.6 Beta/
+ProjectCharles v0.7.7 Beta/
 ├── Start-Charles.cmd            Charles'ı mevcut verilerle açar (Node.js gerekmez)
 ├── setup/                       Kurulum araçları:
 │   ├── Install.cmd              Başka bilgisayara kurulum (install.ps1'i çalıştırır)
@@ -75,7 +75,7 @@ Windows'un uygulama veri klasöründe tutulur: `%APPDATA%\Charles`
 | Klasör | Ne yapar | Önemli dosyalar |
 | --- | --- | --- |
 | `app/` (kök) | Giriş noktaları | `main.cjs` (pencereler: şeffaf adacık + Windows çerçeveli uygulama penceresi, ikisinin paylaştığı tek sayfa (WebContentsView); yerleşim, IPC uçları), `preload.cjs` (arayüz köprüsü) |
-| `app/core/` | Temel altyapı | `store.cjs` (güvenli JSON kaydı), `policy.cjs` (Codex izinleri), `layout.cjs` (panel ölçüleri), `preferences.cjs`, `shortcuts.cjs`, `startup.cjs`, `extras.cjs` (görünüm tercihleri + ekler), `desktop-pet.cjs`, `task-mode.cjs`, **`proposals.cjs`** (Charles’ın sohbette düğmeli soruları), **`ask-format.cjs`** (yapay zekâya soru sorma biçimi), **`reset.cjs`** (Ayarlar → Hesap sıfırlama: istek dosyası, açılışta yedeğe taşıma), **`file-preview.cjs`** (v0.7.2 yan panel: izinli klasörlerdeki dosyayı güvenle okuma) |
+| `app/core/` | Temel altyapı | `store.cjs` (güvenli JSON kaydı), `policy.cjs` (Codex izinleri), `layout.cjs` (panel ölçüleri), `preferences.cjs`, `shortcuts.cjs`, `startup.cjs`, `extras.cjs` (görünüm tercihleri + ekler), `desktop-pet.cjs`, `task-mode.cjs`, **`proposals.cjs`** (Charles’ın sohbette düğmeli soruları), **`ask-format.cjs`** (yapay zekâya soru sorma biçimi), **`reset.cjs`** (Ayarlar → Hesap sıfırlama: istek dosyası, açılışta yedeğe taşıma), **`file-preview.cjs`** (v0.7.2 yan panel: izinli klasörlerdeki dosyayı güvenle okuma), **`change-review.cjs`** (v0.7.7 değişiklik inceleme: dosyaların önceki/sonraki hali, güvenli geri al), **`dash-layout.cjs`** (v0.7.7 ana sayfa kart yerleşimi, notlar, hızlı komutlar), **`system-info.cjs`** (v0.7.7 sistem kullanımı ve bilgileri kartları) |
 | `app/ai/` | Yapay zekâ ve sohbetler | `agent.cjs` + `rpc.cjs` (Codex), `providers.cjs` (Gemini/Claude/Cursor), **`provider-tools.cjs`** (proje modunda erişim ayarına göre araç izinleri; izin atlatma modu yok), `sessions.cjs` (sohbet geçmişi), `chat-folders.cjs`, `chat-classifier.cjs`, `ask-once.cjs` (arka plan tek soru), `chat-actions.cjs`, `conversation-tools.cjs` |
 | `app/usage/` | Adacıktaki kalan kullanım | `codex-usage.cjs`, `gemini-usage.cjs`, `claude-usage.cjs`, **`cursor-usage.cjs`** (Cursor CLI oturumuyla plan kullanımı) |
 | `app/plugins/` | Hesaplar ve bildirimler | `plugins.cjs` (Gmail, Outlook, takvim, Drive, okul e-postası, Home Assistant), `pop3.cjs`, `plugin-commands.cjs`, **`home-climate.cjs`** (v0.7.4 ev içi sıcaklık/nem soruları), **`mail-search.cjs`** (kelime/tarihle mail arama), `oauth-setup.cjs`, **`mail-triage.cjs`** (önem değerlendirme), **`mail-alerts.cjs`** (akış), **`mail-bubble.cjs`** + `bubble-preload.cjs` (adacık baloncukları), **`deadlines.cjs`** (e-postadaki tarihler → hatırlatma + .ics) |
@@ -98,7 +98,7 @@ Her dosyanın ilk satırında ne işe yaradığını anlatan kısa bir açıklam
 | `src/renderer.ts` | Arayüzün giriş noktası: sohbet akışı, gönderme, onaylar, karakter tepkileri |
 | `src/chat/` | Mesajlar: `markdown.ts` (güvenli markdown, `html: false`), `model-picker.ts`, `history-folders.ts`, `activity.ts`, `reactions.ts`, `reading.ts`, `status-scroll.ts`, **`ai-questions.ts`** (yapay zekânın sorduğu sorular → tek tek soran kart), **`steer.ts`** (iş sürerken ek talimat · Ctrl+Enter), **`highlight.ts`** (v0.7.2 kod kutusu renklendirme) |
 | `src/island/` | Küçük adacık ve Slime: `usage.ts` (kalan kullanım halkaları), `panel-motion.ts` (büyüme/küçülme animasyonu), `companion.ts` (yerleşim, hava durumu), `desktop-pet.ts`, `wardrobe.ts`, `animation-loop.ts` |
-| `src/workspace/` | Uygulama penceresi: `workspace.ts` (pencere, sohbeti ve Slime'ı taşıma), `sidebar.ts` (klasörlü sohbet listesi), `dashboard.ts` (Genel bakış kartları), **`side-panel.ts`** (dosya/kod/terminal paneli, Aç menüsü, seçimi sohbete ekle/düzenle), **`calendar.ts`** + **`holidays.ts`** (takvim kartı, düzenleme penceresi, ülkelere göre tatiller), **`home.ts`** (akıllı ev kartı ve sürükle-bırak düzenleyici), **`modal.ts`**, `icons.ts`, `bridge.ts`; ana süreçte `app/core/workspace.cjs` (pencere ölçüleri) |
+| `src/workspace/` | Uygulama penceresi: `workspace.ts` (pencere, sohbeti ve Slime'ı taşıma), `sidebar.ts` (klasörlü sohbet listesi), `dashboard.ts` (Genel bakış kartları), **`side-panel.ts`** (dosya/kod/terminal paneli, Aç menüsü, seçimi sohbete ekle/düzenle), **`calendar.ts`** + **`holidays.ts`** (takvim kartı, düzenleme penceresi, ülkelere göre tatiller), **`home.ts`** (akıllı ev kartı ve sürükle-bırak düzenleyici), v0.7.7: **`dash-edit.ts`** + **`extra-cards.ts`** (özelleştirilebilir ana sayfa ve yeni kartlar), **`work.ts`** (“Şu an ne yapıyorum?” ve iş kuyruğu), **`review.ts`** + **`diff.ts`** (değişiklik inceleme ekranı), **`drop-slime.ts`** (dosya sürüklenince + yerine Slime), **`modal.ts`**, `icons.ts`, `bridge.ts`; ana süreçte `app/core/workspace.cjs` (pencere ölçüleri) |
 | `src/settings/` | Ayarlar sayfaları: `settings-pages.ts`, `settings-cards.ts`, `providers.ts`, `plugins.ts`, `plugin-guide.ts`, `shortcuts.ts`, `personal.ts`, `extras.ts`, `workspace.ts`, `profile-transfer.ts` (Kullandığım AI ile beni tanı), `polish-070.ts` (dil simgesi, düğme satırları), **`account-tab.ts`** (Hesap sekmesi: bağlı hesaplar, veri klasörü, sıfırlama), `i18n.ts` + `i18n-063.ts` + `i18n-070.ts` + `i18n-071.ts` + `i18n-special.ts` + `i18n-072.ts` (Türkçe → İngilizce), **`lang/de.ts`, `fr.ts`, `es.ts`, `zh.ts`** (İngilizce metin → diğer diller; `{n}` sayı yeri), **`whatsapp-card.ts`**, `gcal-card.ts` |
 | `src/voice/` | Ses arayüzü: `voice.ts`, `wake.ts`, `wake-training.ts`, `gemini-live.ts` |
 | `src/ui/` | Ortak yardımcılar: `sound-button.ts`, **`mic-button.ts`** (mikrofon gizlilik düğmesi) |

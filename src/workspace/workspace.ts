@@ -12,6 +12,9 @@ import { el, icon, iconButton } from './icons';
 import { workspaceSidebar } from './sidebar';
 import { workspaceDashboard } from './dashboard';
 import { sidePanel } from './side-panel';
+import { workUI } from './work';
+import { reviewScreen } from './review';
+import { dropSlime } from './drop-slime';
 import { slimeIcon } from '../island/app-icon';
 import { roomActions } from './bridge';
 import { parseLook } from '../vendor/slime/shape';
@@ -70,6 +73,11 @@ export function workspaceUI(d: WorkspaceDeps) {
   const crumb = el('span', 'ws-crumb', 'Çalışma alanı');
   const titlebar = el('div', 'ws-titlebar', el('div', 'ws-brand', brandIcon, el('strong', '', 'Charles'), el('i', 'ws-sep'), crumb));
   const settingsB = iconButton('gear', 'Ayarlar', () => openSettings());
+  // v0.7.7: "Ana sayfayı düzenle" — the cards of the home page (dash-edit.ts)
+  const editB = iconButton('pencil', 'Ana sayfayı düzenle', () => {
+    if (view !== 'home') showHome();
+    dashboard.setEditing(!dashboard.isEditing());
+  }, 'ws-icon ws-edit-home');
   const sidebarB = iconButton('sidebar', 'Kenar çubuğunu gizle veya göster', () => root.classList.toggle('no-side'));
   const islandB = el('button', 'ws-island', icon('island'), el('span', '', 'Adacığa dön'));
   islandB.type = 'button';
@@ -77,7 +85,7 @@ export function workspaceUI(d: WorkspaceDeps) {
   const minB = iconButton('minimize', 'Simge durumuna küçült', () => void api.workspaceWindow('minimize'), 'ws-icon ws-win');
   const maxB = iconButton('maximize', 'Ekranı kapla', () => void api.workspaceWindow('maximize'), 'ws-icon ws-win');
   const closeB = iconButton('x', 'Kapat · Charles adacıkta çalışmaya devam eder', () => void leave(), 'ws-icon ws-win ws-close');
-  titlebar.append(el('div', 'ws-title-actions', settingsB, sidebarB, islandB, el('i', 'ws-sep'), minB, maxB, closeB));
+  titlebar.append(el('div', 'ws-title-actions', editB, settingsB, sidebarB, islandB, el('i', 'ws-sep'), minB, maxB, closeB));
   titlebar.ondblclick = (e) => {
     if ((e.target as HTMLElement).closest('button')) return;
     void api.workspaceWindow('maximize');
@@ -106,6 +114,10 @@ export function workspaceUI(d: WorkspaceDeps) {
     ask: (text, fresh) => ask(text, fresh),
     showChat: () => showChat(),
     openSettings: (c) => openSettings(c),
+    editing: (v) => {
+      editB.classList.toggle('on', v);
+      editB.setAttribute('aria-pressed', String(v));
+    },
   });
   const home = el('div', 'ws-view ws-home-view', dashboard.element);
   const back = el('button', 'ws-back', icon('chevronLeft'), el('span', '', 'Genel bakış'));
@@ -136,17 +148,28 @@ export function workspaceUI(d: WorkspaceDeps) {
   // v0.7.2: files, code and terminal output on the right (side-panel.ts)
   const panelSide = sidePanel({ api, notice: d.notice, isOpen: () => on });
   const panelB = iconButton('panelRight', 'Yan paneli aç veya kapat', () => panelSide.toggle());
+  // v0.7.7: change review, "Şu an ne yapıyorum?" and the work queue (review.ts, work.ts)
+  const review = reviewScreen({ api, notice: d.notice });
+  const reviewB = iconButton('diff', 'Değişiklikleri incele', () => void review.open());
+  const work = workUI({
+    api,
+    notice: d.notice,
+    send: (text) => send(text),
+    review: (id) => void review.open(id),
+    visible: () => on && view === 'chat',
+  });
   const chatHead = el(
     'div',
     'ws-chat-head',
     back,
     el('i', 'ws-vsep'),
     el('div', 'ws-chat-heading', chatTitle, chatPath),
-    el('div', 'ws-chat-tools', findBox, findB, panelB, moreB),
+    el('div', 'ws-chat-tools', findBox, findB, reviewB, panelB, moreB),
   );
   const chatBody = el('div', 'ws-chat-body');
   const hint = el('p', 'ws-composer-hint', 'Enter ile gönder · Shift + Enter ile yeni satır');
-  const chat = el('div', 'ws-view ws-chat-view', chatHead, chatBody, hint, panelSide.element);
+  const workBox = el('div', 'ws-work', work.now, work.queue);
+  const chat = el('div', 'ws-view ws-chat-view', chatHead, workBox, chatBody, hint, panelSide.element);
   chat.hidden = true;
   main.append(home, chat);
   const body = el('div', 'ws-body', side, main);
@@ -184,6 +207,15 @@ export function workspaceUI(d: WorkspaceDeps) {
   }
   document.body.append(root);
 
+  // v0.7.7: a dragged file → the + of the message box becomes Slime (drop-slime.ts)
+  dropSlime({
+    api,
+    buttons: () => [document.getElementById('composer-plus'), dashboard.element.querySelector<HTMLElement>('.ws-ask > button')],
+    onDrop: () => {
+      if (on && view === 'home') showChat();
+    },
+  });
+
   // ── Moving the chat and Slime in and out ──────────────────────────────────
   const content = document.querySelector('main.island > .content') as HTMLElement;
   const contentHome = { parent: content.parentElement!, next: content.nextSibling };
@@ -217,6 +249,29 @@ export function workspaceUI(d: WorkspaceDeps) {
     const feed = $('feed');
     feed.scrollTop = feed.scrollHeight;
     window.setTimeout(() => ($('prompt') as HTMLTextAreaElement).focus(), 30);
+    work.shown();
+  }
+  /** Sends a message in the open chat (while an answer runs: as an extra instruction). */
+  async function send(text: string) {
+    showChat();
+    const prompt = $('prompt') as HTMLTextAreaElement;
+    const kept = prompt.value;
+    prompt.value = text;
+    prompt.dispatchEvent(new Event('input'));
+    ($('composer') as HTMLFormElement).requestSubmit();
+    // the user's unsent draft comes back once this message has left the box
+    if (kept.trim()) {
+      const t0 = Date.now();
+      const wait = window.setInterval(() => {
+        if (prompt.value === text && Date.now() - t0 < 5000) return;
+        window.clearInterval(wait);
+        if (!prompt.value) {
+          prompt.value = kept;
+          prompt.dispatchEvent(new Event('input'));
+        }
+      }, 50);
+    }
+    void sidebar.refresh();
   }
   async function ask(text: string, fresh = false) {
     try {
@@ -405,7 +460,37 @@ export function workspaceUI(d: WorkspaceDeps) {
       $('feed').scrollTop = $('feed').scrollHeight;
     }
   }
-  api.onWorkspace?.((v: any) => apply(v));
+  api.onWorkspace?.((v: any) => {
+    apply(v);
+    refreshDrag();
+  });
+  // v0.7.7: the title bar sometimes stopped dragging the window (it stayed where it was).
+  // Chromium sends the draggable area to the window only when it changes; after the page
+  // moved between the island and the app window, after a dialog or a resize it could be
+  // stale. Flipping the area off and on again makes Chromium send it afresh.
+  let dragTimer = 0;
+  function refreshDrag() {
+    if (!on) return;
+    titlebar.classList.add('ws-drag-reset');
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        titlebar.classList.remove('ws-drag-reset');
+      }),
+    );
+    window.clearTimeout(dragTimer);
+    dragTimer = window.setTimeout(() => {
+      titlebar.classList.add('ws-drag-reset');
+      requestAnimationFrame(() => requestAnimationFrame(() => titlebar.classList.remove('ws-drag-reset')));
+    }, 400);
+  }
+  window.addEventListener('focus', refreshDrag);
+  window.addEventListener('resize', () => {
+    window.clearTimeout(dragTimer);
+    dragTimer = window.setTimeout(refreshDrag, 250);
+  });
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && refreshDrag());
+  document.addEventListener('ws-modal-closed', refreshDrag);
+  for (const id of ['settings-panel', 'sessions-panel']) document.getElementById(id)?.addEventListener('close', refreshDrag);
   // Mail explained from the island bubble while the window is open → show the chat.
   api.onMailExplain?.(() => {
     if (on) showChat();

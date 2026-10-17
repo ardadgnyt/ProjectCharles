@@ -205,6 +205,13 @@ contextBridge.exposeInMainWorld('charles', {
   workspaceHomeLayout: (ids) => invoke('workspace-home-layout', ids),
   workspaceHome: (force) => invoke('workspace-home', force),
   workspaceHomeAction: (entity, action) => invoke('workspace-home-action', entity, action),
+  // v0.7.7
+  reviewList: () => invoke('review-list'),
+  reviewGet: (id) => invoke('review-get', id),
+  reviewUndo: (id) => invoke('review-undo', id),
+  systemUsage: () => invoke('system-usage'),
+  systemInfo: () => invoke('system-info'),
+  workspaceDash: (patch) => invoke('workspace-dash', patch),
   resetAll: (scope) => invoke('reset-all', scope),
   openDataFolder: () => invoke('open-data-folder'),
   interrupt: () => invoke('interrupt'),

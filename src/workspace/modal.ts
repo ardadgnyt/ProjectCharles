@@ -49,6 +49,7 @@ export function modal(opts: { icon: string; title: string; subtitle?: string; cl
       back.classList.remove('in');
       back.hidden = true;
       opts.onClose?.();
+      document.dispatchEvent(new Event('ws-modal-closed'));
     },
     isOpen: () => !back.hidden,
   };

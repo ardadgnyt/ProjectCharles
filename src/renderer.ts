@@ -865,9 +865,11 @@ function event(e: any) {
     case 'request':
       features.closeSettings();
       requestCard(e.data);
+      document.dispatchEvent(new CustomEvent('charles-request', { detail: { id: e.data.id, open: true, question: String(e.data.method || '').includes('requestUserInput') } }));
       break;
     case 'resolved':
       removeRequest(e.data.id);
+      document.dispatchEvent(new CustomEvent('charles-request', { detail: { id: e.data.id, open: false } }));
       break;
     case 'error':
     case 'notice':
@@ -875,6 +877,8 @@ function event(e: any) {
       break;
     case 'agent': {
       const { method, params: p } = e.data;
+      // v0.7.7: the app window's "Şu an ne yapıyorum?" panel and work queue (workspace/work.ts)
+      document.dispatchEvent(new CustomEvent('charles-agent', { detail: { method, params: p, replaying } }));
       if (method === 'turn/started') {
         activityState.reset();
         activityState.think();

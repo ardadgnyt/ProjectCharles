@@ -1,8 +1,19 @@
 # ProjectCharles — Yama notları
 
-Charles’ın ilk masaüstü sürümünden v0.7.6 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+Charles’ın ilk masaüstü sürümünden v0.7.7 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.7.7 Beta — 17 Ekim 2026
+
+- **“Şu an ne yapıyorum?”:** uygulama penceresinde sohbetin üstünde Charles’ın yürüttüğü iş görünüyor: isteğin kendisi, planın hangi adımında olduğu (ör. “Adım 3/4 · Testleri çalıştır”) ve o an ne yaptığı (komut, web araması, dosya), değiştirdiği dosyalar ve senden beklediği şey (onay ya da cevap, “Göster” ile karta gider). Yanında **Durdur**, **Devam et** ve **Yön değiştir** var; yön değiştirme, çalışan işe ek talimat olarak gider. Süre tahmini yalnızca güvenilir olduğunda gösteriliyor: plan en az üç adımlıysa, en az iki adım tek tek bitmişse ve süreleri birbirine yakınsa.
+- **İş kuyruğu:** sohbette kaybolan istekler yerine sıraya konabilen görev kartları (“Şunu araştır”, “Bu dosyayı düzenle”, “Ardından sonucu karşılaştır”). Kartlar sürüklenerek yeniden sıralanıyor; bir kart bir öncekine bağlanabiliyor ve bağlıysa o iş başarıyla bitmeden başlamıyor (“Ardından · 2. işten sonra”). “Sırayla çalıştır” açıkken bir iş bitince sıradaki kendiliğinden başlıyor; durdurulan iş kuyruğu bekletiyor.
+- **Değişiklik inceleme ekranı:** Charles’ın değiştirdiği dosyaların önceki ve sonraki hali. Kodda satır numaralı fark görünümü, metin belgelerinde değişen paragraflar (değişen kelimeler işaretli), görsellerde yan yana karşılaştırma. Önceki hali kaydedilen değişikliklerde **Geri al** var; dosya Charles’tan sonra yeniden değiştiyse üzerine yazmamak için geri alınmıyor. Kopyalar yalnızca bellekte tutuluyor (dosya başına en fazla 4 MB, son 60 değişiklik).
+- **Özelleştirilebilir ana sayfa:** sağ üstte ayarların yanında **Ana sayfayı düzenle** düğmesi. Düzenleme modunda kartlar sürüklenerek başka yere ya da sütuna taşınıyor, × ile kaldırılıyor; **Kart ekle** ile yeni kartlar seçiliyor (sol/sağ sütun seçilerek). Yeni kartlar: **Hızlı komutlar** (tek tıkla Charles’a giden hazır mesajlar), **Notlar** (kendiliğinden kaydedilir), **Sistem kullanımı** (işlemci, bellek, disk), **Sistem bilgileri** (Windows sürümü, işlemci, bellek, ekran). Yeni kartlar başlangıçta ana sayfada yok.
+- **Dosya sürükleyince Slime:** büyük panelde bir dosya sürüklendiğinde mesaj kutusunun + düğmesi, aynı boyutta Charles’ın kendisine dönüşüyor ve adacıktaki gibi dosyayı alma mimiğini yapıyor; bırakınca yutuyor.
+- **Kalan kullanım:** yenile düğmesinin oku, kotalar okunurken dönüyor.
+- **Home Assistant yeniden bağlanma:** bağlantı koptuğunda hata artık önbelleğe alınmıyor ve tek istek en fazla 15 saniye sürüyor; kart 5 sn, 10 sn, 20 sn, sonra 30 saniyede bir kendiliğinden yeniden deniyor, pencereye dönünce ve ağ gelince hemen deniyor. Charles’ı yeniden başlatmaya gerek kalmıyor. “Yeniden dene” düğmesi de eklendi.
+- **Büyük panel sürüklenemiyordu:** pencere bazen başlık çubuğundan tutulup taşınamıyor, olduğu yerde kalıyordu. Sürükleme alanı, sayfa adacıktan pencereye geçince, pencere odak alınca, boyut değişince ve bir pencere/iletişim kutusu kapanınca yeniden bildiriliyor. Artık işe yaramayan eski kenar tutamaçları kaldırıldı.
 
 ## v0.7.6 Beta — 17 Ekim 2026
 

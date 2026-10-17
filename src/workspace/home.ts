@@ -72,7 +72,7 @@ export function homeCard(d: HomeDeps) {
   const tiles = new Map<string, HTMLElement>();
 
   // ── card ────────────────────────────────────────────────────────────────────
-  const stateLine = el('span', 'ws-pill-state', el('i', 'ws-dot'), el('span', '', 'Home Assistant'));
+  const stateLine = el('span', 'ws-pill-state', el('i', 'ws-dot'), el('span', '', 'Bağlanıyor…'));
   const editB = el('button', 'ws-edit-btn', icon('pencil'), el('span', '', 'Düzenle'));
   editB.type = 'button';
   editB.onclick = () => openEditor();
@@ -180,7 +180,10 @@ export function homeCard(d: HomeDeps) {
       return;
     }
     if (error) {
-      grid.replaceChildren(el('p', 'ws-empty', error));
+      const again = el('button', '', 'Yeniden dene');
+      again.type = 'button';
+      again.onclick = () => retryNow();
+      grid.replaceChildren(el('p', 'ws-empty', el('span', '', error), ' ', el('span', '', 'Bağlantı gelince cihazlar kendiliğinden yüklenecek.')), again);
       count.textContent = '';
       return;
     }
@@ -190,18 +193,47 @@ export function homeCard(d: HomeDeps) {
     sync(grid, list.length ? list.map(tile) : [el('p', 'ws-empty', 'Gösterilecek cihaz yok. Düzenle ile cihaz ekleyebilirsin.')]);
     count.textContent = list.length + ' cihaz';
   }
-  async function load(force = false) {
-    try {
-      const [v, l] = await Promise.all([api.workspaceHome(force), layout === null ? api.workspaceHomeLayout() : Promise.resolve(layout)]);
-      connected = !!v.connected;
-      error = v.error || '';
-      rows = v.rows || [];
-      layout = l;
-    } catch (e) {
-      error = (e as Error).message;
-    }
-    paint();
-    if (editor.isOpen()) paintEditor();
+  // v0.7.7: when Home Assistant cannot be reached (server restarting, Wi-Fi gone), the card
+  // tries again by itself — after 5 s, 10 s, 20 s, then every 30 s — and right away when the
+  // window gets focus or the network comes back, so the devices return without a restart.
+  let retryTimer = 0;
+  let retries = 0;
+  let loading: Promise<void> | null = null;
+  function retryLater() {
+    if (retryTimer) return;
+    const wait = Math.min(30000, 5000 * 2 ** Math.min(retries, 3));
+    retries++;
+    retryTimer = window.setTimeout(() => {
+      retryTimer = 0;
+      if (document.body.classList.contains('workspace') && card.isConnected) void load(true);
+    }, wait);
+  }
+  function retryNow() {
+    if (!connected || !error || !card.isConnected) return;
+    window.clearTimeout(retryTimer);
+    retryTimer = 0;
+    void load(true);
+  }
+  window.addEventListener('online', retryNow);
+  window.addEventListener('focus', retryNow);
+  function load(force = false): Promise<void> {
+    if (loading) return loading;
+    loading = (async () => {
+      try {
+        const [v, l] = await Promise.all([api.workspaceHome(force || !!error), layout === null ? api.workspaceHomeLayout() : Promise.resolve(layout)]);
+        connected = !!v.connected;
+        error = v.error || '';
+        rows = v.rows || [];
+        layout = l;
+      } catch (e) {
+        error = (e as Error).message;
+      }
+      paint();
+      if (editor.isOpen()) paintEditor();
+      if (connected && error) retryLater();
+      else retries = 0;
+    })().finally(() => (loading = null));
+    return loading;
   }
 
   // ── editor: drag and drop placement ─────────────────────────────────────────

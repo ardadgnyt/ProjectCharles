@@ -710,7 +710,13 @@ function watchStalls() {
 function saveFolder() {
   fs.writeFileSync(prefsFile(), JSON.stringify({ cwd: chosenCwd }));
 }
+// v0.7.7: before / after copies of the files Charles changes (app/core/change-review.cjs)
+const changeReview = new (require('./core/change-review.cjs').ChangeReview)();
 function eventToUi(event) {
+  if (event?.type === 'agent' && /^item\/(started|completed)$/.test(event.data?.method || ''))
+    try {
+      changeReview.observe(event.data.method, event.data.params?.item, agent?.current?.cwd || chosenCwd, event.data.params?.turnId);
+    } catch {}
   if (!win || win.isDestroyed()) return;
   win.webContents.send('agent-event', event);
   if (event.type === 'request') {
@@ -2340,6 +2346,20 @@ else {
       });
       safeHandler('open-data-folder', () => shell.openPath(app.getPath('userData')));
       safeHandler('interrupt', () => agent.interrupt());
+      // v0.7.7: change review screen, system cards and the home page layout of the app window
+      safeHandler('review-list', () => changeReview.list());
+      safeHandler('review-get', (id) => changeReview.get(String(id)));
+      safeHandler('review-undo', (id) => changeReview.undo(String(id)));
+      safeHandler('system-usage', () => require('./core/system-info.cjs').usage(app));
+      safeHandler('system-info', () => require('./core/system-info.cjs').info(app, app.getVersion()));
+      safeHandler('workspace-dash', (patch) => {
+        const cur = v2.data.workspaceDash && typeof v2.data.workspaceDash === 'object' ? v2.data.workspaceDash : null;
+        if (patch === undefined) return cur;
+        const clean = require('./core/dash-layout.cjs').cleanDash(patch, cur);
+        v2.data.workspaceDash = clean;
+        v2.save();
+        return clean;
+      });
       safeHandler('workspace', (on) => setWorkspace(on));
       // v0.7.2: side panel — files the AI wrote, opened read-only or in another program
       const fileRoots = () => [path.join(app.getPath('userData'), 'chat-workspace'), chosenCwd, agent.current?.cwd];
@@ -2520,16 +2540,28 @@ else {
         }
         return Array.isArray(v2.data.workspaceHome) ? v2.data.workspaceHome : null;
       });
-      safeHandler('workspace-home', (force) =>
-        cached('home', 60000, force === true, async () => {
+      // v0.7.7: an error is never cached, and one request can take at most 15 s, so the
+      // devices come back as soon as Home Assistant is reachable again (no restart needed)
+      safeHandler('workspace-home', async (force) => {
+        const value = await cached('home', 60000, force === true, async () => {
           if (!plugins?.data.configs.home?.token) return { connected: false, rows: [] };
           try {
-            return { connected: true, rows: (await plugins.list('home')).slice(0, 400) };
+            const rows = await Promise.race([
+              plugins.list('home'),
+              new Promise((_, reject) => setTimeout(() => reject(Error('Home Assistant yanıt vermiyor.')), 15000)),
+            ]);
+            return { connected: true, rows: rows.slice(0, 400) };
           } catch (e) {
+            try {
+              // a hung request must not hold up the next ones to the same server
+              plugins.queues?.delete?.(new URL(plugins.data.configs.home.url).host);
+            } catch {}
             return { connected: true, error: e.message, rows: [] };
           }
-        }),
-      );
+        });
+        if (value.error) delete wsCache.home;
+        return value;
+      });
       safeHandler('workspace-home-action', async (entity, action) => {
         const r = await plugins.homeAction(entity, action);
         delete wsCache.home;

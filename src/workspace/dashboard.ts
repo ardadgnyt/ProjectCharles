@@ -7,6 +7,8 @@ import { resetLabel } from '../island/usage';
 import { calendarCard } from './calendar';
 import { homeCard } from './home';
 import { t } from '../settings/i18n';
+import { commandsCard, notesCard, systemUsageCard, systemInfoCard } from './extra-cards';
+import { dashEditor } from './dash-edit';
 
 export type DashboardDeps = {
   api: any;
@@ -16,6 +18,8 @@ export type DashboardDeps = {
   /** Shows the chat view (after a mail was handed to the chat). */
   showChat: () => void;
   openSettings: (category: string) => void;
+  /** v0.7.7: the edit mode of the home page was turned on / off. */
+  editing?: (on: boolean) => void;
 };
 
 const PROVIDERS: [string, string, string][] = [
@@ -358,7 +362,8 @@ export function workspaceDashboard(d: DashboardDeps) {
   const loadHome = (force = false) => homeView.load(force);
 
   // ── Remaining usage: rings like the island (5 hours and week) ──────────────
-  const usage = cardShell('ws-usage', 'chart', 'Kalan kullanım', iconButton('refresh', 'Yenile', () => void loadUsage(true)));
+  const usageRefresh = iconButton('refresh', 'Yenile', () => void loadUsage(true));
+  const usage = cardShell('ws-usage', 'chart', 'Kalan kullanım', usageRefresh);
   const usageGrid = el('div', 'ws-usage-grid');
   usage.append(usageGrid);
   const RING = 2 * Math.PI * 26;
@@ -406,7 +411,39 @@ export function workspaceDashboard(d: DashboardDeps) {
     const r = resetLabel(w.resetsAt).replace(/ 0dk$/, '').replace(/ 0sa$/, '');
     reset.textContent = r ? '↻ ' + r : w.idle ? 'Henüz başlamadı' : '';
   }
+  // v0.7.7: the refresh arrow turns while the quotas are read (at least one full turn)
+  let usageRuns = 0;
   async function loadUsage(force = false) {
+    const started = Date.now();
+    if (force) {
+      usageRuns++;
+      usageRefresh.classList.add('spinning');
+      usageRefresh.setAttribute('aria-busy', 'true');
+      usageRefresh.title = 'Yenileniyor…';
+    }
+    try {
+      await readUsage(force);
+    } finally {
+      if (force) {
+        await new Promise((r) => window.setTimeout(r, Math.max(0, 800 - (Date.now() - started))));
+        if (--usageRuns <= 0) {
+          usageRuns = 0;
+          // stop at the end of a turn, so the arrow does not jump back
+          let done = false;
+          const stop = () => {
+            if (done || usageRuns) return;
+            done = true;
+            usageRefresh.classList.remove('spinning');
+            usageRefresh.removeAttribute('aria-busy');
+            usageRefresh.title = 'Yenile';
+          };
+          usageRefresh.addEventListener('animationiteration', stop, { once: true });
+          window.setTimeout(stop, 1000);
+        }
+      }
+    }
+  }
+  async function readUsage(force: boolean) {
     let status: any[] = [];
     try {
       status = await api.providersStatus();
@@ -441,8 +478,57 @@ export function workspaceDashboard(d: DashboardDeps) {
     );
   }
 
-  colA.append(music, reminders, calendar);
-  colB.append(mail, askCard, home, usage);
+  // ── v0.7.7: customizable page ──────────────────────────────────────────────
+  const saveDash = async (patch: any) => {
+    const v = await api.workspaceDash(patch);
+    dash = v;
+    return v;
+  };
+  const extra = { api, notice: d.notice, ask: d.ask, save: saveDash };
+  const commands = commandsCard(extra);
+  const notes = notesCard(extra);
+  const sysUsage = systemUsageCard(extra);
+  const sysInfo = systemInfoCard(extra);
+  let dash: any = null;
+  const editor = dashEditor({
+    root,
+    cols: [colA, colB],
+    cards: [
+      { id: 'music', title: 'Spotify', text: 'Çalan parça ve oynatma tuşları', icon: 'music', element: music },
+      { id: 'reminders', title: 'Hatırlatıcılar', text: 'Yaklaşan hatırlatıcılar, hızlı ekleme', icon: 'checklist', element: reminders },
+      { id: 'calendar', title: 'Takvim', text: 'Ay görünümü ve günün etkinlikleri', icon: 'calendar', element: calendar, placed: (v) => v && visible && void loadCalendar() },
+      { id: 'mail', title: 'Önemli e-postalar', text: 'Charles’ın önemli bulduğu e-postalar', icon: 'mail', element: mail, placed: (v) => v && visible && void loadMail() },
+      { id: 'ask', title: 'Mesaj kutusu', text: 'Charles’a buradan hızlıca yaz', icon: 'chat', element: askCard },
+      { id: 'home', title: 'Akıllı ev', text: 'Home Assistant cihazları', icon: 'home', element: home, placed: (v) => v && visible && void loadHome() },
+      { id: 'usage', title: 'Kalan kullanım', text: 'Codex, Claude, Gemini ve Cursor kotaları', icon: 'chart', element: usage, placed: (v) => v && visible && void loadUsage() },
+      { id: 'commands', title: 'Hızlı komutlar', text: 'Tek tıkla Charles’a gönderilen hazır mesajlar', icon: 'bolt', element: commands.element },
+      { id: 'notes', title: 'Notlar', text: 'Kendiliğinden kaydedilen not defteri', icon: 'pencil', element: notes.element },
+      { id: 'sysusage', title: 'Sistem kullanımı', text: 'İşlemci, bellek ve disk doluluğu', icon: 'bolt', element: sysUsage.element, placed: (v) => (v && visible ? sysUsage.start() : sysUsage.stop()) },
+      { id: 'sysinfo', title: 'Sistem bilgileri', text: 'Windows sürümü, işlemci, bellek, ekran', icon: 'window', element: sysInfo.element, placed: (v) => v && visible && void sysInfo.load() },
+    ],
+    save: async (cols) => {
+      try {
+        await saveDash({ cols });
+      } catch (e) {
+        d.notice((e as Error).message);
+      }
+    },
+    editing: (v) => d.editing?.(v),
+  });
+  // until the saved layout is read: the classic page (new cards are not on it)
+  editor.set([
+    ['music', 'reminders', 'calendar'],
+    ['mail', 'ask', 'home', 'usage'],
+  ]);
+  async function loadDash() {
+    try {
+      dash = await api.workspaceDash();
+    } catch {}
+    if (dash?.cols) editor.set(dash.cols);
+    commands.set(dash);
+    notes.set(dash);
+  }
+  const placed = (id: string) => editor.placed(id);
 
   async function loadAll(force = false) {
     try {
@@ -450,26 +536,35 @@ export function workspaceDashboard(d: DashboardDeps) {
     } catch {}
     paintReminders();
     paintCalendar();
-    void loadMail();
-    void loadHome(force);
-    void loadUsage(force);
-    await loadCalendar(force);
+    if (placed('mail')) void loadMail();
+    if (placed('home')) void loadHome(force);
+    if (placed('usage')) void loadUsage(force);
+    if (placed('sysinfo')) void sysInfo.load();
+    if (placed('calendar') || placed('reminders')) await loadCalendar(force);
   }
 
   return {
     element: root,
     show() {
       visible = true;
+      void loadDash().then(() => {
+        if (visible && placed('sysusage')) sysUsage.start();
+      });
       void loadAll();
       timers.push(window.setInterval(() => visible && tick(), 1000));
-      timers.push(window.setInterval(() => visible && void loadMail(), 30000));
+      timers.push(window.setInterval(() => visible && placed('mail') && void loadMail(), 30000));
       timers.push(window.setInterval(() => visible && void loadAll(), 300000));
-      window.setTimeout(() => askInput.focus(), 80);
+      window.setTimeout(() => placed('ask') && askInput.focus(), 80);
     },
     hide() {
       visible = false;
+      sysUsage.stop();
+      void notes.flush();
+      editor.setEditing(false);
       for (const t of timers.splice(0)) window.clearInterval(t);
     },
     refresh: () => loadAll(true),
+    setEditing: (v: boolean) => editor.setEditing(v),
+    isEditing: () => editor.isEditing(),
   };
 }
