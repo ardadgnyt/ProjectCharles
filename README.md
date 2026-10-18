@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.7.9%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.8.0%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
   <img alt="Languages: English, Türkçe, Deutsch, Français, Español, 中文" src="https://img.shields.io/badge/UI-English%20%7C%20T%C3%BCrk%C3%A7e%20%7C%20Deutsch%20%7C%20Fran%C3%A7ais%20%7C%20Espa%C3%B1ol%20%7C%20%E4%B8%AD%E6%96%87-2b2f3a?style=flat-square">
@@ -36,7 +36,7 @@ tiny laptop while the AI writes code, and gets dizzy if you shake it too hard.
 
 **An assistant that does things**
 
-- Chat with **ChatGPT (Codex)**, **Claude**, **Gemini** or **Cursor**, using your own accounts.
+- Chat with **ChatGPT (Codex)**, **Claude**, **Gemini**, **Cursor** or **Abacus AI**, using your own accounts.
   Switch models from the message box. When one provider runs low on quota, Charles suggests
   another.
 - **Project mode:** pick a folder and let the AI write code in it. Every file change and
@@ -125,9 +125,13 @@ tiny laptop while the AI writes code, and gets dizzy if you shake it too hard.
 1. Download the installer kit from [**Releases**](../../releases). It contains `Install.cmd`,
    `install.ps1` and `Charles.zip`.
 2. Extract it and double-click **`Install.cmd`**.
-3. The installer checks your Windows, copies Charles to `C:\ProjectCharles v0.7.9 Beta` (you
+3. Choose the setup language (English by default; Türkçe, Deutsch, Français, Español, 中文 —
+   Charles starts in the same language). The installer checks your Windows, copies Charles to `C:\ProjectCharles v0.8.0 Beta` (you
    can choose another folder), creates Desktop and Start menu shortcuts, and starts Charles.
 4. In Charles, sign in with the AI account you want to use (**Settings → AI models**).
+
+Later versions install themselves: **Settings → General → Updates** checks GitHub Releases and
+updates Charles in place (see [docs/UPDATES.md](docs/UPDATES.md)).
 
 ### Setup tools
 
@@ -164,9 +168,12 @@ npm start
 | `npm test` | Runs the automated test suite (`node --test`). |
 | `npm run dev` | Builds the interface and starts Electron directly. |
 | `python scripts/package.py <folder> <out.zip>` | Builds `Charles.zip` for the installer kit. |
+| `npm run release:pack` | Builds `charles-update-<version>.zip` + `.sha256` for in-place updates (attach both to the GitHub release). |
 
 The Gemini (Antigravity) and Cursor sign-in helpers are bundled in the release package. They
-are not part of this repository.
+are not part of this repository. Abacus AI uses its own `abacusai` command line tool, which
+people with an Abacus AI account install themselves
+([setup page](https://abacus.ai/help/abacusai-desktop/cli-installation)).
 
 ## Your data and privacy
 
@@ -209,6 +216,8 @@ ProjectCharles/
 | [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | User guide: chat, project mode, voice, Slime, settings, shortcuts |
 | [docs/PLUGINS-SETUP.md](docs/PLUGINS-SETUP.md) | Connecting Google, Microsoft, mail and Home Assistant |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the parts fit together |
+| [docs/MODULES.md](docs/MODULES.md) | Writing modules: package format, permissions, API v1 |
+| [docs/UPDATES.md](docs/UPDATES.md) | In-place updates from GitHub Releases, `npm run release:pack` |
 
 ## Credits
 

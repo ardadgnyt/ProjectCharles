@@ -84,7 +84,7 @@ test('AI models: every AI has "Charles ile kur", one button order, safe connecte
   for (const id of ['gpt-login', 'claude-login', 'gemini-login', 'cursor-login']) assert.equal(setupURL(id), null, id);
   const guide = read('src/settings/plugin-guide.ts');
   for (const id of ['gpt-login', 'claude-login', 'cursor-login']) assert.match(guide, new RegExp(`'${id}': \\[`));
-  assert.match(guide, /\(gpt\|claude\|gemini\|cursor\)-login/);
+  assert.match(guide, /\(gpt\|claude\|gemini\|cursor(\|abacus)?\)-login/); // v0.8.0: + Abacus AI
   const providers = read('src/settings/providers.ts');
   assert.match(providers, /guide\('gpt-login'\)/);
   assert.match(providers, /guide\(id \+ '-login'\)/);

@@ -32,6 +32,7 @@ const SETTINGS_ICONS: Record<string, string> = {
   memory: 'bulb',
   access: 'lock',
   connections: 'puzzle',
+  modules: 'blocks',
   shortcuts: 'keyboard',
   weekly: 'chart',
   performance: 'bolt',
@@ -42,6 +43,7 @@ export function providerName(model: string) {
   if (/^claude:/.test(model)) return 'Claude';
   if (/^gemini:/.test(model)) return 'Gemini';
   if (/^cursor:/.test(model)) return 'Cursor';
+  if (/^abacus:/.test(model)) return 'Abacus AI';
   return 'Codex';
 }
 

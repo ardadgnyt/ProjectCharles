@@ -89,6 +89,13 @@ contextBridge.exposeInMainWorld('charles', {
   providersStatus: () => invoke('providers-status'),
   providersLogin: (id) => invoke('providers-login', id),
   providersEnable: (id, value) => invoke('providers-enable', { id, value }),
+  providersAbacusTest: () => invoke('providers-abacus-test'),
+  updateState: () => invoke('update-state'),
+  updateCheck: () => invoke('update-check'),
+  updateAuto: (value) => invoke('update-auto', value),
+  updateInstall: () => invoke('update-install'),
+  onUpdateProgress: (cb) => ipcRenderer.on('update-progress', (_e, p) => cb(p)),
+  onUpdateAvailable: (cb) => ipcRenderer.on('update-available', (_e, info) => cb(info)),
   liveVoiceStatus: () => invoke('live-voice-status'),
   liveVoiceSave: (value) => invoke('live-voice-save', value),
   liveVoiceClear: () => invoke('live-voice-clear'),
@@ -220,6 +227,25 @@ contextBridge.exposeInMainWorld('charles', {
   systemUsage: () => invoke('system-usage'),
   systemInfo: () => invoke('system-info'),
   workspaceDash: (patch) => invoke('workspace-dash', patch),
+  // v0.8.0: modules
+  modulesList: () => invoke('modules-list'),
+  modulesPick: (kind) => invoke('modules-pick', kind),
+  modulesInstall: (token) => invoke('modules-install', token),
+  modulesCancel: (token) => invoke('modules-cancel', token),
+  modulesOpen: (id) => invoke('modules-open', id),
+  modulesEnable: (id, value) => invoke('modules-enable', id, value),
+  modulesRemove: (id, deleteData) => invoke('modules-remove', id, deleteData),
+  modulesDev: (value) => invoke('modules-dev', value),
+  onModulesChanged: (cb) => {
+    const fn = () => cb();
+    ipcRenderer.on('modules-changed', fn);
+    return () => ipcRenderer.removeListener('modules-changed', fn);
+  },
+  onModuleEmote: (cb) => {
+    const fn = (_e, name) => cb(name);
+    ipcRenderer.on('module-emote', fn);
+    return () => ipcRenderer.removeListener('module-emote', fn);
+  },
   resetAll: (scope) => invoke('reset-all', scope),
   openDataFolder: () => invoke('open-data-folder'),
   interrupt: () => invoke('interrupt'),

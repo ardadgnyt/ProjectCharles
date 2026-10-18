@@ -1,0 +1,71 @@
+/* v0.8.0: "Kalan kullanım" — the user picks which AIs the card shows */
+#workspace .ws-usage { position: relative; }
+#workspace .ws-usage-grid { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
+#workspace .ws-usage-col[hidden] { display: none; }
+#workspace .ws-usage-menu {
+  position: absolute;
+  z-index: 20;
+  top: 48px;
+  right: 12px;
+  display: grid;
+  gap: 2px;
+  min-width: 240px;
+  padding: 8px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: 14px;
+  background: var(--ws-card-2);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+#workspace .ws-usage-menu[hidden] { display: none; }
+#workspace .ws-usage-opt {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  color: var(--ws-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+#workspace .ws-usage-opt:hover { background: var(--ws-field); }
+#workspace .ws-usage-opt small { color: var(--ws-body); opacity: 0.7; font-size: 11px; }
+#workspace .ws-usage-opt .ws-prov-dot { width: 9px; height: 9px; border-radius: 3px; }
+#workspace .ws-usage-all {
+  grid-template-columns: auto 1fr;
+  margin-bottom: 4px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--ws-line);
+  border-radius: 9px 9px 0 0;
+}
+#workspace .ws-usage-opt input { margin: 0; accent-color: #e8d9c4; }
+#workspace .ws-usage-empty { margin: 4px 0 0; color: var(--ws-body); opacity: 0.7; font-size: 13px; }
+#workspace .ws-usage-empty[hidden] { display: none; }
+
+/* v0.8.0: Ayarlar → Genel → Güncellemeler */
+#settings-panel .update-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+#settings-panel .update-card {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid rgba(255, 236, 214, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 236, 214, 0.03);
+}
+#settings-panel .update-card[hidden] { display: none; }
+#settings-panel .update-meta { opacity: 0.65; }
+#settings-panel .update-notes {
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+}
+#settings-panel .update-progress { width: 100%; height: 8px; accent-color: #e8d9c4; }
+#settings-panel .update-progress[hidden] { display: none; }
+#settings-panel .update-error { color: #ff9b8a; }

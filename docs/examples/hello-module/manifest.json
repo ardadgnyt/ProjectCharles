@@ -1,0 +1,12 @@
+{
+  "id": "hello",
+  "name": "Merhaba Modülü",
+  "version": "1.0.0",
+  "author": "HzPederPan",
+  "description": "Charles modül API’sinin her parçasını deneyen küçük bir örnek: yapay zekâ, görsel, veri, Slime ifadeleri ve sesli okuma.",
+  "charlesApi": 1,
+  "entry": "index.html",
+  "icon": "icon.png",
+  "window": { "width": 980, "height": 720, "minWidth": 720, "minHeight": 520 },
+  "permissions": ["ai", "image", "voice"]
+}

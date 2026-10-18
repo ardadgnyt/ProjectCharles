@@ -1,6 +1,8 @@
 // v0.7.7: the customizable home page of the app window — which cards, in which column and
 // order, plus the contents of the "Notlar" and "Hızlı komutlar" cards (companion.json).
 const CARDS = ['music', 'reminders', 'calendar', 'mail', 'ask', 'home', 'usage', 'commands', 'notes', 'sysusage', 'sysinfo'];
+// v0.8.0: AIs the "Kalan kullanım" card can show (null = every connected one)
+const USAGE_PROVIDERS = ['gpt', 'claude', 'gemini', 'cursor', 'abacus'];
 const DEFAULT = { cols: [['music', 'reminders', 'calendar'], ['mail', 'ask', 'home', 'usage']] };
 
 function cleanCols(cols) {
@@ -36,8 +38,17 @@ function cleanDash(patch, current) {
     next.notes = patch.notes.slice(0, 20000);
   }
   if ('commands' in patch) next.commands = cleanCommands(patch.commands);
+  if ('usageShow' in patch) {
+    const v = patch.usageShow;
+    if (v === null) delete next.usageShow;
+    else {
+      if (!Array.isArray(v) || v.length > USAGE_PROVIDERS.length || v.some((id) => !USAGE_PROVIDERS.includes(id)))
+        throw Error('Geçersiz kullanım kartı seçimi.');
+      next.usageShow = USAGE_PROVIDERS.filter((id) => v.includes(id));
+    }
+  }
   if (!next.cols) next.cols = DEFAULT.cols.map((c) => c.slice());
   return next;
 }
 
-module.exports = { cleanDash, CARDS, DEFAULT };
+module.exports = { cleanDash, CARDS, DEFAULT, USAGE_PROVIDERS };

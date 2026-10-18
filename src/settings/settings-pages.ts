@@ -40,6 +40,7 @@ export function settingsPages(api: any) {
     ['memory', 'Hafıza'],
     ['access', 'Erişim'],
     ['connections', 'Eklentiler'],
+    ['modules', 'Modüller'], // v0.8.0
     ['shortcuts', 'Kısayollar'],
     ['weekly', 'Haftalık özet'],
     ['performance', 'Performans'],

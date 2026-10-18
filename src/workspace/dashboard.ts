@@ -27,6 +27,7 @@ const PROVIDERS: [string, string, string][] = [
   ['claude', 'Claude', '#e8a27c'],
   ['gemini', 'Gemini', '#a8c7fa'],
   ['cursor', 'Cursor', '#3fd8c8'],
+  ['abacus', 'Abacus AI', '#b9a6ff'],
 ];
 const SOURCES: Record<string, string> = {
   gmail: 'Gmail',
@@ -363,9 +364,91 @@ export function workspaceDashboard(d: DashboardDeps) {
 
   // ── Remaining usage: rings like the island (5 hours and week) ──────────────
   const usageRefresh = iconButton('refresh', 'Yenile', () => void loadUsage(true));
-  const usage = cardShell('ws-usage', 'chart', 'Kalan kullanım', usageRefresh);
+  // v0.8.0: which AIs the card shows. By default every connected AI; the user can pick.
+  const usagePick = iconButton('sliders', 'Gösterilecek yapay zekâlar', () => toggleUsageMenu());
+  usagePick.setAttribute('aria-haspopup', 'true');
+  usagePick.setAttribute('aria-expanded', 'false');
+  const usage = cardShell('ws-usage', 'chart', 'Kalan kullanım', usagePick, usageRefresh);
+  const usageMenu = el('div', 'ws-usage-menu');
+  usageMenu.hidden = true;
+  usageMenu.setAttribute('role', 'group');
   const usageGrid = el('div', 'ws-usage-grid');
-  usage.append(usageGrid);
+  const usageEmpty = el('p', 'ws-usage-empty', 'Gösterilecek yapay zekâ seçilmedi.');
+  usageEmpty.hidden = true;
+  usage.append(usageMenu, usageGrid, usageEmpty);
+  let usageShow: string[] | null = null; // null: every connected AI
+  let usageSigned = new Set<string>(['gpt']);
+  const shown = (id: string) => (usageShow ? usageShow.includes(id) : id === 'gpt' || usageSigned.has(id));
+  function paintUsageMenu() {
+    usageMenu.replaceChildren();
+    const all = el('label', 'ws-usage-opt ws-usage-all');
+    const allBox = el('input') as HTMLInputElement;
+    allBox.type = 'checkbox';
+    allBox.checked = usageShow === null;
+    allBox.onchange = () => void saveUsageShow(allBox.checked ? null : PROVIDERS.map(([id]) => id).filter(shown));
+    all.append(allBox, el('span', '', 'Bağlı olanların hepsi (varsayılan)'));
+    usageMenu.append(all);
+    for (const [id, name, color] of PROVIDERS) {
+      const row = el('label', 'ws-usage-opt');
+      row.style.setProperty('--c', color);
+      const box = el('input') as HTMLInputElement;
+      box.type = 'checkbox';
+      box.checked = shown(id);
+      box.onchange = () => {
+        const base = PROVIDERS.map(([p]) => p).filter(shown);
+        void saveUsageShow(box.checked ? [...base, id] : base.filter((p) => p !== id));
+      };
+      const label = el('span', '', name);
+      label.setAttribute('translate', 'no');
+      const state = el('small', '', id === 'gpt' || usageSigned.has(id) ? 'Bağlı' : 'Bağlı değil');
+      row.append(box, el('i', 'ws-prov-dot'), label, state);
+      usageMenu.append(row);
+    }
+  }
+  function toggleUsageMenu(open: boolean = !!usageMenu.hidden) {
+    usageMenu.hidden = !open;
+    usagePick.setAttribute('aria-expanded', String(open));
+    usagePick.classList.toggle('on', open);
+    if (!open) return;
+    paintUsageMenu();
+    // the connected accounts right now, so the ticks match what the card can show
+    void Promise.resolve(api.providersStatus?.())
+      .then((rows: any[]) => {
+        if (!Array.isArray(rows)) return;
+        usageSigned = new Set(rows.filter((r) => r.signedIn).map((r) => r.id));
+        applyUsageShow();
+        if (!usageMenu.hidden) paintUsageMenu();
+      })
+      .catch(() => {});
+  }
+  document.addEventListener('pointerdown', (e) => {
+    if (!usageMenu.hidden && !usageMenu.contains(e.target as Node) && !usagePick.contains(e.target as Node)) toggleUsageMenu(false);
+  });
+  async function saveUsageShow(value: string[] | null) {
+    const before = usageShow;
+    usageShow = value;
+    applyUsageShow();
+    paintUsageMenu();
+    try {
+      await saveDash({ usageShow: value });
+      void readUsage(false);
+    } catch (e) {
+      usageShow = before;
+      applyUsageShow();
+      paintUsageMenu();
+      d.notice((e as Error).message);
+    }
+  }
+  function applyUsageShow() {
+    let any = false;
+    for (const [id] of PROVIDERS) {
+      const c = usageCols.get(id);
+      if (!c) continue;
+      c.col.hidden = !shown(id);
+      any ||= !c.col.hidden;
+    }
+    usageEmpty.hidden = any;
+  }
   const RING = 2 * Math.PI * 26;
   function ring(label: string) {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -449,8 +532,11 @@ export function workspaceDashboard(d: DashboardDeps) {
       status = await api.providersStatus();
     } catch {}
     const signed = new Set(status.filter((s) => s.signedIn).map((s) => s.id));
+    if (status.length) usageSigned = signed;
+    applyUsageShow();
+    if (!usageMenu.hidden) paintUsageMenu();
     await Promise.all(
-      PROVIDERS.map(async ([id]) => {
+      PROVIDERS.filter(([id]) => shown(id)).map(async ([id]) => {
         const c = usageCols.get(id)!;
         if (id !== 'gpt' && !signed.has(id)) {
           c.col.classList.add('off');
@@ -500,7 +586,7 @@ export function workspaceDashboard(d: DashboardDeps) {
       { id: 'mail', title: 'Önemli e-postalar', text: 'Charles’ın önemli bulduğu e-postalar', icon: 'mail', element: mail, placed: (v) => v && visible && void loadMail() },
       { id: 'ask', title: 'Mesaj kutusu', text: 'Charles’a buradan hızlıca yaz', icon: 'chat', element: askCard },
       { id: 'home', title: 'Akıllı ev', text: 'Home Assistant cihazları', icon: 'home', element: home, placed: (v) => v && visible && void loadHome() },
-      { id: 'usage', title: 'Kalan kullanım', text: 'Codex, Claude, Gemini ve Cursor kotaları', icon: 'chart', element: usage, placed: (v) => v && visible && void loadUsage() },
+      { id: 'usage', title: 'Kalan kullanım', text: 'Bağlı yapay zekâların kalan kullanım hakları', icon: 'chart', element: usage, placed: (v) => v && visible && void loadUsage() },
       { id: 'commands', title: 'Hızlı komutlar', text: 'Tek tıkla Charles’a gönderilen hazır mesajlar', icon: 'bolt', element: commands.element },
       { id: 'notes', title: 'Notlar', text: 'Kendiliğinden kaydedilen not defteri', icon: 'pencil', element: notes.element },
       { id: 'sysusage', title: 'Sistem kullanımı', text: 'İşlemci, bellek ve disk doluluğu', icon: 'bolt', element: sysUsage.element, placed: (v) => (v && visible ? sysUsage.start() : sysUsage.stop()) },
@@ -525,6 +611,8 @@ export function workspaceDashboard(d: DashboardDeps) {
       dash = await api.workspaceDash();
     } catch {}
     if (dash?.cols) editor.set(dash.cols);
+    usageShow = Array.isArray(dash?.usageShow) ? dash.usageShow : null;
+    applyUsageShow();
     commands.set(dash);
     notes.set(dash);
   }

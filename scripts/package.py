@@ -17,12 +17,13 @@ import sys
 import time
 import zipfile
 
-SKIP_DIRS = {'.git', '_to_delete', 'release'}
+SKIP_DIRS = {'.git', '_to_delete', '_update', 'release'}
 # personal / machine-local files never go into an installer
 SKIP_FILES = {
     'Charles.zip',
     'charles-manifest.json',
     'Charles-creator.json',
+    'charles-install.json',  # the language chosen in setup on this computer
     '.env',
     # local-only notes (kept out of GitHub and releases)
     'docs/GITHUB.md',

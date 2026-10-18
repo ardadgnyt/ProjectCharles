@@ -7,7 +7,8 @@ setlocal
 chcp 65001 >nul
 set "PS1=%~dp0install.ps1"
 if not exist "%PS1%" (
- echo install.ps1 bulunamadi. Kurulum klasorunun tamamini kopyaladigindan emin ol.
+ echo install.ps1 not found. Copy the whole setup folder and try again.
+ echo install.ps1 bulunamadi. Kurulum klasorunun tamamini kopyala.
  pause
  exit /b 1
 )

@@ -392,7 +392,7 @@ class Sessions extends EventEmitter {
   }
   async send(args) {
     const r = this.current;
-    const external = /^(gemini|claude|cursor):/.test(args.model || '');
+    const external = /^(gemini|claude|cursor|abacus):/.test(args.model || '');
     if (r.agent.providerModel !== external) {
       r.agent.threadId = null;
       r.agent.providerModel = external;

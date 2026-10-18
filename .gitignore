@@ -11,11 +11,13 @@ tools/
 *.tgz
 release/
 _to_delete/
+_update/
 
 # Personal / machine-local files — never commit these.
 # Charles keeps settings, chat history, memory and encrypted keys in %APPDATA%\Charles,
 # not in this folder. The files below only matter if someone copies them here by mistake.
 Charles-creator.json
+charles-install.json
 personal.json
 companion.json
 charles-history.json

@@ -253,7 +253,7 @@ test('WhatsApp: hooked into chat and voice, with a settings card', () => {
 
 test('version: package, lock, label and installer agree (v0.7.2 or later)', () => {
   const v = JSON.parse(read('package.json')).version;
-  assert.match(v, /^0\.7\.[2-9]-beta\.\d+$/);
+  assert.match(v, /^0\.(7\.[2-9]|[89]\.\d+)-beta\.\d+$/); // v0.7.2 or later
   const lock = JSON.parse(read('package-lock.json'));
   assert.equal(lock.version, v);
   assert.equal(lock.packages[''].version, v);

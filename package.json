@@ -1,6 +1,6 @@
 {
   "name": "project-charles",
-  "version": "0.7.9-beta.1",
+  "version": "0.8.0-beta.1",
   "private": true,
   "description": "Charles — Windows desktop AI companion (Electron).",
   "author": "HzPederPan",
@@ -13,7 +13,9 @@
     "test": "node --test test/*.test.cjs",
     "check:codex": "node scripts/check-codex.cjs",
     "setup": "node scripts/setup.cjs",
-    "setup:voice": "node scripts/setup-voice.cjs"
+    "setup:voice": "node scripts/setup-voice.cjs",
+    "module:pack": "node scripts/module-pack.cjs",
+    "release:pack": "node scripts/release-pack.cjs"
   },
   "devDependencies": {
     "electron": "44.5.1",

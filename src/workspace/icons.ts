@@ -3,6 +3,8 @@
 // source as the character engine, see THIRD-PARTY-NOTICES.md); the others are Charles' own.
 
 export const ICONS: Record<string, string> = {
+  // v0.8.0
+  blocks: 'M4.5 4.5h6v6h-6zM13.5 4.5h6v6h-6zM4.5 13.5h6v6h-6zM16.5 13.5v6M13.5 16.5h6',
   // v0.7.7
   undo: 'M9 7.5 5 11.5l4 4M5.5 11.5h8.5a4.5 4.5 0 0 1 0 9H11',
   stop: 'M7.5 7.5h9v9h-9z',

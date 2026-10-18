@@ -1,4 +1,4 @@
-// Gemini (Antigravity), Claude Code and Cursor CLIs: login, auth checks, chat answers, quotas.
+// Gemini (Antigravity), Claude Code, Cursor and (v0.8.0) Abacus AI CLIs: login, auth checks, chat answers, quotas.
 const fs = require('node:fs'),
   path = require('node:path'),
   { spawn, execFile } = require('node:child_process'),
@@ -6,6 +6,9 @@ const fs = require('node:fs'),
 const { ClaudeUsage } = require('../usage/claude-usage.cjs');
 const { launchPlan, claudeItems } = require('./provider-tools.cjs');
 const { ASK_FORMAT } = require('../core/ask-format.cjs');
+const abacus = require('./abacus.cjs');
+// v0.8.0: every provider Charles can sign in to besides GPT
+const PROVIDERS = ['gemini', 'claude', 'cursor', 'abacus'];
 // Runs a CLI in a worker thread; resolves { error, out, err } like execFile's callback.
 function runOffThread(exe, args, options) {
   return new Promise((resolve) => {
@@ -179,6 +182,14 @@ class Providers {
       cacheFile: path.join(this.dir, 'claude-usage.json'),
       log: require('../core/log.cjs').createLog(dir, 'usage'),
     });
+    // v0.8.0 Abacus AI: the user's own `abacusai` install; the connection test result and the
+    // account's model list (read from the CLI) are kept in providers/abacus.json (no keys)
+    this.abacusFile = path.join(this.dir, 'abacus.json');
+    this.abacus = { verified: false, models: [] };
+    try {
+      const saved = JSON.parse(fs.readFileSync(this.abacusFile, 'utf8'));
+      this.abacus = { verified: saved?.verified === true, models: abacus.cleanModels(saved?.models) };
+    } catch {}
     this.auth = {};
     this.authChecked = 0;
     this.authPending = null;
@@ -196,6 +207,13 @@ class Providers {
         exe: path.join(this.root, 'node_modules/@anthropic-ai/claude-code-win32-x64/claude.exe'),
         args: [],
       };
+    if (provider === 'abacus') {
+      // not shipped with Charles: looked up where its installer puts it (cached for 30 s)
+      if (!this.abacusSpec || Date.now() - this.abacusSpec.at > 30000)
+        this.abacusSpec = { at: Date.now(), found: abacus.findAbacus(process.env) };
+      const found = this.abacusSpec.found;
+      return found ? { exe: found.exe, args: found.args } : { exe: '', args: [], missing: true };
+    }
     throw Error('Geçersiz sağlayıcı.');
   }
   async usage(force = false) {
@@ -236,12 +254,15 @@ class Providers {
     }
   }
   status() {
-    return ['gemini', 'claude', 'cursor'].map((id) => ({
-      id,
-      enabled: !!this.auth[id],
-      signedIn: !!this.auth[id],
-      installed: fs.existsSync(this.spec(id).exe),
-    }));
+    return PROVIDERS.map((id) => {
+      const exe = this.spec(id).exe;
+      return {
+        id,
+        enabled: !!this.auth[id],
+        signedIn: !!this.auth[id],
+        installed: !!exe && fs.existsSync(exe),
+      };
+    });
   }
   /**
    * v0.7.4: one tiny, invisible message to Claude (Haiku, one-word system prompt, no tools,
@@ -285,7 +306,84 @@ class Providers {
     const cursor = (this.cursorModels && this.cursorModels.length ? this.cursorModels : CURSOR_FALLBACK).map(
       ([id, name]) => ['cursor:' + id, 'Cursor · ' + name],
     );
-    return [MODELS[0], ...cursor, ...MODELS.slice(1)];
+    // v0.8.0: Abacus AI models start with "Abacus AI · " so they never mix with the others
+    const abacusModels = [
+      ['abacus:auto', 'Abacus AI · Otomatik'],
+      ...this.abacus.models.map(([id, name]) => ['abacus:' + id, 'Abacus AI · ' + name]),
+    ];
+    return [MODELS[0], ...cursor, ...MODELS.slice(1), ...abacusModels];
+  }
+  saveAbacus() {
+    try {
+      fs.writeFileSync(this.abacusFile, JSON.stringify(this.abacus));
+    } catch {}
+  }
+  /**
+   * v0.8.0: every model of the signed-in Abacus AI account, read from the CLI (cached on disk,
+   * like Cursor's). Shown as "Abacus AI · <name>" so they never mix with the GPT models.
+   */
+  async refreshAbacusModels() {
+    const spec = this.spec('abacus');
+    if (!spec.exe || this.abacusListing) return this.abacus.models;
+    this.abacusListing = true;
+    try {
+      for (const args of abacus.MODEL_LIST_COMMANDS) {
+        const { error, out } = await runOffThread(spec.exe, [...spec.args, ...args], {
+          cwd: path.join(this.dir, 'workspace'),
+          env: abacus.abacusEnv(this.env),
+          windowsHide: true,
+          timeout: 20000,
+          maxBuffer: 1024 * 1024,
+        });
+        const list = error ? [] : abacus.parseAbacusModels(out);
+        if (list.length) {
+          this.abacus.models = list;
+          this.saveAbacus();
+          break;
+        }
+      }
+    } finally {
+      this.abacusListing = false;
+    }
+    return this.abacus.models;
+  }
+  /**
+   * v0.8.0: Abacus AI has no sign-in status command, so the connection is tested with one tiny
+   * read-only message (only when the user presses the button). → { ok, message }
+   */
+  async testAbacus() {
+    const spec = this.spec('abacus');
+    if (!spec.exe) return { ok: false, message: 'Abacus AI komut satırı aracı bu bilgisayarda bulunamadı.' };
+    const plan = abacus.abacusPlan({
+      model: 'auto',
+      prompt: 'Reply with one word: ok',
+      mode: 'chat',
+      workspace: path.join(this.dir, 'workspace'),
+    });
+    const { error, out, err } = await runOffThread(spec.exe, [...spec.args, ...plan.cli], {
+      cwd: plan.cwd,
+      env: abacus.abacusEnv(this.env),
+      windowsHide: true,
+      timeout: 90000,
+      maxBuffer: 256 * 1024,
+    });
+    const answer = !error && abacus.abacusAnswer(out);
+    const text = String(out || '') + '\n' + String(err || '');
+    this.abacus.verified = !!answer && !/not logged in|please log ?in|unauthori[sz]ed|invalid api key|\/login/i.test(text);
+    this.saveAbacus();
+    if (this.abacus.verified) await this.refreshAbacusModels().catch(() => {});
+    this.auth.abacus = this.abacus.verified;
+    this.authChecked = 0;
+    return this.abacus.verified
+      ? { ok: true, message: 'Bağlı · Abacus AI yanıt verdi.' }
+      : {
+          ok: false,
+          message: /login|unauthori|api key/i.test(text)
+            ? 'Abacus AI girişi yapılmamış. Abacus AI ile giriş’e bas, açılan pencerede /login yaz.'
+            : error?.killed || /timed? ?out/i.test(String(error?.message || ''))
+              ? 'Abacus AI zamanında yanıt vermedi. İnternet bağlantını kontrol edip yeniden dene.'
+              : 'Abacus AI yanıt vermedi. Hesabını ve kullanım hakkını kontrol et.',
+        };
   }
   /** Reads the Composer/Grok models of the signed-in Cursor account (cached on disk). */
   async refreshCursorModels() {
@@ -323,7 +421,9 @@ class Providers {
   }
   probe(id) {
     const spec = this.spec(id);
-    if (!fs.existsSync(spec.exe)) return Promise.resolve(false);
+    if (!spec.exe || !fs.existsSync(spec.exe)) return Promise.resolve(false);
+    // Abacus AI: the result of the user's last connection test (no status command to ask)
+    if (id === 'abacus') return Promise.resolve(this.abacus.verified);
     // Checks never wait for user input or submit a model prompt. They run in a worker thread
     // so launching the CLI cannot stall the main process (see probe-worker.cjs).
     return runOffThread(
@@ -385,7 +485,7 @@ class Providers {
       // One CLI at a time: starting large executables blocks the main process briefly on
       // Windows (antivirus scans each launch); three at once froze the UI for ~0.5 s.
       const results = [];
-      for (const id of ['gemini', 'claude', 'cursor'])
+      for (const id of PROVIDERS)
         results.push([id, await this.probe(id).catch(() => false)]);
       for (const [id, value] of results) {
         // A single slow or failed check (busy PC, CLI timeout) must not drop a signed-in
@@ -400,6 +500,7 @@ class Providers {
       this.authChecked = Date.now();
       // v0.7.3: Cursor's Composer and Grok models (in the background, the list is cached)
       if (this.auth.cursor) void this.refreshCursorModels().catch(() => {});
+      if (this.auth.abacus) void this.refreshAbacusModels().catch(() => {});
       return this.status();
     })();
     try {
@@ -416,11 +517,16 @@ class Providers {
     }
     const spec = this.spec(id),
       quote = (s) => "'" + s.replace(/'/g, "''") + "'";
+    if (id === 'abacus' && !spec.exe)
+      throw Error(
+        'Abacus AI komut satırı aracı bulunamadı. Önce Abacus AI’ın kurulum sayfasındaki adımlarla kur, sonra yeniden dene.',
+      );
     if (!fs.existsSync(spec.exe))
       throw Error('Giriş aracı eksik. Kurulum ZIP dosyasının tamamını çıkar.');
     const script = path.join(this.dir, `login-${id}.ps1`),
       env = subscriptionEnv({}, this.dir);
     if (id === 'gemini') env.USERPROFILE = path.join(this.dir, 'gemini');
+    if (id === 'abacus') Object.assign(env, { ABACUS_AUTO_UPDATE: 'off', ABACUS_AUTO_LOAD_AGENTS_MD: 'false' });
     const commands = [
       "$ErrorActionPreference='Stop'",
       ...Object.keys(process.env)
@@ -434,7 +540,9 @@ class Providers {
         ([k, v]) => `[Environment]::SetEnvironmentVariable(${quote(k)},${quote(v)},'Process')`,
       ),
       `Set-Location -LiteralPath ${quote(path.join(this.dir, 'workspace'))}`,
-      "Write-Host 'Charles: Abonelik hesabinizi secin. API / Console secmeyin.'",
+      id === 'abacus'
+        ? "Write-Host 'Charles: Abacus AI acilinca /login yazip hesabinla giris yap. Bitince /exit yaz, pencereyi kapat ve Charles ayarlarinda Baglantiyi test et dugmesine bas. (Abacus AI: type /login, then /exit and press Test connection in Charles.)'"
+        : "Write-Host 'Charles: Abonelik hesabinizi secin. API / Console secmeyin.'",
       '& ' +
         quote(spec.exe) +
         ' ' +
@@ -479,7 +587,9 @@ class Providers {
   }
   async send(agent, args) {
     if (!this.allModels().some(([id]) => id === args.model)) throw Error('Model bulunamadı.');
-    const [provider, model] = args.model.split(':');
+    const cut = args.model.indexOf(':');
+    const provider = args.model.slice(0, cut),
+      model = args.model.slice(cut + 1);
     await this.refreshAuth();
     if (!this.auth[provider]) throw Error('Önce ayarlardan bu sağlayıcıyı bağla.');
     if (args.task)
@@ -495,19 +605,26 @@ class Providers {
       );
     if (agent.busy) throw Error('Önce etkin yanıtı durdur.');
     const spec = this.spec(provider);
-    if (!fs.existsSync(spec.exe))
-      throw Error('Sağlayıcının resmi aracı bulunamadı. Kurulum paketini yeniden çıkar.');
+    if (!spec.exe || !fs.existsSync(spec.exe))
+      throw Error(
+        provider === 'abacus'
+          ? 'Abacus AI komut satırı aracı bulunamadı. Kurup Ayarlar → Hesap’tan bağlantıyı yeniden test et.'
+          : 'Sağlayıcının resmi aracı bulunamadı. Kurulum paketini yeniden çıkar.',
+      );
+    const isAbacus = provider === 'abacus';
     // Sign-in was verified by refreshAuth above (claude.ai subscription only, see probe);
     // no extra `claude auth status` launch before every message.
-    const plan = launchPlan({
+    const planArgs = {
       provider,
       model,
       mode: args.mode,
       access: args.access,
       projectDir: args.mode === 'project' ? args.cwd : null,
       workspace: path.join(this.dir, 'workspace'),
-    });
-    const cli = plan.cli;
+    };
+    // Abacus AI takes the message on its command line (-p), so its plan is made once the full
+    // message is known (below); this first plan only says where it runs.
+    let plan = isAbacus ? abacus.abacusPlan({ ...planArgs, prompt: '.' }) : launchPlan(planArgs);
     if (plan.geminiSettings)
       fs.writeFileSync(
         path.join(this.dir, 'gemini/.gemini/antigravity-cli/settings.json'),
@@ -539,6 +656,36 @@ class Providers {
           command: 'Proje klasöründe çalışıyor: ' + plan.cwd,
         },
       });
+    const prompt =
+      (plan.tools
+        ? 'Sen Charles, HzPederPan tarafından geliştirilmiş bir masaüstü asistanısın. Şu an kullanıcının seçtiği proje klasöründe çalışıyorsun: ' +
+          plan.cwd +
+          '. ' +
+          (args.access === 'ask'
+            ? 'Erişim ayarı “Onay iste”: dosyaları okuyup inceleyebilir ve plan önerebilirsin, değişiklik yapma. '
+            : 'Proje dosyalarını okuyup düzenleyebilirsin; komut çalıştırma iznin yok, gerekirse kullanıcıya hangi komutu çalıştırması gerektiğini söyle. ') +
+          'Kullanıcıyla Türkçe konuş; sonunda değişen dosyaları kısaca özetle. Yapmadığın işlemleri yaptığını söyleme.\n'
+        : 'Sen Charles, HzPederPan tarafından geliştirilmiş bir masaüstü sohbet asistanısın. Bu bağlantıda bilgisayar araçların yok. Yapmadığın işlemleri yaptığını söyleme.\n') +
+      ASK_FORMAT.trim() +
+      '\n' +
+      args.prompt +
+      '\n' +
+      (args.attachments || []).map((a) => a.text).join('\n');
+    if (isAbacus) {
+      try {
+        plan = abacus.abacusPlan({ ...planArgs, prompt });
+      } catch (e) {
+        agent.busy = false;
+        if (reading) emit('item/completed', { item: readItem('failed') });
+        if (plan.tools)
+          emit('item/completed', {
+            item: { id: id + '-work', type: 'mcpToolCall', tool: 'project', status: 'failed', command: plan.cwd },
+          });
+        emit('turn/completed', { turn: { id, status: 'failed', error: { message: e.message } } });
+        return { turnId: id };
+      }
+    }
+    const cli = plan.cli;
     const started = new Map();
     let lineBuffer = '';
     const child = spawn(spec.exe, [...spec.args, ...cli], {
@@ -546,7 +693,9 @@ class Providers {
       env:
         provider === 'gemini'
           ? { ...this.env, USERPROFILE: path.join(this.dir, 'gemini') }
-          : this.env,
+          : isAbacus
+            ? abacus.abacusEnv(this.env)
+            : this.env,
       windowsHide: true,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
@@ -577,8 +726,13 @@ class Providers {
                 }
               })
               .filter(Boolean);
-          const r =
-            provider === 'gemini'
+          if (isAbacus) {
+            text = abacus.abacusAnswer(stdout) || '';
+            if (!text) throw Error('Yanıt boş.');
+          }
+          const r = isAbacus
+            ? { result: text }
+            : provider === 'gemini'
               ? lines()
                   .filter((e) => e.event === 'result')
                   .at(-1)?.result
@@ -590,6 +744,12 @@ class Providers {
           if (!r || r.error || r.is_error || (provider === 'gemini' && r.status !== 'SUCCESS'))
             throw Error('Sağlayıcı yanıt vermedi.');
           text = provider === 'gemini' ? r.response : r.result;
+          if (isAbacus && /not logged in|please log ?in|unauthori[sz]ed|invalid api key/i.test(text.slice(0, 300))) {
+            this.abacus.verified = false;
+            this.auth.abacus = false;
+            this.saveAbacus();
+            throw Error('login');
+          }
           if (typeof text !== 'string' || !text.trim()) throw Error('Yanıt boş.');
         } catch {
           error = 'Yanıt okunamadı. Sağlayıcı hesabını ve kullanım kotasını kontrol et.';
@@ -672,25 +832,12 @@ class Providers {
       ),
     );
     child.stdin.on('error', () => {});
-    const prompt =
-      (plan.tools
-        ? 'Sen Charles, HzPederPan tarafından geliştirilmiş bir masaüstü asistanısın. Şu an kullanıcının seçtiği proje klasöründe çalışıyorsun: ' +
-          plan.cwd +
-          '. ' +
-          (args.access === 'ask'
-            ? 'Erişim ayarı “Onay iste”: dosyaları okuyup inceleyebilir ve plan önerebilirsin, değişiklik yapma. '
-            : 'Proje dosyalarını okuyup düzenleyebilirsin; komut çalıştırma iznin yok, gerekirse kullanıcıya hangi komutu çalıştırması gerektiğini söyle. ') +
-          'Kullanıcıyla Türkçe konuş; sonunda değişen dosyaları kısaca özetle. Yapmadığın işlemleri yaptığını söyleme.\n'
-        : 'Sen Charles, HzPederPan tarafından geliştirilmiş bir masaüstü sohbet asistanısın. Bu bağlantıda bilgisayar araçların yok. Yapmadığın işlemleri yaptığını söyleme.\n') +
-      ASK_FORMAT.trim() +
-      '\n' +
-      args.prompt +
-      '\n' +
-      (args.attachments || []).map((a) => a.text).join('\n');
     child.stdin.end(
-      provider === 'gemini'
-        ? JSON.stringify({ event: 'user', message: { content: prompt } }) + '\n'
-        : prompt,
+      isAbacus
+        ? ''
+        : provider === 'gemini'
+          ? JSON.stringify({ event: 'user', message: { content: prompt } }) + '\n'
+          : prompt,
     );
     return { turnId: id };
   }
@@ -709,6 +856,7 @@ class Providers {
   }
 }
 module.exports = {
+  PROVIDERS,
   streamText,
   Providers,
   subscriptionEnv,

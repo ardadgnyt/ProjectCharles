@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Merhaba Modülü</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <img src="icon.png" alt="" class="logo" />
+      <div>
+        <h1>Merhaba Modülü</h1>
+        <p id="info" class="muted">Charles’a bağlanıyor…</p>
+      </div>
+    </header>
+    <main>
+      <section class="card wide">
+        <h2>Yapay zekâya sor <span class="tag">ai</span></h2>
+        <form id="ask">
+          <input id="question" placeholder="Bir şey sor (ör. Bana kısa bir tekerleme yaz)" maxlength="2000" />
+          <button class="primary" type="submit">Sor</button>
+        </form>
+        <div id="answer" class="out" aria-live="polite"></div>
+        <div class="row">
+          <button id="speak" type="button">Yanıtı sesli oku</button>
+          <button id="stop" type="button">Sustur</button>
+          <span class="tag">voice</span>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Görsel oluştur <span class="tag">image</span></h2>
+        <form id="draw">
+          <input id="prompt" placeholder="ör. Kırmızı şapkalı yeşil bir slime, suluboya" maxlength="1000" />
+          <button class="primary" type="submit">Oluştur</button>
+        </form>
+        <div id="image" class="out image"></div>
+      </section>
+      <section class="card">
+        <h2>Veri kaydet ve oku <span class="tag">storage</span></h2>
+        <textarea id="note" rows="4" placeholder="Bir not yaz; modülün kendi klasörüne kaydedilir."></textarea>
+        <div class="row">
+          <button id="save" type="button">Kaydet</button>
+          <button id="load" type="button">Oku</button>
+          <button id="files" type="button">Dosyaları listele</button>
+        </div>
+        <div id="storage" class="out small"></div>
+      </section>
+      <section class="card">
+        <h2>Slime ve bildirim <span class="tag">slime</span> <span class="tag">notify</span></h2>
+        <div class="emotes" id="emotes"></div>
+        <div class="row">
+          <button id="notify" type="button">Bildirim gönder</button>
+        </div>
+      </section>
+    </main>
+    <p id="status" class="status" role="status"></p>
+    <script src="app.js"></script>
+  </body>
+</html>

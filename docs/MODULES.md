@@ -1,0 +1,155 @@
+# Charles modules (API v1)
+
+A module adds a small app to Charles. It has its own code and interface (HTML, CSS,
+JavaScript) and opens in its own window. A module runs only with what Charles gives it: it has
+**no Node.js, no direct file system access and no network**. Everything goes through
+`window.charlesModule`, and Charles checks every call against the module's permissions.
+
+Users install modules in **Settings → Modules → Load module** (a `.zip`). A working example is
+in [`docs/examples/hello-module/`](examples/hello-module/).
+
+## Package format
+
+A module is a `.zip` with `manifest.json` at its root. A zip whose files all sit in one top
+folder (`hello-module/manifest.json`) is accepted too.
+
+```
+hello-module/
+  manifest.json
+  index.html      ← "entry"
+  app.js
+  style.css
+  icon.png        ← "icon" (optional)
+```
+
+Build the zip with the same checks Charles uses:
+
+```
+npm run module:pack docs/examples/hello-module            → hello-1.0.0.zip
+npm run module:pack <folder> <out.zip>
+```
+
+### manifest.json
+
+```json
+{
+  "id": "hello",
+  "name": "Merhaba Modülü",
+  "version": "1.0.0",
+  "author": "HzPederPan",
+  "description": "Short description",
+  "charlesApi": 1,
+  "entry": "index.html",
+  "icon": "icon.png",
+  "window": { "width": 1100, "height": 760, "minWidth": 800, "minHeight": 560 },
+  "permissions": ["ai", "image", "voice"]
+}
+```
+
+| Field | Rules |
+| --- | --- |
+| `id` | `^[a-z0-9][a-z0-9-]{1,40}$`. The same id installs as an **update** (data is kept). |
+| `name` | Required, at most 60 characters. Window title. |
+| `version` | Semantic version (`1.0.0`, `1.2.0-beta.1`). |
+| `author` | Required, at most 60 characters. |
+| `description` | Required, at most 300 characters. |
+| `charlesApi` | Must be `1`. Other values are refused. |
+| `entry` | An `.html` file inside the package. |
+| `icon` | Optional `.png`, `.jpg`, `.svg` or `.webp` inside the package (shown in Settings). |
+| `window` | Optional. `width`/`height` (default 1100 × 760), `minWidth`/`minHeight` (default 480 × 360). |
+| `permissions` | Optional list of `ai`, `image`, `voice`. |
+
+Unknown fields, unknown permissions, missing fields or a bad id are refused with a clear message.
+
+## Permissions
+
+| Permission | Allows |
+| --- | --- |
+| `ai` | `ai.chat` — ask the user's connected AI. Nothing is written to the chat history. |
+| `image` | `ai.image` — create an image with the chat's image tool. |
+| `voice` | `voice.speak` / `voice.stop` — read text aloud. |
+| `storage` *(always)* | Files in the module's own data folder only. |
+| `slime` *(always)* | `slime.emote` — make Slime show an expression. |
+| `notify` *(always)* | `notify` — a short message in Charles' notification bubble. |
+
+Before installing, the user sees the name, version, author, description and every permission
+explained, and chooses **Install** or **Cancel**.
+
+## API v1 — `window.charlesModule`
+
+Every call returns a Promise and rejects with a readable `Error` message. Calls are limited per
+module (e.g. 60 calls / 10 s in general, `ai.chat` 12 / min, `ai.image` 4 / min).
+
+```js
+const C = window.charlesModule;
+
+await C.info();
+// → { id, version, charlesVersion, language, permissions }
+
+await C.ai.chat({ system: 'Answer briefly.', messages: [{ role: 'user', content: 'Hi' }], model });
+// → answer text. `model` is optional (the user's default model). `role`: "user" | "assistant";
+//   the last message must be the user's. Up to 50 messages, 100 000 characters in total.
+//   Optional `onChunk(text)` is called once with the whole answer (no streaming in API v1).
+
+await C.ai.image({ prompt: 'A green slime in a red hat, watercolour' });
+// → { path: 'images/2026-….png', url: 'charles-module://<id>/_data/images/2026-….png' }
+//   Uses the chat's built-in image tool (Codex / ChatGPT sign-in), takes up to ~3 minutes.
+
+await C.storage.setJSON('notes.json', { text: 'hello' });
+await C.storage.getJSON('notes.json', /* fallback */ null);
+await C.storage.writeFile('a/b.txt', 'text');                 // or Uint8Array
+await C.storage.writeFile('pic.png', base64, { encoding: 'base64' });
+await C.storage.readFile('a/b.txt');                           // { encoding: 'utf8' | 'base64' | 'binary' }
+await C.storage.listFiles('a');                                // [{ path, dir, size, modified }]
+await C.storage.deleteFile('a/b.txt');
+
+await C.voice.speak('Merhaba!');
+await C.voice.stop();
+
+await C.slime.emote('happy');   // love, surprised, proud, wink, yawn, happy, annoyed
+await C.notify('Done!');        // at most 300 characters
+
+const off = C.on('language', (lang) => { /* 'tr', 'en', 'de', … */ });
+```
+
+Files in the data folder can be shown directly in the page with
+`charles-module://<id>/_data/<path>` (for example the `url` that `ai.image` returns).
+
+## Where things live
+
+| What | Where |
+| --- | --- |
+| Installed files | `%APPDATA%\Charles\modules\<id>\` |
+| The module's data | `%APPDATA%\Charles\module-data\<id>\` — kept when the module is updated or removed, unless "Delete its data too" is ticked. Quota 500 MB. |
+| The list | `%APPDATA%\Charles\modules.json` — id, version, on/off, granted permissions, install date, window position |
+
+## Security limits
+
+* **Package checks** (zip and folder alike): no `..`, absolute paths, drive letters or
+  backslashes in names; at most 2000 files and 100 MB unpacked; no executables or scripts
+  (`.exe .dll .bat .cmd .com .ps1 .vbs .msi .node .sh .lnk .scr .jar .reg .hta …`); no links.
+  A package is unpacked into a temporary folder and only moved into place when complete.
+* **Window**: `sandbox`, `contextIsolation`, no `nodeIntegration`, `webSecurity` on, no
+  `<webview>`, its own in-memory session per module. DevTools only in developer mode.
+* **Network**: every `http`, `https`, `ws`, `wss`, `ftp` and `file` request of a module is
+  cancelled. Camera, microphone, location, notifications, downloads: refused.
+* **Files**: `charles-module://<id>/` serves only that module's folder (path escapes refused,
+  correct MIME types, `nosniff`); a module never reads another module's files.
+* **Content-Security-Policy** on every response:
+  `default-src 'self' charles-module:; script-src 'self' charles-module:; style-src 'self' 'unsafe-inline' charles-module:; img-src 'self' data: blob: charles-module:; connect-src 'self' charles-module:; object-src 'none'; frame-src 'none'; form-action 'none'`.
+  No inline scripts and no external scripts.
+* **Navigation**: leaving the module's pages and `window.open` are blocked; an `http(s)` link
+  opens in the default browser only after the user agrees.
+* **API**: each call is matched to the window's module (webContents → module id) and its
+  permissions; a turned-off module can't be opened or call anything.
+
+## Developer mode
+
+Settings → Modules → **Developer mode** adds **Load from folder**: the folder goes through the
+same checks and is used in place (nothing is copied). When a file in it changes, it is checked
+again and the open module window reloads by itself; a broken change is reported in Charles'
+notification bubble. Removing such a module never deletes the folder.
+
+## Not in API v1
+
+Streaming answers, downloading modules from the internet, a module store, signing, native code.

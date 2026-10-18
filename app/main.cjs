@@ -76,7 +76,15 @@ protocol.registerSchemesAsPrivileged([
     scheme: 'charles',
     privileges: { standard: true, secure: true, supportFetchAPI: true },
   },
+  // v0.8.0: module windows (app/modules/protocol.cjs)
+  {
+    scheme: 'charles-module',
+    privileges: { standard: true, secure: true, supportFetchAPI: true },
+  },
 ]);
+let moduleRegistry = null,
+  moduleHost = null,
+  trayMenu = () => {};
 let win,
   tray,
   agent,
@@ -922,6 +930,8 @@ else {
       );
       if (!demo) performanceHistory.start();
       v2 = new Preferences(app.getPath('userData'));
+      // v0.8.0: the language picked in setup (charles-install.json next to the app), once per install
+      require('./core/install-language.cjs').applyInstallLanguage(root, v2);
       if (Number.isFinite(v2.data.petPosition?.x) && Number.isFinite(v2.data.petPosition?.y))
         petPosition = v2.data.petPosition;
       startup = new Startup(app, shell, root);
@@ -1225,9 +1235,34 @@ else {
         }),
       );
       tray.setToolTip('Charles · Kişisel');
-      tray.setContextMenu(
+      // v0.8.0: the tray menu is rebuilt when modules change (Modüller submenu)
+      let servicePaused = false;
+      trayMenu = () => {
+        if (!tray || tray.isDestroyed()) return;
+        const en = !!v2?.data?.language && v2.data.language !== 'tr';
+        const mods = (moduleRegistry?.list() || []).filter((m) => m.enabled && !m.error);
+        tray.setContextMenu(trayTemplate(mods, en));
+      };
+      const trayTemplate = (mods, en) =>
         Menu.buildFromTemplate([
           { label: 'Aç', click: () => expand(true, true) },
+          ...(mods.length
+            ? [
+                {
+                  label: en ? 'Modules' : 'Modüller',
+                  submenu: mods.map((m) => ({
+                    label: m.name,
+                    click: () => {
+                      try {
+                        moduleHost.open(m.id);
+                      } catch (e) {
+                        dialog.showErrorBox(m.name, e.message);
+                      }
+                    },
+                  })),
+                },
+              ]
+            : []),
           { label: 'Küçült', click: () => expand(false) },
           {
             label: 'Ayarlar',
@@ -1239,14 +1274,16 @@ else {
           {
             label: 'Servis takibini duraklat',
             type: 'checkbox',
+            checked: servicePaused,
             click: (item) => {
+              servicePaused = item.checked;
               extras.pause(item.checked);
               win.webContents.send('extras-changed', extras.settings());
             },
           },
           { label: 'Çıkış', click: () => app.quit() },
-        ]),
-      );
+        ]);
+      trayMenu();
       tray.on('click', () => expand(!expanded, true));
       // Reminders (also the calendar ones from e-mails) pop up as a bubble under the island.
       function showAlert(item) {
@@ -1310,7 +1347,12 @@ else {
       });
       safeHandler('companion-save', (value) => {
         const oldSide = v2.data.side;
+        const oldLanguage = v2.data.language;
         v2.update(value);
+        if (v2.data.language !== oldLanguage) {
+          moduleHost?.language(v2.data.language || 'tr');
+          trayMenu();
+        }
         position(oldSide !== v2.data.side);
         // Only a city change needs a new weather fetch; docking must not reset the weather.
         companion.refresh({ weather: value && 'city' in value });
@@ -1446,11 +1488,14 @@ else {
       // The island shows the quota of the provider behind the selected model. The renderer
       // names that provider; without one the main AI chosen in settings is used.
       safeHandler('usage-read', async (force = false, requested = null) => {
-        const known = ['gpt', 'gemini', 'claude', 'cursor'];
+        const known = ['gpt', 'gemini', 'claude', 'cursor', 'abacus'];
         const provider = known.includes(requested)
           ? requested
           : agent.providers?.enabled.primary || 'gpt';
         if (demo) return { provider, fiveHour: null, weekly: null, credits: null, updatedAt: null };
+        // v0.8.0: the Abacus AI command line tool reports no usage limits
+        if (provider === 'abacus')
+          return { provider, fiveHour: null, weekly: null, credits: null, updatedAt: Date.now(), unavailable: 'Bilgi yok' };
         if (provider === 'gemini') return agent.providers.usage(force === true);
         if (provider === 'claude') return agent.providers.claudeUsage.read(force === true);
         if (provider === 'cursor') {
@@ -1580,7 +1625,7 @@ else {
       // chat folders) and the quota panel follow its provider.
       safeHandler('default-model', (value) => {
         const result = extras.setDefaultModel(value);
-        const provider = /^(gemini|claude|cursor):/.test(value || '')
+        const provider = /^(gemini|claude|cursor|abacus):/.test(value || '')
           ? String(value).split(':')[0]
           : 'gpt';
         if (agent.providers && agent.providers.enabled.primary !== provider) {
@@ -2001,10 +2046,15 @@ else {
         if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
         return agent.providers.login(id);
       });
+      // v0.8.0 Abacus AI: connection test (one tiny message; it also reads the account's models)
+      safeHandler('providers-abacus-test', () => {
+        if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
+        return agent.providers.testAbacus();
+      });
       safeHandler('providers-enable', ({ id, value }) => agent.providers.enable(id, value));
       safeHandler('provider-primary-read', () => agent.providers.enabled.primary || 'gpt');
       safeHandler('provider-primary-save', async (id) => {
-        if (!['gpt', 'gemini', 'claude', 'cursor'].includes(id)) throw Error('Geçersiz sağlayıcı.');
+        if (!['gpt', 'gemini', 'claude', 'cursor', 'abacus'].includes(id)) throw Error('Geçersiz sağlayıcı.');
         // Only check sign-in when we do not already know the account is connected; the
         // check starts three CLIs and made switching the main AI feel stuck.
         if (id !== 'gpt' && !agent.providers.auth[id]) await agent.providers.refreshAuth(true);
@@ -2019,7 +2069,9 @@ else {
               ? 'gemini:auto'
               : id === 'cursor'
                 ? 'cursor:auto'
-                : 'claude:sonnet';
+                : id === 'abacus'
+                  ? 'abacus:auto'
+                  : 'claude:sonnet';
         extras.setDefaultModel(model);
         win.webContents.send('provider-primary-changed', { id, model });
         return id;
@@ -2352,6 +2404,225 @@ else {
       safeHandler('review-undo', (id) => changeReview.undo(String(id)));
       safeHandler('system-usage', () => require('./core/system-info.cjs').usage(app));
       safeHandler('system-info', () => require('./core/system-info.cjs').info(app, app.getVersion()));
+      // v0.8.0: modules (app/modules/*, Ayarlar → Modüller)
+      moduleRegistry = new (require('./modules/registry.cjs').ModuleRegistry)({ userData: app.getPath('userData') });
+      let moduleSpeaker = null;
+      const chatWorkspace = path.join(app.getPath('userData'), 'chat-workspace');
+      moduleHost = require('./modules/host.cjs').createModuleHost({
+        registry: moduleRegistry,
+        electron: { BrowserWindow, session, ipcMain, dialog, shell, net, screen },
+        deps: {
+          charlesVersion: app.getVersion(),
+          language: () => v2?.data?.language || 'tr',
+          askChat: ({ prompt, model }) => {
+            fs.mkdirSync(chatWorkspace, { recursive: true });
+            return require('./ai/ask-once.cjs').askOnce({
+              root,
+              providers: agent.providers,
+              prompt,
+              // the user's chosen model when the module does not name one
+              model: model ?? extras.prefs.startupModel ?? null,
+              cwd: chatWorkspace,
+              timeoutMs: 120000,
+            });
+          },
+          askImage: ({ prompt, cwd }) => require('./modules/ai-image.cjs').askImage({ root, prompt, cwd }),
+          speak: async (id, text) => {
+            moduleSpeaker = id;
+            try {
+              await voice.speak(text, v2.data.language);
+            } finally {
+              if (moduleSpeaker === id) moduleSpeaker = null;
+            }
+          },
+          stopSpeak: (id) => {
+            if (moduleSpeaker !== id) return;
+            moduleSpeaker = null;
+            try {
+              voice.stop();
+            } catch {}
+          },
+          micOff: () => micBlocked(),
+          emote: (name) => win.webContents.send('module-emote', name),
+          notify: (title, text) =>
+            mailBubble?.add({ id: 'module|' + Date.now() + '|' + Math.random().toString(36).slice(2, 6), kind: 'charles', icon: '🧩', title: String(title).slice(0, 60), reason: text }),
+          icon: () => {
+            const saved = path.join(app.getPath('userData'), 'app-icon.png');
+            return nativeImage.createFromPath(fs.existsSync(saved) ? saved : path.join(root, 'dist/icon.png'));
+          },
+          onChange: () => {
+            if (win && !win.isDestroyed()) win.webContents.send('modules-changed');
+            trayMenu();
+          },
+        },
+      });
+      // ── v0.8.0: in-place updates from GitHub Releases (app/core/updater.cjs) ──────────
+      const updater = require('./core/updater.cjs');
+      const updateFile = path.join(app.getPath('userData'), 'update.json');
+      let updateSettings = { autoCheck: true };
+      try {
+        const saved = JSON.parse(fs.readFileSync(updateFile, 'utf8'));
+        if (typeof saved?.autoCheck === 'boolean') updateSettings.autoCheck = saved.autoCheck;
+      } catch {}
+      let updateLast = null,
+        updateBusy = false,
+        updateResult = updater.takeResult(root);
+      const updateEn = () => !!v2?.data?.language && v2.data.language !== 'tr';
+      const updateError = (e) => ({ ok: false, error: e.message || String(e), detail: e.detail || '' });
+      const updateCheck = async () => {
+        updateLast = await updater.check({ current: app.getVersion() });
+        return updateLast;
+      };
+      const finished = updateResult;
+      if (finished)
+        setTimeout(() => {
+          const en = updateEn();
+          const updateResult = finished;
+          mailBubble?.add({
+            id: 'update|' + Date.now(),
+            kind: 'charles',
+            icon: updateResult.ok ? '✨' : '⚠️',
+            title: updateResult.ok ? (en ? 'Charles updated' : 'Charles güncellendi') : en ? 'Update failed' : 'Güncelleme yapılamadı',
+            reason: updateResult.ok
+              ? updater.label(updateResult.version) + (en ? ' is installed.' : ' kuruldu.')
+              : en
+                ? 'The previous version was restored. Details: _update\\update.log'
+                : 'Önceki sürüme dönüldü. Ayrıntılar: _update\\update.log',
+          });
+        }, 6000);
+      safeHandler('update-state', () => {
+        const result = updateResult;
+        updateResult = null;
+        return { current: app.getVersion(), label: updater.label(app.getVersion()), autoCheck: updateSettings.autoCheck, last: updateLast, busy: updateBusy, result, page: updater.PAGE };
+      });
+      safeHandler('update-auto', (value) => {
+        if (typeof value !== 'boolean') throw Error('Geçersiz ayar.');
+        updateSettings.autoCheck = value;
+        fs.writeFileSync(updateFile, JSON.stringify(updateSettings));
+        return value;
+      });
+      safeHandler('update-check', async () => {
+        if (demo) return { ok: false, error: 'Önizleme modunda güncelleme yapılmaz.', detail: '' };
+        try {
+          return { ok: true, ...(await updateCheck()) };
+        } catch (e) {
+          return updateError(e);
+        }
+      });
+      safeHandler('update-install', async () => {
+        if (demo) return { ok: false, error: 'Önizleme modunda güncelleme yapılmaz.', detail: '' };
+        if (process.platform !== 'win32') return { ok: false, error: 'Yerinde güncelleme yalnızca Windows’ta çalışır.', detail: '' };
+        if (updateBusy) return { ok: false, error: 'Güncelleme zaten sürüyor.', detail: '' };
+        if (agent?.busy) return { ok: false, error: 'Önce etkin yanıtı durdur, sonra güncelle.', detail: '' };
+        updateBusy = true;
+        const progress = (p) => {
+          if (win && !win.isDestroyed()) win.webContents.send('update-progress', p);
+        };
+        try {
+          // always against the newest information, so an old card cannot install an old file
+          const info = await updateCheck();
+          if (!info.available) return { ok: false, error: 'Charles zaten güncel.', detail: info.currentLabel };
+          const prep = await updater.prepare({ root, latest: info.latest, name: require('../package.json').name, onProgress: progress });
+          progress({ phase: 'restart' });
+          const shell = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe');
+          const args = updater.swapArgs(prep.script, {
+            ...prep.params,
+            WaitPid: process.pid,
+            Exe: process.execPath,
+            AppArg: root,
+            Lang: v2?.data?.language || 'tr',
+          });
+          const child = require('node:child_process').spawn(shell, args, {
+            cwd: path.dirname(prep.script),
+            detached: true,
+            stdio: 'ignore',
+            windowsHide: true,
+          });
+          child.unref();
+          setTimeout(() => app.quit(), 700);
+          return { ok: true, version: prep.version, label: updater.label(prep.version) };
+        } catch (e) {
+          progress({ phase: 'failed' });
+          return updateError(e);
+        } finally {
+          updateBusy = false;
+        }
+      });
+      // "Açılışta otomatik denetle": once, a little after start, quietly
+      if (!demo)
+        setTimeout(() => {
+          if (!updateSettings.autoCheck || updateBusy) return;
+          updateCheck()
+            .then((info) => {
+              if (!info.available || !win || win.isDestroyed()) return;
+              win.webContents.send('update-available', info);
+              const en = updateEn();
+              mailBubble?.add({
+                id: 'update-available|' + info.latest.version,
+                kind: 'charles',
+                icon: '⬆️',
+                title: en ? 'Charles update available' : 'Charles güncellemesi var',
+                reason:
+                  info.latest.label +
+                  (en ? ' is ready. Settings → General → Update.' : ' hazır. Ayarlar → Genel → Güncelle.'),
+              });
+            })
+            .catch(() => {});
+        }, 20000);
+      trayMenu();
+      const modulesState = () => ({ modules: moduleRegistry.list(), dev: moduleRegistry.data.dev, open: moduleHost.openIds() });
+      safeHandler('modules-list', () => modulesState());
+      safeHandler('modules-pick', async (kind) => {
+        if (kind !== 'zip' && kind !== 'folder') throw Error('Geçersiz seçim.');
+        if (kind === 'folder' && !moduleRegistry.data.dev) throw Error('Klasörden yüklemek için önce Geliştirici modunu aç.');
+        dialogOpen = true;
+        let picked;
+        try {
+          picked = await dialog.showOpenDialog(win.native, {
+            title: kind === 'zip' ? 'Modül paketi seç (.zip)' : 'Modül klasörünü seç',
+            properties: kind === 'zip' ? ['openFile'] : ['openDirectory'],
+            ...(kind === 'zip' ? { filters: [{ name: 'Charles modülü', extensions: ['zip'] }] } : {}),
+          });
+        } finally {
+          dialogOpen = false;
+        }
+        if (picked.canceled || !picked.filePaths[0]) return null;
+        const file = picked.filePaths[0];
+        const pkgMod = require('./modules/package.cjs');
+        let pkg;
+        if (kind === 'zip') {
+          if (!/\.zip$/i.test(file)) throw Error('Yalnızca .zip modül paketleri yüklenebilir.');
+          if (fs.statSync(file).size > pkgMod.LIMITS.totalBytes) throw Error('Paket çok büyük (en fazla 100 MB).');
+          pkg = pkgMod.readZip(fs.readFileSync(file));
+        } else pkg = pkgMod.readFolder(file);
+        return moduleRegistry.prepare(pkg, { kind, path: file });
+      });
+      safeHandler('modules-install', (token) => {
+        const r = moduleRegistry.install(String(token));
+        moduleHost.reload(r.id);
+        win.webContents.send('modules-changed');
+        trayMenu();
+        return r;
+      });
+      safeHandler('modules-cancel', (token) => moduleRegistry.cancel(String(token)));
+      safeHandler('modules-open', (id) => moduleHost.open(String(id)));
+      safeHandler('modules-enable', (id, value) => {
+        if (typeof value !== 'boolean') throw Error('Geçersiz değer.');
+        if (!value) moduleHost.close(String(id));
+        const v = moduleRegistry.setEnabled(String(id), value);
+        trayMenu();
+        return v;
+      });
+      safeHandler('modules-remove', (id, deleteData) => {
+        moduleHost.close(String(id));
+        moduleRegistry.remove(String(id), deleteData === true);
+        trayMenu();
+        return modulesState();
+      });
+      safeHandler('modules-dev', (value) => {
+        if (typeof value !== 'boolean') throw Error('Geçersiz değer.');
+        return moduleRegistry.setDev(value);
+      });
       safeHandler('workspace-dash', (patch) => {
         const cur = v2.data.workspaceDash && typeof v2.data.workspaceDash === 'object' ? v2.data.workspaceDash : null;
         if (patch === undefined) return cur;
@@ -2688,6 +2959,9 @@ else {
     });
   app.on('before-quit', () => {
     quitting = true;
+    try {
+      moduleHost?.closeAll();
+    } catch {}
     mailBubble?.destroy();
     clearInterval(classifierTimer);
     classifier?.stop();

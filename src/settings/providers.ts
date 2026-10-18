@@ -1,4 +1,5 @@
 import { pluginGuideUI } from './plugin-guide';
+import { abacusCard } from './abacus-card';
 export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: string) => void) {
   const page = document.querySelector('.settings-page[data-category=account]')!;
   // v0.5.1: no separate "main AI" setting. The model chosen in the chat decides; the main
@@ -19,7 +20,7 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
   async function fillDefaults() {
     const [list, saved] = await Promise.all([api.models(), api.startupModel()]);
     choice.replaceChildren(new Option('Son kullandığım model', '__last__'));
-    const gpt = list.filter((m: any) => !/^(gemini|claude|cursor):/.test(m.id));
+    const gpt = list.filter((m: any) => !/^(gemini|claude|cursor|abacus):/.test(m.id));
     if (gpt.length)
       choice.add(
         new Option(
@@ -104,6 +105,10 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
     try {
       const rows = await api.providersStatus();
       for (const s of rows) {
+        if (s.id === 'abacus') {
+          abacus.update(s);
+          continue;
+        }
         const result = results.get(s.id),
           button = buttons.get(s.id);
         if (result)
@@ -202,6 +207,18 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
     cardTail.after(section);
     cardTail = section;
   }
+  // v0.8.0: Abacus AI, for people who have an Abacus AI account and its command line tool
+  const abacus = abacusCard(
+    api,
+    notice,
+    async () => {
+      last = '';
+      await sync();
+    },
+    (gid) => guide(gid),
+  );
+  cardTail.after(abacus.section);
+  cardTail = abacus.section;
   window.addEventListener('focus', () => void sync());
   document.getElementById('model-button')!.addEventListener('click', () => void sync());
   window.setInterval(() => {

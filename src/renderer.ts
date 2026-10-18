@@ -39,6 +39,8 @@ import { settingsPolish } from './settings/polish-070';
 import { workspaceUI as appWindowUI } from './workspace/workspace';
 import { gcalCard } from './settings/gcal-card';
 import { whatsappCard } from './settings/whatsapp-card';
+import { modulesPage } from './settings/modules-page';
+import { updatePage } from './settings/update-page';
 import { accountTab } from './settings/account-tab';
 import { textReaction, answerReaction, isRateLimit } from './chat/reactions';
 
@@ -796,8 +798,7 @@ async function populateModels() {
   const old = model.value || defaultModel;
   model.replaceChildren();
   const gpt = list.filter(
-    (m: any) =>
-      !m.id.startsWith('gemini:') && !m.id.startsWith('claude:') && !m.id.startsWith('cursor:'),
+    (m: any) => !/^(gemini|claude|cursor|abacus):/.test(m.id),
   );
   if (gpt.length)
     model.add(new Option('Otomatik · ' + (gpt.find((m: any) => m.isDefault)?.name || 'GPT'), ''));
@@ -1051,8 +1052,15 @@ wakeTraining(api, notice);
 pluginsUI(api, notice);
 gcalCard(api, notice);
 whatsappCard(api, notice);
+// v0.8.0: Ayarlar → Modüller, and Slime's expressions asked for by a module
+modulesPage(api, notice);
+api.onModuleEmote?.((name: string) => {
+  if (['love', 'surprised', 'proud', 'wink', 'yawn', 'happy', 'annoyed'].includes(name)) bot.triggerEmote(name as any, 2.5);
+});
 settingsCards();
 languageUI(api);
+// v0.8.0: Genel → Güncellemeler (under the language choice)
+updatePage(api, notice);
 accountTab(api, notice);
 // v0.7.1 SpecialBeta: the workspace (app) window
 appWindowUI({
@@ -1337,7 +1345,7 @@ const steer = steerUI({
   composer: $('composer'),
   bar: $('composer-bar'),
   prompt,
-  external: () => /^(gemini|claude|cursor):/.test(model.value || ''),
+  external: () => /^(gemini|claude|cursor|abacus):/.test(model.value || ''),
   shown: (text) => {
     markSteer(row(text, 'user'));
     feed.scrollTop = feed.scrollHeight;
@@ -1426,7 +1434,7 @@ const proposals = proposalsUI({
   },
 });
 // Kota bekçisi: under 10 % left → suggest another connected provider's model.
-const quotaProvider = (v: string) => (/^(gemini|claude|cursor):/.test(v) ? v.split(':')[0] : 'gpt');
+const quotaProvider = (v: string) => (/^(gemini|claude|cursor|abacus):/.test(v) ? v.split(':')[0] : 'gpt');
 function onLowQuota(q: LowQuota) {
   // v0.7.2: the model list may not be filled yet (or a refresh failed): read it first, so the
   // other connected AIs are offered instead of "no other AI".

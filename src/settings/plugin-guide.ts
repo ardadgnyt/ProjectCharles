@@ -102,6 +102,26 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
           finish: true,
         },
       ],
+      // v0.8.0: Abacus AI through its own command line tool (installed by the user)
+      'abacus-login': [
+        {
+          title: '1 · Abacus AI’ı kur',
+          text: 'Abacus AI’ın komut satırı aracı Charles ile gelmez. Aşağıdaki düğmeyle Abacus AI’ın kurulum sayfasını aç ve Windows adımlarıyla kur. Zaten kuruluysa sonraki adıma geç.',
+        },
+        {
+          title: '2 · Giriş penceresini aç',
+          text: 'Aşağıdaki düğmeye bas. Charles, Abacus AI’ı küçük bir siyah pencerede açar. Pencerede /login yazıp Enter’a bas ve tarayıcıda Abacus AI hesabınla giriş yap.',
+        },
+        {
+          title: '3 · Pencereyi kapat',
+          text: 'Giriş tamamlanınca siyah pencerede /exit yazıp Enter’a bas ve pencereyi kapat.',
+        },
+        {
+          title: '4 · Bağlantıyı test et',
+          text: 'Bağlantıyı test et’e bas. Charles, Abacus AI’a kısa bir deneme mesajı gönderir; yanıt gelirse Abacus AI · Otomatik model listesine eklenir.',
+          finish: true,
+        },
+      ],
       'gemini-login': [
         {
           title: '1 · Giriş penceresini aç',
@@ -245,9 +265,18 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
       reopen.onclick = () => void api.pluginsSetupPage(id, current.page);
       bubble.append(reopen);
     }
-    const loginOf = /^(gpt|claude|gemini|cursor)-login$/.exec(id)?.[1];
-    const NAMES: Record<string, string> = { gpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', cursor: 'Cursor' };
-    if (loginOf && step === 0) {
+    const loginOf = /^(gpt|claude|gemini|cursor|abacus)-login$/.exec(id)?.[1];
+    const NAMES: Record<string, string> = { gpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', cursor: 'Cursor', abacus: 'Abacus AI' };
+    // v0.8.0: Abacus AI first needs its own tool installed (step 1), then signs in (step 2)
+    if (loginOf === 'abacus' && step === 0) {
+      const docs = document.createElement('button');
+      docs.className = 'primary';
+      docs.textContent = 'Kurulum sayfasını aç';
+      docs.onclick = () =>
+        void api.openLink('https://abacus.ai/help/abacusai-desktop/cli-installation').catch((e: Error) => (p.textContent = e.message));
+      bubble.append(docs);
+    }
+    if (loginOf && step === (loginOf === 'abacus' ? 1 : 0)) {
       const open = document.createElement('button');
       open.className = 'primary';
       open.textContent = loginOf === 'gpt' ? 'ChatGPT ile giriş yap' : 'Giriş penceresini aç';
@@ -287,11 +316,17 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
     if (current.finish && loginOf) {
       const check = document.createElement('button');
       check.className = 'primary';
-      check.textContent = 'Bağlantıyı kontrol et';
+      check.textContent = loginOf === 'abacus' ? 'Bağlantıyı test et' : 'Bağlantıyı kontrol et';
       check.onclick = async () => {
         check.disabled = true;
         p.textContent = 'Kontrol ediliyor…';
         try {
+          if (loginOf === 'abacus') {
+            const r = await api.providersAbacusTest();
+            p.textContent = r.ok ? 'Bağlandı. Abacus AI modelleri model listesinde. Kurulumu bitir düğmesine basabilirsin.' : r.message;
+            await saved(null);
+            return;
+          }
           const ok =
             loginOf === 'gpt'
               ? !!(await api.connect())?.signedIn

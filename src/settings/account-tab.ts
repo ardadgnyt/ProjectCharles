@@ -7,6 +7,7 @@ const PROVIDERS: [string, string][] = [
   ['claude', 'Claude'],
   ['gemini', 'Gemini'],
   ['cursor', 'Cursor'],
+  ['abacus', 'Abacus AI'],
 ];
 
 export function accountTab(api: any, notice: (s: string) => void) {
