@@ -1,8 +1,22 @@
 # ProjectCharles — Yama notları
 
-Charles’ın ilk masaüstü sürümünden v0.8.1 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+Charles’ın ilk masaüstü sürümünden v0.8.2 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.8.2 Beta — 20 Ekim 2026
+
+- Slime simgesi kullanıcı verisi klasöründe kalıcı tutulur; büyük panel her gösterildiğinde/odaklandığında görev çubuğu simgesi yenilenir. Masaüstü kısayolu artık Electron yerine Slime simgesini kullanır.
+- Adacık ve büyük panelde işlem adımları durum işaretleri, kısa özetler ve açılabilir komut/çıktı alanlarıyla yeniden düzenlendi.
+- Yeni sohbete geçildiğinde önceki işin “İş bitti” kartı ve geçici adımları temizlenir.
+- Yanıt akarken Markdown, tablolar ve LaTeX denklemleri işlenir. Kullanıcı mesajlarında da Markdown desteklenir; denklemler çevrimdışı MathML olarak gösterilir.
+- Seçim, sürükleme, yapıştırma ve gönderim için dosya eki sınırı 50 oldu.
+- Gemini'ye mesajda açıkça verilen mevcut Windows klasörü çalışma alanı olarak atanır ve arayüz Proje moduna geçer. Onay iste ayarında salt okuma; düzenleme izni olan ayarlarda dosya düzenleme etkin kalır. Komut izinleri genişletilmez.
+- Araçsız sağlayıcılara PDF yolu yerine çıkarılmış metin gönderilir; okunamayan/taranmış PDF'ler açık hata mesajı verir.
+- Windows güncelleyicisi bağımsız gizli işlemle başlatılır; çalıştığı doğrulanmadan Charles kapanmaz. Başlatma hata kayıtları _update klasöründedir. Dosya değişimi, yedek ve hata halinde geri alma korunur.
+- Setup ve update paketleri isteğe bağlı Download modülü ZIP'ini ve Download araçlarını içermez. Mevcut modül köprüsü uyumluluk için korunur.
+
+**Eski sürümden geçiş:** Eski sürümün güncelleyicisi dosyaları _update içinde bırakıyorsa, bu sürümün Setup paketini bir kez kullanın. Yeni güncelleyici, eski çalışan uygulamayı indirilen ZIP içinden geriye dönük düzeltemez. Sohbetler ve ayarlar %APPDATA%\Charles içinde korunur.
 
 ## v0.8.1 Beta — 20 Ekim 2026
 

@@ -73,7 +73,7 @@ test('workspace window: title bar, sidebar with folders, overview cards and chat
   assert.match(dash, /id === 'gemini' && !force/);
   assert.match(ws, /if \(\/\^claude:\/\.test\(model\)\) return 'Claude';/);
   assert.match(read('public/index.html'), /styles\/9-special\.css/);
-  assert.match(read('public/index.html'), /v0\.8\.1 Beta/);
+  assert.match(read('public/index.html'), /v0\.8\.2 Beta/);
   assert.match(read('public/styles/9-special.css'), /body\.workspace main\.island/);
   assert.match(read('src/island/desktop-pet.ts'), /classList\.contains\('workspace'\)/);
 });

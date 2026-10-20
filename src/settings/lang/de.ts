@@ -487,7 +487,7 @@ export const german: Record<string, string> = {
   "For example: Add a dark theme to this project…": "Zum Beispiel: Füge diesem Projekt ein dunkles Design hinzu…",
   "No terminal activity in this chat.": "Keine Terminalaktivität in diesem Chat.",
   "Region added 📸 What would you like to ask?": "Bereich hinzugefügt 📸 Was möchtest du fragen?",
-  "A message can have at most five attachments.": "Eine Nachricht kann höchstens fünf Anhänge haben.",
+  "A message can have at most 50 attachments.": "Eine Nachricht kann höchstens 50 Anhänge haben.",
   "GIF added. The preview is animated; Charles will look at the first frame.": "GIF hinzugefügt. Die Vorschau ist animiert; Charles sieht sich das erste Bild an.",
   "The GIF could not be read.": "Das GIF konnte nicht gelesen werden.",
   "Charles is busy right now. You can open the email again when the task is done.": "Charles ist gerade beschäftigt. Du kannst die E-Mail wieder öffnen, wenn die Aufgabe fertig ist.",

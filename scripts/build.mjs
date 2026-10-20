@@ -19,7 +19,7 @@ console.log('Masaüstü arayüzü hazır.');
 // Bundle the first-party Download UI; no runtime npm dependencies.
 const { existsSync, copyFileSync, mkdirSync } = await import('node:fs');
 const { execFileSync } = await import('node:child_process');
-if (existsSync('modules/download/scripts/build.cjs')) {
+if (process.argv.includes('--with-download') && existsSync('modules/download/scripts/build.cjs')) {
   execFileSync(process.execPath, ['scripts/build.cjs'], { cwd: 'modules/download', stdio: 'inherit', windowsHide: true });
   execFileSync(process.execPath, ['scripts/pack.mjs'], { cwd: 'modules/download', stdio: 'inherit', windowsHide: true });
   mkdirSync('modules-bundled', { recursive: true });

@@ -20,7 +20,7 @@ function fixture(fetcher) {
     },
   };
 }
-test('Attachment copy, input formatting, limits and executable rejection', () => {
+test('Attachment copy, input formatting, limits and executable rejection', async () => {
   const f = fixture();
   try {
     const file = path.join(f.dir, 'note.txt');
@@ -28,16 +28,17 @@ test('Attachment copy, input formatting, limits and executable rejection', () =>
     const a = f.extras.ingest(file);
     assert.equal(a.name, 'note.txt');
     assert.equal(a.path, undefined);
-    assert.match(f.extras.inputs([a.id])[0].text, /Merhaba/);
+    assert.match((await f.extras.inputs([a.id]))[0].text, /Merhaba/);
     fs.writeFileSync(path.join(f.dir, 'bad.exe'), 'x');
     assert.throws(() => f.extras.ingest(path.join(f.dir, 'bad.exe')), /Desteklenenler/);
-    assert.throws(() => f.extras.inputs(['unknown']));
-    assert.throws(() => f.extras.inputs(Array(6).fill(a.id)));
+    await assert.rejects(f.extras.inputs(['unknown']));
+    assert.equal((await f.extras.inputs(Array(50).fill(a.id))).length, 50);
+    await assert.rejects(f.extras.inputs(Array(51).fill(a.id)));
     assert.throws(() => f.extras.ingest(f.dir));
     const img = path.join(f.dir, 'a.png');
     fs.writeFileSync(img, 'test');
     const i = f.extras.ingest(img);
-    assert.equal(f.extras.inputs([i.id])[0].type, 'localImage');
+    assert.equal((await f.extras.inputs([i.id]))[0].type, 'localImage');
   } finally {
     f.close();
   }

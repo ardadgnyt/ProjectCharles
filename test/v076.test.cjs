@@ -10,7 +10,7 @@ test('app window tells Windows its id and icon for the taskbar', () => {
   const main = read('app/main.cjs');
   assert.match(main, /app\.setAppUserModelId\(APP_ID\)/);
   assert.match(main, /setAppDetails\(\{\s*appId: APP_ID,\s*appIconPath:/);
-  assert.match(main, /appWin\.once\('show', \(\) => taskbarIcon\(appWin\)\)/);
+  assert.match(main, /appWin\.on\('show', \(\) => taskbarIcon\(appWin\)\)/);
   // a new Slime colour also refreshes the taskbar icon
   assert.match(main, /setImmediate\(\(\) => taskbarIcon\(appWin\)\)/);
 });

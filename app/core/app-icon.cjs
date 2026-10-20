@@ -47,6 +47,7 @@ function applyIcon(dataUrl, { nativeImage, tray, win, userData, root }) {
       data: image.resize({ width: size, height: size, quality: 'best' }).toPNG(),
     })),
   );
+  fs.writeFileSync(path.join(userData, 'charles.ico'), ico);
   try {
     fs.writeFileSync(path.join(root, 'dist', 'charles.ico'), ico);
   } catch {

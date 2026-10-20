@@ -6,14 +6,14 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 folder = fso.GetParentFolderName(fso.GetParentFolderName(WScript.ScriptFullName))
 exe = folder & "\node_modules\electron\dist\electron.exe"
 If Not fso.FileExists(exe) Then
- MsgBox "Once ZIP dosyasinin tamamini bir klasore cikartin.", 48, "ProjectCharles v0.8.1 Beta"
+ MsgBox "Once ZIP dosyasinin tamamini bir klasore cikartin.", 48, "ProjectCharles v0.8.2 Beta"
  WScript.Quit 1
 End If
-Set shortcut = shell.CreateShortcut(shell.SpecialFolders("Desktop") & "\ProjectCharles v0.8.1 Beta.lnk")
+Set shortcut = shell.CreateShortcut(shell.SpecialFolders("Desktop") & "\ProjectCharles v0.8.2 Beta.lnk")
 shortcut.TargetPath = exe
 shortcut.Arguments = Chr(34) & folder & Chr(34)
 shortcut.WorkingDirectory = folder
-shortcut.IconLocation = exe & ",0"
-shortcut.Description = "ProjectCharles v0.8.1 Beta"
+shortcut.IconLocation = folder & "\public\charles.ico"
+shortcut.Description = "ProjectCharles v0.8.2 Beta"
 shortcut.Save
-MsgBox "Masaustu kisayolu olusturuldu. Charles'i kisayoldan acabilirsiniz.", 64, "ProjectCharles v0.8.1 Beta"
+MsgBox "Masaustu kisayolu olusturuldu. Charles'i kisayoldan acabilirsiniz.", 64, "ProjectCharles v0.8.2 Beta"

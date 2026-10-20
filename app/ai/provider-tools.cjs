@@ -84,6 +84,7 @@ function launchPlan({ provider, model, mode, access, projectDir, workspace }) {
       tools && level !== 'ask' ? 'accept-edits' : 'plan',
       ...geminiModel(model),
     ];
+    if (tools) cli.push('--add-dir', cwd);
     return { cli, cwd, timeoutMs, tools, geminiSettings: geminiSettings(level, tools) };
   }
   // cursor

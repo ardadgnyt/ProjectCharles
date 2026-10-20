@@ -17,7 +17,7 @@ import sys
 import time
 import zipfile
 
-SKIP_DIRS = {'.git', '_to_delete', '_update', 'release'}
+SKIP_DIRS = {'.git', '_to_delete', '_update', 'release', 'modules-bundled', '__pycache__', '.qa'}
 # personal / machine-local files never go into an installer
 SKIP_FILES = {
     'Charles.zip',
@@ -80,10 +80,10 @@ def valid_pe(head):
 def main(src, out):
     files = []
     for root, dirs, names in os.walk(src):
-        dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
+        dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS and os.path.relpath(os.path.join(root, d), src).replace(os.sep, '/') not in {'modules/download', 'tools/download', 'licenses/download'})
         for name in sorted(names):
             rel = os.path.relpath(os.path.join(root, name), src).replace(os.sep, '/')
-            if rel in SKIP_FILES or rel.endswith('.tar'):
+            if rel in SKIP_FILES or rel.endswith(('.tar', '.log', '.pyc')):
                 continue
             files.append(rel)
     manifest, problems, full = {}, [], {}

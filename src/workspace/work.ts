@@ -438,6 +438,24 @@ export function workUI(d: WorkDeps) {
   }
 
   // ── events ───────────────────────────────────────────────────────────────────
+  document.addEventListener('charles-conversation-reset', (e: any) => {
+    window.clearInterval(ticker);
+    window.clearTimeout(pumpTimer);
+    running = !!e.detail?.busy;
+    phase = 'idle';
+    startedAt = endedAt = lastDoneAt = lastDone = 0;
+    plan = [];
+    stepTimes = [];
+    stepClock = false;
+    changed.clear();
+    waiting.clear();
+    label = ['Düşünüyorum', ''];
+    task.textContent = '';
+    steerInput.value = '';
+    steerForm.hidden = true;
+    folded = false;
+    paint();
+  });
   document.addEventListener('charles-agent', (e: any) => {
     const { method, params: p, replaying } = e.detail || {};
     if (replaying) return;

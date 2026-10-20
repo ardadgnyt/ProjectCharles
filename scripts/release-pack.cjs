@@ -14,7 +14,7 @@ const crypto = require('node:crypto');
 const { zipSync } = require('fflate');
 
 const ROOT = path.resolve(__dirname, '..');
-const BASE = ['app', 'dist', 'public', 'package.json', 'package-lock.json', 'LICENSE', 'README.md', 'CHANGELOG.md', 'modules-bundled', 'docs/DOWNLOAD-MODULE.md', 'licenses/download'];
+const BASE = ['app', 'dist', 'public', 'package.json', 'package-lock.json', 'LICENSE', 'README.md', 'CHANGELOG.md', 'setup', 'scripts', 'Start-Charles.cmd', 'licenses', 'THIRD-PARTY-NOTICES.md'];
 // never shipped, wherever they are
 const SKIP = /(^|\/)(\.git|node_modules|_update|_to_delete|__pycache__|\.DS_Store|Thumbs\.db)(\/|$)|(^|\/)(\.env(\..*)?|Charles-creator\.json|charles-install\.json|charles-manifest\.json|personal\.json|companion\.json|charles-history\.json|preferences\.json|[^/]*\.enc\.json|[^/]*\.key|[^/]*\.pem|[^/]*\.log)$/i;
 
@@ -24,7 +24,8 @@ function collect(rel, out) {
   const st = fs.lstatSync(abs);
   if (st.isSymbolicLink()) return;
   const name = rel.split(path.sep).join('/');
-  if (SKIP.test(name)) return;
+  if (/^(modules-bundled|modules\/download|tools\/download|licenses\/download)(\/|$)/i.test(name)) return;
+  if (SKIP.test(name) || ['docs/GITHUB.md', 'docs/VERIFICATION-v0.4.4.md'].includes(name)) return;
   if (st.isDirectory()) for (const f of fs.readdirSync(abs).sort()) collect(path.join(rel, f), out);
   else out.set(name, fs.readFileSync(abs));
 }
@@ -37,7 +38,9 @@ function pack({ outDir = path.join(ROOT, 'release'), extra = [] } = {}) {
     if (!/^[A-Za-z0-9_.-]+(\/[A-Za-z0-9_.-]+)*$/.test(e) || e.split('/').includes('..'))
       throw Error('Invalid --with path / Geçersiz --with yolu: ' + e);
   const files = new Map();
-  for (const rel of [...BASE, ...extra]) collect(rel, files);
+  // The installed 0.8.0 updater swaps whole top-level directories. Ship complete roots
+  // even when --with names a child, so tools/download never replaces the other tools.
+  for (const rel of replacementRoots([...BASE, ...extra])) collect(rel, files);
   if (!files.has('package.json')) throw Error('package.json missing / package.json yok');
   const entries = {};
   // stored without compression for files that are compressed already, deflate for the rest
@@ -71,4 +74,8 @@ if (require.main === module) {
   }
 }
 
-module.exports = { pack, BASE, SKIP };
+function replacementRoots(paths) {
+  return [...new Set(paths.map(p => p.split('/')[0]))];
+}
+
+module.exports = { pack, BASE, SKIP, replacementRoots };

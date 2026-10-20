@@ -32,7 +32,7 @@ import { BotEngine } from './vendor/slime/engine';
 import { Sound } from './vendor/core/sound';
 import type { BotStateName } from './vendor/core/layout';
 import { extraUI } from './settings/extras';
-import { updateMarkdown, messageSource, setQuestionHandler } from './chat/markdown';
+import { updateMarkdown, messageSource, setQuestionHandler, renderMarkdown } from './chat/markdown';
 import { questionCard } from './chat/ai-questions';
 import { steerUI } from './chat/steer';
 import { settingsPolish } from './settings/polish-070';
@@ -450,8 +450,8 @@ function row(text: string, className = '', attachments: any[] = []) {
   if (className === 'user') {
     el.dataset.userIndex = String(userOrdinal++);
     const copy = document.createElement('span');
-    copy.textContent = text;
-    copy.className = 'user-text';
+    copy.innerHTML = renderMarkdown(text);
+    copy.className = 'user-text markdown';
     const edit = document.createElement('button');
     edit.className = 'edit-message';
     edit.title = 'Mesajı düzenle';
@@ -639,17 +639,30 @@ function activity(item: any) {
     plan: 'Plan',
     reasoning: 'Düşünme özeti',
   };
-  a.summary.textContent =
-    `${item.status === 'completed' ? '✓' : item.status === 'failed' ? '×' : '·'} ${names[item.type] || item.type} ${item.command || ''}`.slice(
-      0,
-      200,
-    );
+  const details = a.summary.parentElement!;
+  const status = item.status === 'completed' ? 'completed' : item.status === 'failed' ? 'failed' : 'running';
+  details.dataset.status = status;
+  const badge = document.createElement('span');
+  badge.className = 'activity-badge';
+  badge.textContent = status === 'completed' ? '✓' : status === 'failed' ? '!' : '•';
+  const title = document.createElement('span');
+  title.className = 'activity-label';
+  title.textContent = names[item.type] || 'İşlem';
+  const preview = document.createElement('span');
+  preview.className = 'activity-preview';
+  preview.translate = false;
+  preview.textContent = String(item.command || item.query || item.tool || item.changes?.map((c: any) => c.path).join(', ') || '').slice(0, 240);
+  const stateLabel = document.createElement('span');
+  stateLabel.className = 'activity-state';
+  stateLabel.textContent = status === 'completed' ? 'Tamamlandı' : status === 'failed' ? 'Hata' : 'Çalışıyor';
+  a.summary.replaceChildren(badge, title, preview, stateLabel);
   a.pre.textContent =
-    item.type === 'reasoning'
-      ? (item.summary || []).map((s: any) => (typeof s === 'string' ? s : s.text || '')).join('\n')
-      : item.type === 'commandExecution'
-        ? [item.command, item.cwd, item.aggregatedOutput].filter(Boolean).join('\n').slice(-100000)
-        : JSON.stringify(item, null, 2).slice(-100000);
+    item.type === 'reasoning' ? (item.summary || []).map((s: any) => typeof s === 'string' ? s : s.text || '').join('\n') :
+    item.type === 'commandExecution' ? [item.command, item.cwd && 'Klasör: ' + item.cwd, item.aggregatedOutput].filter(Boolean).join('\n\n').slice(-100000) :
+    item.type === 'fileChange' ? (item.changes || []).map((c: any) => [c.path, c.diff].filter(Boolean).join('\n')).join('\n\n') :
+    item.type === 'plan' ? String(item.steps || '') :
+    item.type === 'webSearch' ? String(item.query || item.action?.query || '') :
+    [item.command || item.tool, typeof item.result === 'string' ? item.result : item.result ? JSON.stringify(item.result, null, 2) : '', item.error?.message].filter(Boolean).join('\n\n').slice(-100000);
   feed.scrollTop = feed.scrollHeight;
   // v0.7.2: the app window's side panel shows written files and terminal output
   document.dispatchEvent(new CustomEvent('charles-activity', { detail: { item, replaying } }));
@@ -824,6 +837,12 @@ function account(a: any) {
 }
 function event(e: any) {
   switch (e.type) {
+    case 'workspace-selected':
+      cwd = e.data.cwd;
+      mode.value = 'project';
+      $('folder-name').textContent = cwd!;
+      controls();
+      break;
     case 'sessions':
       features.sessions(e.data);
       break;
@@ -983,6 +1002,7 @@ function event(e: any) {
 }
 api.onEvent(event);
 async function switchRoom(r: any) {
+  document.dispatchEvent(new CustomEvent('charles-conversation-reset', { detail: { busy: !!r.busy } }));
   await voice.stop();
   try {
     steer.clear();
@@ -1168,6 +1188,7 @@ $('folder').onclick = () =>
     controls();
   });
 function clearConversation() {
+  document.dispatchEvent(new CustomEvent('charles-conversation-reset'));
   void voice.stop();
   userOrdinal = 0;
   feed.replaceChildren();

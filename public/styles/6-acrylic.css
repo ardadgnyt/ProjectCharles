@@ -1082,3 +1082,32 @@ body[data-mic-off='true'] #voice-call {
   background-color: transparent !important;
   box-shadow: none !important;
 }
+
+/* v0.8.2: a compact activity timeline shared by island and workspace. */
+body #feed .activity-group { border: 1px solid var(--sb-border, #ffffff18); border-radius: 14px; padding: 4px 12px; margin: 10px 0; background: var(--ac-surface, #ffffff05); box-shadow: none; }
+body #feed .activity-group > summary { padding: 10px 2px; font-size: 12px; font-weight: 600; color: var(--sb-muted, #aaa); cursor: pointer; }
+body #feed .activity { margin: 0 0 0 7px; padding: 0 0 0 12px; border: 0; border-left: 1px solid var(--sb-border, #ffffff18); border-radius: 0; background: transparent; box-shadow: none; min-width: 0; }
+body #feed .activity > summary { display: grid; grid-template-columns: 18px auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 10px 0; list-style: none; cursor: pointer; font-size: 12px; line-height: 1.5; }
+body #feed .activity > summary::-webkit-details-marker { display: none; }
+body #feed .activity > summary:focus-visible { outline: 2px solid var(--sb-accent, #9dc9b2); outline-offset: 2px; border-radius: 6px; }
+body #feed .activity-badge { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #ffffff0a; color: var(--sb-muted, #aaa); }
+body #feed .activity[data-status="completed"] .activity-badge { color: #a5cfb4; background: #a5cfb414; }
+body #feed .activity[data-status="failed"] .activity-badge { color: #efa79f; background: #efa79f14; }
+body #feed .activity-label { font-weight: 600; }
+body #feed .activity-preview { white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: var(--sb-muted, #aaa); font-size: 11px; }
+body #feed .activity-state { color: var(--sb-muted, #aaa); font-size: 10px; }
+body #feed .activity > pre { max-height: 280px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 12px; padding: 12px 14px; border-radius: 9px; background: #00000025; border: 1px solid var(--sb-border, #ffffff18); font: 11px/1.7 Consolas, monospace; }
+body:not(.workspace) #feed .activity > summary { grid-template-columns: 18px auto minmax(0, 1fr); gap: 6px; }
+body:not(.workspace) #feed .activity-state { display: none; }
+body #feed .markdown { white-space: normal; line-height: 1.65; overflow-wrap: anywhere; }
+body #feed .markdown p { margin: .55em 0; }
+body #feed .markdown table { display: block; overflow-x: auto; border-collapse: collapse; max-width: 100%; }
+body #feed .markdown th, body #feed .markdown td { padding: 8px 12px; border: 1px solid var(--sb-border, #ffffff18); }
+body #feed .markdown th { background: #ffffff08; text-align: left; }
+body #feed .markdown .math-block { overflow-x: auto; margin: 14px 0; padding: 14px; border-radius: 10px; background: #ffffff04; }
+body #feed .markdown math { font-size: 1.1em; }
+body #feed .markdown math[display="block"] { margin: 8px 0; overflow-x: auto; }
+body #feed .markdown .math-pending { white-space: pre-wrap; }
+body #feed .user-text { display: block; }
+
+body #feed .message.user .markdown strong, body #feed .message.user .markdown em { color: inherit; }

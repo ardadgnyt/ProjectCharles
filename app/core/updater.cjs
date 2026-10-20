@@ -308,6 +308,7 @@ param(
   [Parameter(Mandatory = $true)][string]$Stage,
   [Parameter(Mandatory = $true)][string]$Backup,
   [Parameter(Mandatory = $true)][string]$Result,
+  [string]$Ready = '',
   [int]$WaitPid = 0,
   [string]$Exe = '',
   [string]$AppArg = '',
@@ -338,13 +339,29 @@ function Start-Charles {
   } catch { Log ('Charles yeniden başlatılamadı: ' + $_.Exception.Message) ('Charles could not be restarted: ' + $_.Exception.Message) }
 }
 
+# Validate every mutation target before moving or recursively removing files.
+$App = [IO.Path]::GetFullPath($App).TrimEnd('\')
+$workRoot = $App + '\_update\'
+foreach ($targetPath in @($Stage, $Backup, $Result)) {
+  if (-not [IO.Path]::GetFullPath($targetPath).StartsWith($workRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Update path outside _update' }
+}
+if ($Ready) {
+  if ([IO.Path]::GetFullPath($Ready) -ne ($workRoot + 'ready.json')) { throw 'Invalid ready path' }
+  [IO.File]::WriteAllText($Ready, ('{"pid":' + $PID + '}'), [Text.UTF8Encoding]::new($false))
+}
 Log "Güncelleme başlıyor: $Version" "Update starting: $Version"
 # 1. Wait until Charles (and its helper processes from this folder) have closed.
-if ($WaitPid -gt 0) { try { Wait-Process -Id $WaitPid -Timeout 60 -ErrorAction Stop } catch {} }
+if ($WaitPid -gt 0) {
+  try { Wait-Process -Id $WaitPid -Timeout 60 -ErrorAction Stop } catch {}
+  if (Get-Process -Id $WaitPid -ErrorAction SilentlyContinue) {
+    Save-Result $false 'app-running' 'Charles did not exit; no files were changed.'
+    exit 1
+  }
+}
 $deadline = (Get-Date).AddSeconds(30)
 while ((Get-Date) -lt $deadline) {
   $left = @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
-    try { $_.Id -ne $PID -and $_.Path -and $_.Path.StartsWith($App, [StringComparison]::OrdinalIgnoreCase) } catch { $false }
+    try { $_.Id -ne $PID -and $_.Path -and $_.Path.StartsWith(($App + '\'), [StringComparison]::OrdinalIgnoreCase) } catch { $false }
   })
   if (-not $left.Count) { break }
   Start-Sleep -Milliseconds 500
@@ -449,6 +466,43 @@ function swapArgs(script, params) {
   return args;
 }
 
+/** Do not close the app until the independent worker has parsed its script and started. */
+async function launchSwap({ script, params, timeoutMs = 12000 }) {
+  const ready = path.join(params.App, '_update', 'ready.json');
+  fs.rmSync(ready, { force: true });
+  const shell = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe');
+  const quote = value => "'" + String(value).replace(/'/g, "''") + "'";
+  const command = '& ' + quote(script) + ' ' + Object.entries({ ...params, Ready: ready })
+    .filter(([,v]) => v !== undefined && v !== null && v !== '')
+    .map(([k,v]) => '-' + k + ' ' + quote(v)).join(' ');
+  const encoded = Buffer.from(command, 'utf16le').toString('base64');
+  // Start-Process creates a proper independent Windows process. A Node detached
+  // powershell with hidden/ignored console handles can exit 0 before running -File.
+  const launch = "$ErrorActionPreference='Stop'; $worker=Start-Process -FilePath " + quote(shell) +
+    " -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-EncodedCommand'," + quote(encoded) +
+    ') -WindowStyle Hidden -WorkingDirectory ' + quote(path.dirname(script)) +
+    ' -RedirectStandardOutput ' + quote(path.join(params.App, '_update', 'launch.log')) +
+    ' -RedirectStandardError ' + quote(path.join(params.App, '_update', 'launch-error.log')) + ' -PassThru; $worker.Id';
+  const pid = await new Promise((resolve, reject) => {
+    require('node:child_process').execFile(shell,
+      ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(launch, 'utf16le').toString('base64')],
+      { windowsHide: true, timeout: timeoutMs, encoding: 'utf8' }, (error, stdout) => {
+        if (error || !/^\d+$/.test(stdout.trim())) return reject(new UpdateError('Güncelleyici başlatılamadı; Charles açık bırakıldı.', error?.message || stdout));
+        resolve(Number(stdout.trim()));
+      });
+  });
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    try {
+      const ack = JSON.parse(fs.readFileSync(ready, 'utf8'));
+      if (ack.pid === pid) return pid;
+    } catch {}
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  try { process.kill(pid); } catch {}
+  throw new UpdateError('Güncelleyici başlatılamadı; Charles açık bırakıldı.', '_update/launch-error.log');
+}
+
 /** The result of the last update (written by swap.ps1), read once. */
 function takeResult(root) {
   const file = path.join(root, '_update', 'result.json');
@@ -483,6 +537,7 @@ module.exports = {
   writeFiles,
   prepare,
   swapArgs,
+  launchSwap,
   takeResult,
   SWAP_SCRIPT,
 };

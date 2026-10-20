@@ -1,9 +1,12 @@
 import MarkdownIt from 'markdown-it';
+import { mathPlugin } from './math';
 import { splitQuestions, type AiQuestion } from './ai-questions';
 import { highlightInto, LANGUAGE_NAMES } from './highlight';
 import { t } from '../settings/i18n';
 
 const markdown = new MarkdownIt({ html: false, linkify: true, breaks: true, typographer: false });
+markdown.use(mathPlugin);
+export const renderMarkdown = (text: string) => markdown.render(text);
 markdown.validateLink = (href: string) => {
   try {
     const u = new URL(href);

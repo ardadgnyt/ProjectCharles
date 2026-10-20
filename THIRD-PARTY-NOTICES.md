@@ -66,3 +66,6 @@ Official Google Antigravity CLI 1.3.3 replaces the Gemini CLI consumer account c
   License: https://www.gnu.org/licenses/gpl-3.0.html . FFmpeg runs as a separate executable.
 - Executable versions and hashes are recorded in tools/download/versions.json.
   Download tool license texts and source references accompany the installer in licenses/download/.
+
+## KaTeX
+KaTeX 0.19.0 (MIT), used to render equations locally as MathML. See licenses/katex/LICENSE.

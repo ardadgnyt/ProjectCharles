@@ -122,7 +122,7 @@ export function extraUI(
     }
   }
   async function addFiles(next: any[]) {
-    if (files.length + next.length > 5) throw Error('Bir mesajda en fazla beş ek olabilir.');
+    if (files.length + next.length > 50) throw Error('Bir mesajda en fazla 50 ek olabilir.');
     const prepared = [];
     for (const file of next) {
       if (file.kind === 'gif') {
@@ -150,7 +150,7 @@ export function extraUI(
         }
       } else prepared.push(file);
     }
-    if (files.length + prepared.length > 5) throw Error('Bir mesajda en fazla beş ek olabilir.');
+    if (files.length + prepared.length > 50) throw Error('Bir mesajda en fazla 50 ek olabilir.');
     files.push(...prepared);
     attachments();
     bot.gulp();
@@ -183,8 +183,8 @@ export function extraUI(
     if (!images.length) return;
     e.preventDefault();
     if (pastePending) return;
-    if (files.length + images.length > 5) {
-      notice('Bir mesajda en fazla beş ek olabilir.');
+    if (files.length + images.length > 50) {
+      notice('Bir mesajda en fazla 50 ek olabilir.');
       return;
     }
     pastePending = true;

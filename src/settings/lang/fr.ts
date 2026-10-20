@@ -487,7 +487,7 @@ export const french: Record<string, string> = {
   "For example: Add a dark theme to this project…": "Par exemple : Ajoute un thème sombre à ce projet…",
   "No terminal activity in this chat.": "Aucune activité de terminal dans ce chat.",
   "Region added 📸 What would you like to ask?": "Zone ajoutée 📸 Que veux-tu demander ?",
-  "A message can have at most five attachments.": "Un message peut avoir au plus cinq pièces jointes.",
+  "A message can have at most 50 attachments.": "Un message peut avoir au plus 50 pièces jointes.",
   "GIF added. The preview is animated; Charles will look at the first frame.": "GIF ajouté. L’aperçu est animé ; Charles regardera la première image.",
   "The GIF could not be read.": "Le GIF n’a pas pu être lu.",
   "Charles is busy right now. You can open the email again when the task is done.": "Charles est occupé. Tu pourras rouvrir l’e-mail une fois la tâche terminée.",

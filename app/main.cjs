@@ -222,12 +222,13 @@ function taskbarIcon(w) {
   const image = nativeImage.createFromPath(fs.existsSync(saved) ? saved : path.join(root, 'dist/icon.png'));
   if (!image.isEmpty()) w.setIcon(image);
   if (process.platform !== 'win32' || typeof w.setAppDetails !== 'function') return;
-  const ico = path.join(root, 'dist', 'charles.ico');
+  const ico = path.join(app.getPath('userData'), 'charles.ico');
   try {
     w.setAppDetails({
       appId: APP_ID,
       appIconPath: fs.existsSync(ico) ? ico : path.join(root, 'public', 'charles.ico'),
       appIconIndex: 0,
+      relaunchCommand: `"${process.execPath}" "${root}"`,
       relaunchDisplayName: 'Charles',
     });
   } catch {}
@@ -249,7 +250,7 @@ function createAppWindow() {
   });
   taskbarIcon(appWin);
   // v0.7.6: Windows sometimes drops a frameless-caption window's icon until it is shown
-  appWin.once('show', () => taskbarIcon(appWin));
+  appWin.on('show', () => taskbarIcon(appWin));
   appWin.on('resize', () => {
     if (activeWindow() === appWin) fitView(appWin);
   });
@@ -259,6 +260,7 @@ function createAppWindow() {
       sendWorkspace();
     });
   appWin.on('focus', () => {
+    taskbarIcon(appWin);
     if (activeWindow() === appWin && view && !view.webContents.isDestroyed()) view.webContents.focus();
   });
   appWin.on('moved', saveWorkspace);
@@ -1962,7 +1964,7 @@ else {
             title: 'Charles’a dosya ekle',
           });
           if (r.canceled) return [];
-          if (r.filePaths.length > 5) throw Error('En fazla beş dosya seçin.');
+          if (r.filePaths.length > 50) throw Error('En fazla 50 dosya seçin.');
           return r.filePaths.map((p) => attachment(extras.ingest(p)));
         } finally {
           dialogOpen = false;
@@ -1984,7 +1986,7 @@ else {
       safeHandler('drop-files', (paths) => {
         if (
           !Array.isArray(paths) ||
-          paths.length > 5 ||
+          paths.length > 50 ||
           !paths.every((p) => typeof p === 'string' && path.isAbsolute(p))
         )
           throw Error('Geçersiz dosya listesi.');
@@ -2331,7 +2333,16 @@ else {
           agent.local(args.prompt, message);
           return { localAction: true, message };
         }
-        const mode = args.mode === undefined ? 'chat' : args.mode;
+        let mode = args.mode === undefined ? 'chat' : args.mode;
+        if (/^gemini:/.test(args.model || '')) {
+          const explicit = require('./core/explicit-workspace.cjs').explicitWorkspace(args.prompt);
+          if (explicit) {
+            chosenCwd = explicit;
+            mode = 'project';
+            saveFolder();
+            eventToUi({ type: 'workspace-selected', data: { cwd: explicit } });
+          }
+        }
         if (!['chat', 'project'].includes(mode)) throw new Error('Geçersiz çalışma modu.');
         if (mode === 'project' && !chosenCwd)
           throw new Error(
@@ -2346,7 +2357,7 @@ else {
           model: args.model,
           cwd: mode === 'chat' ? chatDir : chosenCwd,
           mode,
-          attachments: extras.inputs(args.attachments || []),
+          attachments: await extras.inputs(args.attachments || [], { textOnly: /^(gemini|claude|cursor|abacus):/.test(args.model || '') }),
           displayAttachments: (args.attachments || []).map((id) => {
             const a = extras.attachments.get(id);
             if (!a) throw Error('Ek bulunamadı.');
@@ -2524,22 +2535,15 @@ else {
           if (!info.available) return { ok: false, error: 'Charles zaten güncel.', detail: info.currentLabel };
           const prep = await updater.prepare({ root, latest: info.latest, name: require('../package.json').name, onProgress: progress });
           progress({ phase: 'restart' });
-          const shell = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe');
-          const args = updater.swapArgs(prep.script, {
-            ...prep.params,
-            WaitPid: process.pid,
-            Exe: process.execPath,
-            AppArg: root,
+          await updater.launchSwap({ script: prep.script, params: {
+            ...prep.params, WaitPid: process.pid, Exe: process.execPath, AppArg: root,
             Lang: v2?.data?.language || 'tr',
-          });
-          const child = require('node:child_process').spawn(shell, args, {
-            cwd: path.dirname(prep.script),
-            detached: true,
-            stdio: 'ignore',
-            windowsHide: true,
-          });
-          child.unref();
-          setTimeout(() => app.quit(), 700);
+          } });
+          setTimeout(() => {
+            app.quit();
+            // A WebContentsView or a helper can otherwise keep Electron alive after quit.
+            setTimeout(() => app.exit(0), 5000).unref();
+          }, 700);
           return { ok: true, version: prep.version, label: updater.label(prep.version) };
         } catch (e) {
           progress({ phase: 'failed' });

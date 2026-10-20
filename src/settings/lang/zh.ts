@@ -487,7 +487,7 @@ export const chinese: Record<string, string> = {
   "For example: Add a dark theme to this project…": "例如：给这个项目添加深色主题…",
   "No terminal activity in this chat.": "此聊天中没有终端活动。",
   "Region added 📸 What would you like to ask?": "已添加区域 📸 想问什么？",
-  "A message can have at most five attachments.": "一条消息最多五个附件。",
+  "A message can have at most 50 attachments.": "一条消息最多 50 个附件。",
   "GIF added. The preview is animated; Charles will look at the first frame.": "已添加 GIF。预览是动态的；Charles 会查看第一帧。",
   "The GIF could not be read.": "无法读取该 GIF。",
   "Charles is busy right now. You can open the email again when the task is done.": "Charles 正忙。任务完成后可以再次打开这封邮件。",

@@ -44,3 +44,6 @@ __pycache__/
 # Personal guide for publishing to GitHub; kept only in the local copy
 docs/GITHUB.md
 docs/VERIFICATION-v0.4.4.md
+
+# Local visual regression captures
+.qa/
