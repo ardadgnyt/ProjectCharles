@@ -1,8 +1,17 @@
 # ProjectCharles — Yama notları
 
-Charles’ın ilk masaüstü sürümünden v0.8.0 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+Charles’ın ilk masaüstü sürümünden v0.8.1 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.8.1 Beta — 20 Ekim 2026
+
+- **Charles Download:** Ayrı ZIP modülüyle MP4 video, MP3 ses ve doğrudan dosya indirme; kalite seçimi, zaman aralığı ile kesme ve iki işlik indirme kuyruğu.
+- **Pano ve adacık:** Desteklenen video/dosya bağlantısı kopyalanınca adacığın altında seçenek kartı gösterilir. İndirme kullanıcı düğmeye bastığında başlar; pano izleme modül içinden kapatılabilir.
+- **İlerleme ve devam:** Gerçek byte/hız/ilerleme bilgisi, iptal, indirme aşamasında duraklatma/devam, geçmiş ve klasörde gösterme. Sunucu HTTP Range desteklemiyorsa doğrudan dosya baştan güvenli biçimde yazılır. Yeniden açılışta yarım işler duraklatılmış kalır.
+- **MP4/MP3 kesitleri:** yt-dlp medyayı alır; FFmpeg seçilen zaman aralığını MP4 (H.264/AAC) veya MP3'e dönüştürür. Bu sürüm kesme öncesinde kaynak medyayı indirir; seçilen bölüm kadar trafik garantisi vermez.
+- **Modül köprüsü:** İndirme altyapısı app/modules/download/ altında ayrıdır; yalnızca download kimlikli etkin modüle açıktır. Diğer modüllerin ağ ve dosya sistemi sınırları korunur. main.cjs değişmedi.
+- **Dağıtım:** İndirme modülü ZIP'i ve indirme araçları kurulum paketine eklenir; README, geliştirici ve modül belgeleri güncellendi. Sürüm 0.8.1-beta.1.
 
 ## v0.8.0 Beta — 18 Ekim 2026
 

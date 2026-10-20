@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Charles Download</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<div id="full">
+  <header><div class="brand"><img src="icon.svg" alt=""><div><strong>Charles <span>Download</span></strong><small>Bir bağlantı. Tam istediğin bölüm.</small></div></div><div class="header-actions"><span id="engine" class="badge">Bağlanıyor</span><button id="folder" class="icon-button" title="İndirme klasörünü aç" aria-label="İndirme klasörünü aç">▱</button></div></header>
+  <main>
+    <div class="eyebrow">MASAÜSTÜNDEN, AKIŞI BOZMADAN</div>
+    <h1>İstediğin anı <em>yanına al.</em></h1>
+    <p class="lead">Videonun tamamı, yalnızca sesi veya aklında kalan birkaç saniye.</p>
+    <form id="link-form" class="link-bar"><span class="link-symbol">↗</span><input id="url" type="url" required placeholder="Video veya dosya bağlantısını buraya yapıştır" aria-label="İndirme bağlantısı"><button type="button" id="paste" class="quiet" title="Panodan yapıştır">Yapıştır</button><button class="primary" id="inspect">Bağlantıyı getir <span>↗</span></button></form>
+    <div class="under-link"><label class="switch"><input id="watch" type="checkbox"><span></span> Kopyalanan bağlantıları yakala</label><span>MP4 · MP3 · Dosya</span></div>
+    <div id="notice" role="status" aria-live="polite"></div>
+    <section id="media" class="panel" hidden>
+      <div class="media-top"><div class="cover" id="cover">▶</div><div class="media-copy"><div class="eyebrow" id="source">VİDEO BULUNDU</div><h2 id="title"></h2><p id="meta"></p></div><button id="dismiss" class="icon-button" title="Seçimi kapat">×</button></div>
+      <div class="media-actions"><div class="segmented"><button id="video" class="selected">▣ &nbsp; MP4 Video</button><button id="audio">♫ &nbsp; MP3 Ses</button><button id="file">▤ &nbsp; Dosya</button></div><select id="quality" aria-label="Video kalitesi"><option value="1080">1080p</option></select><select id="bitrate" aria-label="Ses kalitesi" hidden><option value="320">320 kbps</option><option value="192">192 kbps</option><option value="128">128 kbps</option></select><button id="cut-toggle" class="quiet">✂ &nbsp; Bölüm seç</button></div>
+      <div id="clip" hidden><div class="clip-heading"><strong>Yalnızca istediğin bölüm</strong><span id="clip-duration"></span></div><div class="timeline"><div id="selection"></div><div class="ticks"></div><input id="start-range" type="range" min="0" step="0.1" aria-label="Kesim başlangıcı"><input id="end-range" type="range" min="0" step="0.1" aria-label="Kesim bitişi"></div><div class="time-fields"><label>Başlangıç <input id="start" value="00:00" aria-label="Başlangıç zamanı"></label><span>→</span><label>Bitiş <input id="end" value="00:30" aria-label="Bitiş zamanı"></label><small>SS:DD:SN veya saniye</small></div><p class="clip-note">Kesmeden önce kaynak medya indirilir; ardından seçtiğin bölüm kaydedilir.</p></div>
+      <div class="download-footer"><span id="selection-note">Seçilen kalitede kaydedilir</span><button id="download" class="primary">↓ &nbsp; İndirmeye başla</button></div>
+    </section>
+    <section class="queue-section"><div class="section-heading"><h2>İndirmeler <span id="count">0</span></h2><div class="filters"><button data-filter="all" class="active">Tümü</button><button data-filter="active">Devam eden</button><button data-filter="done">Tamamlanan</button></div></div><div id="jobs"></div><div id="empty"><div class="empty-icon">↓</div><strong>Bir sonraki indirmene hazır.</strong><p>Bir bağlantı kopyala veya yukarıya yapıştır.<br>İndirmelerin burada yerini alacak.</p></div></section>
+    <footer><span class="status-dot"></span><span id="destination">İndirme klasörü</span><button id="choose-folder" class="quiet">Değiştir</button><span class="footer-right">CHARLES / DOWNLOAD 1.0</span></footer>
+  </main>
+</div>
+<div id="compact" hidden><div class="compact-head"><img src="icon.svg" alt=""><strong id="compact-title">Bağlantı bulundu</strong><button id="expand" title="İndirmeleri aç">↗</button><button id="hide" title="Kapat">×</button></div><p id="compact-detail"></p><div id="compact-progress" class="progress"><i></i></div><div id="compact-actions"><button id="compact-open" class="primary">↓ &nbsp; İndirme seçenekleri</button><button id="compact-pause" class="quiet" hidden>Duraklat</button></div></div>
+<script src="app.js"></script></body></html>

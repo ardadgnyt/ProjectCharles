@@ -18,6 +18,20 @@ ipcRenderer.on('charles-module:language', (_e, lang) => {
 
 contextBridge.exposeInMainWorld('charlesModule', {
   apiVersion: 1,
+  // Charles Download API; host restricts this capability to the download module.
+  download: {
+    state: () => call('download.state'),
+    inspect: (url) => call('download.inspect', { url }),
+    enqueue: (options) => call('download.enqueue', options),
+    control: (id, action) => call('download.control', { id, action }),
+    settings: (options) => call('download.settings', options),
+    clipboard: () => call('download.clipboard'),
+    folder: () => call('download.folder'),
+    chooseFolder: () => call('download.chooseFolder'),
+    reveal: (id) => call('download.reveal', { id }),
+    open: () => call('download.open'),
+    hide: () => call('download.hide'),
+  },
   info: () => call('info'),
   ai: {
     // onChunk (optional) is called once with the whole answer; streaming may come later

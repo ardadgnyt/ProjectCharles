@@ -14,7 +14,7 @@ const crypto = require('node:crypto');
 const { zipSync } = require('fflate');
 
 const ROOT = path.resolve(__dirname, '..');
-const BASE = ['app', 'dist', 'public', 'package.json', 'package-lock.json', 'LICENSE', 'README.md', 'CHANGELOG.md'];
+const BASE = ['app', 'dist', 'public', 'package.json', 'package-lock.json', 'LICENSE', 'README.md', 'CHANGELOG.md', 'modules-bundled', 'docs/DOWNLOAD-MODULE.md', 'licenses/download'];
 // never shipped, wherever they are
 const SKIP = /(^|\/)(\.git|node_modules|_update|_to_delete|__pycache__|\.DS_Store|Thumbs\.db)(\/|$)|(^|\/)(\.env(\..*)?|Charles-creator\.json|charles-install\.json|charles-manifest\.json|personal\.json|companion\.json|charles-history\.json|preferences\.json|[^/]*\.enc\.json|[^/]*\.key|[^/]*\.pem|[^/]*\.log)$/i;
 

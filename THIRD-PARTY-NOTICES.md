@@ -53,3 +53,16 @@ Official Google Antigravity CLI 1.3.3 replaces the Gemini CLI consumer account c
 
 - Cursor Agent CLI, Windows x64 package 2026.10.01-e373342, downloaded from https://downloads.cursor.com/lab/2026.10.01-e373342/windows/x64/agent-cli-package.zip . Bundled upstream notices are preserved in tools/cursor. Cursor is an independent service and requires its own account/terms.
 - ImapFlow and mailparser (npm): upstream licenses and dependencies are preserved under node_modules. Used for user-configured TLS IMAP access.
+
+
+## Download tools (0.8.1)
+
+- **yt-dlp**: Unlicense; official Windows builds include components with their own licenses.
+  Source and notices: https://github.com/yt-dlp/yt-dlp and
+  https://github.com/yt-dlp/yt-dlp/blob/master/THIRD_PARTY_LICENSES.txt .
+- **FFmpeg**: the bundled 6.0 essentials Windows build is GPL v3, obtained through
+  ffmpeg-static 5.2.0. Build/source distribution: https://github.com/eugeneware/ffmpeg-static/releases/tag/b6.0
+  and https://www.gyan.dev/ffmpeg/builds/ . FFmpeg source: https://git.ffmpeg.org/ffmpeg.git (n6.0).
+  License: https://www.gnu.org/licenses/gpl-3.0.html . FFmpeg runs as a separate executable.
+- Executable versions and hashes are recorded in tools/download/versions.json.
+  Download tool license texts and source references accompany the installer in licenses/download/.

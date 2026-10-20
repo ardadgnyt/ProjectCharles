@@ -153,3 +153,11 @@ notification bubble. Removing such a module never deletes the folder.
 ## Not in API v1
 
 Streaming answers, downloading modules from the internet, a module store, signing, native code.
+
+
+## First-party Download extension (0.8.1)
+
+The optional first-party `download` module has a dedicated host extension at
+`window.charlesModule.download`. It is available only to that enabled module ID;
+other modules keep the original API v1 sandbox. See [DOWNLOAD-MODULE.md](DOWNLOAD-MODULE.md)
+for installation, clipboard permissions, methods and limits.

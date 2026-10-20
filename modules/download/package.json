@@ -1,0 +1,9 @@
+{
+  "name": "charles-download-ui",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.cjs",
+    "pack": "node scripts/build.cjs && node scripts/pack.mjs"
+  }
+}

@@ -77,6 +77,10 @@ function createModuleHost(o) {
   const watchers = new Map();
   const busy = new Set(); // "id ai.chat"
   const allow = rateLimiter();
+  // Charles Download optional bridge.
+  const downloadBridge = fs.existsSync(path.join(__dirname, 'download', 'config.json'))
+    ? require('./download/bridge.cjs').createDownloadBridge({ registry, owners, sessionFor, open, deps })
+    : null;
 
   const changed = () => deps.onChange?.();
   const storage = (id) => {
@@ -253,6 +257,10 @@ function createModuleHost(o) {
     const need = needs(method);
     if (need && !(m.permissions || []).includes(need)) throw Error(`Bu modülün “${need}” izni yok (manifest.json → permissions).`);
     if (!allow(id, method)) throw Error('Çok sık istek gönderildi; biraz bekleyip tekrar dene.');
+    if (method.startsWith('download.')) {
+      if (!downloadBridge) throw Error('Charles Download host eklentisi kurulu değil.');
+      return downloadBridge.call(id, method, args);
+    }
     const s = () => storage(id);
     switch (method) {
       case 'info':
