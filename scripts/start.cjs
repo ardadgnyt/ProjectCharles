@@ -12,7 +12,8 @@ if (!fs.existsSync(executable) || !fs.existsSync(path.join(root, 'dist', 'render
 const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
 // A separate process group and no inherited console handles let the terminal exit.
-const child = spawn(executable, [root], {
+const entry = require('../app/core/windows-identity.cjs').launcher(root, executable);
+const child = spawn(entry.target, entry.args ? [root] : [], {
   cwd: root,
   env,
   detached: true,

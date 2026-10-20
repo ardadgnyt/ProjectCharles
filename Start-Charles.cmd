@@ -13,4 +13,8 @@ if not exist "%~dp0dist\renderer.js" (
  pause
  exit /b 1
 )
-start "" "%~dp0node_modules\electron\dist\electron.exe" "%~dp0."
+if exist "%~dp0Charles.exe" (
+ start "" "%~dp0Charles.exe"
+) else (
+ start "" "%~dp0node_modules\electron\dist\electron.exe" "%~dp0."
+)

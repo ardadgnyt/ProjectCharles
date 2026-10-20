@@ -1,3 +1,17 @@
+// Older updaters and legacy shortcuts start electron.exe directly. Route them
+// through the branded host before creating any window or acquiring the app lock.
+if (process.platform === 'win32' && !process.argv.includes('--demo') &&
+    require('node:path').basename(process.execPath).toLowerCase() === 'electron.exe') {
+  const entry = require('node:path').resolve(__dirname, '..', 'Charles.exe');
+  if (require('node:fs').existsSync(entry)) {
+    const child = require('node:child_process').spawn(entry, process.argv.slice(2), {
+      detached: true, stdio: 'ignore', windowsHide: true,
+    });
+    child.on('error', error => { console.error('Charles launcher:', error); require('electron').app.exit(1); });
+    child.once('spawn', () => { child.unref(); require('electron').app.exit(0); });
+    return;
+  }
+}
 const {
   app,
   BrowserWindow,
@@ -215,25 +229,36 @@ function moveView(to) {
 }
 // v0.7.6: the taskbar showed a blank program icon for the app window. The window gets the
 // Slime icon as an image and Windows gets the app id + the .ico path for its taskbar button.
-const APP_ID = 'ProjectCharles.Charles';
+const { APP_ID, launcher, iconResource, registerShortcuts } = require('./core/windows-identity.cjs');
+let registeredTaskbarIcon = '';
 function taskbarIcon(w) {
   if (!w || w.isDestroyed()) return;
   const saved = path.join(app.getPath('userData'), 'app-icon.png');
   const image = nativeImage.createFromPath(fs.existsSync(saved) ? saved : path.join(root, 'dist/icon.png'));
   if (!image.isEmpty()) w.setIcon(image);
   if (process.platform !== 'win32' || typeof w.setAppDetails !== 'function') return;
-  const ico = path.join(app.getPath('userData'), 'charles.ico');
+  const ico = iconResource(app.getPath('userData'), root);
+  const entry = launcher(root);
+  if (!demo && registeredTaskbarIcon !== ico) {
+    try { registerShortcuts({ app, shell, root, icon: ico }); registeredTaskbarIcon = ico; }
+    catch (error) { console.warn('Charles taskbar identity:', error.message); }
+  }
   try {
     w.setAppDetails({
       appId: APP_ID,
-      appIconPath: fs.existsSync(ico) ? ico : path.join(root, 'public', 'charles.ico'),
+      appIconPath: ico,
       appIconIndex: 0,
-      relaunchCommand: `"${process.execPath}" "${root}"`,
+      relaunchCommand: `"${entry.target}"${entry.args ? " " + entry.args : ""}`,
       relaunchDisplayName: 'Charles',
     });
-  } catch {}
+  } catch (error) { console.warn('Charles window icon:', error.message); }
 }
 function createAppWindow() {
+  if (!demo && !registeredTaskbarIcon) {
+    const ico = iconResource(app.getPath('userData'), root);
+    try { registerShortcuts({ app, shell, root, icon: ico }); registeredTaskbarIcon = ico; }
+    catch (error) { console.warn('Charles taskbar identity:', error.message); }
+  }
   if (appWin && !appWin.isDestroyed()) return appWin;
   appWin = new BaseWindow({
     show: false,

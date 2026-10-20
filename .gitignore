@@ -47,3 +47,6 @@ docs/VERIFICATION-v0.4.4.md
 
 # Local visual regression captures
 .qa/
+
+# Built Windows launcher
+/Charles.exe

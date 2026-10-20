@@ -14,10 +14,10 @@ class Startup {
   enabled() {
     try {
       const l = this.shell.readShortcutLink(this.file);
-      return (
-        path.resolve(l.target).toLowerCase() === path.resolve(process.execPath).toLowerCase() &&
-        l.args === `"${this.root}" --autostart`
-      );
+      const target = path.resolve(l.target).toLowerCase();
+      if (target === path.join(this.root, 'Charles.exe').toLowerCase()) return l.args === '--autostart';
+      return [process.execPath, path.join(this.root, 'node_modules/electron/dist/electron.exe')]
+        .some(exe => path.resolve(exe).toLowerCase() === target) && l.args === `"${this.root}" --autostart`;
     } catch {
       return false;
     }
@@ -25,13 +25,15 @@ class Startup {
   set(value) {
     if (value) {
       fs.mkdirSync(path.dirname(this.file), { recursive: true });
+      const entry = require('./windows-identity.cjs').launcher(this.root);
       if (
         !this.shell.writeShortcutLink(this.file, 'create', {
-          target: process.execPath,
-          args: `"${this.root}" --autostart`,
+          target: entry.target,
+          args: [entry.args, '--autostart'].filter(Boolean).join(' '),
           cwd: this.root,
           description: 'Charles',
-          icon: process.execPath,
+          icon: path.join(this.root, 'public', 'charles.ico'),
+          appUserModelId: require('./windows-identity.cjs').APP_ID,
           iconIndex: 0,
         })
       )

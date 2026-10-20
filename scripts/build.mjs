@@ -14,6 +14,10 @@ await build({
   sourcemap: false,
   tsconfigRaw: {},
 });
+if (process.platform === 'win32') {
+  const { execFileSync } = await import('node:child_process');
+  execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/build-launcher.ps1'], { stdio: 'inherit', windowsHide: true });
+}
 console.log('Masaüstü arayüzü hazır.');
 
 // Bundle the first-party Download UI; no runtime npm dependencies.

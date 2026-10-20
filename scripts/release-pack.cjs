@@ -14,7 +14,7 @@ const crypto = require('node:crypto');
 const { zipSync } = require('fflate');
 
 const ROOT = path.resolve(__dirname, '..');
-const BASE = ['app', 'dist', 'public', 'package.json', 'package-lock.json', 'LICENSE', 'README.md', 'CHANGELOG.md', 'setup', 'scripts', 'Start-Charles.cmd', 'licenses', 'THIRD-PARTY-NOTICES.md'];
+const BASE = ['Charles.exe', 'app', 'dist', 'public', 'package.json', 'package-lock.json', 'LICENSE', 'README.md', 'CHANGELOG.md', 'setup', 'scripts', 'Start-Charles.cmd', 'licenses', 'THIRD-PARTY-NOTICES.md'];
 // never shipped, wherever they are
 const SKIP = /(^|\/)(\.git|node_modules|_update|_to_delete|__pycache__|\.DS_Store|Thumbs\.db)(\/|$)|(^|\/)(\.env(\..*)?|Charles-creator\.json|charles-install\.json|charles-manifest\.json|personal\.json|companion\.json|charles-history\.json|preferences\.json|[^/]*\.enc\.json|[^/]*\.key|[^/]*\.pem|[^/]*\.log)$/i;
 
@@ -32,6 +32,7 @@ function collect(rel, out) {
 
 function pack({ outDir = path.join(ROOT, 'release'), extra = [] } = {}) {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  if (!fs.existsSync(path.join(ROOT, 'Charles.exe'))) throw Error('Charles.exe missing: build the release on Windows.');
   if (!fs.existsSync(path.join(ROOT, 'dist', 'renderer.js')))
     throw Error('dist/ is missing: run `npm run build` first. / dist/ yok: önce `npm run build` çalıştır.');
   for (const e of extra)

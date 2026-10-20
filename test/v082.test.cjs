@@ -66,7 +66,7 @@ test('updater launch failures reject instead of reporting success', { skip: proc
 test('release excludes the optional Download payload', () => {
   const out=fs.mkdtempSync(path.join(os.tmpdir(),'charles-pack082-'));
   const result=require('../scripts/release-pack.cjs').pack({outDir:out});
-  const pkg=updater.readUpdateZip(fs.readFileSync(result.zipPath),{name:'project-charles',expectVersion:'0.8.2-beta.1'});
+  const pkg=updater.readUpdateZip(fs.readFileSync(result.zipPath),{name:'project-charles',expectVersion:require('../package.json').version});
   assert.ok(pkg.files.has('dist/renderer.js'));
   assert.ok(pkg.files.has('public/charles.ico'));
   for(const name of pkg.files.keys()) assert.doesNotMatch(name,/^(modules-bundled|modules\/download|tools\/download|licenses\/download)\//);

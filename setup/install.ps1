@@ -4,7 +4,7 @@
 #   0. Asks for the setup language (English by default; every language Charles supports).
 #      Charles starts in the same language (charles-install.json in the app folder).
 #   1. Checks Windows (64-bit, Windows 10 or 11).
-#   2. Copies Charles to a short folder (default: C:\ProjectCharles v0.8.2 Beta).
+#   2. Copies Charles to a short folder (default: C:\ProjectCharles v0.8.3 Beta).
 #      Source: Charles.zip next to this file, or the Charles folder that holds this setup folder.
 #   3. Removes the "blocked" mark of files that came from the internet / a USB stick.
 #   4. Creates desktop and Start menu shortcuts.
@@ -13,7 +13,7 @@
 param([string]$Root = $PSScriptRoot)
 
 $ErrorActionPreference = 'Stop'
-$Version = 'v0.8.2 Beta'
+$Version = 'v0.8.3 Beta'
 $Name = "ProjectCharles $Version"
 $DefaultTarget = "C:\$Name"
 $Log = Join-Path $env:TEMP 'Charles-setup.log'
@@ -290,7 +290,8 @@ Get-ChildItem -LiteralPath $target -Recurse -File -Include *.exe, *.dll, *.node,
   ForEach-Object { try { Unblock-File -LiteralPath $_.FullName } catch {} }
 
 # 4. Shortcuts
-$icon = Join-Path $target 'dist\charles.ico'
+$launcher = Join-Path $target 'Charles.exe'
+$icon = Join-Path $target 'public\charles.ico'
 if (-not (Test-Path -LiteralPath $icon)) { $icon = "$exe,0" }
 $shell = New-Object -ComObject WScript.Shell
 $places = @(
@@ -300,13 +301,17 @@ $places = @(
 foreach ($place in $places) {
   New-Item -ItemType Directory -Force -Path $place | Out-Null
   $link = $shell.CreateShortcut((Join-Path $place "$Name.lnk"))
-  $link.TargetPath = $exe
-  $link.Arguments = '"' + $target + '"'
+  $link.TargetPath = if (Test-Path -LiteralPath $launcher) { $launcher } else { $exe }
+  $link.Arguments = if (Test-Path -LiteralPath $launcher) { '' } else { '"' + $target + '"' }
   $link.WorkingDirectory = $target
   $link.IconLocation = $icon
   $link.Description = (T 'linkDesc') -f $Name
   $link.Save()
 }
+$env:ELECTRON_RUN_AS_NODE = $null
+$register = Join-Path $target 'setup\register-shortcuts.cjs'
+$identityProcess = Start-Process -FilePath $exe -ArgumentList ('"' + $register + '"') -WorkingDirectory $target -WindowStyle Hidden -PassThru -Wait
+if ($identityProcess.ExitCode -ne 0) { Add-Content -Path $Log -Value 'Shortcut identity registration failed; Charles will retry on startup.' }
 Say (T 'links') 'Green'
 
 # 5. Done

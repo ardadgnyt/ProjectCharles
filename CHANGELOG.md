@@ -1,8 +1,16 @@
 # ProjectCharles — Yama notları
 
-Charles’ın ilk masaüstü sürümünden v0.8.2 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.8.3 Beta — 21 Ekim 2026
+
+- Çalışan Electron süreci de Slime simgesi gömülü bir Charles host üzerinden açılır. Eski güncelleyici/kısayol ile açılış otomatik yönlendirilir; orijinal Electron dosyası korunur.
+- Windows başlatıcısı Charles.exe artık Slime simgesini kendi kaynaklarında taşır; masaüstü/Başlat kısayolları bu başlatıcıyı kullanır.
+- Büyük panel, Başlat menüsü ve masaüstü kısayolları aynı AppUserModelID ile eşleştirilir. Mevcut kurulumun kısayolları ilk büyük panel açılışında düzeltilir.
+- Görev çubuğu simgesi değişmez, içerik adresli ICO dosyasından okunur; eski charles.ico yolunda önbelleğe alınmış boş simge yeniden kullanılmaz.
+- Pencere simgesi kayıt hataları artık sessizce yutulmaz. Download modülü paketlere dahil değildir.
 
 ## v0.8.2 Beta — 20 Ekim 2026
 

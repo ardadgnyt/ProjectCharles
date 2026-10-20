@@ -83,7 +83,7 @@ def main(src, out):
         dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS and os.path.relpath(os.path.join(root, d), src).replace(os.sep, '/') not in {'modules/download', 'tools/download', 'licenses/download'})
         for name in sorted(names):
             rel = os.path.relpath(os.path.join(root, name), src).replace(os.sep, '/')
-            if rel in SKIP_FILES or rel.endswith(('.tar', '.log', '.pyc')):
+            if rel in SKIP_FILES or rel.endswith(('.tar', '.log', '.pyc')) or (rel.startswith('node_modules/electron/dist/charles-host-') and rel.endswith('.exe')):
                 continue
             files.append(rel)
     manifest, problems, full = {}, [], {}
