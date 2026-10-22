@@ -1,7 +1,12 @@
 import { PAW } from '../vendor/slime/shape';
 // Vector accessories inspired by the user's Charles-okuyor.gif.
 // Drawn in the character's own coordinate system so they remain crisp at any size.
-export function drawReading(x: CanvasRenderingContext2D, t: number, amount: number) {
+// v0.8.8: `glasses` false when Slime already wears eyewear (round glasses, sunglasses…), so
+// the reading glasses are not drawn on top of it.
+// With eyewear the engine draws Slime's normal eyes (the eyewear sits on them) and this only adds
+// the page and the paws.
+export function drawReading(x: CanvasRenderingContext2D, t: number, amount: number, glasses = true) {
+  const eyes = glasses;
   x.save();
   x.globalAlpha = amount;
   x.translate(0, Math.sin(t * 1.6) * 1.2);
@@ -11,13 +16,16 @@ export function drawReading(x: CanvasRenderingContext2D, t: number, amount: numb
   x.strokeStyle = ink;
   x.lineWidth = 2.6;
   for (const side of [-1, 1]) {
-    x.beginPath();
-    x.arc(side * 26, 14, 22, 0, Math.PI * 2);
-    x.stroke();
-    x.beginPath();
-    x.moveTo(side * 48, 8);
-    x.lineTo(side * 56, 6);
-    x.stroke();
+    if (glasses) {
+      x.beginPath();
+      x.arc(side * 26, 14, 22, 0, Math.PI * 2);
+      x.stroke();
+      x.beginPath();
+      x.moveTo(side * 48, 8);
+      x.lineTo(side * 56, 6);
+      x.stroke();
+    }
+    if (!eyes) continue;
     x.fillStyle = ink;
     x.beginPath();
     const blink = Math.sin(t * 0.63) > 0.995;
@@ -28,10 +36,12 @@ export function drawReading(x: CanvasRenderingContext2D, t: number, amount: numb
     x.ellipse(side * 54, 28, 12, 6, 0, 0, Math.PI * 2);
     x.fill();
   }
-  x.beginPath();
-  x.moveTo(-4, 12);
-  x.quadraticCurveTo(0, 8, 4, 12);
-  x.stroke();
+  if (glasses) {
+    x.beginPath();
+    x.moveTo(-4, 12);
+    x.quadraticCurveTo(0, 8, 4, 12);
+    x.stroke();
+  }
   const lift = Math.sin(t * 1.8) * 1.3;
   x.translate(0, lift);
   x.shadowColor = '#0002';

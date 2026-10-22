@@ -1128,6 +1128,30 @@ modulesPage(api, notice);
 api.onModuleEmote?.((name: string) => {
   if (['love', 'surprised', 'proud', 'wink', 'yawn', 'happy', 'annoyed'].includes(name)) bot.triggerEmote(name as any, 2.5);
 });
+// v0.8.8: a WhatsApp message arrived (it shows under the island): Slime notices it
+api.onWhatsappMessage?.(() => {
+  if (quotaBlocked || dizzy || busy) return;
+  touchCharacter();
+  bot.blink();
+  bot.triggerEmote('happy', 1.2);
+  Sound.play('pop');
+});
+// v0.8.8: reactions a module asks for (charlesModule.slime.react)
+api.onModuleReact?.((name: string) => {
+  if (quotaBlocked || dizzy) return;
+  touchCharacter();
+  if (name === 'greet') bot.greet();
+  else if (name === 'blink') bot.blink();
+  else if (name === 'squash') {
+    bot.squash();
+    jelly.tap();
+  } else if (name === 'slap') {
+    bot.slap();
+    jelly.tap();
+    Sound.play('slap');
+  } else if (name === 'dizzy') bot.onDizzy?.();
+  else if (name === 'gulp') bot.gulp();
+});
 settingsCards();
 languageUI(api);
 // v0.8.0: Genel → Güncellemeler (under the language choice)

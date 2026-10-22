@@ -1,0 +1,358 @@
+/* v0.8.8: Projects in the chat list */
+.ws-project-icon {
+  color: var(--ws-accent);
+}
+.ws-project-row .ws-project-new {
+  opacity: 0;
+}
+.ws-project-row:hover .ws-project-new,
+.ws-project-row:focus-within .ws-project-new {
+  opacity: 1;
+}
+.ws-project-modal .ws-modal-body {
+  padding: 16px 24px 8px;
+}
+.ws-project-note {
+  margin: 0 0 12px;
+  color: var(--ws-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ws-project-instr {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 180px;
+  resize: vertical;
+  padding: 12px 14px !important;
+  border: 1px solid var(--ws-line-2) !important;
+  border-radius: 12px !important;
+  background: var(--ws-field) !important;
+  color: var(--ws-text) !important;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.ws-project-instr:focus {
+  outline: 2px solid var(--ws-accent);
+  outline-offset: 1px;
+}
+
+/* v0.8.8: "Adacığa dön" stays on one line */
+.ws-island {
+  white-space: nowrap;
+  flex: none;
+}
+.ws-island span {
+  white-space: nowrap;
+}
+
+/* v0.8.8: Ayarlar → Eklentiler → WhatsApp */
+.plugin-card.wa-card {
+  --wa: #25d366;
+}
+.wa-card .wa-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.wa-card .wa-card-head h3 {
+  margin: 0 !important;
+}
+.wa-card .wa-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  color: #9a9aa6;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.wa-card .wa-pill i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6b6b75;
+}
+.wa-card .wa-pill.on {
+  color: #8be3ad;
+}
+.wa-card .wa-pill.on i {
+  background: var(--wa);
+}
+.wa-card .wa-pill.wait i {
+  background: #f0c6a1;
+  animation: wa-pulse 1.2s ease-in-out infinite;
+}
+@keyframes wa-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+.wa-card .wa-live {
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.wa-card .wa-live-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.wa-card .wa-tag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(240, 198, 161, 0.12);
+  color: #f0c6a1;
+  font-size: 10px;
+}
+.wa-card .wa-live > .hint {
+  margin: 6px 0 10px;
+}
+.wa-card .wa-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.wa-card .wa-note {
+  margin: 8px 0 0 !important;
+  font-size: 10.5px !important;
+}
+.wa-card .wa-wait {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #c9c9d1;
+}
+.wa-card .wa-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(37, 211, 102, 0.25);
+  border-top-color: var(--wa);
+  border-radius: 50%;
+  animation: wa-turn 0.8s linear infinite;
+}
+@keyframes wa-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.wa-card .wa-qr-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.wa-card .wa-qr {
+  width: 176px;
+  height: 176px;
+  padding: 10px;
+  box-sizing: border-box;
+  border-radius: 14px;
+  background: #fff;
+  image-rendering: pixelated;
+}
+.wa-card .wa-qr-wait {
+  display: grid;
+  place-items: center;
+}
+.wa-card .wa-steps {
+  flex: 1;
+  min-width: 180px;
+  margin: 0;
+  padding-left: 18px;
+  color: #c9c9d1;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.wa-card .wa-error {
+  margin: 0 0 10px;
+  color: #ff9b8a;
+  font-size: 12px;
+}
+.wa-card .wa-linked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+}
+.wa-card .wa-check {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--wa);
+  color: #fff;
+  font-size: 12px;
+}
+.wa-card .wa-me {
+  color: #9a9aa6;
+  font-variant-numeric: tabular-nums;
+}
+.wa-card .wa-toggle {
+  margin: 4px 0 10px;
+}
+.wa-card .wa-replies {
+  margin: 0 0 12px;
+}
+.wa-card .wa-replies summary {
+  cursor: pointer;
+  color: #d9d6d2;
+  font-size: 12px;
+}
+.wa-card .wa-replies-text {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 6px 0 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: #0c0c0f;
+  color: #ddd;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+  resize: vertical;
+}
+.wa-card .wa-confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+/* the saved contacts, folded behind one row */
+.wa-card .wa-people {
+  margin-top: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.wa-card .wa-people-toggle {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px !important;
+  padding: 0 14px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #e6e3df !important;
+  font-size: 12.5px !important;
+  text-align: left;
+}
+.wa-card .wa-people-toggle:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+.wa-card .wa-people-label {
+  flex: 1;
+}
+.wa-card .wa-count {
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #b9b9c3;
+  font-size: 11px;
+  text-align: center;
+}
+.wa-card .wa-chevron {
+  color: #8f8d8a;
+  font-size: 16px;
+  transition: transform 0.15s;
+}
+.wa-card.wa-people-open .wa-chevron {
+  transform: rotate(90deg);
+}
+.wa-card .wa-people-body {
+  padding: 0 14px 12px;
+}
+.wa-card .wa-list {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+.wa-card .wa-row {
+  display: grid !important;
+  grid-template-columns: 28px minmax(0, 1fr) auto 28px !important;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 6px 6px 8px !important;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.wa-card .wa-initial {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(37, 211, 102, 0.14);
+  color: #8be3ad;
+  font-size: 12px;
+  font-weight: 650;
+}
+.wa-card .wa-person {
+  overflow: hidden;
+  font-size: 12.5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.wa-card .wa-phone {
+  color: #9a9aa6;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.wa-card button.wa-remove {
+  display: grid !important;
+  place-items: center;
+  width: 28px !important;
+  min-width: 0 !important;
+  height: 28px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #8f8d8a !important;
+  box-shadow: none !important;
+}
+.wa-card button.wa-remove:hover {
+  background: rgba(255, 138, 122, 0.12) !important;
+  color: #ff8a7a !important;
+}
+.wa-card button.wa-remove svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.wa-card .wa-add {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto !important;
+  gap: 8px;
+  margin: 0 0 10px !important;
+}
+.wa-card .wa-add input {
+  min-width: 0;
+}
+@media (max-width: 520px) {
+  .wa-card .wa-add {
+    grid-template-columns: 1fr !important;
+  }
+}

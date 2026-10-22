@@ -14,9 +14,11 @@ const GAP = 8;
 class MailBubble {
   // anchor(): { x, y, width, height } of the visible island in screen coordinates.
   // onOpen(item): called when the user clicks a bubble.
-  constructor({ anchor, onOpen }) {
+  // onWhatsApp(action, args): v0.8.8 WhatsApp cards (reply, quick replies, open the chat…).
+  constructor({ anchor, onOpen, onWhatsApp = null }) {
     this.anchor = anchor;
     this.onOpen = onOpen;
+    this.onWhatsApp = onWhatsApp;
     this.items = [];
     this.height = 0;
     this.window = null;
@@ -33,6 +35,24 @@ class MailBubble {
     ipcMain.on('bubble-dismiss', (event, id) => {
       if (own(event)) this.remove(id);
     });
+    // v0.8.8: WhatsApp cards. "focus" lets the card take the keyboard while a reply is typed
+    // (the bubble window never takes focus otherwise).
+    ipcMain.handle('bubble-wa', async (event, action, args) => {
+      if (!own(event)) return { ok: false, error: 'Geçersiz pencere.' };
+      try {
+        if (action === 'focus') {
+          const w = this.window;
+          w.setFocusable(!!args?.on);
+          if (args?.on) w.focus();
+          else w.blur();
+          return { ok: true, value: true };
+        }
+        if (!this.onWhatsApp) throw Error('WhatsApp kapalı.');
+        return { ok: true, value: await this.onWhatsApp(String(action), args || {}) };
+      } catch (e) {
+        return { ok: false, error: e.message };
+      }
+    });
     ipcMain.on('bubble-size', (event, height) => {
       if (!own(event) || !Number.isFinite(height)) return;
       this.height = Math.max(0, Math.min(600, Math.round(height)));
@@ -45,6 +65,13 @@ class MailBubble {
     if (!item?.id || this.items.some((i) => i.id === item.id)) return;
     this.items.unshift({ ...item, at: Date.now() });
     this.items = this.items.slice(0, 12);
+    void this.render();
+  }
+
+  /** v0.8.8: adds or replaces an item (a WhatsApp chat's card) and moves it to the top. */
+  upsert(item) {
+    if (!item?.id) return;
+    this.items = [{ ...item, at: Date.now() }, ...this.items.filter((i) => i.id !== item.id)].slice(0, 12);
     void this.render();
   }
 
@@ -103,9 +130,13 @@ class MailBubble {
     }
     await this.ensureWindow();
     if (!this.window || this.window.isDestroyed()) return;
+    // WhatsApp chats share one card (v0.8.8), the rest are bubbles as before
+    const wa = this.items.filter((i) => i.kind === 'whatsapp');
+    const rest = this.items.filter((i) => i.kind !== 'whatsapp');
     this.window.webContents.send('bubble-items', {
-      items: this.items.slice(0, MAX_VISIBLE),
-      more: Math.max(0, this.items.length - MAX_VISIBLE),
+      items: rest.slice(0, MAX_VISIBLE),
+      more: Math.max(0, rest.length - MAX_VISIBLE),
+      wa,
     });
   }
 

@@ -428,9 +428,14 @@ export function workspaceUI(d: WorkspaceDeps) {
       await api.workspace(false);
     } catch (e) {
       d.notice((e as Error).message);
-      // v0.7.2: never leave the user without Charles: fall back to the island
-      apply({ on: false });
-      void api.expand?.(true).catch(() => {});
+      // v0.8.8: show what Charles really is in (v0.7.2 switched the page to the island even
+      // when the big window stayed, so the island ended up inside the big window)
+      try {
+        apply(await api.workspaceState());
+      } catch {
+        apply({ on: false });
+      }
+      if (!on) void api.expand?.(true).catch(() => {});
     }
   }
   function apply(state: { on?: boolean; maximized?: boolean } | null) {

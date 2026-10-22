@@ -28,6 +28,7 @@ const PERMISSION_LABEL: Record<string, string> = {
   image: 'Görsel',
   voice: 'Ses',
   download: 'İndirme',
+  appearance: 'Görünüm',
   storage: 'Kendi verisi',
   slime: 'Slime',
   notify: 'Bildirim',

@@ -39,6 +39,7 @@ function needs(method) {
   if (method === 'ai.image') return 'image';
   if (method === 'voice.speak' || method === 'voice.stop') return 'voice';
   if (method.startsWith('download.')) return 'download';
+  if (method === 'slime.wear') return 'appearance';
   return null;
 }
 
@@ -53,7 +54,30 @@ const IMAGE_EXT = /\.(png|jpe?g|webp)$/i;
 const MAX_CHAT_IMAGES = 10;
 const MAX_CHAT_IMAGE_BYTES = 20 * 1024 * 1024;
 const NO_IMAGE_MODEL = /^(cursor|abacus):/i;
-const FEATURES = ['ai.images'];
+const FEATURES = ['ai.images', 'slime.look', 'slime.react', 'slime.wear', 'slime.kit'];
+// v0.8.8: what the desktop Slime can do for a module (src/renderer.ts → onModuleReact)
+const REACTIONS = ['greet', 'blink', 'squash', 'slap', 'dizzy', 'gulp'];
+// the accessories a module may put on the desktop Slime (src/vendor/slime/wardrobe.ts SLOT_ITEMS)
+const SLOT_ITEMS = {
+  hat: ['none', 'auto', 'fedora', 'crown', 'partyHat', 'beanie', 'witchHat', 'santaHat', 'bunnyEars', 'bow', 'headphones'],
+  eyes: ['none', 'sunglasses', 'bigShades', 'roundGlasses', 'monocle', 'eyePatch'],
+  other: ['none', 'pumpkin', 'scarf', 'banana', 'bowTie', 'catCollar', 'arrow'],
+};
+/** { hat?, eyes?, other? } → a checked accessory set (missing slots: null = keep the user's). */
+function cleanWear(v) {
+  if (v === null) return null;
+  if (!v || typeof v !== 'object' || Array.isArray(v)) throw Error('slime.wear bir nesne bekler: { hat, eyes, other } ya da null.');
+  const out = {};
+  for (const k of Object.keys(v)) if (!SLOT_ITEMS[k]) throw Error(`Bilinmeyen aksesuar yuvası “${String(k).slice(0, 20)}” (hat, eyes, other).`);
+  for (const slot of Object.keys(SLOT_ITEMS)) {
+    if (v[slot] === undefined || v[slot] === null) continue;
+    if (!SLOT_ITEMS[slot].includes(v[slot])) throw Error(`Geçersiz ${slot} aksesuarı “${String(v[slot]).slice(0, 30)}”. Geçerli: ${SLOT_ITEMS[slot].join(', ')}.`);
+    out[slot] = v[slot];
+  }
+  if (out.other === 'pumpkin' && out.hat && !['none', 'auto'].includes(out.hat)) throw Error('Balkabağı şapkayla birlikte takılamaz.');
+  if (!Object.keys(out).length) throw Error('En az bir aksesuar yuvası (hat, eyes, other) ver ya da null gönder.');
+  return out;
+}
 
 /** images: ['courses/k1/s9.png'] → absolute paths inside the module's data folder, or an error. */
 function chatImages(images, storage) {
@@ -107,6 +131,7 @@ function createModuleHost(o) {
   const storages = new Map();
   const watchers = new Map();
   const busy = new Set(); // "id ai.chat"
+  let wearer = null; // v0.8.8: the module whose accessories the desktop Slime wears
   const allow = rateLimiter();
   // Charles Download optional bridge.
   let downloadBridge = null;
@@ -130,7 +155,7 @@ function createModuleHost(o) {
     try {
       entry = registry.manifest(id).entry;
     } catch {}
-    return { files: registry.root(id), data: registry.dataDir(id), entry };
+    return { files: registry.root(id), data: registry.dataDir(id), entry, kit: deps.kitDir || null };
   }
   function sessionFor(id) {
     if (sessions.has(id)) return sessions.get(id);
@@ -245,6 +270,11 @@ function createModuleHost(o) {
       owners.delete(wcId);
       unwatch(id);
       deps.stopSpeak?.(id);
+      // the desktop Slime takes off what this module put on
+      if (wearer === id) {
+        wearer = null;
+        deps.wear?.(null);
+      }
       changed();
     });
     if (m.devPath) watch(id, win);
@@ -367,6 +397,28 @@ function createModuleHost(o) {
         deps.emote(name);
         return true;
       }
+      // v0.8.8: the desktop Slime's look, reactions and temporary accessories
+      case 'slime.look':
+        return deps.look ? deps.look() : null;
+      case 'slime.react': {
+        const name = String(args?.name || '');
+        if (!REACTIONS.includes(name) && !EMOTES.includes(name))
+          throw Error(`Geçersiz tepki “${name.slice(0, 30)}”. Geçerli: ${[...REACTIONS, ...EMOTES].join(', ')}.`);
+        if (EMOTES.includes(name)) deps.emote(name);
+        else deps.react?.(name);
+        return true;
+      }
+      case 'slime.wear': {
+        const wear = cleanWear(args?.accessories === undefined ? null : args.accessories);
+        if (wear) {
+          wearer = id;
+          deps.wear?.(wear);
+        } else if (wearer === id) {
+          wearer = null;
+          deps.wear?.(null);
+        }
+        return true;
+      }
       case 'notify': {
         let name = id;
         try {
@@ -397,6 +449,10 @@ function createModuleHost(o) {
     reload,
     call,
     openIds: () => [...windows.keys()].filter((id) => !windows.get(id).isDestroyed()),
+    /** v0.8.8: the user's Slime look changed (colour / accessories) → every module window. */
+    look(value) {
+      for (const w of windows.values()) if (!w.isDestroyed()) w.webContents.send('charles-module:slime-look', value);
+    },
     language(lang) {
       downloadBridge?.language?.(lang);
       for (const w of windows.values()) if (!w.isDestroyed()) w.webContents.send('charles-module:language', lang);
@@ -407,4 +463,4 @@ function createModuleHost(o) {
   };
 }
 
-module.exports = { createModuleHost, chatPrompt, chatImages, rateLimiter, needs, EMOTES, FEATURES };
+module.exports = { createModuleHost, chatPrompt, chatImages, rateLimiter, needs, cleanWear, EMOTES, REACTIONS, SLOT_ITEMS, FEATURES };

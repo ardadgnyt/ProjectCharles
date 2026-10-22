@@ -7,11 +7,14 @@ const PERMISSIONS = {
   // v0.8.5 / v0.8.6: Charles' download engine (any module may ask for it, like the others)
   download:
     'İnternetten video, ses ve dosya indirip İndirilenler klasörüne kaydeder; bunun için Charles’ın yt-dlp ve FFmpeg araçlarını çalıştırır, indirme kuyruğunu görebilir ve yönetebilir. İstersen panoya kopyaladığın bağlantıları da izler.',
+  // v0.8.8: accessories on the desktop Slime while the module is open
+  appearance:
+    'Modül açıkken masaüstündeki Slime’a geçici aksesuar takabilir (ör. yuvarlak gözlük). Senin seçimin değişmez; modül kapanınca Slime eski hâline döner.',
 };
 // every module has these
 const DEFAULT_PERMISSIONS = {
   storage: 'Yalnızca kendi veri klasörüne dosya kaydedip okuyabilir.',
-  slime: 'Slime’a ifade yaptırabilir.',
+  slime: 'Slime’a ifade ve tepki yaptırabilir, görünümünü (renk, aksesuarlar) okuyabilir.',
   notify: 'Charles’ın bildirim balonunda kısa mesaj gösterebilir.',
 };
 const ID = /^[a-z0-9][a-z0-9-]{1,40}$/;

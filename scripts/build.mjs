@@ -14,6 +14,19 @@ await build({
   sourcemap: false,
   tsconfigRaw: {},
 });
+// v0.8.8: Charles' Slime for module windows (served at charles-module://<id>/_charles/slime.js)
+await build({
+  entryPoints: ['./src/module-kit/slime-kit.ts'],
+  outfile: 'dist/module-kit/slime.js',
+  bundle: true,
+  format: 'iife',
+  platform: 'browser',
+  target: 'chrome140',
+  minify: true,
+  legalComments: 'inline',
+  sourcemap: false,
+  tsconfigRaw: {},
+});
 if (process.platform === 'win32') {
   const { execFileSync } = await import('node:child_process');
   execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/build-launcher.ps1'], { stdio: 'inherit', windowsHide: true });

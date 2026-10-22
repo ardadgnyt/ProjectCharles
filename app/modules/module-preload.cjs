@@ -8,13 +8,16 @@ const call = async (method, args) => {
   if (!r || !r.ok) throw new Error((r && r.error) || 'Modül çağrısı başarısız.');
   return r.value;
 };
-const listeners = { language: new Set() };
-ipcRenderer.on('charles-module:language', (_e, lang) => {
-  for (const cb of listeners.language)
+const listeners = { language: new Set(), 'slime-look': new Set() };
+const relay = (event) => (_e, value) => {
+  for (const cb of listeners[event])
     try {
-      cb(lang);
+      cb(value);
     } catch {}
-});
+};
+ipcRenderer.on('charles-module:language', relay('language'));
+// v0.8.8: the user changed Slime's colour or accessories
+ipcRenderer.on('charles-module:slime-look', relay('slime-look'));
 
 contextBridge.exposeInMainWorld('charlesModule', {
   apiVersion: 1,
@@ -61,11 +64,16 @@ contextBridge.exposeInMainWorld('charlesModule', {
   },
   slime: {
     emote: (name) => call('slime.emote', { name }),
+    // v0.8.8 (features: slime.look / slime.react / slime.wear)
+    look: () => call('slime.look'),
+    react: (name) => call('slime.react', { name }),
+    // { hat, eyes, other } while the module is open ("appearance" permission); null takes it off
+    wear: (accessories) => call('slime.wear', { accessories: accessories === undefined ? null : accessories }),
   },
   notify: (text) => call('notify', { text }),
   on: (event, cb) => {
-    if (event !== 'language' || typeof cb !== 'function') throw new Error('Desteklenen olay: language');
-    listeners.language.add(cb);
-    return () => listeners.language.delete(cb);
+    if (!listeners[event] || typeof cb !== 'function') throw new Error('Desteklenen olaylar: language, slime-look');
+    listeners[event].add(cb);
+    return () => listeners[event].delete(cb);
   },
 });

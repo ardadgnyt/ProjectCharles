@@ -1262,8 +1262,13 @@ export class BotEngine {
       PAW.dark = '#e4ddd3';
       PAW.edge = null;
     }
-    if (this.reading > 0.01) drawReading(x, performance.now() / 1000, this.reading);
-    else this.drawEyes(x, body, R, rx, ry);
+    // v0.8.8: with eyewear on, the normal eyes stay (the eyewear is drawn for them) and the
+    // reading pose only adds the page and the paws
+    const ownEyes = this.eyewear === 'none';
+    if (this.reading > 0.01) {
+      if (!ownEyes) this.drawEyes(x, body, R, rx, ry);
+      drawReading(x, performance.now() / 1000, this.reading, ownEyes);
+    } else this.drawEyes(x, body, R, rx, ry);
     // Mouth and moustache before the work props (laptop, drawing board…), so those stay in front.
     if (slime && this.morph < 0.5 && this.reading <= 0.01) this.drawSlimeMouth(x, body, R, rx, ry);
     // the light bulb is drawn after the hat (below), so the hat never covers it

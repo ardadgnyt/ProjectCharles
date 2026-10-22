@@ -185,6 +185,16 @@ export function wardrobeUI(api: any, bot: BotEngine) {
     acc: { hat: 'none', eyes: 'none', other: 'none' } as Accessories,
     look: parseLook(''),
   };
+  let moduleWear: Partial<Accessories> | null = null;
+  const worn = () => {
+    if (!moduleWear) return wearable(saved.acc);
+    const acc = { ...saved.acc, ...moduleWear } as Accessories;
+    if (clashes(acc)) {
+      if (moduleWear.other === 'pumpkin') acc.hat = 'none';
+      else acc.other = 'none';
+    }
+    return wearable(acc);
+  };
   const picked = { acc: { ...saved.acc }, look: parseLook('') };
   let tab: Tab = 'hat';
 
@@ -252,9 +262,12 @@ export function wardrobeUI(api: any, bot: BotEngine) {
     paint();
   }
   const apply = (p: any) => {
+    const before = JSON.stringify(saved);
     saved = { acc: accessoriesOf(p), look: parseLook(p.slime) };
+    // v0.8.8: open module windows learn the new look (charlesModule.on('slime-look'))
+    if (JSON.stringify(saved) !== before) void api.modulesLook?.().catch(() => {});
     bot.look = { ...saved.look };
-    bot.setAccessories(wearable(saved.acc));
+    bot.setAccessories(worn());
     updateAppIcon(api, saved.look.color);
     picked.acc = { ...saved.acc };
     picked.look = { ...saved.look };
@@ -282,14 +295,20 @@ export function wardrobeUI(api: any, bot: BotEngine) {
     tryOn();
     paint();
   };
+  // v0.8.8: a module (with the "appearance" permission) dresses the desktop Slime while it is
+  // open; the user's own choice stays saved and comes back when the module lets go.
+  api.onModuleWear?.((v: any) => {
+    moduleWear = v && typeof v === 'object' ? v : null;
+    bot.setAccessories(worn());
+  });
   showTab('hat');
   api.onPersonal(apply);
   void api.personalRead().then(apply);
   // "Mevsime göre" follows the date.
-  window.setInterval(() => bot.setAccessories(wearable(saved.acc)), 60000);
+  window.setInterval(() => bot.setAccessories(worn()), 60000);
   // v0.6.3: the Turkish flag on the national days comes only with the Turkish UI
   document.addEventListener('charles-language', () => {
-    bot.setAccessories(wearable(saved.acc));
+    bot.setAccessories(worn());
     tryOn();
   });
   void tab;

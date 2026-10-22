@@ -46,7 +46,7 @@ test('workspace: main process switches the window and keeps the island logic out
   assert.match(main, /const ignore = workspace \? false : !inside;/); // no click-through
   assert.match(main, /if \(workspace\) return; \/\/ a normal app window may sit in the taskbar/);
   assert.match(main, /if \(pluginGuide \|\| workspace\) return detached;/);
-  assert.match(main, /safeHandler\('workspace', \(on\) => setWorkspace\(on\)\)/);
+  assert.match(main, /safeHandler\('workspace', \(on\) => \{[^}]*return setWorkspace\(on\)/);
   assert.match(main, /safeHandler\('workspace-window'/);
   assert.match(main, /appWin\.on\('close'/); // Alt+F4 / × go back to the island
   assert.match(main, /previous\.workspace/); // "Charles ile kur" comes back to the app window

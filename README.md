@@ -236,3 +236,59 @@ licenses. See [LICENSE](LICENSE), [LICENSE-ASSETS.md](LICENSE-ASSETS.md) and
 
 Charles is an independent project. It is not affiliated with OpenAI, Anthropic, Google or
 Cursor.
+
+## Install and Update EN
+  1. Download **ProjectCharles-vX.X.X-Beta-Setup.zip** and extract the whole folder.
+  2. Double-click **Install.cmd** and press Enter.
+  
+  Requires Windows 10 or 11 (64-bit). No administrator rights needed. If SmartScreen warns you, choose **More info → Run anyway**.
+
+> ### **Updating from an older version:** 
+> You can perform the update directly via the update option within Charles—without needing to deal with GitHub—or simply install version vX.X.X by following the initial setup steps. Your chats, settings, and keys are stored and preserved in the `%APPDATA%\Charles` directory.
+
+## Kurulum ve Güncelleme TR
+  1. **ProjectCharles-vX.X.X-Beta-Setup.zip** dosyasını indirin ve içindeki tüm klasörü dışa aktarın.
+  2. **Install.cmd** dosyasına çift tıklayın ve Enter tuşuna basın.
+  
+  Windows 10 veya 11 (64-bit) gerektirir. Yönetici izni gerekmez. Windows SmartScreen bir uyarı verirse, **Daha fazla bilgi → Yine de çalıştır** seçeneğini belirleyin.
+  
+
+> ### **Daha eski bir sürümden güncelleme:** 
+> 
+> Charles içerisindeki güncelleme seçeneği ile güncellemeyi doğrudan GitHub ile uğraşmadan yapabilirsiniz veya vX.X.X sürümünü İlk kurulum adımlarını izleyerek kurmanız yeterlidir. Sohbetleriniz, ayarlarınız ve anahtarlarınız `%APPDATA%\Charles` dizininde tutulur ve korunur. 
+
+## Installation und Aktualisierung DE
+1. Lade **ProjectCharles-vX.X.X-Beta-Setup.zip** herunter und entpacke den gesamten Ordner. 
+2. Doppelklicke auf **Install.cmd** und drücke die Eingabetaste (Enter). 
+
+Erfordert Windows 10 oder 11 (64-Bit). Es sind keine Administratorrechte erforderlich. Falls eine SmartScreen-Warnung erscheint, wähle **Weitere Informationen → Trotzdem ausführen**.
+
+> ### **Aktualisierung von einer älteren Version:**
+> Du kannst das Update direkt über die entsprechende Option in Charles durchführen – ohne den Umweg über GitHub – oder einfach Version vX.X.X installieren, indem du die Schritte für die Ersteinrichtung befolgst. Deine Chats, Einstellungen und Schlüssel bleiben im Verzeichnis `%APPDATA%\Charles` gespeichert und erhalten.
+
+## Installation et mise à jour FR
+1. Téléchargez **ProjectCharles-vX.X.X-Beta-Setup.zip** et extrayez le contenu du dossier. 
+2. Double-cliquez sur **Install.cmd** et appuyez sur la touche Entrée. 
+
+Nécessite Windows 10 ou 11 (64 bits). Aucun droit d'administrateur n'est requis. Si SmartScreen affiche un avertissement, sélectionnez **Informations complémentaires → Exécuter quand même**.
+
+> ### **Mise à jour depuis une version antérieure :**
+> Vous pouvez effectuer la mise à jour directement via l'option dédiée dans Charles — sans avoir à passer par GitHub — ou simplement installer la version vX.X.X en suivant les étapes d'installation initiales. Vos discussions, paramètres et clés sont conservés dans le répertoire `%APPDATA%\Charles`.
+
+## Instalación y actualización ES
+1. Descarga **ProjectCharles-vX.X.X-Beta-Setup.zip** y extrae todo el contenido de la carpeta. 
+2. Haz doble clic en **Install.cmd** y pulsa Enter. 
+
+Requiere Windows 10 u 11 (64 bits). No se necesitan privilegios de administrador. Si aparece una advertencia de SmartScreen, selecciona **Más información → Ejecutar de todas formas**.
+
+> ### **Actualización desde una versión anterior:**
+> Puedes realizar la actualización directamente a través de la opción de actualización dentro de Charles —sin necesidad de recurrir a GitHub— o simplemente instalar la versión vX.X.X siguiendo los pasos de instalación inicial. Tus chats, configuraciones y claves se almacenan y conservan en el directorio `%APPDATA%\Charles`.
+
+## 安装与更新 简体
+1. 下载 **ProjectCharles-vX.X.X-Beta-Setup.zip** 并解压整个文件夹。 
+2. 双击 **Install.cmd**，然后按回车键 (Enter)。 
+
+需使用 Windows 10 或 11（64 位）系统。无需管理员权限。如果出现 SmartScreen 提示，请选择“更多信息” (More info) → “仍要运行” (Run anyway)。
+
+> ### **从旧版本更新：**
+> 您可以通过 Charles 软件内的更新选项直接进行更新（无需访问 GitHub），或者按照初始安装步骤直接安装 vX.X.X 版本。您的聊天记录、设置和密钥均会保存在 `%APPDATA%\Charles` 目录下，不会丢失。

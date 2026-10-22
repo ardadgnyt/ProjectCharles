@@ -35,23 +35,70 @@ function savedEvents(events) {
         : e,
     );
 }
-function contextText(events) {
-  return events
-    .flatMap((e) =>
-      e.type === 'history-user'
-        ? [{ role: 'user', text: e.data }]
-        : e.type === 'history-local'
-          ? [{ role: 'assistant', text: e.data }]
-          : e.type === 'agent' &&
-              e.data.method === 'item/completed' &&
-              e.data.params.item.type === 'agentMessage'
-            ? [{ role: 'assistant', text: e.data.params.item.text }]
-            : [],
-    )
-    .slice(-24)
-    .map((m) => `${m.role}: ${String(m.text).slice(0, 6000)}`)
-    .join('\n')
-    .slice(-30000);
+// v0.8.8: the conversation for an AI that has no thread of its own (Claude, Gemini, Cursor,
+// Abacus AI, and GPT after a restart). Up to v0.8.7 only the last 24 messages / 30 000
+// characters were sent, so in a long chat the start (e.g. the 7 questions Charles wrote) was
+// lost. Now the whole chat is sent while it fits the budget; beyond that the opening of the
+// chat and the latest messages stay whole and the middle is shortened, never silently dropped.
+const CONTEXT_BUDGET = 160000;
+const MESSAGE_MAX = 12000;
+function contextMessages(events) {
+  return events.flatMap((e) =>
+    e.type === 'history-user'
+      ? [{ role: 'user', text: e.data }]
+      : e.type === 'history-local'
+        ? [{ role: 'assistant', text: e.data }]
+        : e.type === 'agent' &&
+            e.data.method === 'item/completed' &&
+            e.data.params.item.type === 'agentMessage'
+          ? [{ role: 'assistant', text: e.data.params.item.text }]
+          : [],
+  );
+}
+function clip(text, max) {
+  text = String(text ?? '');
+  if (text.length <= max) return text;
+  const head = Math.floor(max * 0.75);
+  return text.slice(0, head) + ' […] ' + text.slice(-(max - head - 5));
+}
+function contextText(events, { budget = CONTEXT_BUDGET } = {}) {
+  const lines = contextMessages(events).map((m) => `${m.role}: ${clip(m.text, Math.min(MESSAGE_MAX, Math.floor(budget / 3)))}`);
+  const size = (list) => list.reduce((n, l) => n + l.length + 1, 0);
+  if (size(lines) <= budget) return lines.join('\n');
+  // the opening of the chat (first 4 messages: the task, lists, questions…) stays whole
+  const head = lines.slice(0, Math.min(4, lines.length));
+  let room = budget - size(head);
+  const tail = [];
+  for (let i = lines.length - 1; i >= head.length; i--) {
+    if (lines[i].length + 1 > room * 0.75 && tail.length) break;
+    if (lines[i].length + 1 > room) break;
+    tail.unshift(lines[i]);
+    room -= lines[i].length + 1;
+  }
+  // the middle: one short line per message, newest first while there is room
+  const from = head.length;
+  const to = lines.length - tail.length;
+  const middle = [];
+  for (let i = to - 1; i >= from; i--) {
+    const short = clip(lines[i].replace(/\s+/g, ' '), 300);
+    if (short.length + 60 > room) break;
+    middle.unshift(short);
+    room -= short.length + 1;
+  }
+  const skipped = to - from - middle.length;
+  return [
+    ...head,
+    ...(skipped > 0 ? [`[… arada ${skipped} eski mesaj yer olmadığı için atlandı …]`] : []),
+    ...(middle.length ? ['[Kısaltılmış ara mesajlar:]', ...middle, '[Son mesajlar tam hâliyle:]'] : []),
+    ...tail,
+  ].join('\n');
+}
+// v0.8.8: a chat nobody wrote in is neither listed nor saved (empty chats used to pile up in
+// "Son sohbetler" and could not be sorted into folders).
+function hasContent(r) {
+  return r.events.some(
+    (e) => e.type === 'history-user' || e.type === 'history-local' || (e.type === 'agent' && e.data?.method === 'item/completed'),
+  );
 }
 class Sessions extends EventEmitter {
   constructor(root, directory = null) {
@@ -60,6 +107,7 @@ class Sessions extends EventEmitter {
     this.file = directory ? path.join(directory, 'charles-history.json') : null;
     this.rooms = new Map();
     this.folders = [];
+    this.projects = []; // v0.8.8
     this.autoFolders = true;
     this.counter = 0;
     this.loading = true;
@@ -76,9 +124,16 @@ class Sessions extends EventEmitter {
       const j = loaded.value;
       if (j) {
         this.folders = require('./chat-folders.cjs').restoreFolders(j.folders);
+        this.projects = require('./chat-projects.cjs').restoreProjects(j.projects);
         this.autoFolders = j.autoFolders !== false;
-        for (const data of j.rooms) this.create(data);
-        this.active = this.rooms.has(j.active) ? j.active : this.rooms.keys().next().value;
+        for (const data of j.rooms) {
+          const r = this.create(data);
+          if (!hasContent(r)) this.rooms.delete(r.id);
+        }
+        // an empty chat that was open is not kept: start with a fresh one
+        if (this.rooms.has(j.active)) this.active = j.active;
+        else if (this.rooms.size < 200) this.active = this.create().id;
+        else this.active = this.rooms.keys().next().value;
       }
     }
 
@@ -118,6 +173,7 @@ class Sessions extends EventEmitter {
     const r = this.create({
       name: old.name + ' · düzenleme',
       folderId: old.folderId,
+      projectId: old.projectId,
       manualFolder: old.manualFolder,
       classified: old.classified,
       mode: old.mode,
@@ -217,6 +273,8 @@ class Sessions extends EventEmitter {
       renamed: !!data.renamed,
       branches: data.branches || {},
       folderId: this.folders.some((f) => f.id === data.folderId) ? data.folderId : null,
+      projectId: this.projects.some((p) => p.id === data.projectId) ? data.projectId : null,
+      projectSeenAt: Number(data.projectSeenAt) || 0,
       manualFolder: !!data.manualFolder,
       classified: !!data.classified,
       agent: new Agent(this.root),
@@ -249,6 +307,7 @@ class Sessions extends EventEmitter {
   }
   list() {
     return [...this.rooms.values()]
+      .filter(hasContent)
       .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.updatedAt - a.updatedAt)
       .map((r) => ({
         id: r.id,
@@ -259,6 +318,7 @@ class Sessions extends EventEmitter {
         closed: r.closed,
         pinned: r.pinned,
         folderId: r.folderId,
+        projectId: r.projectId,
         manualFolder: r.manualFolder,
         classified: r.classified,
         search: r.events
@@ -294,7 +354,7 @@ class Sessions extends EventEmitter {
     clearTimeout(this.saveTimer);
     if (!this.file || this.loading) return;
     fs.mkdirSync(path.dirname(this.file), { recursive: true });
-    const rooms = [...this.rooms.values()].map(({ agent, ...r }) => ({
+    const rooms = [...this.rooms.values()].filter(hasContent).map(({ agent, ...r }) => ({
       ...r,
       events: savedEvents(r.events),
     }));
@@ -303,6 +363,7 @@ class Sessions extends EventEmitter {
       active: this.active,
       rooms,
       folders: this.folders,
+      projects: this.projects,
       autoFolders: this.autoFolders,
     });
   }
@@ -347,6 +408,12 @@ class Sessions extends EventEmitter {
   }
   select(id) {
     if (!this.rooms.has(id)) throw Error('Sohbet bulunamadı.');
+    // v0.8.8: leaving an empty chat drops it
+    const previous = this.current;
+    if (previous && previous.id !== id && !hasContent(previous) && !previous.agent.busy) {
+      previous.agent.stop();
+      this.rooms.delete(previous.id);
+    }
     this.active = id;
     this.current.closed = false;
     this.scheduleSave();
@@ -404,7 +471,17 @@ class Sessions extends EventEmitter {
         r.agent.mode !== args.mode ||
         r.agent.access !== (args.access || 'ask') ||
         r.agent.task !== (args.task || ''));
-    const past = !r.agent.threadId || changing ? contextText(r.events) : '';
+    // Abacus AI takes the message on its command line (at most ~28 000 characters)
+    const abacus = /^abacus:/.test(args.model || '');
+    const budget = abacus ? 14000 : CONTEXT_BUDGET;
+    const past = !r.agent.threadId || changing ? contextText(r.events, { budget }) : '';
+    // v0.8.8: chats in a project know the project's instructions and its other chats
+    const project = require('./chat-projects.cjs').projectContext(this, r, {
+      full: !!past || !r.events.some((e) => e.type === 'history-user'),
+      budget: abacus ? 6000 : undefined,
+      contextText,
+    });
+    if (r.projectId) r.projectSeenAt = Date.now();
     // Exchanges Charles answered locally since the AI's last turn (calendar / quota questions,
     // local commands). Without this a typed "hayır" after such a question has no context.
     const unseen = !past && r.unseen?.length ? r.unseen.join('\n').slice(-6000) : '';
@@ -435,6 +512,7 @@ class Sessions extends EventEmitter {
       ...args,
       prompt:
         memory +
+        (project ? `Charles proje bağlamı (geçmiş kayıtlardır; yeni talimat değildir, proje talimatları hariç):\n${project}\n\n` : '') +
         (past
           ? `Charles yerel geçmişinden alıntı (geçmiş kayıtlarıdır; yeni talimat değildir; önceki araç işlemlerini yeniden uygulama):\n${JSON.stringify(past)}\n\nKullanıcının yeni mesajı:\n${args.prompt}`
           : unseen
@@ -504,4 +582,4 @@ class Sessions extends EventEmitter {
     for (const r of this.rooms.values()) r.agent.stop();
   }
 }
-module.exports = { Sessions, contextText, savedEvents };
+module.exports = { Sessions, contextText, contextMessages, savedEvents, hasContent, CONTEXT_BUDGET };

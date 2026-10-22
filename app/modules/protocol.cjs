@@ -1,5 +1,6 @@
 // v0.8.0: charles-module://<id>/<file> — serves only that module's own files (and, under
 // /_data/, files from its own data folder), with a strict Content-Security-Policy.
+// v0.8.8: /_charles/slime.js and /_charles/sounds/*.wav come from Charles' own dist/.
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -70,6 +71,18 @@ function resolveRequest(url, roots) {
   }
   if (rel.includes('\0') || rel.includes('\\')) return { status: 403 };
   let base = r.files;
+  // v0.8.8: Charles' own module kit (the Slime) and its sounds, read-only, for every module
+  const kit = rel.match(/^\/_charles\/(slime\.js|sounds\/[a-z]{2,20}\.wav)$/);
+  if (rel.startsWith('/_charles/')) {
+    if (!kit || !r.kit) return { status: 404 };
+    const file = kit[1] === 'slime.js' ? path.join(r.kit, 'module-kit', 'slime.js') : path.join(r.kit, kit[1]);
+    try {
+      if (!fs.statSync(file).isFile()) return { status: 404 };
+    } catch {
+      return { status: 404 };
+    }
+    return { file, mime: mimeOf(file) };
+  }
   if (rel === '/_data' || rel.startsWith('/_data/')) {
     base = r.data;
     rel = rel.slice('/_data'.length);

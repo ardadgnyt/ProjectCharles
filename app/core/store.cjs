@@ -73,10 +73,22 @@ function looksLikeJson(file) {
 }
 // Writes durably without re-reading the previous file (the history can be 15 MB+ and this
 // runs on the main process): new content -> .tmp (fsync), current -> .bak, .tmp -> current.
+// v0.8.8: on Windows a rename fails now and then with EPERM / EBUSY / EACCES while the search
+// indexer, an antivirus or OneDrive holds the file for a moment; try a few times before giving up.
+function renameRetry(from, to) {
+  for (let i = 0; ; i++) {
+    try {
+      return fs.renameSync(from, to);
+    } catch (e) {
+      if (i >= 4 || !['EPERM', 'EBUSY', 'EACCES'].includes(e.code)) throw e;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25 * (i + 1));
+    }
+  }
+}
 function writeStore(file, value) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   writeDurable(file + '.tmp', JSON.stringify(value));
-  if (fs.existsSync(file) && looksLikeJson(file)) fs.renameSync(file, file + '.bak');
-  fs.renameSync(file + '.tmp', file);
+  if (fs.existsSync(file) && looksLikeJson(file)) renameRetry(file, file + '.bak');
+  renameRetry(file + '.tmp', file);
 }
 module.exports = { readStore, writeStore };

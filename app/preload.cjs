@@ -217,6 +217,15 @@ contextBridge.exposeInMainWorld('charles', {
   workspaceCalendarDelete: (id) => invoke('workspace-calendar-delete', id),
   whatsappRead: () => invoke('whatsapp-read'),
   whatsappSave: (v) => invoke('whatsapp-save', v),
+  // v0.8.8: WhatsApp messages in Charles
+  whatsappLiveState: () => invoke('whatsapp-live-state'),
+  whatsappLiveEnable: (on) => invoke('whatsapp-live-enable', on),
+  whatsappLiveInstall: () => invoke('whatsapp-live-install'),
+  whatsappLiveRestart: () => invoke('whatsapp-live-restart'),
+  whatsappLiveConfigure: (v) => invoke('whatsapp-live-configure', v),
+  whatsappLiveLogout: () => invoke('whatsapp-live-logout'),
+  onWhatsappLive: (cb) => ipcRenderer.on('whatsapp-live', (_e, v) => cb(v)),
+  onWhatsappMessage: (cb) => ipcRenderer.on('whatsapp-message', (_e, v) => cb(v)),
   workspaceHomeLayout: (ids) => invoke('workspace-home-layout', ids),
   workspaceHome: (force) => invoke('workspace-home', force),
   workspaceHomeAction: (entity, action) => invoke('workspace-home-action', entity, action),
@@ -236,6 +245,10 @@ contextBridge.exposeInMainWorld('charles', {
   modulesEnable: (id, value) => invoke('modules-enable', id, value),
   modulesRemove: (id, deleteData) => invoke('modules-remove', id, deleteData),
   modulesDev: (value) => invoke('modules-dev', value),
+  // v0.8.8: Slime for modules
+  modulesLook: () => invoke('modules-look'),
+  onModuleReact: (cb) => ipcRenderer.on('module-react', (_e, v) => cb(v)),
+  onModuleWear: (cb) => ipcRenderer.on('module-wear', (_e, v) => cb(v)),
   onModulesChanged: (cb) => {
     const fn = () => cb();
     ipcRenderer.on('modules-changed', fn);

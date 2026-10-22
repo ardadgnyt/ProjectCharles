@@ -38,6 +38,8 @@ export type SoundName = (typeof SOUND_NAMES)[number];
 
 class SoundEngine {
   enabled = true;
+  /** v0.8.8: where the WAVs are served (the module kit uses /_charles/sounds/). */
+  base = '/sounds/';
   volume = 0.12;
 
   private ctx: AudioContext | null = null;
@@ -63,7 +65,7 @@ class SoundEngine {
       await Promise.all(
         SOUND_NAMES.map(async (name) => {
           try {
-            const res = await fetch(`/sounds/${name}.wav`);
+            const res = await fetch(`${this.base}${name}.wav`);
             if (!res.ok) return;
             const buf = await ctx.decodeAudioData(await res.arrayBuffer());
             this.buffers.set(name, buf);

@@ -7,11 +7,20 @@ class ChatFolders {
   state() {
     return {
       folders: this.sessions.folders,
+      projects: this.sessions.projects || [],
+      activeId: this.sessions.active,
       auto: this.sessions.autoFolders,
       rooms: this.sessions.list(),
     };
   }
-  edit({ action, id, name, parentId = null, roomId, enabled }) {
+  edit(args = {}) {
+    // v0.8.8: projects (app/ai/chat-projects.cjs)
+    if (typeof args.action === 'string' && (args.action.startsWith('project-') || args.action === 'move-chat-project')) {
+      require('./chat-projects.cjs').editProject(this.sessions, args);
+      this.sessions.save();
+      return this.state();
+    }
+    let { action, id, name, parentId = null, roomId, enabled } = args;
     const s = this.sessions,
       folders = s.folders;
     if (parentId !== null && !folders.some((f) => f.id === parentId))
@@ -24,6 +33,8 @@ class ChatFolders {
       if (!room) throw Error('Sohbet bulunamadı.');
       room.folderId = parentId;
       room.manualFolder = true;
+      // a chat moved into a folder leaves its project
+      if (parentId) room.projectId = null;
     } else {
       const folder = folders.find((f) => f.id === id);
       if (action !== 'create' && !folder) throw Error('Klasör bulunamadı.');
@@ -69,7 +80,7 @@ class ChatFolders {
   applyAI(roomId, result) {
     const s = this.sessions,
       r = s.rooms.get(roomId);
-    if (!r || r.manualFolder) return false;
+    if (!r || r.manualFolder || r.projectId) return false;
     const value = JSON.parse(
       String(result)
         .trim()

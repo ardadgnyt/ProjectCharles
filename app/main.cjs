@@ -98,6 +98,18 @@ protocol.registerSchemesAsPrivileged([
 ]);
 let moduleRegistry = null,
   moduleHost = null,
+  // v0.8.8: the user's Slime look for modules (colour, moustache, accessories)
+  slimeLook = () => {
+    const p = personal?.data || {};
+    const [, color, m] = String(p.slime || '').split(':');
+    return {
+      color: /^[a-z]{3,10}$/.test(color || '') ? color : 'green',
+      mustache: m === '1',
+      hat: String(p.outfit || 'none'),
+      eyes: String(p.eyewear || 'none'),
+      other: String(p.otherWear || 'none'),
+    };
+  },
   trayMenu = () => {};
 let win,
   tray,
@@ -314,7 +326,30 @@ function saveWorkspace() {
     maximized: appWin.isMaximized(),
     bounds: appWin.isMaximized() ? appWin.getNormalBounds() : appWin.getBounds(),
   };
-  v2.save();
+  // v0.8.8: saving the window size must never stop the switch back to the island (a failed
+  // write left the island page inside the big window)
+  try {
+    v2.save();
+  } catch (e) {
+    perfLog?.('workspace save failed', e.code || e.message);
+  }
+}
+/**
+ * v0.8.8: makes the windows match `workspace` again — the page in the right window, the other
+ * window hidden. Switching while the main process was busy (a long chat being saved) sometimes
+ * left the island page in the big window, or the big window empty.
+ */
+function syncWindows() {
+  if (!view || view.webContents.isDestroyed() || !islandWin || islandWin.isDestroyed()) return;
+  const target = activeWindow();
+  const other = target === appWin ? islandWin : appWin;
+  if (!target.contentView.children.includes(view)) moveView(target);
+  else fitView(target);
+  if (other && !other.isDestroyed() && other.isVisible()) other.hide();
+  if (!target.isVisible() && !(target === islandWin && (hidden || detached))) target.show();
+}
+function checkWindowsSoon() {
+  for (const ms of [250, 900]) setTimeout(() => syncWindows(), ms);
 }
 function sendWorkspace() {
   if (win && !win.isDestroyed())
@@ -376,6 +411,7 @@ function setWorkspace(on) {
     appWin.focus();
     islandWin.hide();
     sendWorkspace();
+    checkWindowsSoon();
   } else {
     saveWorkspace();
     workspace = null;
@@ -404,6 +440,7 @@ function setWorkspace(on) {
       if (!islandWin.isVisible()) islandWin.show();
       fitView(islandWin);
     }, 350);
+    checkWindowsSoon();
   }
   return !!workspace;
 }
@@ -435,8 +472,62 @@ function whatsappContacts() {
   }
   return waContacts;
 }
+// v0.8.8: WhatsApp messages in Charles through the local gateway (app/plugins/whatsapp-live.cjs)
+let waLive = null;
+function whatsappLive() {
+  if (!waLive) {
+    const { WhatsAppLive } = require('./plugins/whatsapp-live.cjs');
+    waLive = new WhatsAppLive({ dir: path.join(app.getPath('userData'), 'whatsapp') });
+    waLive.on('state', (state) => {
+      if (win && !win.isDestroyed()) win.webContents.send('whatsapp-live', state);
+      if (state.link !== 'connected') for (const i of mailBubble?.items || []) if (i.kind === 'whatsapp') mailBubble.remove(i.id);
+    });
+    waLive.on('message', (m) => {
+      mailBubble?.upsert({ id: 'wa|' + m.chat, kind: 'whatsapp', ...m, quickReplies: waLive.settings.quickReplies });
+      // Slime notices: a little happy face and a sound, like a new mail
+      if (win && !win.isDestroyed()) win.webContents.send('whatsapp-message', { name: m.name });
+    });
+  }
+  return waLive;
+}
+/** Actions of the WhatsApp card under the island (public/bubble.js). */
+async function whatsappBubbleAction(action, args) {
+  const live = whatsappLive();
+  const chat = String(args.chat || '');
+  if (action === 'conversation') return live.conversation(chat);
+  if (action === 'read') {
+    await live.markRead(chat);
+    return true;
+  }
+  if (action === 'reply') {
+    // the user pressed send (or a quick reply) on the card: an explicit command
+    const r = await live.reply(chat, String(args.text || ''));
+    mailBubble?.upsert({ ...(mailBubble.items.find((i) => i.id === 'wa|' + chat) || {}), id: 'wa|' + chat, kind: 'whatsapp', unread: 0, replied: String(args.text || '').slice(0, 300) });
+    return r;
+  }
+  if (action === 'open') {
+    const digits = /@s\.whatsapp\.net$/.test(chat) ? chat.split('@')[0].replace(/\D/g, '') : '';
+    await shell.openExternal(digits ? `whatsapp://send?phone=${digits}` : 'whatsapp://');
+    return true;
+  }
+  if (action === 'dismiss-all') {
+    for (const i of [...(mailBubble?.items || [])]) if (i.kind === 'whatsapp') mailBubble.remove(i.id);
+    return true;
+  }
+  throw Error('Bilinmeyen WhatsApp işlemi.');
+}
 function sendWhatsAppCommand(cmd) {
   const wa = require('./system/whatsapp.cjs');
+  // v0.8.8: linked in Charles and the person is saved → straight through the gateway
+  if (waLive?.link === 'connected' && cmd.to && whatsappContacts().read().autoSend) {
+    const contact = whatsappContacts().find(cmd.to);
+    if (contact)
+      return waLive.sendTo(contact.phone, cmd.message).then(() =>
+        v2?.data?.language && v2.data.language !== 'tr'
+          ? `Sent on WhatsApp to **${contact.name}**: “${cmd.message}”`
+          : `WhatsApp’ta **${contact.name}** kişisine gönderildi: “${cmd.message}”`,
+      );
+  }
   return wa.sendWhatsApp(cmd, {
     contacts: whatsappContacts(),
     openExternal: (url) => shell.openExternal(url),
@@ -1005,7 +1096,10 @@ else {
       mailBubble = new (require('./plugins/mail-bubble.cjs').MailBubble)({
         anchor: () => (detached ? win.getBounds() : visibleBounds),
         onOpen: () => {},
+        onWhatsApp: (action, args) => whatsappBubbleAction(action, args),
       });
+      // v0.8.8: WhatsApp in Charles starts with Charles once it was turned on
+      if (!demo && whatsappLive().settings.enabled) setTimeout(() => void waLive.start().catch(() => {}), 4000);
       mailAlerts = new (require('./plugins/mail-alerts.cjs').MailAlerts)({
         plugins,
         log: require('./core/log.cjs').createLog(app.getPath('userData'), 'mail'),
@@ -2548,6 +2642,11 @@ else {
           },
           micOff: () => micBlocked(),
           emote: (name) => win.webContents.send('module-emote', name),
+          // v0.8.8: the desktop Slime for modules — its look, reactions, temporary accessories
+          kitDir: path.join(root, 'dist'),
+          look: () => slimeLook(),
+          react: (name) => win.webContents.send('module-react', name),
+          wear: (accessories) => win.webContents.send('module-wear', accessories),
           notify: (title, text) =>
             mailBubble?.add({ id: 'module|' + Date.now() + '|' + Math.random().toString(36).slice(2, 6), kind: 'charles', icon: '🧩', title: String(title).slice(0, 60), reason: text }),
           icon: () => {
@@ -2716,6 +2815,11 @@ else {
         trayMenu();
         return modulesState();
       });
+      // v0.8.8: the renderer saw a new Slime look → tell the open module windows
+      safeHandler('modules-look', () => {
+        moduleHost?.look(slimeLook());
+        return true;
+      });
       safeHandler('modules-dev', (value) => {
         if (typeof value !== 'boolean') throw Error('Geçersiz değer.');
         return moduleRegistry.setDev(value);
@@ -2728,7 +2832,15 @@ else {
         v2.save();
         return clean;
       });
-      safeHandler('workspace', (on) => setWorkspace(on));
+      safeHandler('workspace', (on) => {
+        // v0.8.8: whatever happens, the page learns the real state and the windows are put right
+        try {
+          return setWorkspace(on);
+        } finally {
+          sendWorkspace();
+          checkWindowsSoon();
+        }
+      });
       // v0.7.2: side panel — files the AI wrote, opened read-only or in another program
       const fileRoots = () => [path.join(app.getPath('userData'), 'chat-workspace'), chosenCwd, agent.current?.cwd];
       safeHandler('file-preview', (file) => require('./core/file-preview.cjs').preview(file, fileRoots()));
@@ -2898,6 +3010,23 @@ else {
       // v0.7.2: WhatsApp contacts (whatsapp.json in the app data)
       safeHandler('whatsapp-read', () => whatsappContacts().read());
       safeHandler('whatsapp-save', (v) => whatsappContacts().save(v));
+      // v0.8.8: WhatsApp messages in Charles
+      safeHandler('whatsapp-live-state', () => whatsappLive().state());
+      safeHandler('whatsapp-live-enable', (on) => {
+        if (demo) throw Error('Önizleme modunda WhatsApp bağlanmaz.');
+        return whatsappLive().enable(!!on);
+      });
+      safeHandler('whatsapp-live-install', async () => {
+        if (demo) throw Error('Önizleme modunda WhatsApp bağlanmaz.');
+        await whatsappLive().install();
+        return waLive.state();
+      });
+      safeHandler('whatsapp-live-restart', async () => {
+        await whatsappLive().stop();
+        return waLive.enable(true);
+      });
+      safeHandler('whatsapp-live-configure', (v) => whatsappLive().configure(v));
+      safeHandler('whatsapp-live-logout', () => whatsappLive().logout());
       // Smart home card: which devices, in which order (companion.json)
       safeHandler('workspace-home-layout', (ids) => {
         if (ids !== undefined) {
@@ -3060,6 +3189,7 @@ else {
       moduleHost?.closeAll();
     } catch {}
     mailBubble?.destroy();
+    void waLive?.stop().catch(() => {});
     clearInterval(classifierTimer);
     classifier?.stop();
     globalShortcut.unregisterAll();

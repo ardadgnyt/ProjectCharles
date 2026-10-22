@@ -57,7 +57,7 @@ npm run module:pack <folder> <out.zip>
 | `entry` | An `.html` file inside the package. |
 | `icon` | Optional `.png`, `.jpg`, `.svg` or `.webp` inside the package (shown in Settings). |
 | `window` | Optional. `width`/`height` (default 1100 × 760), `minWidth`/`minHeight` (default 480 × 360). |
-| `permissions` | Optional list of `ai`, `image`, `voice`, `download`. |
+| `permissions` | Optional list of `ai`, `image`, `voice`, `download`, `appearance`. |
 
 Unknown fields, unknown permissions, missing fields or a bad id are refused with a clear message.
 
@@ -69,8 +69,9 @@ Unknown fields, unknown permissions, missing fields or a bad id are refused with
 | `image` | `ai.image` — create an image with the chat's image tool. |
 | `voice` | `voice.speak` / `voice.stop` — read text aloud. |
 | `download` | `download.*` — Charles' download engine (yt-dlp, FFmpeg, the download queue). |
+| `appearance` | `slime.wear` — accessories on the desktop Slime while the module is open (Charles 0.8.8+). |
 | `storage` *(always)* | Files in the module's own data folder only. |
-| `slime` *(always)* | `slime.emote` — make Slime show an expression. |
+| `slime` *(always)* | `slime.emote`, `slime.react`, `slime.look` — Slime's expressions and reactions, and reading his look. |
 | `notify` *(always)* | `notify` — a short message in Charles' notification bubble. |
 
 Before installing, the user sees the name, version, author, description and every permission
@@ -118,10 +119,44 @@ await C.voice.speak('Merhaba!');
 await C.voice.stop();
 
 await C.slime.emote('happy');   // love, surprised, proud, wink, yawn, happy, annoyed
+// Charles 0.8.8+ (features: slime.look, slime.react, slime.wear):
+await C.slime.react('greet');   // greet, blink, squash, slap, dizzy, gulp (or an expression above)
+await C.slime.look();           // → { color, mustache, hat, eyes, other } — the user's choice
+await C.slime.wear({ eyes: 'roundGlasses' });  // "appearance" permission; taken off when the window closes
+await C.slime.wear(null);                      // take it off now
+C.on('slime-look', (look) => { /* the user changed colour or accessories */ });
 await C.notify('Done!');        // at most 300 characters
 
 const off = C.on('language', (lang) => { /* 'tr', 'en', 'de', … */ });
 ```
+
+## Slime in your module window — `CharlesSlime` (Charles 0.8.8+)
+
+Charles serves its own Slime to every module; nothing has to be copied into the module:
+
+```html
+<div id="pet"></div>
+<script src="/_charles/slime.js"></script>
+<script>
+  const slime = CharlesSlime.mount(document.getElementById('pet'), {
+    size: 160,                 // CSS pixels
+    look: 'charles',           // the user's colour and accessories (default), or { color, mustache, hat, eyes, other }
+    wear: { eyes: 'roundGlasses' },  // always worn on top of the look
+    interactive: true,         // eyes follow the cursor, hover heart, slap wobble, dizzy after 3 taps, wink
+    sound: true,               // Charles' interface sounds (after the first click)
+  });
+  slime.emote('happy');        // expressions
+  slime.react('greet');        // greet, blink, squash, slap, dizzy, gulp
+  slime.state('thinking');     // idle, working, thinking, searching, question, error, finished, sleeping
+  slime.station('read');       // work animations: none, terminal, web, read, code, image
+  slime.wear({ hat: 'crown' }); slime.setLook({ color: 'blue' }); slime.dance(true);
+  slime.destroy();
+</script>
+```
+
+`CharlesSlime.accessories`, `.colors`, `.emotes`, `.reactions`, `.states` and `.stations` list the
+valid values. Only `/_charles/slime.js` and `/_charles/sounds/<name>.wav` are served there.
+Check `(await C.info()).features.includes('slime.kit')` before loading it on older Charles versions.
 
 Files in the data folder can be shown directly in the page with
 `charles-module://<id>/_data/<path>` (for example the `url` that `ai.image` returns).

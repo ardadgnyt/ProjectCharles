@@ -23,6 +23,7 @@ class ChatClassifier {
     const r = [...s.rooms.values()].find(
       (r) =>
         !r.manualFolder &&
+        !r.projectId &&
         !r.classified &&
         r.events.some((e) => e.type === 'history-user') &&
         r.events.some(

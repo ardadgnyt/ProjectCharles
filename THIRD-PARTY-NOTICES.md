@@ -69,3 +69,11 @@ Official Google Antigravity CLI 1.3.3 replaces the Gemini CLI consumer account c
 
 ## KaTeX
 KaTeX 0.19.0 (MIT), used to render equations locally as MathML. See licenses/katex/LICENSE.
+
+## WhatsApp gateway (0.8.8)
+"Mesajlar Charles'ta" (Ayarlar → Eklentiler → WhatsApp) uses GOWA, go-whatsapp-web-multidevice
+by Aldino Kemal (MIT License): https://github.com/aldinokemal/go-whatsapp-web-multidevice .
+It is not shipped with Charles: when the user turns the feature on, Charles downloads the
+Windows build from GOWA's GitHub release, checks it against the SHA-256 GOWA publishes, keeps it
+in %APPDATA%\Charles\whatsapp\gateway and runs it as a separate program on 127.0.0.1 only.
+WhatsApp is a trademark of WhatsApp LLC; Charles is not affiliated with or endorsed by it.
