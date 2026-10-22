@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
-const APP_ID = 'ProjectCharles.Charles';
+const APP_ID = 'ProjectCharles.Desktop';
 function launcher(root, executable = process.execPath) {
   const branded = path.join(root, 'Charles.exe');
   return fs.existsSync(branded) ? { target: branded, args: '' } : { target: executable, args: '"' + root + '"' };
@@ -40,7 +40,7 @@ function registerShortcuts({ app, shell, root, icon, executable = process.execPa
     if (!shell.writeShortcutLink(canonical, 'create', options)) throw Error('Charles Başlat menüsü kimliği kaydedilemedi.');
   }
   // Repair only this installation's existing shortcuts; never repoint another copy.
-  for (const dir of [programs, app.getPath('desktop')]) {
+  for (const dir of [programs, app.getPath('desktop'), path.join(app.getPath('appData'), 'Microsoft/Internet Explorer/Quick Launch/User Pinned/TaskBar')]) {
     let files;
     try { files = fs.readdirSync(dir); } catch { continue; }
     for (const name of files.filter(n => /charles.*\.lnk$/i.test(n))) {
@@ -59,4 +59,28 @@ function registerShortcuts({ app, shell, root, icon, executable = process.execPa
   }
   return canonical;
 }
-module.exports = { APP_ID, launcher, iconResource, shortcutOptions, registerShortcuts };
+/**
+ * v0.8.5: Charles.exe makes a branded copy of electron.exe (charles-host-<key>.exe, ~235 MB)
+ * for every Electron/icon version and never removed the old ones. Removes every copy except
+ * the one running now; a copy still in use simply stays (Windows refuses to delete it).
+ */
+function cleanOldHosts(root, current = process.execPath, io = fs) {
+  const dir = path.join(root, 'node_modules', 'electron', 'dist');
+  const keep = path.basename(current).toLowerCase();
+  let removed = 0;
+  let names = [];
+  try {
+    names = io.readdirSync(dir);
+  } catch {
+    return 0;
+  }
+  for (const name of names) {
+    if (!/^charles-host-[a-f0-9]{8,64}\.exe(\.\d+\.tmp\.exe)?$/i.test(name) || name.toLowerCase() === keep) continue;
+    try {
+      io.rmSync(path.join(dir, name), { force: true });
+      removed++;
+    } catch {}
+  }
+  return removed;
+}
+module.exports = { APP_ID, launcher, iconResource, shortcutOptions, registerShortcuts, cleanOldHosts };

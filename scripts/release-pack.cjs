@@ -24,7 +24,7 @@ function collect(rel, out) {
   const st = fs.lstatSync(abs);
   if (st.isSymbolicLink()) return;
   const name = rel.split(path.sep).join('/');
-  if (/^(modules-bundled|modules\/download|tools\/download|licenses\/download)(\/|$)/i.test(name)) return;
+  if (/^(modules-bundled|modules\/download|tools\/download)(\/|$)/i.test(name)) return;
   if (SKIP.test(name) || ['docs/GITHUB.md', 'docs/VERIFICATION-v0.4.4.md'].includes(name)) return;
   if (st.isDirectory()) for (const f of fs.readdirSync(abs).sort()) collect(path.join(rel, f), out);
   else out.set(name, fs.readFileSync(abs));
@@ -42,10 +42,20 @@ function pack({ outDir = path.join(ROOT, 'release'), extra = [] } = {}) {
   // The installed 0.8.0 updater swaps whole top-level directories. Ship complete roots
   // even when --with names a child, so tools/download never replaces the other tools.
   for (const rel of replacementRoots([...BASE, ...extra])) collect(rel, files);
+  // v0.8.5: yt-dlp / FFmpeg for Charles Download. Updaters up to 0.8.4 replace whole top-level
+  // folders, so the tools travel as download-tools/ and Charles moves them into tools/download
+  // on its first start (app/modules/download/bridge.cjs → migrateTools).
+  const toolDir = path.join(ROOT, 'tools', 'download');
+  if (fs.existsSync(path.join(toolDir, 'yt-dlp.exe')) && fs.existsSync(path.join(toolDir, 'ffmpeg.exe')))
+    for (const f of fs.readdirSync(toolDir).sort()) {
+      const abs = path.join(toolDir, f);
+      if (fs.statSync(abs).isFile() && /^(yt-dlp\.exe|ffmpeg\.exe|versions\.json)$/i.test(f)) files.set('download-tools/' + f, fs.readFileSync(abs));
+    }
+  else if (process.env.CHARLES_RELEASE_NEEDS_TOOLS === '1') throw Error('tools/download (yt-dlp.exe, ffmpeg.exe) missing.');
   if (!files.has('package.json')) throw Error('package.json missing / package.json yok');
   const entries = {};
   // stored without compression for files that are compressed already, deflate for the rest
-  for (const [name, data] of files) entries[name] = [data, { level: /\.(png|jpe?g|webp|ico|mp3|ogg|wav|zip|woff2?|gz)$/i.test(name) ? 0 : 6, mtime: new Date('2026-01-01T00:00:00Z') }];
+  for (const [name, data] of files) entries[name] = [data, { level: /\.(png|jpe?g|webp|ico|mp3|ogg|wav|zip|woff2?|gz)$/i.test(name) ? 0 : name.startsWith('download-tools/') ? 1 : 6, mtime: new Date('2026-01-01T00:00:00Z') }];
   const zip = zipSync(entries);
   fs.mkdirSync(outDir, { recursive: true });
   const name = `charles-update-${pkg.version}.zip`;

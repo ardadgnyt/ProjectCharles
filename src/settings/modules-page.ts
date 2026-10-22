@@ -27,6 +27,7 @@ const PERMISSION_LABEL: Record<string, string> = {
   ai: 'Yapay zekâ',
   image: 'Görsel',
   voice: 'Ses',
+  download: 'İndirme',
   storage: 'Kendi verisi',
   slime: 'Slime',
   notify: 'Bildirim',

@@ -149,6 +149,7 @@ export function usageUI(
     renew.title = name + ' kotasını yenile';
     for (const key of ['fiveHour', 'weekly']) {
       const g = panel.querySelector<HTMLElement>('[data-window="' + key + '"]')!;
+      g.hidden = !!v?.missingWindows?.includes(key);
       // v0.7.0: Cursor names its windows itself (Auto / Aylık)
       g.querySelector('.usage-label')!.textContent = t(
         v?.labels?.[key] || (key === 'fiveHour' ? '5 saat' : 'Haftalık'),
@@ -174,6 +175,7 @@ export function usageUI(
       for (const w of lowWindows(v, warned, provider)) onLow({ provider, name, ...w });
     gauges.hidden = !!v?.unavailable;
     credit.textContent = v?.unavailable || '';
+    panel.title = v?.note ? t(v.note) : '';
     credit.hidden = !credit.textContent;
     if (typeof v?.blocked === 'boolean') {
       limits.set(provider, v.blocked);
@@ -250,7 +252,7 @@ export function usageUI(
       lastValue.delete('gpt');
       if (provider === 'gpt') void refresh(true);
     } else if (e.type === 'connected' || e.type === 'usage-changed') {
-      if (provider === 'gpt') void refresh();
+      if (provider === 'gpt' || (provider === 'gemini' && e.provider === 'gemini')) void refresh(false, true);
     } else if (e.type === 'agent' && e.data?.method === 'turn/completed') {
       // A finished answer used quota: re-read the provider that answered.
       if (provider === 'gpt') void refresh(true);

@@ -1,0 +1,6 @@
+node_modules/
+*.zip
+.test-output/
+backups/
+dist/
+*.zip.sha256

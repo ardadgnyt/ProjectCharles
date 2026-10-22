@@ -1,4 +1,5 @@
-// Only the current user message can explicitly select a local workspace.
+// A folder written in the current user message can become the project folder — but only
+// after the user agrees (v0.8.5), and never a drive root or a system / Charles folder.
 const fs = require('node:fs');
 const path = require('node:path');
 function explicitWorkspace(prompt, io = fs) {
@@ -22,4 +23,24 @@ function explicitWorkspace(prompt, io = fs) {
   if (found.size > 1) throw Error('Bir seferde tek çalışma klasörü belirt; diğer klasörü ayrı bir mesajda seçebilirsin.');
   return [...found][0] || null;
 }
-module.exports = { explicitWorkspace };
+
+const norm = (p) => path.win32.resolve(String(p || '')).replace(/[\\/]+$/, '').toLowerCase();
+/**
+ * Folders that are never offered as a project: drive roots, Windows, Program Files,
+ * ProgramData, the user profile and AppData roots, Charles' own app and data folders.
+ */
+function blockedWorkspace(dir, { env = process.env, appRoot = '', userData = '' } = {}) {
+  if (/^[A-Za-z]:[\\/]?$/.test(String(dir || '').trim())) return 'root';
+  const d = norm(dir);
+  if (/^[a-z]:$/.test(d) || /^\\\\[^\\]+\\[^\\]+$/.test(d)) return 'root';
+  const exact = [env.USERPROFILE, env.APPDATA, env.LOCALAPPDATA, env.USERPROFILE && path.win32.join(env.USERPROFILE, 'AppData')]
+    .filter(Boolean)
+    .map(norm);
+  if (exact.includes(d)) return 'profile';
+  const inside = [env.SystemRoot || env.windir || 'C:\\Windows', env.ProgramFiles, env['ProgramFiles(x86)'], env.ProgramData, appRoot, userData]
+    .filter(Boolean)
+    .map(norm);
+  if (inside.some((b) => d === b || d.startsWith(b + '\\'))) return 'system';
+  return null;
+}
+module.exports = { explicitWorkspace, blockedWorkspace };

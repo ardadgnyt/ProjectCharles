@@ -390,7 +390,7 @@ test('updater: swap script never names user data', () => {
 });
 
 // ── release:pack ─────────────────────────────────────────────────────────────
-test('release:pack makes charles-update-<version>.zip and a matching .sha256', { skip: !fs.existsSync(path.join(ROOT, 'dist', 'renderer.js')) && 'run npm run build first' }, () => {
+test('release:pack makes charles-update-<version>.zip and a matching .sha256', { skip: (!fs.existsSync(path.join(ROOT, 'dist', 'renderer.js')) && 'run npm run build first') || (!fs.existsSync(path.join(ROOT, 'Charles.exe')) && 'Charles.exe yok (Windows’ta npm run build)') }, () => {
   const { pack } = require('../scripts/release-pack.cjs');
   const out = tmp();
   const r = pack({ outDir: out });

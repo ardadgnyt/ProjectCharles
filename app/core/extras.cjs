@@ -18,6 +18,8 @@ const DEFAULTS = {
   screen: 'primary',
 };
 const SERVICES = ['github', 'vercel', 'stripe', 'resend', 'notion', 'calcom', 'n8n'];
+// v0.8.5: all attachment text of one message together
+const MAX_ATTACHMENT_TEXT = 1000000;
 class Extras {
   constructor(directory, encryption, fetcher = fetch) {
     this.directory = directory;
@@ -319,7 +321,18 @@ class Extras {
   async inputs(ids, { textOnly = false } = {}) {
     if (!Array.isArray(ids) || ids.length > 50) throw Error('En fazla 50 dosya eklenebilir.');
     const result = [];
-    for (const id of ids) result.push(await this.input(id, textOnly));
+    // v0.8.5: up to 50 files, but the text sent with one message stays bounded (each PDF
+    // may give up to 900 000 characters; 50 of them would not fit any model).
+    let total = 0;
+    for (const id of ids) {
+      const item = await this.input(id, textOnly);
+      if (item.type === 'text') {
+        total += item.text.length;
+        if (total > MAX_ATTACHMENT_TEXT)
+          throw Error('Eklerin metni bir mesaj için çok uzun (toplam en fazla 1.000.000 karakter). Daha az dosya ekle ya da belgeleri ayrı mesajlarda gönder.');
+      }
+      result.push(item);
+    }
     return result;
   }
   async input(id, textOnly) {
@@ -357,4 +370,4 @@ class Extras {
       };
   }
 }
-module.exports = { Extras, DEFAULTS, SERVICES };
+module.exports = { Extras, DEFAULTS, SERVICES, MAX_ATTACHMENT_TEXT };

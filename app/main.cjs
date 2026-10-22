@@ -229,7 +229,7 @@ function moveView(to) {
 }
 // v0.7.6: the taskbar showed a blank program icon for the app window. The window gets the
 // Slime icon as an image and Windows gets the app id + the .ico path for its taskbar button.
-const { APP_ID, launcher, iconResource, registerShortcuts } = require('./core/windows-identity.cjs');
+const { APP_ID, launcher, iconResource, registerShortcuts, cleanOldHosts } = require('./core/windows-identity.cjs');
 let registeredTaskbarIcon = '';
 function taskbarIcon(w) {
   if (!w || w.isDestroyed()) return;
@@ -361,6 +361,9 @@ function setWorkspace(on) {
     const area = workspaceArea();
     const restore = workspaceBounds(v2?.data.workspace, area);
     createAppWindow();
+    if (!demo && agent?.providers?.auth?.gemini) void agent.providers.usage(true).then(() => {
+      if (win && !win.isDestroyed()) win.webContents.send('agent-event', {type:'usage-changed',provider:'gemini'});
+    }).catch(() => {});
     workspace = { maximized: false };
     clearInterval(petTopTimer);
     mailBubble?.suppress(true);
@@ -742,6 +745,8 @@ function watchStalls() {
     if (lag > 150) perfLog('main stalled', lag + 'ms');
   }, 500).unref?.();
 }
+// v0.8.5: folders the user did not want as a project, per chat (asked only once)
+const workspaceDeclined = {};
 function saveFolder() {
   fs.writeFileSync(prefsFile(), JSON.stringify({ cwd: chosenCwd }));
 }
@@ -781,6 +786,14 @@ else {
   app
     .whenReady()
     .then(async () => {
+      // v0.8.5: old branded Electron copies left by earlier versions (~235 MB each)
+      if (process.platform === 'win32' && !demo)
+        setTimeout(() => {
+          try {
+            const n = cleanOldHosts(root);
+            if (n) console.log('Charles: removed ' + n + ' old host copies');
+          } catch {}
+        }, 60000).unref();
       // Serve only bundled files. No external web pages or executable renderer content.
       protocol.handle('charles', (request) => {
         const url = new URL(request.url);
@@ -1556,9 +1569,11 @@ else {
         win.webContents.send('personal-changed', value);
         return value;
       });
-      safeHandler('clipboard-copy', async (text) => {
+      safeHandler('clipboard-copy', async (text, html) => {
         if (typeof text !== 'string' || text.length > 300000) throw Error('Metin çok uzun.');
-        await clipboard.writeText(text);
+        // v0.8.5: formulas also go as HTML with MathML, so Word / OneNote paste an equation
+        if (typeof html === 'string' && html.length <= 300000) clipboard.write({ text, html });
+        else await clipboard.writeText(text);
       });
       // Generated images (src/chat/image-card.ts): İndir → save dialog, Kopyala → clipboard.
       const imageData = (dataUrl) => {
@@ -2359,13 +2374,46 @@ else {
           return { localAction: true, message };
         }
         let mode = args.mode === undefined ? 'chat' : args.mode;
+        // v0.8.5: a folder named in a Gemini message becomes the project only after the user
+        // agrees; drive roots and system / Charles folders are never offered.
         if (/^gemini:/.test(args.model || '')) {
-          const explicit = require('./core/explicit-workspace.cjs').explicitWorkspace(args.prompt);
-          if (explicit) {
-            chosenCwd = explicit;
-            mode = 'project';
-            saveFolder();
-            eventToUi({ type: 'workspace-selected', data: { cwd: explicit } });
+          const ew = require('./core/explicit-workspace.cjs');
+          const explicit = ew.explicitWorkspace(args.prompt);
+          const declined = (workspaceDeclined[agent.current.id] ||= new Set());
+          if (
+            explicit &&
+            explicit !== chosenCwd &&
+            !declined.has(explicit.toLowerCase()) &&
+            !ew.blockedWorkspace(explicit, { appRoot: root, userData: app.getPath('userData') })
+          ) {
+            const en = !!v2?.data?.language && v2.data.language !== 'tr';
+            dialogOpen = true;
+            let answer;
+            try {
+              answer = await dialog.showMessageBox(win.native, {
+                type: 'question',
+                buttons: en ? ['Work in this folder', 'Stay in chat'] : ['Bu klasörde çalış', 'Sohbette kal'],
+                defaultId: 1,
+                cancelId: 1,
+                noLink: true,
+                title: 'Charles',
+                message: en ? 'Use this folder as the project?' : 'Bu klasör proje olarak kullanılsın mı?',
+                detail:
+                  explicit +
+                  '\n\n' +
+                  (en
+                    ? 'Gemini will work in this folder with your Access setting (Ask first: read only; Automatic / Full: it may edit files). Commands stay disabled.'
+                    : 'Gemini bu klasörde Erişim ayarına göre çalışır (Onay iste: yalnızca okur; Otomatik / Tam: dosya düzenleyebilir). Komut çalıştırma kapalı kalır.'),
+              });
+            } finally {
+              dialogOpen = false;
+            }
+            if (answer.response === 0) {
+              chosenCwd = explicit;
+              mode = 'project';
+              saveFolder();
+              eventToUi({ type: 'workspace-selected', data: { cwd: explicit } });
+            } else declined.add(explicit.toLowerCase());
           }
         }
         if (!['chat', 'project'].includes(mode)) throw new Error('Geçersiz çalışma modu.');
@@ -2449,6 +2497,8 @@ else {
         electron: { BrowserWindow, session, ipcMain, dialog, shell, net, screen },
         deps: {
           charlesVersion: app.getVersion(),
+          applyWindowIdentity: taskbarIcon,
+          islandAnchor: () => !workspace && islandWin && !islandWin.isDestroyed() && islandWin.isVisible() ? (visibleBounds || islandWin.getBounds()) : null,
           language: () => v2?.data?.language || 'tr',
           askChat: ({ prompt, model }) => {
             fs.mkdirSync(chatWorkspace, { recursive: true });

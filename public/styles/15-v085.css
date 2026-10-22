@@ -1,0 +1,89 @@
+/* v0.8.5: formulas can be copied — click an inline formula, or the button of a block formula */
+body #feed .markdown .math-inline {
+  cursor: copy;
+  border-radius: 6px;
+  padding: 0 2px;
+  transition: background 0.15s ease;
+}
+body #feed .markdown .math-inline:hover { background: rgba(237, 201, 169, 0.12); }
+body #feed .markdown .math-display { position: relative; display: block; }
+body #feed .markdown .math-copy {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 236, 214, 0.14);
+  border-radius: 8px;
+  background: rgba(16, 15, 14, 0.92);
+  color: inherit;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+body #feed .markdown .math-copy svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+body #feed .markdown .math-display:hover .math-copy,
+body #feed .markdown .math-copy:focus-visible { opacity: 1; }
+body #feed .markdown .math-inline.copied,
+body #feed .markdown .math-display.copied { background: rgba(126, 211, 139, 0.16); }
+body #feed .markdown .math-display.copied .math-copy { opacity: 1; color: #8fdc9b; }
+
+/* v0.8.5: extra instructions sit in the chat. Sent ones are messages (.message.user.steer);
+   ones waiting for the answer to finish are the newest items, marked "Ek talimat · sırada". */
+#feed .steer-pending {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+#feed .steer-pending[hidden] { display: none; }
+#feed .steer-pending .steer-item {
+  max-width: min(78%, 640px);
+  padding: 8px 8px 8px 12px;
+  border-radius: 14px 14px 4px 14px;
+}
+#feed .steer-pending .steer-text {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sb-text, #f6efe6);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+#feed .steer-pending .steer-remove {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: var(--sb-muted, #a59b90);
+  background: transparent;
+  font-size: 16px;
+  line-height: 24px;
+  cursor: pointer;
+}
+#feed .steer-pending .steer-remove:hover { color: var(--sb-text, #f6efe6); background: rgba(255, 255, 255, 0.06); }
+#feed .steer-pending .steer-now {
+  flex: none;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(240, 198, 161, 0.35);
+  background: rgba(240, 198, 161, 0.12);
+  color: var(--sb-accent, #edc9a9);
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+body.workspace #feed .steer-pending { margin-right: 52px; }

@@ -70,10 +70,10 @@ test('workspace window: title bar, sidebar with folders, overview cards and chat
   for (const s of ['Spotify', 'Hatırlatıcılar', 'Takvim', 'Önemli e-postalar', 'Akıllı ev', 'Kalan kullanım'])
     assert.ok(dash.includes(s), s);
   // Gemini's quota starts its CLI: only on refresh
-  assert.match(dash, /id === 'gemini' && !force/);
+  assert.match(read('app/ai/providers.cjs'), /if \(!force\) return this\.quotaCache/);
   assert.match(ws, /if \(\/\^claude:\/\.test\(model\)\) return 'Claude';/);
   assert.match(read('public/index.html'), /styles\/9-special\.css/);
-  assert.match(read('public/index.html'), /v0\.8\.3 Beta/);
+  assert.match(read('public/index.html'), /v0\.\d+\.\d+ Beta/); // the exact version: test/v085.test.cjs
   assert.match(read('public/styles/9-special.css'), /body\.workspace main\.island/);
   assert.match(read('src/island/desktop-pet.ts'), /classList\.contains\('workspace'\)/);
 });

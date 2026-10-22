@@ -84,6 +84,22 @@ function run(binary, args, { onLine, onStderr, signal, timeout = 0, maxOutput = 
     child.on('close', (code) => finish(signal?.aborted ? Error('İşlem durduruldu.') : exceeded ? Error('İşlem zaman veya çıktı sınırını aştı.') : code !== 0 ? Error(error.trim().slice(-1500) || `İşlem başarısız (${code}).`) : null));
   });
 }
+const sizeOf = f => Number(f?.filesize || f?.filesize_approx) || 0;
+// Small cover image for the card. Module pages may not load remote images (CSP), so the host
+// fetches one HTTPS thumbnail and hands it over as a data: URL. Optional: '' on any problem.
+async function thumbnail(info) {
+  const list = (Array.isArray(info.thumbnails) ? info.thumbnails : []).filter(t => t && typeof t.url === 'string' && /^https:/i.test(t.url));
+  const sized = list.filter(t => Number(t.width) >= 240 && Number(t.width) <= 800).sort((a, b) => Math.abs(a.width - 480) - Math.abs(b.width - 480));
+  const pick = sized[0]?.url || (typeof info.thumbnail === 'string' && /^https:/i.test(info.thumbnail) ? info.thumbnail : '');
+  if (!pick) return '';
+  try {
+    const r = await fetch(pick, { signal: AbortSignal.timeout(6000), redirect: 'follow' });
+    const type = (r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (!r.ok || !/^image\/(jpeg|png|webp)$/.test(type) || Number(r.headers.get('content-length')) > 400 * 1024) { await r.body?.cancel(); return ''; }
+    const buf = Buffer.from(await r.arrayBuffer());
+    return buf.length && buf.length <= 400 * 1024 ? `data:${type};base64,${buf.toString('base64')}` : '';
+  } catch { return ''; }
+}
 function ytBase(tools) {
   const args = ['--ignore-config', '--no-playlist', '--no-warnings', '--no-colors', '--socket-timeout', '25', '--retries', '3', '--ffmpeg-location', tools.ffmpeg];
   if (tools.node && fs.existsSync(tools.node)) args.push('--js-runtimes', 'node:' + tools.node);
@@ -94,15 +110,19 @@ class DownloadEngine extends EventEmitter {
     super();
     this.dataDir = dataDir; this.tools = tools; this.concurrency = concurrency;
     fs.mkdirSync(dataDir, { recursive: true });
-    this.settings = { watch: true, outputDir, ...readJSON(path.join(dataDir, 'settings.json'), {}) };
+    // v0.8.5: watching the clipboard is opt-in (also for settings saved by 0.8.1–0.8.4,
+    // which turned it on without asking)
+    const saved = readJSON(path.join(dataDir, 'settings.json'), {});
+    this.settings = { watch: false, outputDir, ...saved };
+    if (saved.watchChosen !== true) this.settings.watch = false;
     this.jobs = readJSON(path.join(dataDir, 'jobs.json'), []).filter(j => j && typeof j.id === 'string' && /^[a-f0-9-]{36}$/.test(j.id)).slice(-200);
     for (const j of this.jobs) if (['queued', 'downloading', 'processing', 'pausing'].includes(j.status)) j.status = 'paused';
-    this.active = new Map(); this.metadata = new Map(); this.candidate = null; this.probing = false;
+    this.active = new Map(); this.metadata = new Map(); this.inflight = new Map(); this.candidate = null; this.probing = false;
     this.saving = null; this.closing = false; this.save();
   }
   ready() { return ['ytdlp', 'ffmpeg'].every(k => this.tools[k] && fs.existsSync(this.tools[k])); }
   snapshot() {
-    return { ready: this.ready(), settings: this.settings, candidate: this.candidate, jobs: this.jobs.map(({ etag, ...job }) => job) };
+    return { ready: this.ready(), capabilities: { partialClips: true }, settings: this.settings, candidate: this.candidate, jobs: this.jobs.map(({ etag, ...job }) => job) };
   }
   save() {
     atomicJSON(path.join(this.dataDir, 'jobs.json'), this.jobs.slice(-200));
@@ -118,18 +138,29 @@ class DownloadEngine extends EventEmitter {
     this.emit('offer', this.candidate);
   }
   setSettings(value) {
-    if (typeof value?.watch === 'boolean') this.settings.watch = value.watch;
+    if (typeof value?.watch === 'boolean') { this.settings.watch = value.watch; this.settings.watchChosen = true; }
     // outputDir is set only through the native folder picker by the bridge.
     if (typeof value?.outputDir === 'string' && path.isAbsolute(value.outputDir)) {
       fs.mkdirSync(value.outputDir, { recursive: true }); this.settings.outputDir = value.outputDir;
     }
     this.changed(true); return this.snapshot();
   }
-  async inspect(raw) {
+  // The card under the island and the module window may ask for the same link at once:
+  // they share one probe.
+  inspect(raw) {
     const url = validURL(raw);
-    if (this.metadata.has(url)) return this.metadata.get(url);
-    if (this.probing) throw Error('Önceki bağlantı inceleniyor; biraz bekle.');
-    if (!this.ready()) throw Error('İndirme araçları eksik. Kurulum klasöründe npm run setup:tools komutunu çalıştır.');
+    if (this.metadata.has(url)) return Promise.resolve(this.metadata.get(url));
+    if (this.inflight.has(url)) return this.inflight.get(url);
+    if (this.inflight.size >= 3) return Promise.reject(Error('Önceki bağlantı inceleniyor; biraz bekle.'));
+    const probe = this.probe(url).finally(() => this.inflight.delete(url));
+    this.inflight.set(url, probe);
+    return probe;
+  }
+  async probe(url) {
+    if (!this.ready()) {
+      if (/\.(zip|7z|rar|pdf|exe|msi|iso)$/i.test(new URL(url).pathname)) return { url, title: fileName(url), duration: 0, author: new URL(url).hostname, heights: [], kind: 'file' };
+      throw Error('İndirme araçları eksik (yt-dlp, FFmpeg). Charles güncellemesi gerekiyor.');
+    }
     this.probing = true;
     try {
       const result = await run(this.tools.ytdlp, [...ytBase(this.tools), '--dump-single-json', '--skip-download', '--', url], { timeout: 75000 });
@@ -138,7 +169,13 @@ class DownloadEngine extends EventEmitter {
       const formats = Array.isArray(info.formats) ? info.formats : [];
       const heights = [...new Set(formats.filter(f => f.vcodec && f.vcodec !== 'none' && f.height).map(f => f.height))].sort((a, b) => b - a);
       const audioOnly = !heights.length && (info.vcodec === 'none' || /^(mp3|m4a|aac|wav|ogg|opus|flac)$/i.test(info.ext || ''));
-      const meta = { url, title: String(info.title || fileName(url)).slice(0, 300), duration: Number(info.duration) || 0, author: String(info.uploader || info.extractor_key || new URL(url).hostname).slice(0, 150), heights, kind: audioOnly ? 'audio' : 'video' };
+      const audioBest = Math.max(0, ...formats.filter(f => f.vcodec === 'none' && f.acodec && f.acodec !== 'none').map(sizeOf));
+      const sizes = {};
+      for (const h of heights) {
+        const best = Math.max(0, ...formats.filter(f => f.height === h && f.vcodec && f.vcodec !== 'none' && sizeOf(f)).map(f => sizeOf(f) + (f.acodec && f.acodec !== 'none' ? 0 : audioBest)));
+        if (best) sizes[h] = best;
+      }
+      const meta = { url, title: String(info.title || fileName(url)).slice(0, 300), duration: Number(info.duration) || 0, author: String(info.uploader || info.extractor_key || new URL(url).hostname).slice(0, 150), heights, sizes, kind: audioOnly ? 'audio' : 'video', thumb: await thumbnail(info) };
       // Generic direct-media responses often lack codecs/duration. Probe only recognized
       // direct HTTP media URLs, never arbitrary pages or local paths.
       if (!meta.duration && /\.(mp4|webm|mov|mkv|mp3|m4a|wav|ogg|flac)$/i.test(new URL(url).pathname)) {
@@ -191,7 +228,7 @@ class DownloadEngine extends EventEmitter {
       this.execute(job, controller.signal).then(() => {
         if (!controller.signal.aborted) { job.status = 'done'; job.progress = 100; job.completedAt = Date.now(); this.emit('completed', job); }
       }).catch(e => {
-        if (!controller.signal.aborted) { job.status = 'error'; job.error = e.message; }
+        if (!controller.signal.aborted) { job.status = 'error'; job.error = e.message; job.failedAt = Date.now(); this.emit('failed', job); }
       }).finally(() => {
         this.active.delete(job.id);
         if (job.status === 'pausing') job.status = 'paused';
@@ -205,16 +242,24 @@ class DownloadEngine extends EventEmitter {
     if (job.format === 'file') return this.direct(job, signal);
     const work = path.join(this.dataDir, 'work', job.id);
     fs.mkdirSync(work, { recursive: true });
-    const sourceRecord = path.join(work, 'source.json');
+    // Keep section downloads separate from full sources left by older versions.
+    const sourceRecord = path.join(work, job.clip ? 'section-v2.json' : 'source.json');
     let source = readJSON(sourceRecord, null);
     if (!source || !fs.existsSync(source) || path.dirname(source) !== work) {
       let selector;
       if (job.format === 'mp3') selector = 'bestaudio/best';
       else selector = `bestvideo[height<=?${job.quality}]+bestaudio/best[height<=?${job.quality}]`;
-      const args = [...ytBase(this.tools), '--newline', '--progress', '--no-simulate', '--continue', '--windows-filenames', '--no-overwrites',
+      const sectionArgs = job.clip ? ['--download-sections', `*${job.clip.start}-${job.clip.end}`, '--force-keyframes-at-cuts',
+        '--downloader', 'ffmpeg', '--downloader-args', 'ffmpeg_o:-progress pipe:1 -nostats', '--force-overwrites'] : ['--continue', '--no-overwrites'];
+      const args = [...ytBase(this.tools), '--newline', '--progress', '--no-simulate', '--windows-filenames', ...sectionArgs,
         '--progress-template', 'download:CHARLES:%(progress)j', '--print', 'after_move:CHARLES_FILE:%(filepath)j',
-        '-f', selector, '--merge-output-format', 'mkv', '-o', path.join(work, 'source.%(ext)s'), '--', job.url];
+        '-f', selector, '--merge-output-format', 'mkv', '-o', path.join(work, job.clip ? 'section.%(ext)s' : 'source.%(ext)s'), '--', job.url];
       await run(this.tools.ytdlp, args, { signal, maxOutput: 64 * 1024 * 1024, onLine: line => {
+        if (job.clip && line.startsWith('out_time_us=')) {
+          const elapsed = Number(line.slice(12)) / 1e6;
+          if (Number.isFinite(elapsed)) job.progress = Math.max(0, Math.min(82, elapsed / (job.clip.end - job.clip.start) * 82));
+          this.changed();
+        }
         if (line.startsWith('CHARLES_FILE:')) {
           try { const p = JSON.parse(line.slice(13)); if (path.dirname(p) === work) source = p; } catch {}
         }
@@ -233,7 +278,7 @@ class DownloadEngine extends EventEmitter {
     job.status = 'processing'; job.progress = 83; job.speed = 0; job.eta = 0; this.changed();
     const tmp = job.output + '.part.' + job.format;
     const args = ['-hide_banner', '-loglevel', 'error', '-nostdin', '-y'];
-    if (job.clip) args.push('-ss', String(job.clip.start));
+    // The remote section already starts at zero; seeking again would cut twice.
     args.push('-i', source);
     if (job.clip) args.push('-t', String(job.clip.end - job.clip.start));
     if (job.format === 'mp3') args.push('-vn', '-c:a', 'libmp3lame', '-b:a', job.bitrate + 'k');

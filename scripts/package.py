@@ -80,7 +80,7 @@ def valid_pe(head):
 def main(src, out):
     files = []
     for root, dirs, names in os.walk(src):
-        dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS and os.path.relpath(os.path.join(root, d), src).replace(os.sep, '/') not in {'modules/download', 'tools/download', 'licenses/download'})
+        dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS and os.path.relpath(os.path.join(root, d), src).replace(os.sep, '/') not in {'modules/download'})
         for name in sorted(names):
             rel = os.path.relpath(os.path.join(root, name), src).replace(os.sep, '/')
             if rel in SKIP_FILES or rel.endswith(('.tar', '.log', '.pyc')) or (rel.startswith('node_modules/electron/dist/charles-host-') and rel.endswith('.exe')):

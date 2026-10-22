@@ -218,41 +218,24 @@ class Providers {
   }
   async usage(force = false) {
     if (this.quotaPending) return this.quotaPending;
-    if (!force && this.quotaCache && Date.now() - this.quotaCache.updatedAt < 60000)
-      return this.quotaCache;
-    const spec = this.spec('gemini');
-    this.quotaPending = new Promise((resolve) => {
-      const child = execFile(
-        spec.exe,
-        [...spec.args, '-p', '/usage'],
-        {
-          cwd: path.join(this.dir, 'workspace'),
-          env: { ...this.env, USERPROFILE: path.join(this.dir, 'gemini') },
-          windowsHide: true,
-          timeout: 15000,
-          maxBuffer: 65536,
-        },
-        (error, out) => {
-          const value = error
-            ? {
-                provider: 'gemini',
-                blocked: null,
-                unavailable: 'Kota yenilenemedi',
-                updatedAt: Date.now(),
-              }
-            : require('../usage/gemini-usage.cjs').geminiUsage(out);
-          this.quotaCache = value;
-          resolve(value);
-        },
-      );
-      child.stdin?.end();
-    });
-    try {
-      return await this.quotaPending;
-    } finally {
-      this.quotaPending = null;
-    }
+    // Gemini is fetched only by manual refresh or opening the workspace window.
+    if (!force) return this.quotaCache || {provider:'gemini',fiveHour:null,weekly:null,blocked:null,updatedAt:null,unavailable:'Kotayı okumak için yenile'};
+    if (this.quotaCache && Date.now()-this.quotaCache.updatedAt<5000) return this.quotaCache;
+    this.quotaPending=(async()=>{
+      const spec=this.spec('gemini');
+      const cli=await runOffThread(spec.exe,[...spec.args,'--output-format','json','-p','/usage'],{
+        cwd:path.join(this.dir,'workspace'),env:{...this.env,USERPROFILE:path.join(this.dir,'gemini')},windowsHide:true,timeout:20000,maxBuffer:262144,
+      });
+      const {geminiUsage}=require('../usage/gemini-usage.cjs');
+      // v0.8.5: only what the official CLI reports. (0.8.4 also read Antigravity's Google sign-in
+      // token from Windows Credential Manager and called Google's internal quota service; removed.)
+      const value=geminiUsage(cli.out || '');
+      if(value.unavailable && (this.quotaCache?.fiveHour || this.quotaCache?.weekly)) return {...this.quotaCache,stale:true};
+      this.quotaCache=value;return value;
+    })();
+    try{return await this.quotaPending;}finally{this.quotaPending=null;}
   }
+
   status() {
     return PROVIDERS.map((id) => {
       const exe = this.spec(id).exe;

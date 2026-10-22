@@ -540,6 +540,7 @@ export function workspaceDashboard(d: DashboardDeps) {
         const c = usageCols.get(id)!;
         if (id !== 'gpt' && !signed.has(id)) {
           c.col.classList.add('off');
+          c.five.hidden = false;
           setRing(c.five, null, '5 saatlik');
           setRing(c.week, null, 'Haftalık');
           c.note.textContent = 'Bağlı değil';
@@ -547,15 +548,16 @@ export function workspaceDashboard(d: DashboardDeps) {
         }
         // Gemini starts its CLI to read the quota: once when the window opens (v0.7.2), then
         // only with the refresh button
-        if (id === 'gemini' && !force && c.col.dataset.loaded) return;
+        // Cache reads are cheap; the main process does not poll Gemini for these calls.
         if (id === 'gemini' && !c.col.dataset.loaded) c.note.textContent = 'Okunuyor…';
         try {
           const u = await api.usageRead(force, id);
           c.col.dataset.loaded = '1';
           c.col.classList.toggle('off', !u.fiveHour && !u.weekly);
+          c.five.hidden = !!u.missingWindows?.includes('fiveHour');
           setRing(c.five, u.fiveHour, u.labels?.fiveHour || '5 saatlik');
           setRing(c.week, u.weekly, u.labels?.weekly || 'Haftalık');
-          c.note.textContent = !u.fiveHour && !u.weekly ? u.unavailable || 'Bilgi yok' : u.stale ? 'Son bilinen değer' : '';
+          c.note.textContent = !u.fiveHour && !u.weekly ? u.unavailable || 'Bilgi yok' : u.stale ? 'Son bilinen değer' : u.note || '';
         } catch (err) {
           c.col.classList.add('off');
           c.note.textContent = (err as Error).message.slice(0, 60);

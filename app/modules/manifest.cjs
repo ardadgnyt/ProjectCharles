@@ -4,6 +4,9 @@ const PERMISSIONS = {
   ai: 'Yapay zekâya soru sorabilir (Charles’ın bağlı modeliyle; sohbet geçmişine yazılmaz).',
   image: 'Görsel oluşturabilir (sohbetteki görsel aracıyla).',
   voice: 'Metni sesli okuyabilir.',
+  // v0.8.5: only Charles' own Download module can use it (app/modules/download/trust.cjs)
+  download:
+    'İnternetten video, ses ve dosya indirip İndirilenler klasörüne kaydeder; bunun için Charles’ın yt-dlp ve FFmpeg araçlarını çalıştırır. İstersen panoya kopyaladığın bağlantıları da izler. Yalnızca Charles’ın resmi Download modülünde çalışır.',
 };
 // every module has these
 const DEFAULT_PERMISSIONS = {

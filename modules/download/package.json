@@ -1,9 +1,16 @@
 {
-  "name": "charles-download-ui",
-  "version": "1.0.0",
+  "name": "charles-download-module",
+  "version": "1.0.1",
   "private": true,
+  "author": "HzPederPan",
+  "description": "Charles için pano algılama, MP3/MP4 ve klip indirme modülü",
   "scripts": {
     "build": "node scripts/build.cjs",
-    "pack": "node scripts/build.cjs && node scripts/pack.mjs"
+    "pack": "node scripts/build.cjs && node scripts/pack.mjs",
+    "test": "node --test test/*.test.cjs",
+    "install:host": "node scripts/install-host.cjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }

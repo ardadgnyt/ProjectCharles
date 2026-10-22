@@ -3,6 +3,8 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {APP_ID,launcher,iconResource,registerShortcuts}=require('../app/core/windows-identity.cjs');
 const root=path.resolve(__dirname,'..');
+// Charles.exe is built on Windows (scripts/build-launcher.ps1); elsewhere these tests skip.
+const launcherBuilt=fs.existsSync(path.join(root,'Charles.exe'))||'Charles.exe yok (Windows’ta npm run build)';
 test('taskbar uses an immutable Slime resource and recovers from a corrupt saved icon',()=>{
  const user=fs.mkdtempSync(path.join(os.tmpdir(),'charles-icon083-'));
  const a=iconResource(user,root);assert.ok(path.isAbsolute(a));assert.match(a,/slime-[a-f0-9]{24}\.ico$/);
@@ -12,7 +14,7 @@ test('taskbar uses an immutable Slime resource and recovers from a corrupt saved
  const changed=Buffer.concat([fs.readFileSync(a),Buffer.from('changed')]);fs.writeFileSync(path.join(user,'charles.ico'),changed);
  const b=iconResource(user,root);assert.notEqual(a,b);assert.deepEqual(fs.readFileSync(a),fs.readFileSync(path.join(root,'public/charles.ico')));
 });
-test('Shell shortcuts share the window identity and repair only the current installation',()=>{
+test('Shell shortcuts share the window identity and repair only the current installation',{skip:launcherBuilt===true?false:launcherBuilt},()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'charles-shortcut083-'));
  const desktop=path.join(dir,'Desktop');fs.mkdirSync(desktop);
  const links=new Map();let writes=0;
@@ -27,7 +29,7 @@ test('Shell shortcuts share the window identity and repair only the current inst
  assert.equal(links.get(other).icon,'other');const count=writes;
  registerShortcuts({app,shell,root,icon:path.join(root,'public/charles.ico'),executable:exe});assert.equal(writes,count);
 });
-test('source-only launch falls back to Electron; releases contain a branded PE launcher',()=>{
+test('source-only launch falls back to Electron; releases contain a branded PE launcher',{skip:launcherBuilt===true?false:launcherBuilt},()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'charles-launch083-'));
  assert.deepEqual(launcher(dir,'electron.exe'),{target:'electron.exe',args:'"'+dir+'"'});
  const bytes=fs.readFileSync(path.join(root,'Charles.exe'));assert.equal(bytes.subarray(0,2).toString(),'MZ');

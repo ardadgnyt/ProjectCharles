@@ -38,6 +38,7 @@ function needs(method) {
   if (method === 'ai.chat') return 'ai';
   if (method === 'ai.image') return 'image';
   if (method === 'voice.speak' || method === 'voice.stop') return 'voice';
+  if (method.startsWith('download.')) return 'download';
   return null;
 }
 
@@ -78,9 +79,14 @@ function createModuleHost(o) {
   const busy = new Set(); // "id ai.chat"
   const allow = rateLimiter();
   // Charles Download optional bridge.
-  const downloadBridge = fs.existsSync(path.join(__dirname, 'download', 'config.json'))
-    ? require('./download/bridge.cjs').createDownloadBridge({ registry, owners, sessionFor, open, deps })
-    : null;
+  let downloadBridge = null;
+  if (fs.existsSync(path.join(__dirname, 'download', 'config.json')))
+    try {
+      downloadBridge = require('./download/bridge.cjs').createDownloadBridge({ registry, owners, sessionFor, open, deps });
+    } catch (e) {
+      // outside Electron (tests) or a broken install: the other modules keep working
+      console.warn('Charles Download:', e.message);
+    }
 
   const changed = () => deps.onChange?.();
   const storage = (id) => {
@@ -178,6 +184,9 @@ function createModuleHost(o) {
         session: sessionFor(id),
       },
     });
+    deps.applyWindowIdentity?.(win);
+    win.on('show', () => deps.applyWindowIdentity?.(win));
+    win.on('focus', () => deps.applyWindowIdentity?.(win));
     win.setMenu(null);
     windows.set(id, win);
     owners.set(win.webContents.id, id);
@@ -355,6 +364,7 @@ function createModuleHost(o) {
     call,
     openIds: () => [...windows.keys()].filter((id) => !windows.get(id).isDestroyed()),
     language(lang) {
+      downloadBridge?.language?.(lang);
       for (const w of windows.values()) if (!w.isDestroyed()) w.webContents.send('charles-module:language', lang);
     },
     closeAll() {

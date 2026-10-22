@@ -63,11 +63,11 @@ test('updater launch failures reject instead of reporting success', { skip: proc
   fs.mkdirSync(path.join(dir,'_update'));
   await assert.rejects(updater.launchSwap({ script:path.join(dir,'_update/missing.ps1'), params:{App:dir} }), /başlatılamadı/);
 });
-test('release excludes the optional Download payload', () => {
+test('release: the Download module source stays out; its tools travel as download-tools/', { skip: !fs.existsSync(path.join(__dirname, '..', 'Charles.exe')) && 'Charles.exe yok (Windows’ta npm run build)' }, () => {
   const out=fs.mkdtempSync(path.join(os.tmpdir(),'charles-pack082-'));
   const result=require('../scripts/release-pack.cjs').pack({outDir:out});
   const pkg=updater.readUpdateZip(fs.readFileSync(result.zipPath),{name:'project-charles',expectVersion:require('../package.json').version});
   assert.ok(pkg.files.has('dist/renderer.js'));
   assert.ok(pkg.files.has('public/charles.ico'));
-  for(const name of pkg.files.keys()) assert.doesNotMatch(name,/^(modules-bundled|modules\/download|tools\/download|licenses\/download)\//);
+  for(const name of pkg.files.keys()) assert.doesNotMatch(name,/^(modules-bundled|modules\/download|tools)\//);
 });

@@ -1,12 +1,19 @@
 {
   "id": "download",
   "name": "Charles Download",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "HzPederPan",
-  "description": "Bağlantıyı kopyala; video, ses veya seçtiğin bölümü indir. Charles Download host eklentisi gerektirir.",
+  "description": "Bağlantıyı kopyala; video, ses veya seçtiğin bölümü indir. Charles v0.8.5 Beta veya üstü gerekir.",
   "charlesApi": 1,
   "entry": "index.html",
   "icon": "icon.svg",
-  "window": { "width": 1100, "height": 780, "minWidth": 700, "minHeight": 580 },
-  "permissions": []
+  "window": {
+    "width": 1100,
+    "height": 780,
+    "minWidth": 700,
+    "minHeight": 580
+  },
+  "permissions": [
+    "download"
+  ]
 }

@@ -21,6 +21,11 @@ export type SteerDeps = {
   running?: () => boolean;
   /** Stops the running answer. */
   interrupt?: () => Promise<void>;
+  /**
+   * v0.8.5: the chat itself. Queued instructions are shown there, as the newest messages (like
+   * Claude), instead of in a box above the message box.
+   */
+  feed?: HTMLElement;
 };
 
 export function steerUI(d: SteerDeps) {
@@ -28,19 +33,27 @@ export function steerUI(d: SteerDeps) {
   box.id = 'steer-queue';
   box.hidden = true;
   box.setAttribute('aria-live', 'polite');
-  d.composer.insertBefore(box, d.bar);
+  if (d.feed) {
+    box.className = 'steer-pending';
+    d.feed.append(box);
+    // the waiting instructions stay the newest thing in the chat while the answer runs
+    new MutationObserver(() => {
+      if (queue.length && d.feed!.lastElementChild !== box) d.feed!.append(box);
+    }).observe(d.feed, { childList: true });
+  } else d.composer.insertBefore(box, d.bar);
   const queue: string[] = [];
   let interjecting = false;
 
   function paint() {
     box.replaceChildren();
     box.hidden = !queue.length;
+    if (d.feed && queue.length && d.feed.lastElementChild !== box) d.feed.append(box);
     queue.forEach((text, i) => {
       const item = document.createElement('div');
       item.className = 'steer-item';
       const tag = document.createElement('span');
       tag.className = 'steer-tag';
-      tag.textContent = d.t('Sırada');
+      tag.textContent = d.t(d.feed ? 'Ek talimat · sırada' : 'Sırada');
       const body = document.createElement('button');
       body.type = 'button';
       body.className = 'steer-text';

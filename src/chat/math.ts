@@ -1,12 +1,21 @@
 import katex from 'katex';
 
 // Native MathML needs neither remote resources nor inline styles under our CSP.
+// v0.8.5: every formula keeps its LaTeX source (data-tex) so it can be copied: a click on an
+// inline formula or the copy button of a block formula (src/chat/math-copy.ts).
+const COPY_ICON =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>';
 export function mathPlugin(md: any) {
   const render = (source: string, displayMode: boolean) => {
+    const tex = md.utils.escapeHtml(source.trim());
+    let html: string;
     try {
-      return katex.renderToString(source, { displayMode, output: 'mathml',
+      html = katex.renderToString(source, { displayMode, output: 'mathml',
         throwOnError: true, trust: false, strict: 'ignore', maxExpand: 500, maxSize: 20 });
     } catch { return '<code class="math-pending">' + md.utils.escapeHtml(source) + '</code>'; }
+    return displayMode
+      ? '<span class="math-display" data-tex="' + tex + '" data-display="1"><button type="button" class="math-copy" data-answer-action="math" title="Formülü kopyala" aria-label="Formülü kopyala">' + COPY_ICON + '</button>' + html + '</span>'
+      : '<span class="math-inline" data-answer-action="math" data-tex="' + tex + '" title="Formülü kopyalamak için tıkla">' + html + '</span>';
   };
   md.inline.ruler.before('escape', 'charles_math', (state: any, silent: boolean) => {
     const p = state.pos, rest = state.src.slice(p);

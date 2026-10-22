@@ -340,8 +340,9 @@ function Start-Charles {
 }
 
 # Validate every mutation target before moving or recursively removing files.
-$App = [IO.Path]::GetFullPath($App).TrimEnd('\')
-$workRoot = $App + '\_update\'
+$sep = [IO.Path]::DirectorySeparatorChar
+$App = [IO.Path]::GetFullPath($App).TrimEnd($sep)
+$workRoot = $App + $sep + '_update' + $sep
 foreach ($targetPath in @($Stage, $Backup, $Result)) {
   if (-not [IO.Path]::GetFullPath($targetPath).StartsWith($workRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Update path outside _update' }
 }
@@ -361,7 +362,7 @@ if ($WaitPid -gt 0) {
 $deadline = (Get-Date).AddSeconds(30)
 while ((Get-Date) -lt $deadline) {
   $left = @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
-    try { $_.Id -ne $PID -and $_.Path -and $_.Path.StartsWith(($App + '\'), [StringComparison]::OrdinalIgnoreCase) } catch { $false }
+    try { $_.Id -ne $PID -and $_.Path -and $_.Path.StartsWith(($App + $sep), [StringComparison]::OrdinalIgnoreCase) } catch { $false }
   })
   if (-not $left.Count) { break }
   Start-Sleep -Milliseconds 500

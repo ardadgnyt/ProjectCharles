@@ -4,6 +4,25 @@ Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özell
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.8.5 Beta — 22 Ekim 2026
+
+- **Formüller kopyalanabiliyor:** satır içi bir formüle tıklayınca, blok formülde ise sağ üstteki düğmeyle formül kopyalanıyor. Panoya LaTeX kaynağı (`$…$` / `$$…$$`) ve Word / OneNote’un denklem olarak yapıştırdığı MathML birlikte gidiyor. İçinde formül olan bir metni seçip kopyalayınca formüller kaybolmuyor, LaTeX olarak geliyor.
+- **E-postalar yeni sohbette açılıyor:** Charles bir sohbette (ör. bir projede) çalışırken önemli e-posta balonuna tıklayınca e-posta artık o sohbete düşmüyor; yeni bir sohbet açılıp e-posta orada anlatılıyor, eski sohbetteki iş arka planda sürüyor. Mesaj kutusunda yazdığın yarım metin kaybolmuyor.
+- **Ek talimatlar sohbetin içinde:** GPT çalışırken gönderilen ek talimat, gönderildiği yerde duruyor; sonraki adımlar ve yanıtın devamı talimatın altına geliyor (önceden talimat en altta kalıyor, iş onun üstünde büyüyordu). Yanıtını tek seferde veren Claude, Gemini, Cursor ve Abacus AI için sıradaki talimat da mesaj kutusunun üstü yerine sohbette “Ek talimat · sırada” olarak görünüyor; yanıt bitince gönderiliyor, “Şimdi” ve × düğmeleri yerinde.
+- **Download araçları Charles ile geliyor:** yt-dlp (2026.10.21) ve FFmpeg (6.0, ffmpeg-static b6.0) SHA-256’ları doğrulanarak Setup’ta `tools\download` içine konuyor. Uygulama içi güncellemede `download-tools` olarak geliyor ve Charles ilk açılışta `tools\download`’a taşıyor. Charles araçları sırasıyla `tools\download`, `download-tools`, `%APPDATA%\Charles\download-tools` ve Charles klasörünün yanındaki `charles-download-module\tools` klasöründe arıyor; sonradan eklenen araçlar yeniden başlatmadan bulunuyor. Download modülünün son hali (kart, küçük resim, boyut tahmini) Charles’a alındı.
+- **Güvenlik — Download köprüsü:** internetten indirme, yt-dlp/FFmpeg çalıştırma ve pano okuma artık yalnızca Charles’ın resmi Download modülüne açık: modül **İndirme** iznini istemeli (kurulum ekranında görünüyor) ve kurulan dosyalar Charles’ın tanıdığı paketle aynı olmalı (`app/modules/download/trusted.json`; Geliştirici modunda klasörden yükleme hariç). Önceden adı `download` olan herhangi bir modül bu yetkileri alabiliyordu. Bu yüzden Download modülü 1.0.1’e geçti (1.0.0’ın kuyruğu ve ayarları korunur). Kopyalanan bağlantıları izleme artık varsayılan olarak kapalı; modülden açılıyor.
+- **Güvenlik — Gemini klasörleri:** mesajda yazılan bir klasör artık sormadan proje klasörü yapılmıyor; Charles “Bu klasör proje olarak kullanılsın mı?” diye soruyor. Sürücü kökleri (C:\), Windows, Program Files, ProgramData, kullanıcı ve AppData kökleri ile Charles’ın kendi klasörleri hiç önerilmiyor. “Sohbette kal” denen klasör o sohbette tekrar sorulmuyor.
+- **Güvenlik — Gemini kotası:** v0.8.4’te eklenen ve Antigravity’nin Google oturum anahtarını Windows Kimlik Bilgisi Yöneticisi’nden okuyup Google’ın iç kota servisine istek atan betik kaldırıldı. Kota yalnızca resmi aracın kendi çıktısından okunuyor.
+- **Disk:** Charles.exe’nin her sürümde oluşturduğu ~235 MB’lık `charles-host-*.exe` kopyalarının eskileri artık açılıştan bir dakika sonra siliniyor (çalışan kopya kalıyor).
+- **Ekler:** 50 dosyaya kadar ek korunuyor, ama bir mesajdaki eklerin toplam metni en fazla 1.000.000 karakter (önceden her PDF 900.000 karaktere kadar, toplam sınırsızdı).
+- **Diğer:** 0.8.1–0.8.4’te eklenip İngilizcesi olmayan metinler çevrildi (TR, EN, DE, FR, ES, ZH). Masaüstü kısayolu betiğindeki sürüm düzeltildi. Windows’a özgü testler (Charles.exe, PowerShell yolları) başka sistemlerde başarısız olmak yerine atlanıyor; güncelleme betiği yol ayırıcısını sisteme göre seçiyor. Download modülü belgesi ana depodan kaldırıldı (modül ayrı zip ile yükleniyor).
+
+## v0.8.4 Beta — 21 Ekim 2026
+
+- Büyük panel ve tüm modül pencereleri ortak Windows kimliği ve Slime simgesi kullanır; eski sabitlenmiş kısayollar güncellenir.
+- Download köprüsü adacığın gerçek konumunu ve Charles dilini kullanır; seçilen zaman aralığı uzaktan indirilir. Modül ayrı dağıtılır.
+- Gemini kotası yapılandırılmış CLI yanıtı ve gerektiğinde Google’ın doğrudan kota servisiyle okunur. Beş saatlik alan desteklenir; sorgu yalnızca yenilemede ve büyük panel açılışında yapılır. Sağlayıcının göndermediği alanlar uydurulmaz.
+
 ## v0.8.3 Beta — 21 Ekim 2026
 
 - Çalışan Electron süreci de Slime simgesi gömülü bir Charles host üzerinden açılır. Eski güncelleyici/kısayol ile açılış otomatik yönlendirilir; orijinal Electron dosyası korunur.

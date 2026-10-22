@@ -34,6 +34,7 @@ import type { BotStateName } from './vendor/core/layout';
 import { extraUI } from './settings/extras';
 import { updateMarkdown, messageSource, setQuestionHandler, renderMarkdown } from './chat/markdown';
 import { questionCard } from './chat/ai-questions';
+import { formulaClip, selectionClip } from './chat/math-copy';
 import { steerUI } from './chat/steer';
 import { settingsPolish } from './settings/polish-070';
 import { workspaceUI as appWindowUI } from './workspace/workspace';
@@ -527,20 +528,61 @@ function row(text: string, className = '', attachments: any[] = []) {
   feed.scrollTop = feed.scrollHeight;
   return el;
 }
+// v0.8.5: an extra instruction (steer) sits in the chat where it was sent, like Claude: what
+// the AI writes or does after it continues below it instead of growing above it.
+const streaming = new Set<string>();
+const splitAt = new Map<string, number>(); // message id → characters shown before the steer
+function splitAfterSteer() {
+  activityGroup = null;
+  for (const id of streaming) {
+    const el = messages.get(id);
+    if (!el || !el.isConnected) continue;
+    splitAt.set(id, (splitAt.get(id) || 0) + messageSource(el).length);
+    messages.delete(id);
+  }
+}
 function agentMessage(id: string, text: string, replace = false) {
   let el = messages.get(id);
   if (!el) {
     el = row('', 'agent');
     messages.set(id, el);
   }
+  const cut = splitAt.get(id) || 0;
+  if (replace && cut) text = text.slice(cut).replace(/^\s+/, '');
   updateMarkdown(el, text, replace);
 }
+// v0.8.5: a selection with formulas is copied with the formulas as LaTeX (+ MathML as HTML)
+feed.addEventListener('copy', (e) => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !e.clipboardData) return;
+  const fragment = document.createDocumentFragment();
+  for (let i = 0; i < sel.rangeCount; i++) fragment.append(sel.getRangeAt(i).cloneContents());
+  const clip = selectionClip(fragment);
+  if (!clip) return;
+  e.preventDefault();
+  e.clipboardData.setData('text/plain', clip.text);
+  e.clipboardData.setData('text/html', clip.html);
+});
 feed.addEventListener('click', (e) => {
   const action = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-answer-action]');
   if (action) {
     e.preventDefault();
     const message = action.closest<HTMLElement>('.message')!;
     const block = action.closest<HTMLElement>('.code-block');
+    // v0.8.5: formulas (src/chat/math-copy.ts)
+    if (action.dataset.answerAction === 'math') {
+      if (String(window.getSelection() || '').trim()) return; // selecting text, not clicking
+      const el = action.closest<HTMLElement>('[data-tex]');
+      if (!el) return;
+      const clip = formulaClip(el);
+      void attempt(async () => {
+        await api.copy(clip.text, clip.html || undefined);
+        el.classList.add('copied');
+        notice(t('Formül kopyalandı.'));
+        window.setTimeout(() => el.classList.remove('copied'), 1200);
+      });
+      return;
+    }
     const text =
       action.dataset.answerAction === 'code' || action.dataset.answerAction === 'code-panel'
         ? (block || action.closest('pre'))?.querySelector('code')?.textContent || ''
@@ -922,7 +964,14 @@ function event(e: any) {
                 : 'Yanıtını hazırlıyorum…',
           );
       }
-      if (method === 'item/agentMessage/delta') agentMessage(p.itemId, p.delta);
+      if (method === 'item/agentMessage/delta') {
+        streaming.add(p.itemId);
+        agentMessage(p.itemId, p.delta);
+      }
+      if (method === 'item/completed' && p.item?.type === 'agentMessage') {
+        streaming.delete(p.item.id);
+        splitAt.delete(p.item.id);
+      }
       if (method === 'item/commandExecution/outputDelta') {
         const a = activities.get(p.itemId);
         if (a) a.pre.textContent = (a.pre.textContent + p.delta).slice(-100000);
@@ -1014,6 +1063,8 @@ async function switchRoom(r: any) {
   userOrdinal = 0;
   feed.replaceChildren();
   messages.clear();
+  streaming.clear();
+  splitAt.clear();
   activities.clear();
   activityGroup = null;
   $('diff-box').hidden = true;
@@ -1193,6 +1244,8 @@ function clearConversation() {
   userOrdinal = 0;
   feed.replaceChildren();
   messages.clear();
+  streaming.clear();
+  splitAt.clear();
   activities.clear();
   activityGroup = null;
   $('diff-box').hidden = true;
@@ -1339,16 +1392,39 @@ $('composer').addEventListener('submit', (e) => {
 });
 // A click on an important-mail bubble: the mail arrives as a text attachment and
 // Charles is asked to explain it, exactly as if the user had typed the request.
+// v0.8.5: the mail always gets its own new chat when the current one is busy or already has
+// messages; the other chat keeps working in the background (it used to land in that chat).
 api.onMailExplain((request: any) =>
   attempt(async () => {
-    if (busy || voice.active()) {
-      notice('Charles şu an meşgul. İş bitince e-postayı tekrar açabilirsin.');
+    if (voice.active()) {
+      notice('Sesli görüşme açıkken e-posta açılamaz. Görüşme bitince tekrar dene.');
       return;
+    }
+    if (dispatching) {
+      notice('Bir mesaj gönderiliyor; birkaç saniye sonra e-postayı tekrar aç.');
+      return;
+    }
+    const draft = prompt.value;
+    if (busy || feed.querySelector('.message')) {
+      features.clear();
+      await switchRoom(await api.sessionNew());
+      mode.value = 'chat';
+      controls();
     }
     features.clear();
     await features.addFiles(request.items || []);
     prompt.value = request.prompt;
     ($('composer') as HTMLFormElement).requestSubmit();
+    // what the user was typing stays in the box
+    if (draft.trim() && draft !== request.prompt) {
+      const started = Date.now();
+      const wait = window.setInterval(() => {
+        if (prompt.value === '' || Date.now() - started > 15000) {
+          window.clearInterval(wait);
+          if (prompt.value === '') prompt.value = draft;
+        }
+      }, 100);
+    }
   }),
 );
 // Steering: extra instructions while the AI works (Enter or Ctrl+Enter).
@@ -1369,11 +1445,13 @@ const steer = steerUI({
   external: () => /^(gemini|claude|cursor|abacus):/.test(model.value || ''),
   shown: (text) => {
     markSteer(row(text, 'user'));
+    splitAfterSteer();
     feed.scrollTop = feed.scrollHeight;
   },
   notice,
   t,
   running: () => busy && !dispatching,
+  feed,
   interrupt: async () => {
     await api.interrupt();
   },

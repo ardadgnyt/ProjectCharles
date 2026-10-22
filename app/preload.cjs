@@ -154,7 +154,7 @@ contextBridge.exposeInMainWorld('charles', {
   foldersClassify: () => invoke('folders-classify'),
   onFoldersChanged: (fn) => ipcRenderer.on('folders-changed', () => fn()),
   panelPin: (value) => invoke('panel-pin', value),
-  copy: (text) => invoke('clipboard-copy', text),
+  copy: (text, html) => invoke('clipboard-copy', text, html),
   imageSave: (dataUrl) => invoke('image-save', dataUrl),
   appIcon: (dataUrl) => invoke('app-icon', dataUrl),
   imageCopy: (dataUrl) => invoke('image-copy', dataUrl),

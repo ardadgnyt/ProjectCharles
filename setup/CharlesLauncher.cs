@@ -12,8 +12,8 @@ using System.ComponentModel;
 [assembly: AssemblyTitle("Charles")]
 [assembly: AssemblyProduct("ProjectCharles")]
 [assembly: AssemblyDescription("Charles desktop assistant")]
-[assembly: AssemblyVersion("0.8.3.0")]
-[assembly: AssemblyFileVersion("0.8.3.0")]
+[assembly: AssemblyVersion("0.8.4.0")]
+[assembly: AssemblyFileVersion("0.8.4.0")]
 static class CharlesLauncher {
   static string Quote(string value) {
     var b = new StringBuilder("\""); int slashes = 0;
@@ -86,7 +86,7 @@ static class CharlesLauncher {
     string key;
     using (var hash=SHA256.Create()) {
       // Runtime replacement and logo updates each get a new Shell cache identity.
-      string stamp="host-v1:"+info.Length+":"+info.LastWriteTimeUtc.Ticks+":"+Hex(hash.ComputeHash(ico));
+      string stamp="host-v2:"+info.Length+":"+info.LastWriteTimeUtc.Ticks+":"+Hex(hash.ComputeHash(ico));
       key=Hex(hash.ComputeHash(Encoding.UTF8.GetBytes(stamp))).Substring(0,24);
     }
     string target=Path.Combine(info.DirectoryName,"charles-host-"+key+".exe");
