@@ -58,7 +58,7 @@ fs.writeFileSync(path.join(backup, 'target.txt'), target);
 // Validate all changes before writing either original.
 new Function(host); new Function(preload);
 fs.mkdirSync(path.join(modDir, 'download'), { recursive: true });
-for (const name of ['engine.cjs', 'bridge.cjs', 'trust.cjs']) fs.copyFileSync(path.join(root, 'host', name), path.join(modDir, 'download', name));
+for (const name of ['engine.cjs', 'bridge.cjs']) fs.copyFileSync(path.join(root, 'host', name), path.join(modDir, 'download', name));
 const config = {};
 fs.writeFileSync(path.join(modDir, 'download', 'config.json'), JSON.stringify(config, null, 2));
 // yt-dlp / FFmpeg are not part of this module; Charles provides them (tools/download).

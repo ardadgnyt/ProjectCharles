@@ -12,6 +12,7 @@ async function askOnce({
   providers,
   prompt,
   model = null,
+  attachments = [],
   cwd = root,
   timeoutMs = 60000,
   makeAgent = () => new Agent(root),
@@ -40,6 +41,8 @@ async function askOnce({
   done.catch(() => {});
   try {
     const args = { cwd, mode: 'chat', access: 'ask', model, prompt, stream: false };
+    // v0.8.7: images ({ type: 'localImage', path }) like the main chat's attachments
+    if (Array.isArray(attachments) && attachments.length) args.attachments = attachments;
     if (SUBSCRIPTION.test(model || '')) await providers.send(agent, args);
     else {
       await agent.connect();

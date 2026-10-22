@@ -1,4 +1,4 @@
-// v0.8.5: Download bridge trust and tools, Gemini folder confirmation, no credential reading,
+// v0.8.5–0.8.6: Download permission and tools, Gemini folder confirmation, no credential reading,
 // old host copies, attachment text limit, copying formulas, mail in a new chat, steering in the
 // chat, version and translations.
 const test = require('node:test');
@@ -6,7 +6,6 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { zipSync, strToU8 } = require('fflate');
 
 const ROOT = path.join(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
@@ -18,55 +17,22 @@ const bundle = (file) => {
   return m.exports;
 };
 
-const { ModuleRegistry } = require('../app/modules/registry.cjs');
-const { packageDigest, createTrust } = require('../app/modules/download/trust.cjs');
 
-function moduleZip(manifest, files = {}) {
-  return zipSync({
-    'manifest.json': strToU8(JSON.stringify(manifest)),
-    'index.html': strToU8('<!doctype html><title>x</title>'),
-    ...Object.fromEntries(Object.entries(files).map(([k, v]) => [k, strToU8(v)])),
-  });
-}
-const DL = { id: 'download', name: 'Charles Download', version: '1.0.1', author: 'HzPederPan', description: 'x', charlesApi: 1, entry: 'index.html', permissions: ['download'] };
-function install(userData, zip) {
-  const reg = new ModuleRegistry({ userData });
-  const p = reg.prepare(require('../app/modules/package.cjs').readZip(zip), 'zip');
-  reg.install(p.token);
-  return reg;
-}
-
-// ── Download bridge: only Charles' own package ───────────────────────────────
-test('download bridge: a module only named "download" gets nothing', () => {
-  const official = install(tmp(), moduleZip(DL));
-  const digest = packageDigest(official.root('download'));
-  assert.equal(createTrust({ registry: official, list: [digest] })().ok, true);
-  // same id, other files → refused
-  const fake = install(tmp(), moduleZip(DL, { 'app.js': 'steal()' }));
-  assert.deepEqual(createTrust({ registry: fake, list: [digest] })(), { ok: false, reason: 'untrusted' });
-  // the right files but no "download" permission (Download 1.0.0) → refused
-  const old = install(tmp(), moduleZip({ ...DL, version: '1.0.0', permissions: [] }));
-  assert.equal(createTrust({ registry: old, list: [packageDigest(old.root('download'))] })().reason, 'permission');
-  // turned off → refused
-  official.setEnabled('download', false);
-  assert.equal(createTrust({ registry: official, list: [digest] })().ok, false);
-  // the permission is a real manifest permission, explained on the install screen
+// ── Download bridge: a normal module permission (v0.8.6: no package list) ─────
+test('download: any module may ask for the permission; the bridge checks only that', () => {
   const { PERMISSIONS } = require('../app/modules/manifest.cjs');
-  assert.match(PERMISSIONS.download, /yalnızca Charles’ın resmi Download modülünde/i);
+  assert.ok(PERMISSIONS.download);
+  assert.doesNotMatch(PERMISSIONS.download, /resmi|official/i);
   assert.equal(require('../app/modules/host.cjs').needs('download.enqueue'), 'download');
   assert.match(read('src/settings/modules-page.ts'), /download: 'İndirme'/);
-});
-
-test('download bridge: the packed 1.0.1 module is the trusted one', () => {
-  const list = JSON.parse(read('app/modules/download/trusted.json')).packages;
+  const bridge = read('app/modules/download/bridge.cjs');
+  assert.doesNotMatch(bridge, /trust|trusted\.json|packageDigest/);
+  assert.match(bridge, /if \(!permitted\(id\)\) throw Error/);
+  assert.ok(!fs.existsSync(path.join(ROOT, 'app/modules/download/trusted.json')));
+  assert.ok(!fs.existsSync(path.join(ROOT, 'app/modules/download/trust.cjs')));
+  assert.doesNotMatch(read('modules/download/scripts/pack.mjs'), /trusted\.json/);
   const manifest = JSON.parse(read('modules/download/manifest.json'));
-  assert.equal(manifest.version, '1.0.1');
   assert.deepEqual(manifest.permissions, ['download']);
-  assert.ok(list.some((p) => p.version === '1.0.1' && /^[a-f0-9]{64}$/.test(p.sha256)));
-  const zip = path.join(ROOT, 'modules/download/download-1.0.1.zip');
-  if (!fs.existsSync(zip)) return; // built by `npm run pack` in modules/download
-  const reg = install(tmp(), fs.readFileSync(zip));
-  assert.ok(list.some((p) => p.sha256 === packageDigest(reg.root('download'))));
 });
 
 test('download tools: tools/download, download-tools (moved), AppData and the module folder', () => {
@@ -108,7 +74,7 @@ test('download: watching the clipboard is opt-in, also for 0.8.1–0.8.4 setting
   const e = make();
   e.setSettings({ watch: true });
   assert.equal(make().settings.watch, true, 'the user’s own choice is kept');
-  assert.match(read('app/modules/download/bridge.cjs'), /const enabled = \(\) => trust\(\)\.ok;/);
+  assert.match(read('app/modules/download/bridge.cjs'), /const enabled = \(\) => permitted\('download'\);/);
 });
 
 // ── Gemini: folders and quota ────────────────────────────────────────────────
@@ -200,13 +166,14 @@ test('release: Setup ships tools/download, the update ships download-tools/', ()
   assert.doesNotMatch(read('README.md'), /DOWNLOAD-MODULE/);
 });
 
-test('version 0.8.5 everywhere', () => {
+test('version agrees everywhere', () => {
   const v = JSON.parse(read('package.json')).version;
-  assert.equal(v, '0.8.5-beta.1');
+  assert.match(v, /^0\.8\.\d+-beta\.\d+$/);
   assert.equal(JSON.parse(read('package-lock.json')).version, v);
-  assert.match(read('public/index.html'), /v0\.8\.5 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.8\.5 Beta'/);
-  assert.doesNotMatch(read('setup/Create-Desktop-Shortcut.vbs'), /v0\.8\.[0-4] Beta/);
+  const label = 'v' + v.replace(/-beta\.\d+$/, '') + ' Beta';
+  assert.ok(read('public/index.html').includes(label));
+  assert.ok(read('setup/install.ps1').includes(`$Version = '${label}'`));
+  for (const m of read('setup/Create-Desktop-Shortcut.vbs').match(/v0\.\d+\.\d+ Beta/g)) assert.equal(m, label);
   assert.match(read('CHANGELOG.md'), /## v0\.8\.5 Beta/);
 });
 

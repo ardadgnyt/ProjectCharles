@@ -24,7 +24,9 @@ function geminiModel(model) {
 }
 
 // Antigravity reads its permissions from <profile>/.gemini/antigravity-cli/settings.json.
-function geminiSettings(access, tools) {
+// v0.8.7: `images` (chat mode) allows read_file only, so agy can open the images Charles
+// copied for this message; writing, commands, MCP and URLs stay denied.
+function geminiSettings(access, tools, images = false) {
   const deny = [
     'read_file(*)',
     'write_file(*)',
@@ -34,6 +36,14 @@ function geminiSettings(access, tools) {
     'read_url(*)',
     'execute_url(*)',
   ];
+  if (!tools && images)
+    return {
+      toolPermission: 'strict',
+      allowNonWorkspaceAccess: false,
+      useG1Credits: false,
+      enableTelemetry: false,
+      permissions: { allow: ['read_file(*)'], deny: deny.filter((d) => d !== 'read_file(*)') },
+    };
   if (!tools)
     return {
       toolPermission: 'strict',
@@ -59,7 +69,9 @@ function geminiSettings(access, tools) {
 }
 
 // Returns how to launch a provider for one message.
-function launchPlan({ provider, model, mode, access, projectDir, workspace }) {
+// v0.8.7: `images` → Claude reads the message as stream-json (with image blocks);
+// `imageDir` → the folder Gemini may read the message's images from.
+function launchPlan({ provider, model, mode, access, projectDir, workspace, images = false, imageDir = null }) {
   const tools = mode === 'project' && !!projectDir;
   const level = ['ask', 'auto', 'full'].includes(access) ? access : 'ask';
   const cwd = tools ? projectDir : workspace;
@@ -71,6 +83,7 @@ function launchPlan({ provider, model, mode, access, projectDir, workspace }) {
       cli.push('--permission-mode', 'acceptEdits', '--allowedTools', EDIT_TOOLS.join(','));
     else cli.push('--permission-mode', 'plan', '--allowedTools', READ_TOOLS.join(','));
     cli.push('--disallowedTools', 'mcp__*', '--no-session-persistence', '--safe-mode');
+    if (images) cli.push('--input-format', 'stream-json');
     return { cli, cwd, timeoutMs, tools };
   }
   if (provider === 'gemini') {
@@ -85,7 +98,8 @@ function launchPlan({ provider, model, mode, access, projectDir, workspace }) {
       ...geminiModel(model),
     ];
     if (tools) cli.push('--add-dir', cwd);
-    return { cli, cwd, timeoutMs, tools, geminiSettings: geminiSettings(level, tools) };
+    if (imageDir) cli.push('--add-dir', imageDir);
+    return { cli, cwd, timeoutMs, tools, geminiSettings: geminiSettings(level, tools, !!imageDir) };
   }
   // cursor
   // --trust: print mode stops at Cursor's "Workspace Trust Required" prompt otherwise and

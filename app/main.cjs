@@ -2083,6 +2083,17 @@ else {
         root,
         app.getPath('userData'),
       );
+      // v0.8.7: Claude takes images up to 5 MB; larger photos are scaled down to JPEG first.
+      agent.providers.shrinkImage = (file, max) => {
+        let img = nativeImage.createFromPath(file);
+        if (img.isEmpty()) return null;
+        for (const width of [2400, 1800, 1400, 1000]) {
+          if (img.getSize().width > width) img = img.resize({ width, quality: 'good' });
+          const data = img.toJPEG(85);
+          if (data.length <= max) return { data, mime: 'image/jpeg' };
+        }
+        return null;
+      };
       safeHandler('providers-status', () => agent.providers.refreshAuth());
       safeHandler('providers-login', (id) => {
         if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
@@ -2500,16 +2511,23 @@ else {
           applyWindowIdentity: taskbarIcon,
           islandAnchor: () => !workspace && islandWin && !islandWin.isDestroyed() && islandWin.isVisible() ? (visibleBounds || islandWin.getBounds()) : null,
           language: () => v2?.data?.language || 'tr',
-          askChat: ({ prompt, model }) => {
+          askChat: ({ prompt, model, images }) => {
             fs.mkdirSync(chatWorkspace, { recursive: true });
+            // the user's chosen model when the module does not name one
+            const chosen = model ?? extras.prefs.startupModel ?? null;
+            // v0.8.7: images (absolute paths checked by the module host) go in the same shape
+            // as the main chat's image attachments
+            const attachments = (images || []).map((p) => ({ type: 'localImage', path: p }));
+            if (attachments.length && /^(cursor|abacus):/i.test(chosen || ''))
+              throw Error('Görseller şu an yalnızca GPT, Claude ve Gemini ile çalışıyor.');
             return require('./ai/ask-once.cjs').askOnce({
               root,
               providers: agent.providers,
               prompt,
-              // the user's chosen model when the module does not name one
-              model: model ?? extras.prefs.startupModel ?? null,
+              model: chosen,
+              attachments,
               cwd: chatWorkspace,
-              timeoutMs: 120000,
+              timeoutMs: attachments.length ? 180000 : 120000,
             });
           },
           askImage: ({ prompt, cwd }) => require('./modules/ai-image.cjs').askImage({ root, prompt, cwd }),

@@ -48,6 +48,36 @@ const str = (v, name, max) => {
   return v;
 };
 
+// v0.8.7: images for ai.chat — only from the module's own data folder
+const IMAGE_EXT = /\.(png|jpe?g|webp)$/i;
+const MAX_CHAT_IMAGES = 10;
+const MAX_CHAT_IMAGE_BYTES = 20 * 1024 * 1024;
+const NO_IMAGE_MODEL = /^(cursor|abacus):/i;
+const FEATURES = ['ai.images'];
+
+/** images: ['courses/k1/s9.png'] → absolute paths inside the module's data folder, or an error. */
+function chatImages(images, storage) {
+  if (images === undefined || images === null) return [];
+  if (!Array.isArray(images)) throw Error('“images” bir liste olmalı, örn. ["sources/s9.png"].');
+  if (images.length > MAX_CHAT_IMAGES) throw Error(`Bir ai.chat isteğinde en fazla ${MAX_CHAT_IMAGES} görsel olabilir.`);
+  return images.map((rel, i) => {
+    if (typeof rel !== 'string' || !rel.trim() || rel.length > 400) throw Error(`images[${i}] geçerli bir dosya yolu olmalı.`);
+    if (!IMAGE_EXT.test(rel)) throw Error(`images[${i}]: yalnızca PNG, JPG, JPEG ve WebP görseller gönderilebilir.`);
+    const abs = storage.resolve(rel); // stays inside the module's own data folder
+    if (!IMAGE_EXT.test(abs)) throw Error(`images[${i}]: yalnızca PNG, JPG, JPEG ve WebP görseller gönderilebilir.`);
+    let st;
+    try {
+      st = fs.lstatSync(abs);
+    } catch {
+      throw Error(`images[${i}] bulunamadı: ${rel}`);
+    }
+    if (!st.isFile()) throw Error(`images[${i}] bir dosya değil: ${rel}`);
+    if (!st.size) throw Error(`images[${i}] boş: ${rel}`);
+    if (st.size > MAX_CHAT_IMAGE_BYTES) throw Error(`images[${i}] çok büyük (en fazla 20 MB): ${rel}`);
+    return abs;
+  });
+}
+
 /** { system, messages } → one prompt for the AI (no chat history is written). */
 function chatPrompt(args) {
   if (!args || typeof args !== 'object') throw Error('ai.chat bir nesne bekler: { system, messages }.');
@@ -279,16 +309,20 @@ function createModuleHost(o) {
           charlesVersion: deps.charlesVersion,
           language: deps.language(),
           permissions: [...(m.permissions || []), ...Object.keys(DEFAULT_PERMISSIONS)],
+          // v0.8.7: what this Charles can do beyond the v0.8.0 API (older versions send none)
+          features: [...FEATURES],
         };
       case 'ai.chat': {
         const prompt = chatPrompt(args);
         const model = args?.model === undefined || args?.model === null ? null : String(args.model);
         if (model !== null && !MODEL.test(model)) throw Error('Geçersiz model adı.');
+        const images = chatImages(args?.images, s());
+        if (images.length && model !== null && NO_IMAGE_MODEL.test(model)) throw Error('Görseller şu an yalnızca GPT, Claude ve Gemini ile çalışıyor.');
         const key = id + ' ai.chat';
         if (busy.has(key)) throw Error('Önceki ai.chat isteği hâlâ sürüyor.');
         busy.add(key);
         try {
-          return await deps.askChat({ prompt, model });
+          return await deps.askChat(images.length ? { prompt, model, images } : { prompt, model });
         } finally {
           busy.delete(key);
         }
@@ -373,4 +407,4 @@ function createModuleHost(o) {
   };
 }
 
-module.exports = { createModuleHost, chatPrompt, rateLimiter, needs, EMOTES };
+module.exports = { createModuleHost, chatPrompt, chatImages, rateLimiter, needs, EMOTES, FEATURES };

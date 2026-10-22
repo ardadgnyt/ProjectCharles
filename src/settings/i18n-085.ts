@@ -2,10 +2,7 @@
 // The other languages (de, fr, es, zh) translate from this English (src/settings/lang/*).
 export const english085: Record<string, string> = {
   "İndirme": "Download",
-  "İnternetten video, ses ve dosya indirip İndirilenler klasörüne kaydeder; bunun için Charles’ın yt-dlp ve FFmpeg araçlarını çalıştırır. İstersen panoya kopyaladığın bağlantıları da izler. Yalnızca Charles’ın resmi Download modülünde çalışır.": "Downloads videos, audio and files from the internet into your Downloads folder, using Charles’ yt-dlp and FFmpeg tools. If you want, it also watches links you copy. Works only in Charles’ official Download module.",
-  "Bu Download modülü sürümü “İndirme” izni istemiyor. Charles Download 1.0.1 veya üstünü yükle.": "This Download module version does not ask for the “Download” permission. Install Charles Download 1.0.1 or later.",
-  "Bu modül Charles’ın resmi Download paketiyle eşleşmiyor; indirme özellikleri kapalı.": "This module does not match Charles’ official Download package; download features are off.",
-  "Klasörden yüklenen Download modülü yalnızca Geliştirici modu açıkken çalışır.": "A Download module loaded from a folder works only while developer mode is on.",
+  "İnternetten video, ses ve dosya indirip İndirilenler klasörüne kaydeder; bunun için Charles’ın yt-dlp ve FFmpeg araçlarını çalıştırır, indirme kuyruğunu görebilir ve yönetebilir. İstersen panoya kopyaladığın bağlantıları da izler.": "Downloads videos, audio and files from the internet into your Downloads folder, using Charles’ yt-dlp and FFmpeg tools; it can see and manage the download queue. If you want, it also watches links you copy.",
   "Bu API yalnızca etkin Charles Download modülüne açıktır.": "This API is only available to the enabled Charles Download module.",
   "Charles Download host eklentisi kurulu değil.": "The Charles Download host extension is not installed.",
   "Kaydedilen dosya bulunamadı.": "The saved file was not found.",
@@ -24,6 +21,7 @@ export const english085: Record<string, string> = {
   "PDF içinde okunabilir metin yok. Taranmış belgede önce OCR kullan veya sayfaları görsel olarak GPT’ye ekle.": "The PDF has no readable text. For a scanned document use OCR first, or add the pages to GPT as images.",
   "En fazla 50 dosya seçin.": "Choose at most 50 files.",
   "En fazla 50 dosya eklenebilir.": "At most 50 files can be attached.",
+  "Bu modülün “İndirme” izni yok (manifest.json → permissions).": "This module does not have the “Download” permission (manifest.json → permissions).",
 };
 export const patterns085: [RegExp, (...m: string[]) => string][] = [
   [/^(.+): PDF okunamadı; dosya bozuk veya parola korumalı olabilir\.$/, (_, f) => `${f}: the PDF could not be read; it may be damaged or password-protected.`],

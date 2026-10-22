@@ -3,7 +3,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { DownloadEngine, candidateURL, validURL } = require('./engine.cjs');
-const { createTrust } = require('./trust.cjs');
 const TOOL_FILES = ['yt-dlp.exe', 'ffmpeg.exe'];
 const hasTools = (dir) => !!dir && TOOL_FILES.every((f) => { try { return fs.statSync(path.join(dir, f)).isFile(); } catch { return false; } });
 
@@ -75,7 +74,14 @@ function createDownloadBridge({ registry, owners, sessionFor, open, deps }) {
     const dir = findTools(toolOptions);
     if (dir) engine.tools = toolsAt(dir);
   };
-  const trust = createTrust({ registry });
+  // v0.8.6: the "download" permission works like every other module permission: any module
+  // that asks for it gets it once the user approves it on the install screen (host.cjs checks
+  // the permission before a call reaches this bridge). The card under the island and the
+  // clipboard offers belong to the module with the id "download".
+  const permitted = (id) => {
+    const m = registry.get(id);
+    return !!m && m.enabled !== false && (m.permissions || []).includes('download');
+  };
   const messages={
     completed:{tr:'İndirme tamamlandı',en:'Download complete',de:'Download abgeschlossen',fr:'Téléchargement terminé',es:'Descarga completada',zh:'下载完成'},
     folder:{tr:'İndirme klasörünü seç',en:'Choose download folder',de:'Downloadordner wählen',fr:'Choisir le dossier',es:'Elegir carpeta de descargas',zh:'选择下载文件夹'},
@@ -87,8 +93,7 @@ function createDownloadBridge({ registry, owners, sessionFor, open, deps }) {
   const CARD_WIDTH = 548, ISLAND_MAX_HEIGHT = 170, GAP = 4;
   let cardHeight = 170, hold = false;
   Promise.resolve(clipboard.readText()).then(text => { lastClipboard = String(text || '').trim(); }).catch(() => {});
-  // v0.8.5: only Charles' own Download module (known package, "download" permission granted)
-  const enabled = () => trust().ok;
+  const enabled = () => permitted('download');
   // Bounds directly under the compact Charles island (as in the concept design). While the
   // island panel is expanded, hidden or the app window is open, there is no anchor: wait.
   function cardBounds() {
@@ -182,18 +187,7 @@ function createDownloadBridge({ registry, owners, sessionFor, open, deps }) {
     engine,
     language(lang) { if (popup && !popup.isDestroyed()) popup.webContents.send('charles-module:language', lang); },
     async call(id, method, args) {
-      if (id !== 'download') throw Error('Bu API yalnızca etkin Charles Download modülüne açıktır.');
-      const state = trust();
-      if (!state.ok)
-        throw Error(
-          state.reason === 'permission'
-            ? 'Bu Download modülü sürümü “İndirme” izni istemiyor. Charles Download 1.0.1 veya üstünü yükle.'
-            : state.reason === 'untrusted'
-              ? 'Bu modül Charles’ın resmi Download paketiyle eşleşmiyor; indirme özellikleri kapalı.'
-              : state.reason === 'dev-off'
-                ? 'Klasörden yüklenen Download modülü yalnızca Geliştirici modu açıkken çalışır.'
-                : 'Bu API yalnızca etkin Charles Download modülüne açıktır.',
-        );
+      if (!permitted(id)) throw Error('Bu modülün “İndirme” izni yok (manifest.json → permissions).');
       if (['download.state', 'download.inspect', 'download.enqueue'].includes(method)) refreshTools();
       switch (method) {
         case 'download.state': return { ...engine.snapshot(), toolsDir: engine.tools.dir || '', language: deps.language?.() || 'tr' };

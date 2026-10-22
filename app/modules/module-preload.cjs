@@ -34,9 +34,13 @@ contextBridge.exposeInMainWorld('charlesModule', {
   },
   info: () => call('info'),
   ai: {
-    // onChunk (optional) is called once with the whole answer; streaming may come later
+    // onChunk (optional) is called once with the whole answer; streaming may come later.
+    // v0.8.7: images (optional) are paths inside the module's own data folder, e.g.
+    // images: ['courses/k1/sources/s9.png'] (png, jpg, jpeg, webp). Check
+    // (await charles.info()).features?.includes('ai.images') before using them.
     chat: async (options = {}) => {
-      const { onChunk, ...rest } = options || {};
+      const { onChunk, images, ...rest } = options || {};
+      if (images !== undefined && images !== null) rest.images = Array.isArray(images) ? images.map((p) => String(p)) : images;
       const text = await call('ai.chat', rest);
       if (typeof onChunk === 'function') onChunk(text);
       return text;

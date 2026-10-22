@@ -7,6 +7,7 @@ const { ClaudeUsage } = require('../usage/claude-usage.cjs');
 const { launchPlan, claudeItems } = require('./provider-tools.cjs');
 const { ASK_FORMAT } = require('../core/ask-format.cjs');
 const abacus = require('./abacus.cjs');
+const imagesKit = require('./provider-images.cjs');
 // v0.8.0: every provider Charles can sign in to besides GPT
 const PROVIDERS = ['gemini', 'claude', 'cursor', 'abacus'];
 // Runs a CLI in a worker thread; resolves { error, out, err } like execFile's callback.
@@ -580,12 +581,9 @@ class Providers {
         'Web arama, derin araştırma ve görsel oluşturma GPT ile çalışır. Bu istek için GPT seç.',
       );
     if (args.mode === 'project' && !args.cwd) throw Error('Proje modu için klasör seç.');
-    if ((args.attachments || []).some((a) => a.type !== 'text'))
-      throw Error(
-        provider === 'gemini'
-          ? 'Gemini abonelik bağlantısının Antigravity mesaj girişi şu anda yalnızca metin destekliyor. Fotoğraf gönderilmedi. Görseli incelemek için GPT modelini seç; ekin korunur.'
-          : 'Bu sağlayıcının Charles bağlantısı şu anda metin belgelerini destekliyor. Görsel için GPT seç.',
-      );
+    // v0.8.7: Claude and Gemini take images too (app/ai/provider-images.cjs)
+    const { texts, images } = imagesKit.splitAttachments(provider, args.attachments);
+    const claudeImages = provider === 'claude' && images.length ? imagesKit.loadImages(images, this.shrinkImage) : null;
     if (agent.busy) throw Error('Önce etkin yanıtı durdur.');
     const spec = this.spec(provider);
     if (!spec.exe || !fs.existsSync(spec.exe))
@@ -595,6 +593,9 @@ class Providers {
           : 'Sağlayıcının resmi aracı bulunamadı. Kurulum paketini yeniden çıkar.',
       );
     const isAbacus = provider === 'abacus';
+    const id = randomUUID();
+    const workspace = path.join(this.dir, 'workspace');
+    const staged = provider === 'gemini' && images.length ? imagesKit.stageGeminiImages(workspace, id, images) : null;
     // Sign-in was verified by refreshAuth above (claude.ai subscription only, see probe);
     // no extra `claude auth status` launch before every message.
     const planArgs = {
@@ -603,7 +604,9 @@ class Providers {
       mode: args.mode,
       access: args.access,
       projectDir: args.mode === 'project' ? args.cwd : null,
-      workspace: path.join(this.dir, 'workspace'),
+      workspace,
+      images: images.length > 0,
+      imageDir: staged?.dir || null,
     };
     // Abacus AI takes the message on its command line (-p), so its plan is made once the full
     // message is known (below); this first plan only says where it runs.
@@ -613,7 +616,6 @@ class Providers {
         path.join(this.dir, 'gemini/.gemini/antigravity-cli/settings.json'),
         JSON.stringify(plan.geminiSettings),
       );
-    const id = randomUUID();
     agent.busy = true;
     const emit = (method, params) => agent.publish('agent', { method, params });
     emit('turn/started', { turn: { id } });
@@ -626,7 +628,7 @@ class Providers {
       type: 'mcpToolCall',
       tool: 'read_document',
       status,
-      command: mailData ? 'E-postalar okunuyor' : 'Belge okunuyor',
+      command: mailData ? 'E-postalar okunuyor' : images.length && !texts.length ? 'Görsel inceleniyor' : 'Belge okunuyor',
     });
     if (reading) emit('item/started', { item: readItem('inProgress') });
     if (plan.tools)
@@ -653,7 +655,8 @@ class Providers {
       '\n' +
       args.prompt +
       '\n' +
-      (args.attachments || []).map((a) => a.text).join('\n');
+      texts.map((a) => a.text).join('\n') +
+      (staged ? imagesKit.geminiImagePrompt(staged.files) : '');
     if (isAbacus) {
       try {
         plan = abacus.abacusPlan({ ...planArgs, prompt });
@@ -690,6 +693,7 @@ class Providers {
       if (finished) return;
       finished = true;
       clearTimeout(timeout);
+      imagesKit.removeStaged(staged?.dir);
       this.jobs.delete(agent);
       // v0.7.3: the Claude CLI renews its session while answering, so the quota can be read
       // again with the fresh token right away
@@ -818,9 +822,11 @@ class Providers {
     child.stdin.end(
       isAbacus
         ? ''
-        : provider === 'gemini'
-          ? JSON.stringify({ event: 'user', message: { content: prompt } }) + '\n'
-          : prompt,
+        : claudeImages
+          ? imagesKit.claudeInput(prompt, claudeImages)
+          : provider === 'gemini'
+            ? JSON.stringify({ event: 'user', message: { content: prompt } }) + '\n'
+            : prompt,
     );
     return { turnId: id };
   }

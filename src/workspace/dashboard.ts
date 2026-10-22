@@ -9,6 +9,7 @@ import { homeCard } from './home';
 import { t } from '../settings/i18n';
 import { commandsCard, notesCard, systemUsageCard, systemInfoCard } from './extra-cards';
 import { dashEditor } from './dash-edit';
+import { modulesCard } from './modules-card';
 
 export type DashboardDeps = {
   api: any;
@@ -577,6 +578,8 @@ export function workspaceDashboard(d: DashboardDeps) {
   const notes = notesCard(extra);
   const sysUsage = systemUsageCard(extra);
   const sysInfo = systemInfoCard(extra);
+  // v0.8.7: installed modules with quick "Aç" buttons
+  const modules = modulesCard({ api, notice: d.notice, openSettings: d.openSettings, save: saveDash });
   let dash: any = null;
   const editor = dashEditor({
     root,
@@ -593,6 +596,7 @@ export function workspaceDashboard(d: DashboardDeps) {
       { id: 'notes', title: 'Notlar', text: 'Kendiliğinden kaydedilen not defteri', icon: 'pencil', element: notes.element },
       { id: 'sysusage', title: 'Sistem kullanımı', text: 'İşlemci, bellek ve disk doluluğu', icon: 'bolt', element: sysUsage.element, placed: (v) => (v && visible ? sysUsage.start() : sysUsage.stop()) },
       { id: 'sysinfo', title: 'Sistem bilgileri', text: 'Windows sürümü, işlemci, bellek, ekran', icon: 'window', element: sysInfo.element, placed: (v) => v && visible && void sysInfo.load() },
+      { id: 'modules', title: 'Modüller', text: 'Yüklü modüllerin, hızlı açma tuşlarıyla', icon: 'puzzle', element: modules.element, placed: (v) => v && visible && void modules.load() },
     ],
     save: async (cols) => {
       try {
@@ -617,6 +621,7 @@ export function workspaceDashboard(d: DashboardDeps) {
     applyUsageShow();
     commands.set(dash);
     notes.set(dash);
+    modules.set(dash);
   }
   const placed = (id: string) => editor.placed(id);
 
@@ -630,6 +635,7 @@ export function workspaceDashboard(d: DashboardDeps) {
     if (placed('home')) void loadHome(force);
     if (placed('usage')) void loadUsage(force);
     if (placed('sysinfo')) void sysInfo.load();
+    if (placed('modules')) void modules.load();
     if (placed('calendar') || placed('reminders')) await loadCalendar(force);
   }
 

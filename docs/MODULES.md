@@ -57,7 +57,7 @@ npm run module:pack <folder> <out.zip>
 | `entry` | An `.html` file inside the package. |
 | `icon` | Optional `.png`, `.jpg`, `.svg` or `.webp` inside the package (shown in Settings). |
 | `window` | Optional. `width`/`height` (default 1100 × 760), `minWidth`/`minHeight` (default 480 × 360). |
-| `permissions` | Optional list of `ai`, `image`, `voice`. |
+| `permissions` | Optional list of `ai`, `image`, `voice`, `download`. |
 
 Unknown fields, unknown permissions, missing fields or a bad id are refused with a clear message.
 
@@ -65,9 +65,10 @@ Unknown fields, unknown permissions, missing fields or a bad id are refused with
 
 | Permission | Allows |
 | --- | --- |
-| `ai` | `ai.chat` — ask the user's connected AI. Nothing is written to the chat history. |
+| `ai` | `ai.chat` — ask the user's connected AI, optionally with images from the module's own data folder. Nothing is written to the chat history. |
 | `image` | `ai.image` — create an image with the chat's image tool. |
 | `voice` | `voice.speak` / `voice.stop` — read text aloud. |
+| `download` | `download.*` — Charles' download engine (yt-dlp, FFmpeg, the download queue). |
 | `storage` *(always)* | Files in the module's own data folder only. |
 | `slime` *(always)* | `slime.emote` — make Slime show an expression. |
 | `notify` *(always)* | `notify` — a short message in Charles' notification bubble. |
@@ -84,12 +85,22 @@ module (e.g. 60 calls / 10 s in general, `ai.chat` 12 / min, `ai.image` 4 / min)
 const C = window.charlesModule;
 
 await C.info();
-// → { id, version, charlesVersion, language, permissions }
+// → { id, version, charlesVersion, language, permissions, features }
+//   `features` (Charles 0.8.7+) lists optional abilities, e.g. ['ai.images']. Older Charles
+//   versions send no `features`: treat it as an empty list.
 
 await C.ai.chat({ system: 'Answer briefly.', messages: [{ role: 'user', content: 'Hi' }], model });
 // → answer text. `model` is optional (the user's default model). `role`: "user" | "assistant";
 //   the last message must be the user's. Up to 50 messages, 100 000 characters in total.
 //   Optional `onChunk(text)` is called once with the whole answer (no streaming in API v1).
+
+if ((await C.info()).features?.includes('ai.images'))
+  await C.ai.chat({ messages: [{ role: 'user', content: 'What does this page say?' }], images: ['courses/k1/sources/s9.png'] });
+// Charles 0.8.7+: optional `images` — up to 10 PNG / JPG / JPEG / WebP files (20 MB each) from
+//   the module's own data folder (the same paths as `storage`). Nothing outside that folder can
+//   be sent. Needs only the `ai` permission. Works with GPT, Claude and Gemini; with a Cursor or
+//   Abacus AI model the call fails with “Görseller şu an yalnızca GPT, Claude ve Gemini ile
+//   çalışıyor.” When `features` has no 'ai.images', show your own “images can't be sent” note.
 
 await C.ai.image({ prompt: 'A green slime in a red hat, watercolour' });
 // → { path: 'images/2026-….png', url: 'charles-module://<id>/_data/images/2026-….png' }

@@ -114,21 +114,3 @@ writeFileSync(out, Buffer.concat([...parts, cd, end]));
 console.log(`✔ ${relative(root, out)} · ${files.length} dosya · ${(statSync(out).size / 1024).toFixed(1)} KB`);
 
 writeFileSync(out + '.sha256', createHash('sha256').update(readFileSync(out)).digest('hex') + '  ' + m.id + '-' + m.version + '.zip\n');
-
-// v0.8.5: Charles gives the Download bridge only to a package it knows. The digest is the
-// same one app/modules/download/trust.cjs computes over the installed files ("path\0sha256\n",
-// sorted). Inside the Charles repository it is added to app/modules/download/trusted.json.
-import { existsSync } from 'node:fs';
-const digest = createHash('sha256')
-  .update(files.slice().sort().map((f) => f + '\0' + createHash('sha256').update(readFileSync(join(dist, f))).digest('hex') + '\n').join(''))
-  .digest('hex');
-console.log(`  paket özeti (trusted.json): ${digest}`);
-const trustFile = join(root, '..', '..', 'app', 'modules', 'download', 'trusted.json');
-if (existsSync(dirname(trustFile))) {
-  let list = { packages: [] };
-  try { list = JSON.parse(readFileSync(trustFile, 'utf8')); } catch {}
-  list.packages = (list.packages || []).filter((p) => p.sha256 !== digest && p.version !== m.version);
-  list.packages.push({ version: m.version, sha256: digest });
-  writeFileSync(trustFile, JSON.stringify(list, null, 2) + '\n');
-  console.log('  ' + relative(root, trustFile) + ' güncellendi.');
-}
