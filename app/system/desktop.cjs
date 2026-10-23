@@ -134,15 +134,26 @@ class Desktop {
   async media(action) {
     if (typeof action === 'object') return this.mediaWorker.request(action);
     let r = await this.helper(action);
-    if (action === 'play' && r.reason === 'no-session') {
-      await this.open('spotify');
-      for (let i = 0; i < 6; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 250));
-        r = await this.helper(action);
-        if (r.reason !== 'no-session') break;
+    // v0.8.14: "Çalmaya başla" with Spotify closed (or not answering) opens Spotify first
+    if (action === 'play' && !r?.ok) {
+      await this.openSpotify();
+      for (let i = 0; i < 12; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        r = await this.helper(action).catch(() => r);
+        if (r?.ok) break;
       }
     }
     return r;
+  }
+  /** v0.8.14: brings up the Spotify app (its spotify: link, else the Start menu entry). */
+  async openSpotify() {
+    try {
+      if (this.shell?.openExternal) {
+        await this.shell.openExternal('spotify:');
+        return 'Spotify';
+      }
+    } catch {}
+    return this.open('spotify');
   }
   async apps() {
     if (!this.catalog) this.catalog = (await this.helper('list')) || [];

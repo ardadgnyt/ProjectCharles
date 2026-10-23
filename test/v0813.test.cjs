@@ -107,9 +107,6 @@ test('a bigger Charles above the chat', () => {
   assert.match(read('public/index.html'), /styles\/21-v0813\.css/);
 });
 
-test('version 0.8.13', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.8.13-beta.1');
-  assert.match(read('public/index.html'), /v0\.8\.13 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.8\.13 Beta'/);
+test('version 0.8.13 is in the changelog', () => {
   assert.match(read('CHANGELOG.md'), /## v0\.8\.13 Beta/);
 });

@@ -4,6 +4,16 @@ Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özell
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.8.14 Beta — 24 Ekim 2026
+
+- **Spotify yeniden algılanıyor:** Spotify açık ve müzik çalarken Charles bunu göremiyordu. Windows’un medya bağlantısında bir istek takılınca sonraki her istek de 3 saniye bekleyip boş dönüyordu. Artık takılan bağlantı kendini yeniden başlatıyor. Windows Spotify’ı bildirmezse (Spotify’ın bir ayarı bunu kapatabiliyor) ya da bağlantı yanıt vermezse, Spotify penceresinin başlığından çalan şarkı okunuyor; oynat, duraklat, ileri ve geri medya tuşlarıyla çalışıyor. Birden çok Spotify oturumu varsa çalan seçiliyor. Şarkının adı geç gelse bile çalma durumu hemen görünüyor.
+- **Müzik kartı Spotify’ı açıyor:** müzik kartına (tuşlar dışında bir yere) tıklamak Spotify’ı açıyor. “Çalmaya başla” Spotify kapalıyken ya da yanıt vermiyorken önce Spotify’ı açıp birkaç saniye içinde çalmayı başlatmayı deniyor.
+- **Hava durumu tahmini:** hava durumu kartı artık şehir seçmeye götürmüyor. AI kullanımı paneli boyutunda bir pencere açılıyor: şu anki sıcaklık, hissedilen, nem, rüzgâr ve önümüzdeki 5 gün (en yüksek/en düşük sıcaklık, yağış olasılığı). Şehri buradaki kalem tuşuyla değiştirebilirsin. Şehir seçimi artık sohbet panelinin üstünde açılıyor; kart rafında aşağısı kesiliyordu.
+- **Büyük adada (sohbet) boş yere tıklamak** adayı kapatmak yerine kart rafına döndürüyor. Aşağıdaki krem çubuk adayı tamamen kapatmaya devam ediyor.
+- **Kart rafında boş yere tıklamak** adayı en küçük hâline (müzik çalmıyorsa ince şeride) döndürüyor. Krem çubuk sohbeti açmaya devam ediyor.
+- **Sohbette Charles** biraz daha yukarıda; Slime ile “Charles” yazısı arasında boşluk var.
+- **Hata düzeltmeleri:** müzik kartında oynat/duraklat tuşuna basınca tıklama kartın kendisine ve rafa da ulaşıp adayı kapatabiliyordu; tıklamanın nereden geldiği artık tuşun simgesi yeniden çizilse bile doğru anlaşılıyor. Eski bir ayar dosyasında ses düzeyi eksikse sesler bozulmuyor.
+
 ## v0.8.13 Beta — 24 Ekim 2026
 
 - **Bildirimler kapanıyor:** × ile kapatılan e-posta, takvim ve WhatsApp bildirimleri geri gelmiyor. Kapatılan bir WhatsApp sohbeti, fotoğrafı ya da grup adı birkaç saniye sonra geldiğinde yeniden açılıyordu; artık yalnızca o sohbetten yeni bir mesaj gelirse gösteriliyor. Kapatılan bir e-posta aynı kimlikle tekrar eklenmiyor. Bildirimler adanın üstünde duruyor ve adanın görünmeyen geniş yüzeyi bildirimin üzerindeki tıklamaları almıyor (sabitlenmiş ada da dahil).

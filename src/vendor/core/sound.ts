@@ -104,7 +104,9 @@ class SoundEngine {
   }
 
   setVolume(v: number) {
-    this.volume = Math.max(0, Math.min(0.2, v));
+    // v0.8.14: a missing or broken value (an old settings file) keeps the current volume
+    if (!Number.isFinite(Number(v))) return;
+    this.volume = Math.max(0, Math.min(0.2, Number(v)));
     if (this.master) this.master.gain.value = this.volume;
   }
 

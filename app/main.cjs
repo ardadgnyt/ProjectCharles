@@ -1552,6 +1552,12 @@ else {
         return companion.snapshot();
       });
       safeHandler('weather-cities', (query) => companion.weather.cities(query));
+      // v0.8.14: the five-day weather sheet (for the city chosen in the settings)
+      safeHandler('weather-forecast', async () => {
+        const city = v2?.data.city;
+        if (!city) return { city: null };
+        return companion.weather.forecast(city);
+      });
       safeHandler('memory-import', async () => {
         dialogOpen = true;
         try {
@@ -2210,6 +2216,8 @@ else {
         return islandView();
       });
       safeHandler('island-view-read', () => islandView());
+      // v0.8.14: a click on the music card opens Spotify
+      safeHandler('spotify-open', () => desktop.openSpotify());
       // v0.8.11: the music card shows the installed Spotify app's own icon (read from Windows)
       let spotifyIcon;
       safeHandler('spotify-icon', async () => {

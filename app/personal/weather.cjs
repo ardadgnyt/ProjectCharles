@@ -12,6 +12,43 @@ class Weather {
     this.fetch = fetcher;
     this.cached = null;
     this.pending = null;
+    this.forecastCache = null;
+  }
+  /**
+   * v0.8.14: the next five days for the weather sheet (Open-Meteo, cached for 30 minutes):
+   * { city, current: { temp, feels, humidity, wind, code, text, emoji }, days: [{ date, code,
+   * text, emoji, max, min, rain }] }
+   */
+  async forecast(city) {
+    if (!city || !Number.isFinite(+city.latitude) || !Number.isFinite(+city.longitude)) return null;
+    const key = JSON.stringify(city);
+    if (this.forecastCache?.key === key && Date.now() - this.forecastCache.time < 30 * 60000) return this.forecastCache.value;
+    const r = await this.json(
+      `https://api.open-meteo.com/v1/forecast?latitude=${+city.latitude}&longitude=${+city.longitude}` +
+        '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code' +
+        '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max' +
+        '&forecast_days=5&timezone=auto',
+    );
+    const d = r.daily || {};
+    const days = (Array.isArray(d.time) ? d.time : []).slice(0, 5).map((date, i) => {
+      const code = Number(d.weather_code?.[i]);
+      const [text, emoji] = split(describe(code));
+      const num = (v) => (Number.isFinite(v) ? Math.round(v) : null);
+      return { date: String(date), code, text, emoji, max: num(d.temperature_2m_max?.[i]), min: num(d.temperature_2m_min?.[i]), rain: num(d.precipitation_probability_max?.[i]) };
+    });
+    if (!days.length) throw Error('Hava durumu tahmini alınamadı.');
+    const c = r.current || {};
+    const [text, emoji] = split(describe(Number(c.weather_code)));
+    const round = (v) => (Number.isFinite(v) ? Math.round(v) : null);
+    const value = {
+      city: String(city.name || '').split(',')[0],
+      current: { temp: round(c.temperature_2m), feels: round(c.apparent_temperature), humidity: round(c.relative_humidity_2m), wind: round(c.wind_speed_10m), code: Number(c.weather_code), text, emoji },
+      days,
+      updatedAt: Date.now(),
+      source: 'Open-Meteo',
+    };
+    this.forecastCache = { key, time: Date.now(), value };
+    return value;
   }
   async json(url) {
     const r = await this.fetch(url, { signal: AbortSignal.timeout(10000) });
@@ -57,5 +94,10 @@ class Weather {
       this.pending = null;
     }
   }
+}
+/** "Parçalı bulutlu 🌤️" → ["Parçalı bulutlu", "🌤️"] */
+function split(described) {
+  const i = described.lastIndexOf(' ');
+  return [described.slice(0, i), described.slice(i + 1)];
 }
 module.exports = { Weather, describe };

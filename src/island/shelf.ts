@@ -19,6 +19,10 @@ type Deps = {
 };
 
 const svg = (name: string) => icon(name);
+// v0.8.14: whether a click went through an element matching `selector`. The path is taken when
+// the click starts, so it still counts when a button redraws its icon while the click is handled
+// (the clicked icon is no longer in the page by the time the click reaches the card or the shelf).
+const onPath = (e: Event, selector: string) => e.composedPath().some((n) => n instanceof Element && n.matches(selector));
 const button = (cls: string, label: string, ...children: (Node | string)[]) => {
   const b = el('button', cls, ...children);
   b.type = 'button';
@@ -100,6 +104,8 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     );
   };
   viaChat('sessions-toggle', false);
+  // v0.8.14: the city picker too (in the shelf it was cut off below the cards)
+  viaChat('weather-idle', true);
   viaChat('settings-toggle', true);
 
   // ── notch ──────────────────────────────────────────────────────────────────
@@ -205,7 +211,8 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   const weatherTitle = el('strong', '', 'Hava durumu');
   const weatherSub = el('small', 'card-sub', 'Konum seç');
   const weatherCard = button('card card-weather', 'Hava durumu', weatherIcon, el('span', 'card-text', weatherTitle, weatherSub));
-  weatherCard.onclick = () => document.getElementById('weather-idle')?.click();
+  // v0.8.14: the card opens the next five days (city choice is inside that sheet)
+  weatherCard.onclick = () => openWeather();
   // "Ankara · 16° · Parçalı bulutlu 🌤️" from the companion state (the same text as the old line)
   function paintWeather(value: any) {
     const full = String(value?.weather?.text || '');
@@ -260,7 +267,7 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   });
 
   // music
-  const music = musicCard(attempt);
+  const music = musicCard(attempt, api);
   // v0.8.11: the installed Spotify app's own icon instead of the music note (if Windows has one)
   void Promise.resolve(api.spotifyIcon?.())
     .then((src: string | null) => {
@@ -269,25 +276,27 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     .catch(() => {});
   page1.append(el('div', 'shelf-col', usageCard, weatherCard), convertCard, charlesCard, music.card);
 
-  // v0.8.11: a click on an empty part of the shelf (or of its top bar) opens the chat
+  // v0.8.14: a click on an empty part of the shelf (or of its top bar) closes the island (the
+  // cream bar below opens the chat); in the chat it goes back to the shelf (the cream bar closes)
   const empty = (t: HTMLElement) => !t.closest('button, a, input, select, textarea, .card, .shelf-sheet, #pet, [role="button"]');
   shelf.addEventListener('click', (e) => {
-    if (view === 'shelf' && empty(e.target as HTMLElement)) void attempt(() => api.islandView('chat'));
+    if (view === 'shelf' && !onPath(e, 'button, a, input, select, textarea, .card, .shelf-sheet, #pet, [role="button"], dialog'))
+      void attempt(() => api.islandView('notch'));
   });
   header.addEventListener(
     'pointerdown',
     (e) => {
       const t = e.target as HTMLElement;
-      // v0.8.12: in the chat, a click on an empty part of the Charles panel folds the island
+      // v0.8.14: in the chat, a click on an empty part of the Charles panel goes back to the shelf
       if (view === 'chat' && e.button === 0 && empty(t) && !t.closest('.character-center')) {
         e.stopImmediatePropagation();
-        void attempt(() => api.islandView('notch'));
+        void attempt(() => api.islandView('shelf'));
         return;
       }
       if (view !== 'shelf' || e.button !== 0 || !empty(t)) return;
-      // the old island collapsed on a click on the header; on the shelf it opens the chat
+      // on the shelf an empty part of the top bar closes the island
       e.stopImmediatePropagation();
-      void attempt(() => api.islandView('chat'));
+      void attempt(() => api.islandView('notch'));
     },
     true,
   );
@@ -332,6 +341,67 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     wrap.append(usagePanel);
     openSheet('AI kullanımı', wrap);
   };
+
+  // v0.8.14: weather — a sheet the size of the AI usage one with the next five days
+  const DAYS = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+  const pickCity = () => {
+    closeSheet?.();
+    document.getElementById('weather-idle')?.click();
+  };
+  function openWeather() {
+    const wrap = el('div', 'weather-sheet');
+    wrap.dataset.kind = 'weather';
+    const change = button('weather-change', 'Şehri değiştir', svg('pencil'));
+    change.onclick = pickCity;
+    wrap.append(el('p', 'weather-note', 'Tahmin yükleniyor…'));
+    openSheet('Hava durumu', wrap);
+    void Promise.resolve(api.weatherForecast?.())
+      .then((f: any) => {
+        if (!f?.city) {
+          const choose = button('weather-choose', 'Şehrini seç', svg('pencil'), el('span', '', 'Şehrini seç'));
+          choose.onclick = pickCity;
+          wrap.replaceChildren(el('p', 'weather-note', 'Hava durumunu görmek için şehrini seç.'), choose);
+          return;
+        }
+        const c = f.current || {};
+        const deg = (v: any) => (Number.isFinite(v) ? v + '°' : '—');
+        const city = el('strong', 'weather-city', f.city);
+        city.translate = false;
+        const now = el(
+          'div',
+          'weather-now',
+          el('span', 'weather-now-emoji', c.emoji || '🌤️'),
+          el('span', 'weather-now-temp', deg(c.temp)),
+          el('span', 'weather-now-text', city, el('small', '', c.text || '')),
+          change,
+        );
+        const details = el('div', 'weather-details');
+        if (Number.isFinite(c.feels)) details.append(el('span', '', el('small', '', 'Hissedilen'), el('b', '', deg(c.feels))));
+        if (Number.isFinite(c.humidity)) details.append(el('span', '', el('small', '', 'Nem'), el('b', '', '%' + c.humidity)));
+        if (Number.isFinite(c.wind)) details.append(el('span', '', el('small', '', 'Rüzgâr'), el('b', '', c.wind + ' km/sa')));
+        const days = el('div', 'weather-days');
+        (f.days || []).slice(0, 5).forEach((d: any, i: number) => {
+          const date = new Date(String(d.date) + 'T12:00:00');
+          const name = i === 0 ? 'Bugün' : i === 1 ? 'Yarın' : DAYS[date.getDay()] || '';
+          const day = el(
+            'div',
+            'weather-day' + (i === 0 ? ' today' : ''),
+            el('small', 'weather-day-name', name),
+            el('span', 'weather-day-emoji', d.emoji || '🌤️'),
+            el('span', 'weather-day-temps', el('b', '', deg(d.max)), el('small', '', deg(d.min))),
+            el('small', 'weather-day-rain' + (Number(d.rain) >= 40 ? ' wet' : ''), Number.isFinite(d.rain) ? '%' + d.rain : ''),
+          );
+          day.setAttribute('aria-label', `${name}: ${d.text || ''}, ${deg(d.max)} / ${deg(d.min)}`);
+          days.append(day);
+        });
+        wrap.replaceChildren(now, details, days);
+      })
+      .catch(() => {
+        const retry = button('weather-choose', 'Şehri değiştir', svg('pencil'), el('span', '', 'Şehri değiştir'));
+        retry.onclick = pickCity;
+        wrap.replaceChildren(el('p', 'weather-note', 'Hava durumuna şu anda ulaşılamıyor.'), retry);
+      });
+  }
 
   const converter = converterSheet({
     api,
@@ -421,7 +491,7 @@ export function islandShelf({ api, notice, attempt }: Deps) {
 }
 
 /** The music card: what is playing with its controls, or a button that starts playing. */
-function musicCard(attempt: Deps['attempt']) {
+function musicCard(attempt: Deps['attempt'], api: any) {
   const art = el('span', 'music-art');
   const artImg = el('img') as HTMLImageElement;
   artImg.alt = '';
@@ -453,6 +523,11 @@ function musicCard(attempt: Deps['attempt']) {
   const idleHint = el('small', 'music-hint', 'Spotify’ı açar ve son çalınanı başlatır');
   const meta = el('div', 'music-meta', label, title, artist, controls, progress, start, idleHint);
   const card = el('div', 'card card-music', art, meta);
+  // v0.8.14: a click on the card (not on its buttons or the seek bar) opens Spotify
+  card.addEventListener('click', (e) => {
+    if (onPath(e, 'button, input')) return;
+    void attempt(() => api.spotifyOpen());
+  });
 
   let last: any = null,
     at = 0,
@@ -521,7 +596,6 @@ function musicCard(attempt: Deps['attempt']) {
     end.textContent = time(r.duration);
     tick();
   }
-  void attempt; // the old controls report their own errors
   /** Shows an app icon (the installed Spotify's) in place of the music notes. */
   function brand(src: string) {
     card.classList.add('branded');

@@ -106,6 +106,7 @@ contextBridge.exposeInMainWorld('charles', {
   onView: (cb) => ipcRenderer.on('ui-view', (_e, view) => cb(view)),
   shelfHold: (value) => invoke('shelf-hold', value),
   notchMusic: (value) => invoke('notch-music', value),
+  spotifyOpen: () => invoke('spotify-open'),
   spotifyIcon: () => invoke('spotify-icon'),
   onConvertDrop: (cb) => {
     if (typeof cb === 'function') convertCallbacks.add(cb);
@@ -153,6 +154,7 @@ contextBridge.exposeInMainWorld('charles', {
   companionRead: () => invoke('companion-read'),
   companionSave: (value) => invoke('companion-save', value),
   weatherCities: (query) => invoke('weather-cities', query),
+  weatherForecast: () => invoke('weather-forecast'),
   memoryImport: () => invoke('memory-import'),
   onCompanion: (cb) => ipcRenderer.on('companion-changed', (_e, value) => cb(value)),
   onFileDrop: (cb) => {

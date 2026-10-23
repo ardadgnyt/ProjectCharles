@@ -1,0 +1,209 @@
+/* ==========================================================================================
+   22 · v0.8.14 — the weather sheet, Charles a little higher in the chat, the music card opens
+   Spotify
+   ========================================================================================== */
+
+/* --- Chat: Slime a little higher, more room above "Charles" ------------------------------- */
+body.v10[data-view='chat']:not(.desktop-pet) header > .character-center {
+  top: 28px !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) header #pet {
+  margin: 0 0 10px !important;
+}
+
+/* --- Music card: a click on it opens Spotify ------------------------------------------- */
+#shelf .card-music {
+  cursor: pointer;
+}
+
+/* --- Weather: the next five days, over the left part like AI usage ---------------------- */
+#shelf.sheet-open[data-sheet='weather'] .shelf-viewport,
+#shelf.sheet-open[data-sheet='weather'] .shelf-nav {
+  visibility: visible;
+}
+#shelf.sheet-open[data-sheet='weather'] .shelf-prev,
+#shelf.sheet-open[data-sheet='weather'] .shelf-col,
+#shelf.sheet-open[data-sheet='weather'] .card-convert {
+  visibility: hidden;
+}
+#shelf .shelf-sheet[data-kind='weather'] {
+  right: auto;
+  width: 290px;
+  inset: 0 auto 12px 8px;
+  padding: 6px 9px 7px;
+}
+#shelf .shelf-sheet[data-kind='weather'] .sheet-title {
+  display: none;
+}
+#shelf .shelf-sheet[data-kind='weather'] .sheet-head {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  height: 22px;
+  z-index: 1;
+}
+#shelf .shelf-sheet[data-kind='weather'] .sheet-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+#shelf .weather-sheet {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+}
+#shelf .weather-note {
+  margin: auto 0 0;
+  padding: 0 4px;
+  color: var(--v10-muted);
+  font-size: 12px;
+  text-align: center;
+}
+#shelf .weather-choose {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  margin-bottom: auto;
+  padding: 0 12px;
+  border: 1px solid var(--v10-edge);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--v10-ink);
+  font-size: 12px;
+}
+#shelf .weather-choose svg {
+  width: 14px;
+  height: 14px;
+}
+#shelf .weather-now {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding-left: 28px;
+}
+#shelf .weather-now-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+#shelf .weather-now-temp {
+  color: var(--v10-ink);
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+#shelf .weather-now-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+#shelf .weather-city {
+  overflow: hidden;
+  color: var(--v10-ink);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#shelf .weather-now-text small {
+  overflow: hidden;
+  color: var(--v10-muted);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#shelf .weather-change {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--v10-muted);
+}
+#shelf .weather-change:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--v10-ink);
+}
+#shelf .weather-change svg {
+  width: 15px;
+  height: 15px;
+}
+#shelf .weather-details {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  color: var(--v10-muted);
+  font-size: 10.5px;
+}
+#shelf .weather-details span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+#shelf .weather-details b {
+  color: var(--v10-ink);
+  font-weight: 600;
+}
+#shelf .weather-days {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+#shelf .weather-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 3px 0 2px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+}
+#shelf .weather-day.today {
+  background: rgba(240, 216, 186, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(240, 216, 186, 0.16);
+}
+#shelf .weather-day-name {
+  color: var(--v10-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+#shelf .weather-day.today .weather-day-name {
+  color: var(--v10-cream);
+}
+#shelf .weather-day-emoji {
+  font-size: 15px;
+  line-height: 1.15;
+}
+#shelf .weather-day-temps {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+#shelf .weather-day-temps b {
+  color: var(--v10-ink);
+  font-size: 12px;
+}
+#shelf .weather-day-temps small {
+  color: var(--v10-muted);
+  font-size: 10.5px;
+}
+#shelf .weather-day-rain {
+  min-height: 11px;
+  color: rgba(150, 190, 235, 0.55);
+  font-size: 9px;
+  line-height: 11px;
+}
+#shelf .weather-day-rain.wet {
+  color: rgb(150, 196, 245);
+}

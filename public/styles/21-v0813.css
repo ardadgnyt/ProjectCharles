@@ -12,7 +12,6 @@ body.v10[data-view='chat']:not(.desktop-pet) header > .character-center {
 body.v10[data-view='chat']:not(.desktop-pet) header #pet {
   width: 96px !important;
   height: 96px !important;
-  margin-bottom: 5px;
 }
 body.v10[data-view='chat']:not(.desktop-pet) header #slime {
   width: 124px !important;

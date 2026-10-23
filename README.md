@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.8.13%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.8.14%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
   <img alt="Languages: English, Türkçe, Deutsch, Français, Español, 中文" src="https://img.shields.io/badge/UI-English%20%7C%20T%C3%BCrk%C3%A7e%20%7C%20Deutsch%20%7C%20Fran%C3%A7ais%20%7C%20Espa%C3%B1ol%20%7C%20%E4%B8%AD%E6%96%87-2b2f3a?style=flat-square">
