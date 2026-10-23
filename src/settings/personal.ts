@@ -253,11 +253,11 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
   });
   let nextPoll = 0;
   window.setInterval(() => {
-    const idle =
-      document.body.classList.contains('hidden-island') ||
-      document.visibilityState !== 'visible' ||
-      document.body.classList.contains('desktop-pet');
-    if (!idle && !seeking && lastMedia?.duration > 0) {
+    // v0.8.13: the hidden strip is the normal closed island now: music is still looked for
+    // there (every 3 s), so the music notch comes out as soon as a song starts
+    const hiddenStrip = document.body.classList.contains('hidden-island');
+    const idle = document.visibilityState !== 'visible' || document.body.classList.contains('desktop-pet');
+    if (!idle && !hiddenStrip && !seeking && lastMedia?.duration > 0) {
       const pos = Math.min(
         lastMedia.duration,
         lastMedia.position + (lastMedia.state === 'Playing' ? (Date.now() - received) / 1000 : 0),
@@ -267,7 +267,7 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
     }
     if (Date.now() >= nextPoll) {
       // v0.8.12: while a song plays the position is read every second (a seek in Spotify shows
-      // quickly); otherwise every 3 s, and every 30 s when the island is hidden
+      // quickly); otherwise every 3 s, and every 30 s while Slime is out on the desktop
       nextPoll = Date.now() + (idle ? 30000 : lastMedia?.state === 'Playing' ? 1000 : 3000);
       void media().catch(() => {});
     }

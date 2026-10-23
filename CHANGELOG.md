@@ -4,6 +4,12 @@ Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özell
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.8.13 Beta — 24 Ekim 2026
+
+- **Bildirimler kapanıyor:** × ile kapatılan e-posta, takvim ve WhatsApp bildirimleri geri gelmiyor. Kapatılan bir WhatsApp sohbeti, fotoğrafı ya da grup adı birkaç saniye sonra geldiğinde yeniden açılıyordu; artık yalnızca o sohbetten yeni bir mesaj gelirse gösteriliyor. Kapatılan bir e-posta aynı kimlikle tekrar eklenmiyor. Bildirimler adanın üstünde duruyor ve adanın görünmeyen geniş yüzeyi bildirimin üzerindeki tıklamaları almıyor (sabitlenmiş ada da dahil).
+- **Yalnızca Slime’lı küçük ada kalktı:** müzik çalmıyorken kapanan ada doğrudan ekranın üstündeki ince gizli şeride dönüşüyor. Müzik çalarken müzikli küçük ada görünüyor; şarkı başlayınca şeritten kendiliğinden çıkıyor. Duraklatınca fare uzaklaştığında yeniden şeride dönüyor. Müzik yokken fareyi şeridin üzerinde kısa bir an tutmak kart rafını açıyor.
+- **Sohbette daha büyük Charles:** sohbet panelinin üstündeki Slime belirgin biçimde büyüdü; “Charles” ve sürüm yazısı altında.
+
 ## v0.8.12 Beta — 23 Ekim 2026
 
 - **Tek parça ada:** adanın zemini tek düz siyah; üstten alta değişen ton ve köşelerdeki renkli parlamalar kalktı. Ada neredeyse opak, arkadaki pencerelerin keskin kenarları (ör. tarayıcının sekme şeridi) artık içinden görünmüyor. Müzikli küçük adada, kart rafında ve sohbet panelinde üst ve alt kısmın ayrı parçalar gibi görünmesi ve sohbetle yazma kutusu arasındaki geçiş bundandı.

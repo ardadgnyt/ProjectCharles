@@ -119,7 +119,11 @@ let win,
   chatOpen = false,
   shelfHeld = false,
   // v0.8.11: the closed notch is wide (Slime + music controls) only while music plays
+  // v0.8.13: there is no other closed notch: with nothing playing the closed island is the thin
+  // hidden strip. musicState: 'playing' | 'paused' | 'none'
   notchMusic = false,
+  musicState = 'none',
+  stripSince = 0,
   chosenCwd = null;
 let dialogOpen = false,
   dropHeldUntil = 0;
@@ -504,9 +508,10 @@ function whatsappLive() {
       if (!state.groups) for (const i of [...(mailBubble?.items || [])]) if (i.kind === 'whatsapp' && /@(g\.us|newsletter|broadcast)$/.test(String(i.chat))) mailBubble.remove(i.id);
     });
     waLive.on('message', (m) => {
-      mailBubble?.upsert({ id: 'wa|' + m.chat, kind: 'whatsapp', ...m, quickReplies: waLive.settings.quickReplies });
+      const { update, ...item } = m;
+      mailBubble?.upsert({ id: 'wa|' + m.chat, kind: 'whatsapp', ...item, quickReplies: waLive.settings.quickReplies }, { update: !!update });
       // Slime notices: a little happy face and a sound, like a new mail
-      if (win && !win.isDestroyed()) win.webContents.send('whatsapp-message', { name: m.name });
+      if (!update && win && !win.isDestroyed()) win.webContents.send('whatsapp-message', { name: m.name });
     });
   }
   return waLive;
@@ -523,7 +528,7 @@ async function whatsappBubbleAction(action, args) {
   if (action === 'reply') {
     // the user pressed send (or a quick reply) on the card: an explicit command
     const r = await live.reply(chat, String(args.text || ''));
-    mailBubble?.upsert({ ...(mailBubble.items.find((i) => i.id === 'wa|' + chat) || {}), id: 'wa|' + chat, kind: 'whatsapp', unread: 0, replied: String(args.text || '').slice(0, 300) });
+    mailBubble?.upsert({ ...(mailBubble.items.find((i) => i.id === 'wa|' + chat) || {}), id: 'wa|' + chat, kind: 'whatsapp', unread: 0, replied: String(args.text || '').slice(0, 300) }, { update: true });
     return r;
   }
   if (action === 'open') {
@@ -532,7 +537,7 @@ async function whatsappBubbleAction(action, args) {
     return true;
   }
   if (action === 'dismiss-all') {
-    for (const i of [...(mailBubble?.items || [])]) if (i.kind === 'whatsapp') mailBubble.remove(i.id);
+    for (const i of [...(mailBubble?.items || [])]) if (i.kind === 'whatsapp') mailBubble.dismiss(i.id);
     return true;
   }
   throw Error('Bilinmeyen WhatsApp işlemi.');
@@ -686,8 +691,12 @@ function applyTopmost() {
   clearInterval(petTopTimer);
   if (strong) {
     win.moveTop();
+    mailBubble?.raise();
     petTopTimer = setInterval(() => {
-      if ((detached || panelPinned) && !win.isDestroyed()) win.moveTop();
+      if ((detached || panelPinned) && !win.isDestroyed()) {
+        win.moveTop();
+        mailBubble?.raise();
+      }
     }, 2500);
   }
 }
@@ -709,6 +718,8 @@ function position(animate = false) {
     placePet(petPosition || screen.getCursorScreenPoint());
     return;
   }
+  // v0.8.13: closed with no music → straight into the hidden strip (no Slime-only notch)
+  if (!expanded && !notchMusic) hidden = true;
   const pref = extras?.prefs.screen;
   const display =
     pref === 'cursor'
@@ -790,6 +801,14 @@ function position(animate = false) {
   }
 }
 /** v0.8.10: 'notch' (closed), 'shelf' (open home page with cards) or 'chat'. */
+/** v0.8.13: the closed island goes into the thin strip at the top edge. */
+function restStrip() {
+  if (!win || win.isDestroyed() || workspace || detached || pluginGuide || expanded) return;
+  hidden = true;
+  position(true);
+  win.setIgnoreMouseEvents(true, { forward: true });
+  ignoringPointer = true;
+}
 function islandView() {
   return !expanded ? 'notch' : chatOpen ? 'chat' : 'shelf';
 }
@@ -2217,10 +2236,15 @@ else {
         return spotifyIcon;
       });
       safeHandler('notch-music', (value) => {
-        const next = !!value;
-        if (next !== notchMusic) {
-          notchMusic = next;
-          if (!expanded && !hidden && !detached && !workspace) position(true);
+        // v0.8.13: 'Playing' | 'Paused' | '' (older pages sent true / false)
+        const state = value === 'Playing' || value === true ? 'playing' : value === 'Paused' ? 'paused' : 'none';
+        const started = state === 'playing' && musicState !== 'playing';
+        musicState = state;
+        notchMusic = state !== 'none';
+        if (!expanded && !detached && !workspace && !pluginGuide) {
+          if (state === 'none' && !hidden) restStrip();
+          // a song starting shows the music notch (also out of the hidden strip)
+          else if (started && hidden) expand(false);
         }
         return notchMusic;
       });
@@ -3233,11 +3257,13 @@ else {
         const bounds = win.getContentBounds();
         const cursor = { x: point.x - bounds.x, y: point.y - bounds.y };
         const visible = visibleBounds || bounds;
+        // v0.8.13: a notification card is never under the island's pointer area
         const inside =
           point.x >= visible.x &&
           point.x < visible.x + visible.width &&
           point.y >= visible.y &&
-          point.y < visible.y + visible.height;
+          point.y < visible.y + visible.height &&
+          !mailBubble?.contains(point);
         // Transparent space belongs to the desktop, not to the larger native surface.
         // The workspace window is a normal window: it always takes the pointer.
         const ignore = workspace ? false : !inside;
@@ -3245,14 +3271,36 @@ else {
           win.setIgnoreMouseEvents(ignore, { forward: true });
           ignoringPointer = ignore;
         }
+        if (!inside || !hidden) stripSince = 0;
         if (workspace) {
           lastInside = Date.now();
         } else if (inside) {
           lastInside = Date.now();
-          if (hidden) {
+          if (hidden && notchMusic) {
+            // music playing or paused: the strip wakes into the music notch
             expand(false);
             win.webContents.send('character-peek');
+          } else if (hidden) {
+            // v0.8.13: nothing playing: resting on the strip a moment opens the card shelf
+            stripSince ||= Date.now();
+            if (Date.now() - stripSince >= 120) {
+              stripSince = 0;
+              expand(true, false, false);
+              win.webContents.send('character-peek');
+            }
           }
+        } else if (
+          !hidden &&
+          !expanded &&
+          !detached &&
+          musicState !== 'playing' &&
+          !voiceHeld &&
+          !dialogOpen &&
+          Date.now() > dropHeldUntil &&
+          Date.now() - lastInside > 1500
+        ) {
+          // v0.8.13: paused (or stopped) and the mouse is away: back into the strip
+          restStrip();
         } else if (
           !hidden &&
           expanded &&

@@ -1,0 +1,24 @@
+/* ==========================================================================================
+   21 · v0.8.13 — a bigger Charles in the chat island
+   ========================================================================================== */
+
+/* Slime was small above the chat: noticeably bigger now, "Charles" and the version below. */
+body.v10[data-view='chat']:not(.desktop-pet) header {
+  height: 188px !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) header > .character-center {
+  top: 36px !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) header #pet {
+  width: 96px !important;
+  height: 96px !important;
+  margin-bottom: 5px;
+}
+body.v10[data-view='chat']:not(.desktop-pet) header #slime {
+  width: 124px !important;
+  height: 124px !important;
+  margin: -14px !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) .chat-nav {
+  top: 84px !important;
+}

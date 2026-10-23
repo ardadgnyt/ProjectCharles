@@ -570,7 +570,8 @@ class WhatsAppLive extends EventEmitter {
     c.messages.push(m);
     c.messages = c.messages.slice(-20);
     // v0.8.11: a photo shows in the card once the gateway hands it over
-    if (!m.mine && PHOTO_KINDS.includes(m.kind)) void this.photo(c, m).then((ok) => ok && this.emit('message', this.preview(c)));
+    // v0.8.13: these later refreshes are marked `update`: they never reopen a card the user closed
+    if (!m.mine && PHOTO_KINDS.includes(m.kind)) void this.photo(c, m).then((ok) => ok && this.emit('message', { ...this.preview(c), update: true }));
     if (!m.mine) {
       if (!isGroup(m.chat) && m.name) c.name = m.name;
       c.unread++;
@@ -579,7 +580,7 @@ class WhatsAppLive extends EventEmitter {
       if (isGroup(m.chat) && !c.name) void this.groupName(m.chat).then((name) => {
         if (name && !c.name) {
           c.name = name;
-          this.emit('message', this.preview(c));
+          this.emit('message', { ...this.preview(c), update: true });
         }
       });
       this.emit('message', this.preview(c));
@@ -625,6 +626,7 @@ class WhatsAppLive extends EventEmitter {
     const body = last ? last.text || last.media || '' : '';
     return {
       chat: c.jid,
+      last: last?.id || null,
       name: c.name || (group ? 'WhatsApp grubu' : (last?.name ?? '') || '+' + c.jid.split('@')[0]),
       group,
       sender: group && last && !last.mine ? last.name || '+' + String(last.from || '').split('@')[0].split(':')[0] : '',

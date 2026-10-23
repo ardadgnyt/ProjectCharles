@@ -381,15 +381,16 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   const paintStatus = () => (notchStatus.textContent = status?.textContent || '');
   if (status) new MutationObserver(paintStatus).observe(status, { childList: true, characterData: true, subtree: true });
   paintStatus();
-  let notchWide: boolean | null = null;
+  let notchState: string | null = null;
   document.addEventListener('charles-media-state', (e: any) => {
     const r = e.detail || {};
     const playing = !!r.ok && r.state === 'Playing';
-    // v0.8.11: the notch is wide (music controls) only while something plays or is paused
-    const wide = !!r.ok && (r.state === 'Playing' || r.state === 'Paused');
-    if (wide !== notchWide) {
-      notchWide = wide;
-      void Promise.resolve(api.notchMusic?.(wide)).catch(() => {});
+    // v0.8.11: the notch shows the music controls while something plays or is paused
+    // v0.8.13: main hears the state itself — nothing playing means the hidden strip
+    const state = r.ok && (r.state === 'Playing' || r.state === 'Paused') ? r.state : '';
+    if (state !== notchState) {
+      notchState = state;
+      void Promise.resolve(api.notchMusic?.(state)).catch(() => {});
     }
     body.classList.toggle('music-on', !!r.ok && (r.state === 'Playing' || r.state === 'Paused'));
     body.classList.toggle('music-playing', playing);

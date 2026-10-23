@@ -1,19 +1,20 @@
 // Island bounds on screen for its states and docking side.
 //
 // v0.8.10: the island has three open sizes —
-//   notch  (closed): a small strip at the top edge — v0.8.11: only Slime (124 × 62), or
-//          Slime and the music controls while something plays (380 × 66),
+//   notch  (closed): Slime and the music controls while something plays (380 × 66);
+//          v0.8.13: with nothing playing the closed island is the hidden strip (no Slime-only
+//          notch any more),
 //   shelf  (open home page): the card shelf (v0.8.11: 740 × 170),
 //   chat   (open chat): the chat panel, growing down from the island.
 // `hidden` is the thin strip the island slides into when it is not used.
 const NOTCH = { width: 380, height: 66 };
-const NOTCH_IDLE = { width: 124, height: 62 };
+const HIDDEN = { width: 240, height: 6 };
 const SHELF = { width: 740, height: 170 };
 const CHAT_WIDTH = 620;
 
 function size({ expanded, hidden, chat = true, height, scale = 1, music = true }) {
-  if (hidden) return { width: 240, height: 6 };
-  if (!expanded) return music ? NOTCH : NOTCH_IDLE;
+  if (hidden) return HIDDEN;
+  if (!expanded) return music ? NOTCH : HIDDEN;
   if (!chat) return SHELF;
   return { width: Math.round(CHAT_WIDTH * scale), height };
 }
@@ -47,4 +48,4 @@ function surfaceBounds(area, { side, height, scale = 1 }) {
     height: Math.max(chat.height, shelf.height),
   };
 }
-module.exports = { bounds, surfaceBounds, NOTCH, NOTCH_IDLE, SHELF };
+module.exports = { bounds, surfaceBounds, NOTCH, HIDDEN, SHELF };

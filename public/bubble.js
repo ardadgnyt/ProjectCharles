@@ -51,6 +51,7 @@ function mailCard(item) {
   // v0.8.11: × acts on pointerdown: a click could be lost when the bubbles were redrawn
   // between pressing and releasing the mouse (a new mail, a WhatsApp photo arriving)
   dismissOnPress(close, () => {
+    forget(item);
     card.remove();
     resize();
     window.bubble.dismiss(item.id);
@@ -66,6 +67,24 @@ function mailCard(item) {
   return card;
 }
 
+// v0.8.13: a closed card is never drawn again, also when a list sent before Charles heard about
+// the × arrives afterwards; Charles is told again if it still lists the card.
+// A WhatsApp card counts with its last message: a new message brings the chat back.
+const gone = new Map();
+const goneKey = (item) => String(item.id) + '|' + String(item.last || '');
+function forget(item) {
+  gone.set(goneKey(item), Date.now() + 60000);
+}
+function closed(item) {
+  const key = goneKey(item);
+  const until = gone.get(key);
+  if (!until) return false;
+  if (Date.now() > until) {
+    gone.delete(key);
+    return false;
+  }
+  return true;
+}
 // after a × the click that follows must not open the card that moved into its place
 let quietUntil = 0;
 const quiet = () => Date.now() < quietUntil;
@@ -93,6 +112,9 @@ const resize = () =>
 const waHost = element('div', 'wa-host');
 window.bubble.onItems(({ items, more, wa, language }) => {
   if (typeof language === 'string') lang = language;
+  for (const i of [...(items || []), ...(Array.isArray(wa) ? wa : [])]) if (closed(i)) window.bubble.dismiss(i.id);
+  items = (items || []).filter((i) => !closed(i));
+  wa = Array.isArray(wa) ? wa.filter((i) => !closed(i)) : [];
   document.documentElement.lang = lang;
   document.documentElement.style.setProperty('--hint', JSON.stringify('  · ' + T('Charles anlatsın →')));
   waUpdate(Array.isArray(wa) ? wa : []);
@@ -265,6 +287,7 @@ function dismissButton() {
   b.setAttribute('aria-label', T('WhatsApp bildirimlerini kapat'));
   b.append(glyph(G.close));
   dismissOnPress(b, () => {
+    for (const i of waItems) forget(i);
     waUpdate([]);
     resize();
     void window.bubble.wa('dismiss-all').catch(() => {});

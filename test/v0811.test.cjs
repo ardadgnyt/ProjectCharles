@@ -7,16 +7,15 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'charles-0811-'));
-const { bounds, NOTCH, NOTCH_IDLE, SHELF } = require('../app/core/layout.cjs');
+const { bounds, NOTCH, HIDDEN, SHELF } = require('../app/core/layout.cjs');
 const wa = require('../app/plugins/whatsapp-live.cjs');
 const cv = require('../app/files/convert.cjs');
 const { textPdf, systemFonts } = require('../app/files/text-pdf.cjs');
 
-test('a normal-sized island; the idle notch is only Slime', () => {
+test('a normal-sized island; closed without music it is the hidden strip (v0.8.13)', () => {
   assert.ok(SHELF.width <= 760 && SHELF.height <= 180);
-  assert.ok(NOTCH_IDLE.width < NOTCH.width);
   const area = { x: 0, y: 0, width: 1920, height: 1040 };
-  assert.equal(bounds(area, { expanded: false, side: 'center', height: 620, music: false }).width, NOTCH_IDLE.width);
+  assert.equal(bounds(area, { expanded: false, side: 'center', height: 620, music: false }).height, HIDDEN.height);
   assert.equal(bounds(area, { expanded: false, side: 'center', height: 620, music: true }).width, NOTCH.width);
   assert.match(read('app/main.cjs'), /safeHandler\('notch-music'/);
   const css = read('public/styles/19-v0811.css');
@@ -112,7 +111,7 @@ test('bubble ×: works on press, the next card is not opened by the same click',
   assert.match(js, /function dismissOnPress\(button, fn\)/);
   assert.match(js, /button\.addEventListener\('pointerdown'/);
   assert.match(js, /dismissOnPress\(close,/);
-  assert.match(js, /dismissOnPress\(b, \(\) => \{\s*waUpdate\(\[\]\);/);
+  assert.match(js, /dismissOnPress\(b, \(\) => \{[\s\S]{0,80}waUpdate\(\[\]\);/);
   assert.match(js, /if \(quiet\(\)\) return;\s*window\.bubble\.open\(item\.id\)/);
 });
 

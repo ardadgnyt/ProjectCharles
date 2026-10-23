@@ -25,6 +25,10 @@ class MailBubble {
     this.window = null;
     this.ready = null;
     this.suppressed = false;
+    // v0.8.13: what the user closed stays closed. A closed mail / reminder never comes back;
+    // a closed WhatsApp chat comes back only with a newer message (not for its photo or the
+    // group's name arriving a moment later).
+    this.dismissed = new Map();
     const own = (event) => this.window && event.sender === this.window.webContents;
     ipcMain.on('bubble-open', (event, id) => {
       if (!own(event)) return;
@@ -34,7 +38,7 @@ class MailBubble {
       this.onOpen(item);
     });
     ipcMain.on('bubble-dismiss', (event, id) => {
-      if (own(event)) this.remove(id);
+      if (own(event)) this.dismiss(id);
     });
     // v0.8.8: WhatsApp cards. "focus" lets the card take the keyboard while a reply is typed
     // (the bubble window never takes focus otherwise).
@@ -63,15 +67,25 @@ class MailBubble {
 
   // item: { id, kind, title, from, reason, date }
   add(item) {
-    if (!item?.id || this.items.some((i) => i.id === item.id)) return;
+    if (!item?.id || this.items.some((i) => i.id === item.id) || this.dismissed.has(item.id)) return;
     this.items.unshift({ ...item, at: Date.now() });
     this.items = this.items.slice(0, 12);
     void this.render();
   }
 
   /** v0.8.8: adds or replaces an item (a WhatsApp chat's card) and moves it to the top. */
-  upsert(item) {
+  // v0.8.13: { update: true } only refreshes a card still on screen (a photo, a group name, a
+  // reply sent) and never brings back one the user closed.
+  upsert(item, { update = false } = {}) {
     if (!item?.id) return;
+    const present = this.items.some((i) => i.id === item.id);
+    if (update && !present) return;
+    const closed = this.dismissed.get(item.id);
+    if (closed && !present) {
+      // a WhatsApp card carries the id of the chat's last message: only a new one reopens it
+      if (!item.last || item.last === closed.last) return;
+      this.dismissed.delete(item.id);
+    }
     this.items = [{ ...item, at: Date.now() }, ...this.items.filter((i) => i.id !== item.id)].slice(0, 12);
     void this.render();
   }
@@ -79,6 +93,16 @@ class MailBubble {
   remove(id) {
     this.items = this.items.filter((i) => i.id !== id);
     void this.render();
+  }
+
+  /** v0.8.13: the user's × (or "close all"): removed and remembered as closed. */
+  dismiss(id) {
+    id = String(id || '');
+    if (!id) return;
+    const item = this.items.find((i) => i.id === id);
+    this.dismissed.set(id, { time: Date.now(), last: item?.last || null });
+    if (this.dismissed.size > 500) this.dismissed.delete(this.dismissed.keys().next().value);
+    this.remove(id);
   }
 
   // Hide while the desktop pet, a plugin guide or screen capture owns the screen.
@@ -112,7 +136,9 @@ class MailBubble {
         backgroundThrottling: false,
       },
     });
-    this.window.setAlwaysOnTop(true, 'pop-up-menu');
+    // v0.8.13: the same level as a pinned island, and raised above it, so the island's larger
+    // see-through surface never sits over a card and takes its clicks
+    this.window.setAlwaysOnTop(true, 'screen-saver');
     this.window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     this.window.webContents.on('will-navigate', (e) => e.preventDefault());
     this.window.on('closed', () => {
@@ -160,6 +186,21 @@ class MailBubble {
     if (y + this.height > area.y + area.height) y = Math.max(area.y, a.y - this.height - GAP);
     w.setBounds({ x, y: Math.round(y), width, height: this.height });
     if (!w.isVisible()) w.showInactive();
+    w.moveTop();
+  }
+
+  /** v0.8.13: keeps the cards above the island (called after the island raises itself). */
+  raise() {
+    const w = this.window;
+    if (w && !w.isDestroyed() && w.isVisible()) w.moveTop();
+  }
+
+  /** v0.8.13: whether a screen point is over the visible cards. */
+  contains(point) {
+    const w = this.window;
+    if (!w || w.isDestroyed() || !w.isVisible() || !point) return false;
+    const b = w.getBounds();
+    return point.x >= b.x && point.x < b.x + b.width && point.y >= b.y && point.y < b.y + b.height;
   }
 
   destroy() {
