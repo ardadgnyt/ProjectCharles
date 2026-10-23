@@ -23,6 +23,7 @@ import { workspaceUI } from './settings/workspace';
 import { noNativeTooltips } from './ui/no-native-tooltips';
 import { profileTransferUI } from './settings/profile-transfer';
 import { statusScroll } from './chat/status-scroll';
+import { islandShelf } from './island/shelf';
 import { companionUI } from './island/companion';
 import { ActivityState } from './chat/activity';
 import { modelPicker } from './chat/model-picker';
@@ -1657,6 +1658,8 @@ usageUI(
   },
   onLowQuota,
 );
+// v0.8.10: notch → card shelf → chat (src/island/shelf.ts)
+islandShelf({ api, notice, attempt });
 
 document.addEventListener('charles-live-transcript', (event: any) => {
   row(event.detail.input, 'user');

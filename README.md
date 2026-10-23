@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.8.9%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.8.10%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
   <img alt="Languages: English, Türkçe, Deutsch, Français, Español, 中文" src="https://img.shields.io/badge/UI-English%20%7C%20T%C3%BCrk%C3%A7e%20%7C%20Deutsch%20%7C%20Fran%C3%A7ais%20%7C%20Espa%C3%B1ol%20%7C%20%E4%B8%AD%E6%96%87-2b2f3a?style=flat-square">
@@ -41,6 +41,10 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 ### An assistant that does things
 
+- **Island v2:** a small notch at the top of the screen opens into a card shelf (AI usage,
+  weather, converter, Charles, music) and grows down into the chat.
+- **Converter:** drop files on the island to turn them into other formats: pictures, audio,
+  video, Word/Markdown/PDF text, CSV/JSON, subtitles, ZIP. Offline, saved next to the original.
 - **Your own AI accounts:** chat with **ChatGPT (Codex)**, **Claude**, **Gemini**, **Cursor** or
   **Abacus AI** and switch models from the message box. Pictures work with GPT, Claude and
   Gemini. Long chats keep their whole history, even on models without a thread of their own.
@@ -75,6 +79,10 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 ### İş yapan bir asistan
 
+- **Ada v2:** ekranın üstündeki küçük notch, kart rafına (AI kullanımı, hava, Dönüştürücü,
+  Charles, müzik) açılır ve aşağı uzayıp sohbete dönüşür.
+- **Dönüştürücü:** dosyaları adaya bırak, başka biçime çevir: görsel, ses, video, Word/Markdown/PDF
+  metni, CSV/JSON, altyazı, ZIP. İnternetsiz, sonuç orijinalin yanına kaydedilir.
 - **Kendi yapay zekâ hesapların:** **ChatGPT (Codex)**, **Claude**, **Gemini**, **Cursor** ya da
   **Abacus AI** ile sohbet et, modeli mesaj kutusundan değiştir. Görseller GPT, Claude ve
   Gemini ile çalışır. Uzun sohbetler geçmişin tamamını korur.

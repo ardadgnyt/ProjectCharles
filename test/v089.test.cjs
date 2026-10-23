@@ -136,9 +136,6 @@ test('README: modules, official modules link, updater since v0.8.2', () => {
   assert.match(md, /v0\.8\.2/);
 });
 
-test('version 0.8.9', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.8.9-beta.1');
-  assert.match(read('public/index.html'), /v0\.8\.9 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.8\.9 Beta'/);
+test('version 0.8.9 is in the changelog', () => {
   assert.match(read('CHANGELOG.md'), /## v0\.8\.9 Beta/);
 });

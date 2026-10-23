@@ -20,7 +20,8 @@ test('Dock geometry handles negative screen origins and clamps panel height to w
     width: 620,
     height: 900,
   });
-  assert.equal(bounds(area, { expanded: false, side: 'center', height: 620 }).x, -970);
+  // v0.8.10: the closed island is the 380 px notch
+  assert.equal(bounds(area, { expanded: false, side: 'center', height: 620 }).x, -910);
 });
 test('Name and study context persist across sessions and explicit forgetting removes it', () => {
   const dir = temp();

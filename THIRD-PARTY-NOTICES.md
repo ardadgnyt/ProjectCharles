@@ -9,6 +9,11 @@ Charles’s design is inspired by Charles from the *Epic Minequest* video series
 YouTube channel (https://www.youtube.com/@SamGreen). No artwork, audio or video from that series
 is included in Project Charles, and the project is not affiliated with Sam Green.
 
+The converter on the island (v0.8.10) is inspired by **Filee** by Myeonggu Kim (KnifeLemon)
+and contributors (https://github.com/KnifeLemon/Filee, MIT License): drop files, see only the
+formats that fit, save the result next to the original. No Filee code or artwork is included;
+Charles' converter is its own JavaScript and uses the FFmpeg build listed below.
+
 ## Character engine code
 
 Parts of the animation and drawing code in `src/vendor/` (`slime/engine.ts`, `slime/outfits.ts`,
@@ -63,7 +68,8 @@ Official Google Antigravity CLI 1.3.3 replaces the Gemini CLI consumer account c
 - **FFmpeg**: the bundled 6.0 essentials Windows build is GPL v3, obtained through
   ffmpeg-static 5.2.0. Build/source distribution: https://github.com/eugeneware/ffmpeg-static/releases/tag/b6.0
   and https://www.gyan.dev/ffmpeg/builds/ . FFmpeg source: https://git.ffmpeg.org/ffmpeg.git (n6.0).
-  License: https://www.gnu.org/licenses/gpl-3.0.html . FFmpeg runs as a separate executable.
+  License: https://www.gnu.org/licenses/gpl-3.0.html . FFmpeg runs as a separate executable;
+  the Download module and, since 0.8.10, the island's converter start it.
 - Executable versions and hashes are recorded in tools/download/versions.json.
   Download tool license texts and source references accompany the installer in licenses/download/.
 

@@ -60,7 +60,7 @@ let startup,
   usageForeground;
 const { Preferences } = require('./core/preferences.cjs');
 const { Companion } = require('./personal/companion.cjs');
-const { bounds } = require('./core/layout.cjs');
+const { bounds, surfaceBounds } = require('./core/layout.cjs');
 const { memoryCommand } = require('./personal/memory.cjs');
 const profileTransfer = require('./personal/profile-transfer.cjs');
 const { weatherReply } = require('./personal/weather-chat.cjs');
@@ -115,6 +115,9 @@ let win,
   tray,
   agent,
   expanded = !process.argv.includes('--autostart'),
+  // v0.8.10: an open island shows the card shelf (home) or the chat panel
+  chatOpen = false,
+  shelfHeld = false,
   chosenCwd = null;
 let dialogOpen = false,
   dropHeldUntil = 0;
@@ -700,19 +703,19 @@ function position(animate = false) {
   const target = bounds(area, {
     expanded,
     hidden,
+    chat: chatOpen,
     side: v2?.data.side || 'center',
     height: v2?.data.height || 620,
     scale,
   });
-  // Keep the transparent native surface stable across compact/expanded/hidden states.
+  // Keep the transparent native surface stable across notch/shelf/chat/hidden states.
   // Only moving displays, docking or explicitly resizing changes the native bounds.
-  const surface = bounds(area, {
-    expanded: true,
-    hidden: false,
+  const surface = surfaceBounds(area, {
     side: v2?.data.side || 'center',
     height: Math.max(126, v2?.data.height || 620),
     scale: Math.max(500 / 620, scale),
   });
+  sendView();
   const native = win.getBounds();
   if (['x', 'y', 'width', 'height'].some((k) => native[k] !== surface[k])) win.setBounds(surface);
   const previous = visibleBounds || target;
@@ -769,7 +772,16 @@ function position(animate = false) {
     win.webContents.send('ui-layout-done', { id, width: target.width, height: target.height });
   }
 }
-function expand(value, focus = false) {
+/** v0.8.10: 'notch' (closed), 'shelf' (open home page with cards) or 'chat'. */
+function islandView() {
+  return !expanded ? 'notch' : chatOpen ? 'chat' : 'shelf';
+}
+function sendView() {
+  if (win && !win.isDestroyed()) win.webContents.send('ui-view', islandView());
+}
+// expand(true) opens the chat (every older caller means the chat); the card shelf is opened
+// with expand(true, focus, false).
+function expand(value, focus = false, chat = true) {
   if (pluginGuide) return expanded;
   if (workspace) {
     // The app window stays as it is; "open" only brings it to the front.
@@ -791,6 +803,8 @@ function expand(value, focus = false) {
   ignoringPointer = false;
   lastInside = Date.now();
   expanded = !!value;
+  if (expanded) chatOpen = !!chat;
+  else shelfHeld = false;
   if (win.isMinimized()) win.restore();
   position(true);
   if (focus) {
@@ -1345,6 +1359,7 @@ else {
             !workspace &&
             !panelPinned &&
             !dialogOpen &&
+            !(shelfHeld && !chatOpen) &&
             Date.now() > dropHeldUntil &&
             !capture?.busy &&
             !voiceHeld &&
@@ -2151,6 +2166,65 @@ else {
         return enabled;
       });
       safeHandler('expand', (value) => expand(value));
+      // v0.8.10: notch → card shelf → chat
+      safeHandler('island-view', (view) => {
+        if (!['notch', 'shelf', 'chat'].includes(view)) throw Error('Geçersiz görünüm.');
+        if (view === 'notch') expand(false);
+        else expand(true, view === 'chat', view === 'chat');
+        return islandView();
+      });
+      safeHandler('island-view-read', () => islandView());
+      // v0.8.10: Dönüştürücü (app/files/convert.cjs). Paths only come from a drop handled in
+      // the preload or from the file dialog here; the page never names a file itself.
+      let converter = null;
+      const getConverter = () => (converter ||= require('./files/convert-host.cjs').createConverter({ electron: require('electron'), appRoot: root }));
+      ipcMain.handle('convert-drop', async (event, paths) => {
+        if (event.sender !== win.webContents || !event.senderFrame?.url.startsWith('charles://app/')) throw Error('Geçersiz arayüz.');
+        try {
+          return { ok: true, value: await getConverter().add(paths) };
+        } catch (e) {
+          return { ok: false, error: e.message };
+        }
+      });
+      safeHandler('convert-choose', async () => {
+        dialogOpen = true;
+        try {
+          const r = await dialog.showOpenDialog(win.native, { title: 'Dönüştürülecek dosyaları seç', properties: ['openFile', 'multiSelections'] });
+          if (r.canceled || !r.filePaths.length) return null;
+          return getConverter().add(r.filePaths);
+        } finally {
+          dialogOpen = false;
+          lastInside = Date.now();
+        }
+      });
+      safeHandler('convert-run', async (id, target, options) => {
+        if (typeof id !== 'string' || typeof target !== 'string') throw Error('Geçersiz istek.');
+        shelfHeld = true;
+        try {
+          return await getConverter().run(id, target, options && typeof options === 'object' ? options : {}, (p) => {
+            if (!win.isDestroyed()) win.webContents.send('convert-progress', { id, ...p });
+          });
+        } finally {
+          shelfHeld = false;
+          lastInside = Date.now();
+        }
+      });
+      safeHandler('convert-cancel', (id) => getConverter().cancel(String(id)));
+      safeHandler('convert-reveal', (id) => {
+        const out = getConverter().output(String(id));
+        if (!out) throw Error('Dönüştürülen dosya bulunamadı.');
+        shell.showItemInFolder(out);
+        return true;
+      });
+      // the converter is working / a sheet is open on the shelf: it does not close by itself
+      safeHandler('shelf-hold', (value) => {
+        shelfHeld = !!value;
+        if (shelfHeld) {
+          clearTimeout(blurTimer);
+          lastInside = Date.now();
+        }
+        return shelfHeld;
+      });
       safeHandler('quit', () => app.quit());
       safeHandler('open-link', async (value) => {
         if (typeof value !== 'string' || value.length > 10000) throw Error('Geçersiz bağlantı.');
@@ -3129,6 +3203,18 @@ else {
             expand(false);
             win.webContents.send('character-peek');
           }
+        } else if (
+          !hidden &&
+          expanded &&
+          !chatOpen &&
+          !panelPinned &&
+          !shelfHeld &&
+          !dialogOpen &&
+          Date.now() > dropHeldUntil &&
+          Date.now() - lastInside > 2500
+        ) {
+          // v0.8.10: the card shelf folds back into the notch soon after the mouse leaves
+          expand(false);
         } else if (
           !hidden &&
           expanded &&

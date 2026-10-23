@@ -178,7 +178,18 @@ export function companionUI(
   let startY = 0,
     startHeight = 0,
     dragging = false;
+  // v0.8.10: on the notch and the card shelf the cream bar opens the chat (the panel grows
+  // down); in the chat it still sets the panel height by dragging.
+  const opensChat = () => !!document.body.dataset.view && document.body.dataset.view !== 'chat';
+  let opening = false;
   grip.addEventListener('pointerdown', (e) => {
+    if (opensChat()) {
+      opening = true;
+      grip.setPointerCapture(e.pointerId);
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     startY = e.screenY;
     startHeight = document.body.getBoundingClientRect().height;
     dragging = true;
@@ -193,16 +204,29 @@ export function companionUI(
     }
   });
   grip.addEventListener('pointerup', (e) => {
+    if (opening) {
+      opening = false;
+      e.stopPropagation();
+      void attempt(() => api.islandView('chat'));
+      return;
+    }
     if (!dragging) return;
     dragging = false;
     void attempt(() => api.panelResize(startHeight + e.screenY - startY, true));
   });
+  grip.addEventListener('click', (e) => e.stopPropagation());
   grip.addEventListener('pointercancel', () => {
+    opening = false;
     if (dragging)
       void attempt(() => api.panelResize(document.body.getBoundingClientRect().height, true));
     dragging = false;
   });
   grip.addEventListener('keydown', (e) => {
+    if (opensChat() && (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      void attempt(() => api.islandView('chat'));
+      return;
+    }
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
       void attempt(async () =>

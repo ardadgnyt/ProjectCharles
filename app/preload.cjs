@@ -13,6 +13,13 @@ const dropCallback = (v) => {
       cb(v);
     } catch {}
 };
+const convertCallbacks = new Set();
+const convertCallback = (v) => {
+  for (const cb of convertCallbacks)
+    try {
+      cb(v);
+    } catch {}
+};
 let lastDropSignal = 0;
 function dropActive(active) {
   if (active && Date.now() - lastDropSignal < 350) return;
@@ -57,6 +64,22 @@ window.addEventListener(
     event.preventDefault();
     event.stopImmediatePropagation();
     dropActive(false);
+    // v0.8.10: files dropped on the converter card go to the converter, not to the chat
+    const target = event.target && event.target.closest ? event.target.closest('[data-drop="convert"]') : null;
+    if (target && files.length) {
+      let paths;
+      try {
+        paths = files.map((f) => webUtils.getPathForFile(f));
+      } catch (error) {
+        convertCallback({ error: error.message });
+        return;
+      }
+      invoke('convert-drop', paths).then(
+        (batch) => convertCallback({ batch }),
+        (error) => convertCallback({ error: error.message }),
+      );
+      return;
+    }
     let task;
     try {
       task = files.length
@@ -77,6 +100,19 @@ window.addEventListener(
   true,
 );
 contextBridge.exposeInMainWorld('charles', {
+  // v0.8.10: notch → card shelf → chat, and the converter
+  islandView: (view) => invoke('island-view', view),
+  islandViewRead: () => invoke('island-view-read'),
+  onView: (cb) => ipcRenderer.on('ui-view', (_e, view) => cb(view)),
+  shelfHold: (value) => invoke('shelf-hold', value),
+  onConvertDrop: (cb) => {
+    if (typeof cb === 'function') convertCallbacks.add(cb);
+  },
+  onConvertProgress: (cb) => ipcRenderer.on('convert-progress', (_e, p) => cb(p)),
+  convertChoose: () => invoke('convert-choose'),
+  convertRun: (id, target, options) => invoke('convert-run', id, target, options),
+  convertCancel: (id) => invoke('convert-cancel', id),
+  convertReveal: (id) => invoke('convert-reveal', id),
   wakeEnable: (value) => invoke('wake-enable', value),
   micPrivacy: (value) => invoke('mic-privacy', value),
   wakeArm: () => invoke('wake-arm'),
