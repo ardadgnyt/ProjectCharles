@@ -105,6 +105,8 @@ contextBridge.exposeInMainWorld('charles', {
   islandViewRead: () => invoke('island-view-read'),
   onView: (cb) => ipcRenderer.on('ui-view', (_e, view) => cb(view)),
   shelfHold: (value) => invoke('shelf-hold', value),
+  notchMusic: (value) => invoke('notch-music', value),
+  spotifyIcon: () => invoke('spotify-icon'),
   onConvertDrop: (cb) => {
     if (typeof cb === 'function') convertCallbacks.add(cb);
   },

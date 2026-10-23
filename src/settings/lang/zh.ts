@@ -1539,4 +1539,9 @@ export const chinese: Record<string, string> = {
   "{n} files ready": "{n} 个文件已完成",
   "{n} ready, {n} failed": "{n} 个完成，{n} 个失败",
   "Page {n}": "第 {n} 页",
+  "Drop a file": "拖入文件",
+  "No font was found for the PDF.": "未找到用于 PDF 的字体。",
+  "The file has no text.": "文件中没有文本。",
+  "Photo": "照片",
+  "The PDF has no readable text.": "PDF 中没有可读取的文本。",
 };

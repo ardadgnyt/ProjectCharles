@@ -206,7 +206,7 @@ test('WhatsApp gateway release: picks the Windows zip, checks its SHA-256, finds
 });
 test('WhatsApp webhook payloads: messages, media labels, nothing else', () => {
   const m = wa.parseWebhook(JSON.stringify({ event: 'message', device_id: 'x', payload: { id: 'M1', chat_id: '905551112233@s.whatsapp.net', from: '905551112233@s.whatsapp.net', from_name: 'Mert', body: 'Selam', timestamp: '2026-10-23T10:00:00Z', is_from_me: false } }));
-  assert.deepEqual({ ...m }, { group: false, id: 'M1', chat: '905551112233@s.whatsapp.net', from: '905551112233@s.whatsapp.net', name: 'Mert', text: 'Selam', media: null, at: Date.parse('2026-10-23T10:00:00Z'), mine: false });
+  assert.deepEqual({ ...m }, { group: false, id: 'M1', chat: '905551112233@s.whatsapp.net', from: '905551112233@s.whatsapp.net', name: 'Mert', text: 'Selam', media: null, kind: null, at: Date.parse('2026-10-23T10:00:00Z'), mine: false });
   assert.equal(wa.parseWebhook(JSON.stringify({ event: 'message', payload: { id: 'M2', chat_id: 'a@lid', image: { url: 'x' } } })).media, 'Fotoğraf');
   assert.equal(wa.parseWebhook(JSON.stringify({ event: 'message.ack', payload: {} })), null);
   assert.equal(wa.parseWebhook('not json'), null);

@@ -1,0 +1,675 @@
+/* ==========================================================================
+   19 · v0.8.11 — release notes as Markdown, smaller island, fixes
+   ========================================================================== */
+#settings-panel .update-notes.markdown {
+  white-space: normal;
+  max-height: 260px;
+}
+#settings-panel .update-notes.markdown > :first-child {
+  margin-top: 0;
+}
+#settings-panel .update-notes.markdown > :last-child {
+  margin-bottom: 0;
+}
+#settings-panel .update-notes.markdown h1,
+#settings-panel .update-notes.markdown h2,
+#settings-panel .update-notes.markdown h3 {
+  margin: 12px 0 6px;
+  font-size: 14px;
+  line-height: 1.3;
+}
+#settings-panel .update-notes.markdown h1 {
+  font-size: 15px;
+}
+#settings-panel .update-notes.markdown p {
+  margin: 0 0 8px;
+}
+#settings-panel .update-notes.markdown ul,
+#settings-panel .update-notes.markdown ol {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+#settings-panel .update-notes.markdown li + li {
+  margin-top: 4px;
+}
+#settings-panel .update-notes.markdown strong {
+  color: #f3eee7;
+}
+#settings-panel .update-notes.markdown code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+}
+#settings-panel .update-notes.markdown a {
+  color: var(--accent);
+}
+
+/* --- One shape for the island: the box and its top "ears" are the same element, so they
+   share the acrylic (colour, blur, see-through) and nothing shows between them. The box is
+   cut with a mask: rounded bottom corners, concave curves into the screen edge at the top. */
+body.v10:not(.desktop-pet):not(.hidden-island) {
+  --ear-l: 14px;
+  --ear-r: 14px;
+  --r: 26px;
+  padding: 0 14px 2px;
+}
+body.v10.docked-left:not(.desktop-pet):not(.hidden-island) {
+  --ear-l: 0px;
+  padding-left: 0;
+}
+body.v10.docked-right:not(.desktop-pet):not(.hidden-island) {
+  --ear-r: 0px;
+  padding-right: 0;
+}
+body.v10[data-view='notch']:not(.desktop-pet) {
+  --r: 20px;
+}
+body.v10:not(.desktop-pet):not(.hidden-island)::before,
+body.v10:not(.desktop-pet):not(.hidden-island)::after {
+  display: none !important;
+}
+body.v10:not(.desktop-pet):not(.hidden-island) .island {
+  margin: 0 calc(-1 * var(--ear-r)) 0 calc(-1 * var(--ear-l));
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  -webkit-mask:
+    linear-gradient(#000 0 0) var(--ear-l) 0 / calc(100% - var(--ear-l) - var(--ear-r)) calc(100% - var(--r)) no-repeat,
+    linear-gradient(#000 0 0) calc(var(--ear-l) + var(--r)) 100% / calc(100% - var(--ear-l) - var(--ear-r) - 2 * var(--r)) var(--r) no-repeat,
+    radial-gradient(circle at 100% 0, #000 calc(var(--r) - 0.6px), transparent var(--r)) var(--ear-l) 100% / var(--r) var(--r) no-repeat,
+    radial-gradient(circle at 0 0, #000 calc(var(--r) - 0.6px), transparent var(--r)) calc(100% - var(--ear-r)) 100% / var(--r) var(--r) no-repeat,
+    radial-gradient(circle at 0 100%, transparent calc(var(--ear-l) - 0.6px), #000 var(--ear-l)) 0 0 / var(--ear-l) var(--ear-l) no-repeat,
+    radial-gradient(circle at 100% 100%, transparent calc(var(--ear-r) - 0.6px), #000 var(--ear-r)) 100% 0 / var(--ear-r) var(--ear-r) no-repeat;
+  mask:
+    linear-gradient(#000 0 0) var(--ear-l) 0 / calc(100% - var(--ear-l) - var(--ear-r)) calc(100% - var(--r)) no-repeat,
+    linear-gradient(#000 0 0) calc(var(--ear-l) + var(--r)) 100% / calc(100% - var(--ear-l) - var(--ear-r) - 2 * var(--r)) var(--r) no-repeat,
+    radial-gradient(circle at 100% 0, #000 calc(var(--r) - 0.6px), transparent var(--r)) var(--ear-l) 100% / var(--r) var(--r) no-repeat,
+    radial-gradient(circle at 0 0, #000 calc(var(--r) - 0.6px), transparent var(--r)) calc(100% - var(--ear-r)) 100% / var(--r) var(--r) no-repeat,
+    radial-gradient(circle at 0 100%, transparent calc(var(--ear-l) - 0.6px), #000 var(--ear-l)) 0 0 / var(--ear-l) var(--ear-l) no-repeat,
+    radial-gradient(circle at 100% 100%, transparent calc(var(--ear-r) - 0.6px), #000 var(--ear-r)) 100% 0 / var(--ear-r) var(--ear-r) no-repeat;
+  /* the content stays inside the box, not under the ears */
+  padding-left: var(--ear-l) !important;
+  padding-right: var(--ear-r) !important;
+}
+
+/* --- Notch: only Slime when nothing plays; Slime, name, version and controls with music ---- */
+body.v10[data-view='notch']:not(.desktop-pet):not(.hidden-island) #notch {
+  padding: 0 14px 12px 10px;
+  gap: 9px;
+}
+body.v10[data-view='notch']:not(.music-on) #notch {
+  justify-content: center;
+  padding: 0 0 13px;
+}
+body.v10[data-view='notch']:not(.music-on) #notch .notch-pet,
+body.v10[data-view='notch']:not(.music-on) #notch #pet {
+  width: 34px !important;
+  height: 34px !important;
+}
+body.v10[data-view='notch']:not(.music-on) #notch .notch-name,
+body.v10[data-view='notch']:not(.music-on) #notch .notch-weather,
+#notch .notch-status,
+#notch .notch-weather {
+  display: none !important;
+}
+#notch .notch-version {
+  font-size: 10.5px;
+  color: var(--v10-muted);
+  line-height: 1.2;
+}
+body.v10 #notch .notch-pet {
+  width: 38px;
+  height: 38px;
+}
+/* a canvas larger than the slot: the dancing Slime is never cut at the canvas edge */
+body.v10 #notch #pet {
+  width: 38px !important;
+  height: 38px !important;
+}
+body.v10 #notch #slime {
+  width: 62px !important;
+  height: 62px !important;
+  margin: -12px !important;
+}
+body.v10.music-on[data-view='notch'] #notch {
+  padding: 4px 16px 14px 12px !important;
+}
+body.v10.music-on #notch .notch-progress {
+  bottom: 6px;
+  left: 24px;
+  right: 24px;
+}
+body.v10[data-view='notch'] #resize-handle::after {
+  top: 2px;
+  width: 44px;
+}
+body.v10[data-view='notch'] #resize-handle {
+  width: 80px;
+  height: 9px;
+}
+body.v10[data-view='notch'] #resize-handle:hover::after {
+  width: 60px;
+}
+
+/* --- A normal-sized shelf (740 × 170) ------------------------------------------------------ */
+body.v10 header {
+  height: 40px !important;
+}
+body.v10 #island-bar {
+  height: 40px;
+  padding: 0 10px;
+}
+body.v10 #island-bar button {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 9px !important;
+}
+body.v10 #island-bar button svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+body.v10[data-view='shelf']:not(.desktop-pet):not(.hidden-island) #shelf {
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+  padding: 0 2px 14px;
+}
+#shelf .shelf-nav {
+  width: 28px;
+  height: 28px;
+}
+#shelf .shelf-nav svg {
+  width: 17px;
+  height: 17px;
+}
+#shelf .shelf-viewport {
+  height: 112px;
+}
+#shelf .shelf-page {
+  gap: 9px;
+  padding: 0;
+}
+#shelf .shelf-col {
+  flex: 0 0 166px;
+  gap: 8px;
+}
+#shelf .card {
+  padding: 0 10px;
+  gap: 9px;
+  border-radius: 13px;
+  box-shadow: none;
+}
+#shelf .card-icon {
+  width: 22px;
+  height: 22px;
+  font-size: 17px;
+}
+#shelf .card-icon svg {
+  width: 18px;
+  height: 18px;
+}
+#shelf .card-weather .card-icon {
+  font-size: 18px;
+}
+#shelf .card-text strong {
+  font-size: 12.5px;
+}
+#shelf .card-sub {
+  font-size: 10.5px;
+}
+#shelf .card-go svg {
+  width: 14px;
+  height: 14px;
+}
+#shelf .card-convert {
+  flex: 0 0 94px;
+  gap: 5px;
+  padding: 6px;
+}
+#shelf .card-convert .convert-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+}
+#shelf .card-convert .convert-icon svg {
+  width: 18px;
+  height: 18px;
+}
+#shelf .card-convert strong {
+  font-size: 11.5px;
+}
+#shelf .card-convert .convert-hint {
+  font-size: 9.5px;
+}
+#shelf .card-convert.over {
+  transform: none;
+}
+#shelf .card-charles {
+  flex: 1 1 100px;
+  min-width: 96px;
+}
+#shelf .charles-pet {
+  width: 64px;
+  height: 60px;
+}
+body.v10 #shelf #pet {
+  width: 64px !important;
+  height: 60px !important;
+}
+body.v10 #shelf #slime {
+  width: 84px !important;
+  height: 84px !important;
+  margin: -12px -10px !important;
+}
+#shelf .charles-name {
+  padding: 0 6px;
+}
+#shelf .charles-name strong {
+  font-size: 17px;
+  letter-spacing: -0.3px;
+}
+#shelf .charles-name small {
+  font-size: 10px;
+}
+#shelf .card-music {
+  flex: 0 0 252px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px;
+}
+#shelf .card-music .music-art {
+  width: 74px;
+  height: 74px;
+  aspect-ratio: auto;
+}
+#shelf .music-art {
+  border-radius: 10px;
+}
+#shelf .music-art svg {
+  width: 24px;
+  height: 24px;
+}
+#shelf .music-label {
+  font-size: 10px;
+  gap: 5px;
+  margin-bottom: 2px;
+}
+#shelf .music-label svg {
+  width: 10px;
+  height: 10px;
+  padding: 2px;
+}
+#shelf .music-title {
+  font-size: 13px;
+}
+#shelf .card-music.idle .music-title {
+  font-size: 12px;
+  white-space: normal;
+  line-height: 1.2;
+}
+#shelf .music-artist {
+  font-size: 10.5px;
+  min-height: 13px;
+}
+#shelf .music-controls {
+  margin: 3px 0 1px;
+  max-width: 150px;
+}
+#shelf .music-btn {
+  width: 24px;
+  height: 24px;
+}
+#shelf .music-btn svg {
+  width: 14px;
+  height: 14px;
+}
+#shelf .music-play {
+  width: 30px;
+  height: 30px;
+}
+#shelf .music-progress {
+  gap: 5px;
+}
+#shelf .music-time {
+  font-size: 9px;
+  min-width: 22px;
+}
+#shelf .music-range {
+  height: 12px;
+}
+#shelf .music-range::-webkit-slider-runnable-track {
+  height: 3px;
+}
+#shelf .music-range::-webkit-slider-thumb {
+  width: 9px;
+  height: 9px;
+  margin-top: -3px;
+}
+#shelf .card-music.idle .music-start {
+  height: 30px;
+  margin-top: 6px;
+  gap: 6px;
+  font-size: 12px;
+}
+#shelf .card-music.idle .music-start svg {
+  width: 11px;
+  height: 11px;
+}
+#shelf .card-music.idle .music-hint {
+  margin-top: 4px;
+  font-size: 9px;
+  line-height: 1.2;
+}
+#shelf .card-music.idle .music-art {
+  border-width: 1px;
+}
+
+/* sheets in the smaller shelf */
+#shelf .shelf-sheet {
+  inset: 0 8px 12px;
+  gap: 4px;
+  padding: 6px 12px 8px;
+  border-radius: 14px;
+}
+#shelf .sheet-head {
+  height: 20px;
+}
+#shelf .sheet-back {
+  width: 22px;
+  height: 22px;
+}
+#shelf .sheet-back svg {
+  width: 14px;
+  height: 14px;
+}
+#shelf .sheet-title {
+  font-size: 12px;
+}
+#shelf .conv {
+  grid-template-columns: minmax(0, 170px) minmax(0, 1fr) 132px;
+  gap: 12px;
+}
+#shelf .conv-file {
+  gap: 8px;
+}
+#shelf .conv-kind {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+#shelf .conv-kind svg {
+  width: 17px;
+  height: 17px;
+}
+#shelf .conv-file-text strong {
+  font-size: 12px;
+}
+#shelf .conv-file-text small {
+  font-size: 10.5px;
+}
+#shelf .conv-row {
+  font-size: 10px;
+}
+#shelf .conv-chips {
+  gap: 5px 10px;
+}
+#shelf .conv-group {
+  gap: 4px;
+}
+#shelf .conv-group-name {
+  font-size: 9.5px;
+}
+#shelf .conv-chip {
+  height: 22px;
+  padding: 0 9px;
+  font-size: 10.5px;
+}
+#shelf .conv-formats {
+  gap: 5px;
+}
+#shelf .conv-opts {
+  gap: 4px 10px;
+}
+#shelf .conv-opt {
+  font-size: 10.5px;
+  gap: 5px;
+}
+#shelf .conv-opt > small {
+  font-size: 9.5px;
+}
+#shelf .conv-seg-btn {
+  height: 20px;
+  padding: 0 7px;
+  font-size: 10.5px;
+}
+#shelf .conv-select {
+  height: 22px;
+  padding: 0 20px 0 8px;
+  font-size: 10.5px;
+}
+#shelf .conv-action {
+  gap: 5px;
+}
+#shelf .conv-go {
+  height: 34px;
+  font-size: 12.5px;
+  gap: 6px;
+}
+#shelf .conv-ghost {
+  height: 26px;
+  font-size: 11px;
+  gap: 5px;
+}
+#shelf .conv-go svg,
+#shelf .conv-ghost svg,
+#shelf .conv-result svg {
+  width: 13px;
+  height: 13px;
+}
+#shelf .conv-progress-label,
+#shelf .conv-result {
+  font-size: 11.5px;
+}
+#shelf .conv-note,
+#shelf .conv-empty {
+  font-size: 10px;
+}
+
+/* AI usage: smaller rings, the percent in the middle of each ring */
+body.v10 #shelf #usage-weather {
+  gap: 22px !important;
+}
+body.v10 #shelf #usage-weather .usage-title {
+  font-size: 14px;
+  gap: 6px;
+}
+body.v10 #shelf #usage-weather .usage-extra {
+  font-size: 11px;
+}
+body.v10 #shelf #usage-weather .usage-gauges {
+  gap: 16px;
+}
+body.v10 #shelf #usage-weather .usage-gauge {
+  width: 66px;
+}
+body.v10 #shelf #usage-weather .usage-gauge svg {
+  width: 50px;
+  height: 50px;
+}
+body.v10 #shelf #usage-weather .usage-gauge strong {
+  top: 25px;
+  transform: translateY(-50%);
+  font-size: 12px;
+  line-height: 1;
+}
+body.v10 #shelf #usage-weather .usage-gauge small {
+  font-size: 10.5px;
+  line-height: 13px;
+}
+body.v10 #shelf #usage-weather .usage-gauge .usage-reset {
+  font-size: 9.5px;
+}
+body.v10 #shelf #usage-weather #usage-credits {
+  font-size: 11px;
+}
+
+/* chat: the same 40 px top bar */
+body.v10[data-view='chat']:not(.desktop-pet) header {
+  height: 116px !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) header > .character-center {
+  top: 44px !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) .chat-nav {
+  top: 60px;
+}
+body.v10[data-view='notch']:not(.desktop-pet) #resize-handle {
+  height: 9px !important;
+}
+#shelf .music-range {
+  min-width: 0;
+  width: 0;
+}
+#shelf .music-meta {
+  overflow: hidden;
+}
+
+/* --- the cream bar sits in the middle of its strip: as much space above as below ---------- */
+body.v10[data-view='shelf']:not(.desktop-pet):not(.hidden-island) #shelf {
+  padding-bottom: 16px;
+}
+body.v10[data-view='shelf']:not(.desktop-pet) #resize-handle {
+  height: 16px !important;
+}
+body.v10[data-view='shelf']:not(.desktop-pet) #resize-handle::after {
+  top: 6px;
+}
+body.v10[data-view='notch']:not(.music-on) #notch {
+  padding: 2px 0 14px !important;
+}
+body.v10[data-view='notch']:not(.desktop-pet) #resize-handle {
+  height: 14px !important;
+}
+body.v10[data-view='notch']:not(.desktop-pet) #resize-handle::after {
+  top: 5px;
+}
+
+/* --- Spotify: the progress line keeps clear of the card edge ----------------------------- */
+#shelf .card-music .music-progress {
+  padding-right: 8px;
+}
+
+/* --- Converter: a slimmer head, so the options fit -------------------------------------- */
+#shelf .shelf-sheet {
+  padding-top: 3px;
+  gap: 2px;
+}
+#shelf .sheet-head {
+  height: 18px;
+}
+#shelf .sheet-title {
+  font-size: 11px;
+  color: var(--v10-muted);
+}
+#shelf .conv-formats {
+  gap: 4px;
+}
+#shelf .conv-chips {
+  gap: 4px 10px;
+}
+#shelf .conv-chip {
+  height: 21px;
+}
+#shelf .conv-list {
+  gap: 3px;
+}
+
+/* --- AI usage opens over the left part only (to the left of Charles) ---------------------- */
+#shelf.sheet-open[data-sheet='usage'] .shelf-viewport,
+#shelf.sheet-open[data-sheet='usage'] .shelf-nav {
+  visibility: visible;
+}
+#shelf.sheet-open[data-sheet='usage'] .shelf-prev {
+  visibility: hidden;
+}
+#shelf .shelf-sheet[data-kind='usage'] {
+  right: auto;
+  width: 290px;
+  inset: 0 auto 12px 8px;
+}
+#shelf .usage-sheet {
+  justify-content: flex-start;
+}
+body.v10 #shelf .usage-sheet #usage-weather {
+  gap: 12px !important;
+  width: 100% !important;
+}
+body.v10 #shelf .usage-sheet #usage-weather .usage-title {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 82px;
+  font-size: 13px;
+}
+body.v10 #shelf .usage-sheet #usage-weather .usage-title .usage-dot {
+  display: none;
+}
+body.v10 #shelf .usage-sheet #usage-weather .usage-name {
+  color: var(--provider);
+}
+body.v10 #shelf .usage-sheet #usage-weather .usage-gauges {
+  gap: 8px;
+}
+#shelf.sheet-open[data-sheet='usage'] .shelf-col,
+#shelf.sheet-open[data-sheet='usage'] .card-convert {
+  visibility: hidden;
+}
+
+/* Charles in the exact middle of the shelf, right above the cream bar: both sides are equally
+   wide (166 + 9 + 94 = 269 px on the left, the music card on the right). */
+#shelf .card-music {
+  flex: 0 0 269px;
+}
+#shelf .card-charles {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* the installed Spotify app's icon in the music card */
+#shelf .music-label .music-brand {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+#shelf .music-art .music-brand-big {
+  position: static;
+  display: block;
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+#shelf .card-music:not(.idle) .music-art .music-brand-big {
+  width: 34px;
+  height: 34px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+#shelf .card-music.idle .music-art .music-brand-big {
+  opacity: 0.85;
+}
+
+/* --- Black again, as in v0.8.9: warm black glass, still slightly see-through ------------- */
+:root {
+  --v10-panel-top: rgba(8, 8, 7, 0.95);
+  --v10-panel: rgba(3, 3, 3, 0.96);
+}
+body.v10:not(.desktop-pet):not(.hidden-island) .island {
+  background:
+    var(--ac-grain-soft),
+    radial-gradient(90% 55% at 12% -8%, var(--ac-warm), transparent 62%),
+    radial-gradient(80% 50% at 105% 105%, var(--ac-cool), transparent 60%),
+    linear-gradient(180deg, rgba(8, 8, 7, 0.95) 0%, rgba(3, 3, 3, 0.96) 45%, rgba(0, 0, 0, 0.97) 100%) !important;
+}
+#shelf .shelf-sheet {
+  background:
+    linear-gradient(180deg, rgba(255, 236, 214, 0.04), rgba(255, 236, 214, 0.015)),
+    rgba(6, 6, 6, 0.92);
+}

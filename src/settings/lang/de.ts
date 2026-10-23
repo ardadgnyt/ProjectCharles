@@ -1539,4 +1539,9 @@ export const german: Record<string, string> = {
   "{n} files ready": "{n} Dateien fertig",
   "{n} ready, {n} failed": "{n} fertig, {n} fehlgeschlagen",
   "Page {n}": "Seite {n}",
+  "Drop a file": "Datei ablegen",
+  "No font was found for the PDF.": "Für die PDF wurde keine Schriftart gefunden.",
+  "The file has no text.": "Die Datei enthält keinen Text.",
+  "Photo": "Foto",
+  "The PDF has no readable text.": "Die PDF enthält keinen lesbaren Text.",
 };

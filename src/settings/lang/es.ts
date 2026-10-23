@@ -1539,4 +1539,9 @@ export const spanish: Record<string, string> = {
   "{n} files ready": "{n} archivos listos",
   "{n} ready, {n} failed": "{n} listos, {n} con error",
   "Page {n}": "Página {n}",
+  "Drop a file": "Suelta un archivo",
+  "No font was found for the PDF.": "No se encontró una fuente para el PDF.",
+  "The file has no text.": "El archivo no tiene texto.",
+  "Photo": "Foto",
+  "The PDF has no readable text.": "El PDF no tiene texto legible.",
 };

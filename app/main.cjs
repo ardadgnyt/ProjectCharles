@@ -118,6 +118,8 @@ let win,
   // v0.8.10: an open island shows the card shelf (home) or the chat panel
   chatOpen = false,
   shelfHeld = false,
+  // v0.8.11: the closed notch is wide (Slime + music controls) only while music plays
+  notchMusic = false,
   chosenCwd = null;
 let dialogOpen = false,
   dropHeldUntil = 0;
@@ -480,7 +482,21 @@ let waLive = null;
 function whatsappLive() {
   if (!waLive) {
     const { WhatsAppLive } = require('./plugins/whatsapp-live.cjs');
-    waLive = new WhatsAppLive({ dir: path.join(app.getPath('userData'), 'whatsapp') });
+    waLive = new WhatsAppLive({
+      dir: path.join(app.getPath('userData'), 'whatsapp'),
+      // v0.8.11: a photo becomes a small JPEG for the card (kept in memory only)
+      thumbnail: (bytes) => {
+        try {
+          let img = nativeImage.createFromBuffer(bytes);
+          if (img.isEmpty()) return null;
+          const { width, height } = img.getSize();
+          if (Math.max(width, height) > 520) img = width >= height ? img.resize({ width: 520, quality: 'good' }) : img.resize({ height: 520, quality: 'good' });
+          return 'data:image/jpeg;base64,' + img.toJPEG(82).toString('base64');
+        } catch {
+          return null;
+        }
+      },
+    });
     waLive.on('state', (state) => {
       if (win && !win.isDestroyed()) win.webContents.send('whatsapp-live', state);
       if (state.link !== 'connected') for (const i of [...(mailBubble?.items || [])]) if (i.kind === 'whatsapp') mailBubble.remove(i.id);
@@ -704,6 +720,7 @@ function position(animate = false) {
     expanded,
     hidden,
     chat: chatOpen,
+    music: notchMusic,
     side: v2?.data.side || 'center',
     height: v2?.data.height || 620,
     scale,
@@ -2174,6 +2191,39 @@ else {
         return islandView();
       });
       safeHandler('island-view-read', () => islandView());
+      // v0.8.11: the music card shows the installed Spotify app's own icon (read from Windows)
+      let spotifyIcon;
+      safeHandler('spotify-icon', async () => {
+        if (spotifyIcon !== undefined) return spotifyIcon;
+        spotifyIcon = null;
+        if (process.platform !== 'win32') return null;
+        const env = process.env;
+        const candidates = [
+          env.APPDATA && path.join(env.APPDATA, 'Spotify', 'Spotify.exe'),
+          env.LOCALAPPDATA && path.join(env.LOCALAPPDATA, 'Microsoft', 'WindowsApps', 'Spotify.exe'),
+          env.APPDATA && path.join(env.APPDATA, 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Spotify.lnk'),
+          env.ProgramData && path.join(env.ProgramData, 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Spotify.lnk'),
+        ].filter(Boolean);
+        for (const file of candidates) {
+          try {
+            if (!fs.existsSync(file)) continue;
+            const img = await app.getFileIcon(file, { size: 'large' });
+            if (img && !img.isEmpty()) {
+              spotifyIcon = img.toDataURL();
+              break;
+            }
+          } catch {}
+        }
+        return spotifyIcon;
+      });
+      safeHandler('notch-music', (value) => {
+        const next = !!value;
+        if (next !== notchMusic) {
+          notchMusic = next;
+          if (!expanded && !hidden && !detached && !workspace) position(true);
+        }
+        return notchMusic;
+      });
       // v0.8.10: Dönüştürücü (app/files/convert.cjs). Paths only come from a drop handled in
       // the preload or from the file dialog here; the page never names a file itself.
       let converter = null;

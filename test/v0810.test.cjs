@@ -13,13 +13,13 @@ const cv = require('../app/files/convert.cjs');
 test('island sizes: notch, shelf, chat; the surface fits all of them', () => {
   const area = { x: 0, y: 0, width: 1920, height: 1040 };
   assert.deepEqual(bounds(area, { expanded: false, side: 'center', height: 620 }), { x: 770, y: 0, ...NOTCH });
-  assert.deepEqual(bounds(area, { expanded: true, chat: false, side: 'center', height: 620 }), { x: 370, y: 0, ...SHELF });
+  assert.deepEqual(bounds(area, { expanded: true, chat: false, side: 'center', height: 620 }), { x: (1920 - SHELF.width) / 2, y: 0, ...SHELF });
   assert.equal(bounds(area, { expanded: true, side: 'center', height: 700 }).height, 700);
   const s = surfaceBounds(area, { side: 'center', height: 700 });
-  assert.equal(s.width, SHELF.width);
+  assert.equal(s.width, Math.max(SHELF.width, 620));
   assert.equal(s.height, 700);
   // a small screen clamps the shelf
-  assert.equal(bounds({ x: 0, y: 0, width: 1024, height: 700 }, { expanded: true, chat: false, side: 'center', height: 620 }).width, 1024);
+  assert.equal(bounds({ x: 0, y: 0, width: 600, height: 700 }, { expanded: true, chat: false, side: 'center', height: 620 }).width, 600);
 });
 
 test('main: views, shelf closes by itself, converter handlers', () => {
@@ -89,7 +89,6 @@ test('converter: ZIP packing and safe extraction, results next to the original',
   const c = new cv.Converter({ ffmpeg: () => null });
   let b = await c.add([path.join(dir, 'a.txt')]);
   assert.ok(b.targets.some((t) => t.id === 'docx'));
-  assert.ok(!b.targets.some((t) => t.id === 'pdf'), 'PDF needs the printing page');
   let r = await c.run(b.id, 'zip', {}, () => {});
   assert.deepEqual(r.outputs, ['a (2).zip'], 'an existing file is never replaced');
   assert.equal(fs.readFileSync(path.join(dir, 'a.zip'), 'utf8'), 'eski');
@@ -117,10 +116,6 @@ test('converter: FFmpeg arguments', () => {
   assert.ok(cv.ffmpegArgs('/x/in.png', '/x/o.webp', 'webp').includes('libwebp'));
 });
 
-test('version 0.8.10', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.8.10-beta.1');
-  assert.match(read('public/index.html'), /v0\.8\.10 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.8\.10 Beta'/);
+test('version 0.8.10 is in the changelog', () => {
   assert.match(read('CHANGELOG.md'), /## v0\.8\.10 Beta/);
-  assert.match(read('THIRD-PARTY-NOTICES.md'), /Filee/);
 });

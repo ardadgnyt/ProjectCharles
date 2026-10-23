@@ -1,6 +1,6 @@
 'use strict';
-// v0.8.10: the Electron side of the converter (app/files/convert.cjs): finds FFmpeg, prints
-// HTML to PDF and draws SVG in a hidden page that cannot reach the network.
+// v0.8.10: the Electron side of the converter (app/files/convert.cjs): finds FFmpeg and draws
+// SVG in a hidden page that cannot reach the network. (v0.8.11: text PDFs are written directly.)
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -52,8 +52,6 @@ function createConverter({ electron, appRoot }) {
       fs.rmSync(tmp, { force: true });
     }
   }
-  const printPDF = (html) =>
-    withPage(html, false, (wc) => wc.printToPDF({ printBackground: true, pageSize: 'A4', margins: { marginType: 'default' } }));
   const rasterSVG = (svg, maxSize = 2048) =>
     withPage('<!doctype html><meta charset="utf-8"><body style="margin:0"></body>', true, async (wc) => {
       const url = 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64');
@@ -73,6 +71,6 @@ function createConverter({ electron, appRoot }) {
       })`);
       return Buffer.from(String(data).split(',')[1] || '', 'base64');
     });
-  return new Converter({ ffmpeg: ff, nativeImage, printPDF, rasterSVG, pdfText });
+  return new Converter({ ffmpeg: ff, nativeImage, rasterSVG, pdfText });
 }
 module.exports = { createConverter, findFFmpeg };

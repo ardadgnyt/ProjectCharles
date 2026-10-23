@@ -20,6 +20,10 @@ const RELEASE_API = 'https://api.github.com/repos/aldinokemal/go-whatsapp-web-mu
 const EXE = 'charles-whatsapp-gateway.exe';
 const MAX_ZIP = 150 * 1024 * 1024;
 const MAX_BODY = 4 * 1024 * 1024;
+// v0.8.11: photos are fetched from the gateway (base64) and kept in memory only
+const MAX_PHOTO = 24 * 1024 * 1024;
+const PHOTO_KINDS = ['image', 'sticker'];
+const PHOTO_TYPES = /^image\/(jpeg|png|webp|gif)$/;
 const DEVICE = 'charles';
 const SEND_LIMIT = [8, 60000]; // messages per minute
 const DEFAULT_REPLIES = ['Tamam, bakıyorum', 'Birazdan döneceğim', 'Teşekkürler', 'Şimdi müsait değilim'];
@@ -83,6 +87,7 @@ function parseWebhook(body) {
   const chat = typeof p.chat_id === 'string' ? p.chat_id : '';
   if (!id || !chat) return null;
   const media = Object.keys(MEDIA).find((k) => p[k] !== undefined && p[k] !== null) || null;
+  const caption = media && p[media] && typeof p[media] === 'object' ? String(p[media].caption || '') : '';
   const at = Date.parse(p.timestamp);
   // v0.8.9: a group message is recognised by every hint the gateway gives, not only chat_id
   const group =
@@ -96,8 +101,9 @@ function parseWebhook(body) {
     chat: (group && !/@g\.us$/.test(chat) ? String(p.chat_jid || p.group_jid || String(p.from || '').split(' in ')[1] || chat) : chat).slice(0, 128),
     from: String(p.from || chat).slice(0, 128),
     name: String(p.sender_display_name || p.from_name || '').slice(0, 80),
-    text: String(p.body || '').slice(0, 4000),
+    text: String(p.body || caption || '').slice(0, 4000),
     media: media ? MEDIA[media] : null,
+    kind: media || null,
     at: Number.isFinite(at) ? at : now(),
     mine: p.is_from_me === true,
   };
@@ -114,6 +120,7 @@ function parseMessages(results) {
       name: String(m.sender_display_name || '').slice(0, 80),
       text: String(m.content || '').slice(0, 4000),
       media: m.media_type ? MEDIA[m.media_type] || 'Ek' : null,
+      kind: m.media_type || null,
       at: Date.parse(m.timestamp) || 0,
       mine: m.is_from_me === true,
     }))
@@ -152,8 +159,9 @@ class WhatsAppLive extends EventEmitter {
    * dir: %APPDATA%\Charles\whatsapp. fetch: global fetch (tests pass a fake). spawn: child_process.spawn.
    * unzip: (bytes) → { name: Uint8Array } (fflate.unzipSync).
    */
-  constructor({ dir, fetch = globalThis.fetch, spawn = require('node:child_process').spawn, unzip = (b) => require('fflate').unzipSync(b), platform = process.platform }) {
+  constructor({ dir, fetch = globalThis.fetch, spawn = require('node:child_process').spawn, unzip = (b) => require('fflate').unzipSync(b), platform = process.platform, thumbnail = null }) {
     super();
+    this.thumbnail = thumbnail; // v0.8.11: (bytes, type) → small data URL or null
     this.dir = dir;
     this.fetchImpl = fetch;
     this.spawnImpl = spawn;
@@ -431,7 +439,7 @@ class WhatsAppLive extends EventEmitter {
       });
     });
   }
-  async api(method, route, body, { raw = false, timeout = 15000 } = {}) {
+  async api(method, route, body, { raw = false, timeout = 15000, max = MAX_BODY } = {}) {
     if (!this.port) throw Error('WhatsApp köprüsü çalışmıyor.');
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeout);
@@ -447,7 +455,7 @@ class WhatsAppLive extends EventEmitter {
         signal: ctrl.signal,
       });
       const buf = Buffer.from(await res.arrayBuffer());
-      if (buf.length > MAX_BODY) throw Error('WhatsApp köprüsünün yanıtı çok büyük.');
+      if (buf.length > max) throw Error('WhatsApp köprüsünün yanıtı çok büyük.');
       if (raw) return { ok: res.ok, status: res.status, buf, type: res.headers?.get?.('content-type') || '' };
       let json = null;
       try {
@@ -561,6 +569,8 @@ class WhatsAppLive extends EventEmitter {
     if (c.messages.some((x) => x.id === m.id)) return;
     c.messages.push(m);
     c.messages = c.messages.slice(-20);
+    // v0.8.11: a photo shows in the card once the gateway hands it over
+    if (!m.mine && PHOTO_KINDS.includes(m.kind)) void this.photo(c, m).then((ok) => ok && this.emit('message', this.preview(c)));
     if (!m.mine) {
       if (!isGroup(m.chat) && m.name) c.name = m.name;
       c.unread++;
@@ -574,6 +584,28 @@ class WhatsAppLive extends EventEmitter {
       });
       this.emit('message', this.preview(c));
     } else c.unread = 0; // answered on the phone
+  }
+  /**
+   * v0.8.11: the picture of a photo (or sticker) message as a small data URL, kept in memory
+   * with the message (never written to disk). GOWA: GET /message/{id}/download?phone=<chat>.
+   */
+  async photo(c, m) {
+    if (m.image || m.photoTried) return !!m.image;
+    m.photoTried = true;
+    try {
+      const r = await this.api('GET', `/message/${encodeURIComponent(m.id)}/download?phone=${encodeURIComponent(c.jid)}`, null, { timeout: 30000, max: MAX_PHOTO });
+      const type = String(r?.mime_type || '').split(';')[0].trim().toLowerCase();
+      const data = typeof r?.data === 'string' ? r.data.replace(/^data:[^,]*,/, '') : '';
+      if (!PHOTO_TYPES.test(type) || !data || !/^[A-Za-z0-9+/=\s]+$/.test(data.slice(0, 2000))) return false;
+      const bytes = Buffer.from(data, 'base64');
+      if (!bytes.length) return false;
+      const small = this.thumbnail ? this.thumbnail(bytes, type) : null;
+      if (small) m.image = small;
+      else if (bytes.length <= 1.5 * 1024 * 1024) m.image = `data:${type};base64,${bytes.toString('base64')}`;
+      return !!m.image;
+    } catch {
+      return false;
+    }
   }
   /** v0.8.9: a group's subject (GOWA's group info), remembered while Charles runs. */
   async groupName(jid) {
@@ -598,6 +630,7 @@ class WhatsAppLive extends EventEmitter {
       sender: group && last && !last.mine ? last.name || '+' + String(last.from || '').split('@')[0].split(':')[0] : '',
       text: group && last && !last.mine && (last.name || last.from) ? `${last.name || '+' + String(last.from).split('@')[0].split(':')[0]}: ${body}` : body,
       media: last?.media || null,
+      image: last?.image || null,
       at: last?.at || now(),
       unread: c.unread,
     };
@@ -608,10 +641,22 @@ class WhatsAppLive extends EventEmitter {
     try {
       const r = await this.api('GET', `/chat/${encodeURIComponent(jid)}/messages?limit=10`);
       const list = parseMessages(r);
-      if (list.length) c.messages = list.slice(-20);
+      if (list.length) {
+        // photos already fetched stay with their messages
+        const old = new Map(c.messages.map((x) => [x.id, x]));
+        for (const x of list) {
+          const o = old.get(x.id);
+          if (o?.image) x.image = o.image;
+          if (o?.photoTried) x.photoTried = true;
+        }
+        c.messages = list.slice(-20);
+      }
     } catch {}
     if (isGroup(jid) && !c.name) c.name = await this.groupName(jid);
-    return { ...this.preview(c), messages: c.messages.slice(-10).map(({ id, text, media, at, mine, name }) => ({ id, text, media, at, mine, name })) };
+    // the photos of the last messages shown in the card (at most three new downloads)
+    const shown = c.messages.slice(-10);
+    await Promise.all(shown.filter((x) => !x.mine && PHOTO_KINDS.includes(x.kind) && !x.image && !x.photoTried).slice(-3).map((x) => this.photo(c, x)));
+    return { ...this.preview(c), messages: shown.map(({ id, text, media, image, at, mine, name }) => ({ id, text, media, image: image || null, at, mine, name })) };
   }
   async markRead(jid) {
     const c = this.chats.get(jid);

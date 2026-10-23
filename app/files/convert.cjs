@@ -1,9 +1,8 @@
 'use strict';
 // v0.8.10: Dönüştürücü — converts files dropped on the island's converter card.
 //
-// Inspired by Filee (github.com/KnifeLemon/Filee, MIT): drop files, see only the formats that
-// fit them, the result is saved next to the original. Nothing is uploaded; no code is taken
-// from Filee. Engines:
+// Drop files, see only the formats that fit them, the result is saved next to the original.
+// Nothing is uploaded. Engines:
 //   · FFmpeg (already shipped with Charles in tools/download) — pictures, sound and video,
 //   · Electron (nativeImage, a hidden page) — PNG/JPEG without FFmpeg, SVG, PDF printing,
 //   · plain JavaScript — PDF from pictures, Word (.docx) writing, text/data/subtitle formats,
@@ -67,7 +66,7 @@ function targetsFor(file) {
     else if (ext !== 'svg') list.push('gif');
   } else if (kind === 'audio') list = ['mp3', 'm4a', 'wav', 'flac', 'ogg', 'opus'];
   else if (kind === 'video') list = ['mp4', 'webm', 'mov', 'mkv', 'gif', 'mp3', 'm4a', 'wav'];
-  else if (ext === 'pdf') list = ['txt'];
+  else if (ext === 'pdf') list = ['docx', 'txt'];
   else if (ext === 'docx') list = ['pdf', 'txt', 'html', 'md'];
   else if (ext === 'md' || ext === 'markdown') list = ['pdf', 'docx', 'html', 'txt'];
   else if (ext === 'txt') list = ['pdf', 'docx', 'html', 'md'];
@@ -236,6 +235,33 @@ function blocksFromMarkdown(md) {
     else if (chunk.trim()) out.push({ text: markdownToText(chunk) });
   }
   return out;
+}
+/**
+ * PDF text → paragraphs. A line continues into the next one when it is long, does not end a
+ * sentence and the next line starts in lower case; otherwise a new paragraph starts.
+ */
+function pdfBlocks(text) {
+  const lines = String(text || '').replace(/\r/g, '').replace(/\f/g, '\n').split('\n').map((l) => l.trim());
+  const blocks = [];
+  let cur = '';
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) {
+      if (cur) blocks.push(cur);
+      cur = '';
+      continue;
+    }
+    cur = cur ? (cur.endsWith('-') ? cur.slice(0, -1) + line : cur + ' ' + line) : line;
+    const next = lines[i + 1] || '';
+    const continues = line.length > 50 && !/[.!?:;]["”’)]?$/.test(line) && /^[a-zçğıöşü0-9(]/.test(next);
+    if (!continues) {
+      blocks.push(cur);
+      cur = '';
+    }
+  }
+  if (cur) blocks.push(cur);
+  if (!blocks.length) throw Error('PDF içinde okunabilir metin yok.');
+  return blocks.map((t) => ({ text: t }));
 }
 const blocksFromText = (text) => text.replace(/\r/g, '').split(/\n{2,}/).filter((p) => p.trim()).map((p) => ({ text: p }));
 function docxToBlocks(bytes) {
@@ -460,7 +486,7 @@ function ffmpegEncoders(ffmpeg, spawnFn = spawn) {
  * The converter. deps:
  *   ffmpeg()        → path of ffmpeg.exe or null
  *   nativeImage     → Electron's nativeImage (PNG/JPEG without FFmpeg, ICO sizes)
- *   printPDF(html)  → Buffer (a hidden page printed to PDF)
+ *   fonts()         → { regular, bold } TrueType Buffers for text PDFs (app/files/text-pdf.cjs)
  *   rasterSVG(svg, maxSize) → PNG Buffer
  *   pdfText(file)   → text of a PDF
  */
@@ -489,7 +515,7 @@ class Converter {
       return ff && enc(target);
     }
     if (kind === 'audio' || kind === 'video') return target === 'zip' || (ff && enc(target));
-    if (target === 'pdf') return !!this.deps.printPDF;
+    if (target === 'pdf') return !!this.fontFiles();
     return true;
   }
   /** Files picked or dropped by the user → a batch the interface can show. */
@@ -632,6 +658,23 @@ class Converter {
       fs.rmSync(tmp, { force: true });
     }
   }
+  /** v0.8.11: TrueType fonts of the computer for text PDFs (read once). */
+  fontFiles() {
+    if (this.fonts !== undefined) return this.fonts;
+    try {
+      const found = this.deps.fonts ? this.deps.fonts() : require('./text-pdf.cjs').systemFonts();
+      this.fonts = found ? { regular: fs.readFileSync(found.regular), bold: fs.readFileSync(found.bold || found.regular) } : null;
+    } catch {
+      this.fonts = null;
+    }
+    return this.fonts;
+  }
+  pdf(blocks, title) {
+    const fonts = this.fontFiles();
+    if (!fonts) throw Error('PDF için yazı tipi bulunamadı.');
+    if (!blocks.length) throw Error('Dosyada metin yok.');
+    return require('./text-pdf.cjs').textPdf(blocks, fonts, { title });
+  }
   fit(img, size) {
     if (!size) return img;
     const { width, height } = img.getSize();
@@ -703,24 +746,26 @@ class Converter {
     // documents, data, subtitles
     const title = base;
     if (ext === 'pdf' && target === 'txt') return write(await this.deps.pdfText(f.path));
+    // v0.8.11: PDF → Word (the text, paragraph by paragraph; the page layout is not kept)
+    if (ext === 'pdf' && target === 'docx') return write(docxFromBlocks(pdfBlocks(await this.deps.pdfText(f.path))));
     if (ext === 'docx') {
       const blocks = docxToBlocks(fs.readFileSync(f.path));
       if (target === 'txt') return write(blocksToText(blocks));
       if (target === 'md') return write(blocksToMarkdown(blocks));
       if (target === 'html') return write(blocksToHTML(blocks, title));
-      if (target === 'pdf') return write(await this.deps.printPDF(blocksToHTML(blocks, title)));
+      if (target === 'pdf') return write(this.pdf(blocks, title));
     }
     if (ext === 'md' || ext === 'markdown') {
       const md = readText();
       if (target === 'html') return write(markdownToHTML(md, title));
-      if (target === 'pdf') return write(await this.deps.printPDF(markdownToHTML(md, title)));
+      if (target === 'pdf') return write(this.pdf(blocksFromMarkdown(md), title));
       if (target === 'docx') return write(docxFromBlocks(blocksFromMarkdown(md)));
       if (target === 'txt') return write(markdownToText(md));
     }
     if (ext === 'txt') {
       const text = readText();
       if (target === 'html') return write(textToHTML(text, title));
-      if (target === 'pdf') return write(await this.deps.printPDF(textToHTML(text, title)));
+      if (target === 'pdf') return write(this.pdf(blocksFromText(text), title));
       if (target === 'docx') return write(docxFromBlocks(blocksFromText(text)));
       if (target === 'md') return write(text);
     }
@@ -729,7 +774,7 @@ class Converter {
       if (target === 'txt') return write(htmlToText(html));
       if (target === 'md') return write(htmlToMarkdown(html));
       // scripts never run in the printing page
-      if (target === 'pdf') return write(await this.deps.printPDF(html.replace(/<script[\s\S]*?<\/script>/gi, '')));
+      if (target === 'pdf') return write(this.pdf(blocksFromMarkdown(htmlToMarkdown(html)), title));
     }
     if (f.kind === 'data') {
       const text = readText();
@@ -757,5 +802,5 @@ function detectSeparator(text) {
 module.exports = {
   Converter, KINDS, kindOf, targetsFor, commonTargets, uniquePath, ffmpegArgs, runFFmpeg, ffmpegEncoders,
   parseDelimited, writeDelimited, tableToObjects, objectsToTable, srtToVtt, vttToSrt, htmlToText, htmlToMarkdown,
-  docxFromBlocks, docxToBlocks, blocksFromMarkdown, pdfFromJpegs, jpegSize, icoFromPngs, zipFiles, unzipTo,
+  docxFromBlocks, docxToBlocks, blocksFromMarkdown, blocksFromText, pdfBlocks, pdfFromJpegs, jpegSize, icoFromPngs, zipFiles, unzipTo,
 };

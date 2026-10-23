@@ -9,11 +9,6 @@ Charles’s design is inspired by Charles from the *Epic Minequest* video series
 YouTube channel (https://www.youtube.com/@SamGreen). No artwork, audio or video from that series
 is included in Project Charles, and the project is not affiliated with Sam Green.
 
-The converter on the island (v0.8.10) is inspired by **Filee** by Myeonggu Kim (KnifeLemon)
-and contributors (https://github.com/KnifeLemon/Filee, MIT License): drop files, see only the
-formats that fit, save the result next to the original. No Filee code or artwork is included;
-Charles' converter is its own JavaScript and uses the FFmpeg build listed below.
-
 ## Character engine code
 
 Parts of the animation and drawing code in `src/vendor/` (`slime/engine.ts`, `slime/outfits.ts`,

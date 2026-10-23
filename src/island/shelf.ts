@@ -107,7 +107,8 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   notch.id = 'notch';
   const notchPet = el('span', 'notch-pet');
   const notchStatus = el('small', 'notch-status');
-  const notchName = el('span', 'notch-name', el('strong', '', 'Charles'), notchStatus);
+  // v0.8.11: the version under the name (shown with the music controls; the idle notch is only Slime)
+  const notchName = el('span', 'notch-name', el('strong', '', 'Charles'), el('small', 'notch-version', version), notchStatus);
   const notchWeather = el('span', 'notch-weather');
   const ctl = (name: string, label: string, target: string, cls = '') => {
     const b = button('notch-ctl ' + cls, label, svg(name));
@@ -232,7 +233,7 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   convertCard.tabIndex = 0;
   convertCard.setAttribute('role', 'button');
   convertCard.setAttribute('aria-label', 'Dönüştürücü · dosya bırak veya seç');
-  convertCard.append(el('span', 'convert-icon', svg('refresh')), el('strong', '', 'Dönüştürücü'), el('small', 'card-sub convert-hint', 'Dosyayı buraya bırak'));
+  convertCard.append(el('span', 'convert-icon', svg('refresh')), el('strong', '', 'Dönüştürücü'), el('small', 'card-sub convert-hint', 'Dosya bırak'));
   let depth = 0;
   convertCard.addEventListener('dragenter', () => {
     depth++;
@@ -260,7 +261,37 @@ export function islandShelf({ api, notice, attempt }: Deps) {
 
   // music
   const music = musicCard(attempt);
+  // v0.8.11: the installed Spotify app's own icon instead of the music note (if Windows has one)
+  void Promise.resolve(api.spotifyIcon?.())
+    .then((src: string | null) => {
+      if (typeof src === 'string' && /^data:image\/png;base64,/.test(src)) music.brand(src);
+    })
+    .catch(() => {});
   page1.append(el('div', 'shelf-col', usageCard, weatherCard), convertCard, charlesCard, music.card);
+
+  // v0.8.11: a click on an empty part of the shelf (or of its top bar) opens the chat
+  const empty = (t: HTMLElement) => !t.closest('button, a, input, select, textarea, .card, .shelf-sheet, #pet, [role="button"]');
+  shelf.addEventListener('click', (e) => {
+    if (view === 'shelf' && empty(e.target as HTMLElement)) void attempt(() => api.islandView('chat'));
+  });
+  header.addEventListener(
+    'pointerdown',
+    (e) => {
+      const t = e.target as HTMLElement;
+      if (view !== 'shelf' || e.button !== 0 || !empty(t)) return;
+      // the old island collapsed on a click on the header; on the shelf it opens the chat
+      e.stopImmediatePropagation();
+      void attempt(() => api.islandView('chat'));
+    },
+    true,
+  );
+  // a drop on the converter never leaves the dashed frame behind
+  api.onConvertDrop?.(() => {
+    depth = 0;
+    convertCard.classList.remove('over');
+    document.dispatchEvent(new Event('dragend'));
+    document.body.classList.remove('dropping');
+  });
 
   // sheets: the converter and the usage gauges open over the cards
   const sheet = el('div', 'shelf-sheet');
@@ -278,9 +309,11 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     sheet.hidden = false;
     shelf.classList.add('sheet-open');
     sheet.dataset.kind = content.dataset.kind || '';
+    shelf.dataset.sheet = sheet.dataset.kind;
     closeSheet = () => {
       sheet.hidden = true;
       shelf.classList.remove('sheet-open');
+      delete shelf.dataset.sheet;
       closeSheet = null;
       onClose?.();
     };
@@ -325,7 +358,8 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     const grip = document.getElementById('resize-handle');
     grip?.setAttribute('aria-label', next === 'chat' ? 'Panel yüksekliği · sürükle' : 'Sohbeti aç');
     grip?.setAttribute('role', next === 'chat' ? 'separator' : 'button');
-    if (next !== 'shelf' && closeSheet && sheet.dataset.kind === 'usage') closeSheet();
+    // v0.8.11: a sheet (usage, a finished conversion) does not stay open once the island closes
+    if (next !== 'shelf' && closeSheet && (sheet.dataset.kind === 'usage' || !converter.running())) closeSheet();
     placePet();
   }
   api.onView?.(setView);
@@ -338,9 +372,16 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   const paintStatus = () => (notchStatus.textContent = status?.textContent || '');
   if (status) new MutationObserver(paintStatus).observe(status, { childList: true, characterData: true, subtree: true });
   paintStatus();
+  let notchWide: boolean | null = null;
   document.addEventListener('charles-media-state', (e: any) => {
     const r = e.detail || {};
     const playing = !!r.ok && r.state === 'Playing';
+    // v0.8.11: the notch is wide (music controls) only while something plays or is paused
+    const wide = !!r.ok && (r.state === 'Playing' || r.state === 'Paused');
+    if (wide !== notchWide) {
+      notchWide = wide;
+      void Promise.resolve(api.notchMusic?.(wide)).catch(() => {});
+    }
     body.classList.toggle('music-on', !!r.ok && (r.state === 'Playing' || r.state === 'Paused'));
     body.classList.toggle('music-playing', playing);
     notchPlay.replaceChildren(svg(playing ? 'pause' : 'play'));
@@ -456,9 +497,22 @@ function musicCard(attempt: Deps['attempt']) {
     tick();
   }
   void attempt; // the old controls report their own errors
+  /** Shows an app icon (the installed Spotify's) in place of the music notes. */
+  function brand(src: string) {
+    card.classList.add('branded');
+    const small = el('img', 'music-brand') as HTMLImageElement;
+    small.src = src;
+    small.alt = '';
+    label.firstElementChild?.replaceWith(small);
+    const big = el('img', 'music-brand-big') as HTMLImageElement;
+    big.src = src;
+    big.alt = '';
+    art.firstElementChild?.replaceWith(big);
+  }
   return {
     card,
     paint,
+    brand,
     fraction: () => (last?.duration > 0 ? position() / last.duration : 0),
   };
 }

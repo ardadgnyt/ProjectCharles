@@ -1,6 +1,6 @@
 // v0.8.10: Dönüştürücü — the sheet that opens on the card shelf when files are dropped on (or
 // picked from) the converter card. Only formats every dropped file can become are shown; the
-// result is saved next to the original (app/files/convert.cjs). Idea from Filee (MIT).
+// result is saved next to the original (app/files/convert.cjs).
 import { el, icon } from '../workspace/icons';
 
 type Target = { id: string; label: string; group: string };
@@ -235,5 +235,5 @@ export function converterSheet(d: Deps) {
       if (b) open(b);
     });
   }
-  return { choose, open };
+  return { choose, open, running: () => running };
 }

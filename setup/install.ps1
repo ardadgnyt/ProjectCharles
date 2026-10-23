@@ -4,7 +4,7 @@
 #   0. Asks for the setup language (English by default; every language Charles supports).
 #      Charles starts in the same language (charles-install.json in the app folder).
 #   1. Checks Windows (64-bit, Windows 10 or 11).
-#   2. Copies Charles to a short folder (default: C:\ProjectCharles v0.8.10 Beta).
+#   2. Copies Charles to a short folder (default: C:\ProjectCharles v0.8.11 Beta).
 #      Source: Charles.zip next to this file, or the Charles folder that holds this setup folder.
 #   3. Removes the "blocked" mark of files that came from the internet / a USB stick.
 #   4. Creates desktop and Start menu shortcuts.
@@ -13,7 +13,7 @@
 param([string]$Root = $PSScriptRoot)
 
 $ErrorActionPreference = 'Stop'
-$Version = 'v0.8.10 Beta'
+$Version = 'v0.8.11 Beta'
 $Name = "ProjectCharles $Version"
 $DefaultTarget = "C:\$Name"
 $Log = Join-Path $env:TEMP 'Charles-setup.log'

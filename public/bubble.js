@@ -48,18 +48,45 @@ function mailCard(item) {
   const close = element('button', 'close', '×');
   close.type = 'button';
   close.setAttribute('aria-label', T('Bildirimi kapat'));
-  close.onclick = (e) => {
-    e.stopPropagation();
+  // v0.8.11: × acts on pointerdown: a click could be lost when the bubbles were redrawn
+  // between pressing and releasing the mouse (a new mail, a WhatsApp photo arriving)
+  dismissOnPress(close, () => {
+    card.remove();
+    resize();
     window.bubble.dismiss(item.id);
-  };
+  });
   card.append(close);
-  card.onclick = () => window.bubble.open(item.id);
+  card.onclick = () => {
+    if (quiet()) return;
+    window.bubble.open(item.id);
+  };
   card.onkeydown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') window.bubble.open(item.id);
   };
   return card;
 }
 
+// after a × the click that follows must not open the card that moved into its place
+let quietUntil = 0;
+const quiet = () => Date.now() < quietUntil;
+function dismissOnPress(button, fn) {
+  let done = false;
+  const go = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (done) return;
+    done = true;
+    quietUntil = Date.now() + 450;
+    fn();
+  };
+  button.addEventListener('pointerdown', (e) => {
+    if (e.button === 0) go(e);
+  });
+  button.addEventListener('click', go);
+  button.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') go(e);
+  });
+}
 const resize = () =>
   // setTimeout, not requestAnimationFrame: the window is still hidden on first render.
   setTimeout(() => window.bubble.resize(Math.ceil(stack.getBoundingClientRect().height)), 0);
@@ -178,8 +205,13 @@ function row(item, onOpen) {
   text.setAttribute('translate', 'no');
   const head = element('span', 'wa-line', name);
   const body = element('span', 'wa-body', head, text);
-  r.append(avatar(item), body, element('small', 'wa-time', ago(item.at)));
-  r.onclick = onOpen;
+  r.append(avatar(item), body);
+  // v0.8.11: a photo shows as a small picture at the end of the row
+  if (photoOk(item.image)) r.append(photo(item.image, 'wa-thumb'));
+  r.append(element('small', 'wa-time', ago(item.at)));
+  r.onclick = () => {
+    if (!quiet()) onOpen();
+  };
   r.onkeydown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') onOpen();
   };
@@ -227,16 +259,17 @@ function singleCard(item) {
 }
 function dismissButton() {
   // v0.8.9: the card goes at once; Charles forgets the notifications after it
-  return iconButton(
-    'close',
-    T('WhatsApp bildirimlerini kapat'),
-    () => {
-      waUpdate([]);
-      resize();
-      void window.bubble.wa('dismiss-all').catch(() => {});
-    },
-    'wa-x',
-  );
+  // v0.8.11: on pointerdown (see dismissOnPress), so a redraw can never swallow it
+  const b = element('button', 'wa-btn wa-x');
+  b.type = 'button';
+  b.setAttribute('aria-label', T('WhatsApp bildirimlerini kapat'));
+  b.append(glyph(G.close));
+  dismissOnPress(b, () => {
+    waUpdate([]);
+    resize();
+    void window.bubble.wa('dismiss-all').catch(() => {});
+  });
+  return b;
 }
 function foldedCard() {
   // first names keep the line short ("Mert, Zeynep ve 1 kişi daha")
@@ -254,7 +287,9 @@ function foldedCard() {
   r.setAttribute('role', 'button');
   r.setAttribute('aria-expanded', 'false');
   r.append(brand(), stackEl, element('span', 'wa-body', title, sub), iconButton('down', T('Mesajları göster'), () => setView({ mode: 'list' })));
-  r.onclick = () => setView({ mode: 'list' });
+  r.onclick = () => {
+    if (!quiet()) setView({ mode: 'list' });
+  };
   return card(r, dismissButton());
 }
 function listCard() {
@@ -302,17 +337,34 @@ async function openChat(chat) {
     }
   } catch {}
 }
+function photoOk(src) {
+  return typeof src === 'string' && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(src);
+}
+function photo(src, cls) {
+  const img = document.createElement('img');
+  img.className = cls;
+  img.alt = 'Fotoğraf';
+  img.decoding = 'async';
+  img.src = src;
+  img.onload = () => resize();
+  return img;
+}
 function thread(item) {
   const box = element('div', 'wa-thread');
   const list =
     waConversation?.chat === item.chat
       ? waConversation.messages.slice(item.group ? -6 : -4)
-      : [{ text: item.group ? String(item.text || '').replace(/^[^:]{1,80}: /, '') : item.text, media: item.media, mine: false, name: item.sender }];
+      : [{ text: item.group ? String(item.text || '').replace(/^[^:]{1,80}: /, '') : item.text, media: item.media, image: item.image, mine: false, name: item.sender }];
   for (const m of list) {
     const line = element('p', 'wa-msg' + (m.mine ? ' mine' : ''));
     // v0.8.9: in a group every message says who wrote it
     if (item.group && !m.mine && m.name) line.append(element('strong', 'wa-from', m.name));
-    line.append(document.createTextNode(m.text || m.media || ''));
+    // v0.8.11: photos (and stickers) are shown; their caption, if any, goes below
+    if (photoOk(m.image)) {
+      line.classList.add('has-photo');
+      line.append(photo(m.image, 'wa-photo'));
+      if (m.text) line.append(element('span', 'wa-caption', m.text));
+    } else line.append(document.createTextNode(m.text || m.media || ''));
     line.setAttribute('translate', 'no');
     box.append(line);
   }
