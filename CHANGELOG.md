@@ -4,6 +4,19 @@ Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özell
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.8.12 Beta — 23 Ekim 2026
+
+- **Tek parça ada:** adanın zemini tek düz siyah; üstten alta değişen ton ve köşelerdeki renkli parlamalar kalktı. Ada neredeyse opak, arkadaki pencerelerin keskin kenarları (ör. tarayıcının sekme şeridi) artık içinden görünmüyor. Müzikli küçük adada, kart rafında ve sohbet panelinde üst ve alt kısmın ayrı parçalar gibi görünmesi ve sohbetle yazma kutusu arasındaki geçiş bundandı.
+- **Sohbet başlığı:** “Hazırım. Birlikte ne yapalım?” yazısı kalktı. Slime ortada, altında “Charles”, onun altında yeşil durum ışığı ve sürüm.
+- **Sohbette krem çubuk:** sürükleyince yükseklik ayarlanıyor; tıklayınca ada en küçük hâline dönüyor. Charles panelinde boş bir yere tıklamak da adayı küçültüyor.
+- **Şarkıda ileri/geri sarma:** yeni konum hemen görünüyor (notch’taki çubukta yavaş dolma animasyonu yok). Şarkı çalarken konum her saniye okunuyor; Spotify’da yapılan sarma da çabuk yansıyor.
+- **Slime’ı sürükleme:** ilk çekişte takılıp başladığı yere dönmüyor, doğrudan masaüstüne sürükleniyor.
+- **Sohbet geçmişi tuşu** ve üst çubuktaki diğer tuşlar basılı ya da üzerinde fare varmış gibi kalmıyor.
+- **En küçük ada:** şapkalı Slime ile krem çubuk çakışmıyor; çubuk biraz daha aşağıda.
+- **Kart rafı:** Charles daha büyük ve yazısıyla arasında boşluk var; şapkası kesilmiyor.
+- **AI kullanımı paneli** v0.8.9’daki gibi: sağlayıcı adının yanında parlayan renkli ışık (“● Codex · kredi”), altında sağlayıcının renginde ışıltılı halkalar. Dönüştürücüde kalite ve boyut, dosyanın altında kısa listeler olarak (çok biçim olduğunda kesilmiyor); dönüştürme sırasında yerini dosya dosya ilerleme alıyor.
+- **README:** ekran görüntüleri yeni ada tasarımıyla (notch, kart rafı, dönüştürücü, sohbet).
+
 ## v0.8.11 Beta — 23 Ekim 2026
 
 - **WhatsApp fotoğrafları:** gelen fotoğraf (ve çıkartma) bildirim balonunda küçük resim olarak, sohbet açılınca büyük görünüyor; fotoğrafın açıklaması altında. Fotoğraf yalnızca bellekte tutuluyor, diske yazılmıyor.

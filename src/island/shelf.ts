@@ -278,6 +278,12 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     'pointerdown',
     (e) => {
       const t = e.target as HTMLElement;
+      // v0.8.12: in the chat, a click on an empty part of the Charles panel folds the island
+      if (view === 'chat' && e.button === 0 && empty(t) && !t.closest('.character-center')) {
+        e.stopImmediatePropagation();
+        void attempt(() => api.islandView('notch'));
+        return;
+      }
       if (view !== 'shelf' || e.button !== 0 || !empty(t)) return;
       // the old island collapsed on a click on the header; on the shelf it opens the chat
       e.stopImmediatePropagation();
@@ -355,6 +361,9 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     if (!['notch', 'shelf', 'chat'].includes(next)) return;
     view = next;
     body.dataset.view = next;
+    // v0.8.12: no bar button stays pressed/highlighted across a view change
+    const active = document.activeElement as HTMLElement | null;
+    if (active && active.closest('#island-bar')) active.blur();
     const grip = document.getElementById('resize-handle');
     grip?.setAttribute('aria-label', next === 'chat' ? 'Panel yüksekliği · sürükle' : 'Sohbeti aç');
     grip?.setAttribute('role', next === 'chat' ? 'separator' : 'button');
@@ -392,12 +401,22 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     };
     music.paint(r);
   });
-  window.setInterval(() => {
-    const p = music.fraction();
-    notchBar.style.width = (p * 100).toFixed(2) + '%';
-  }, 1000);
+  // v0.8.12: the notch's progress line follows the song directly (no slow fill after a seek)
+  const paintBar = () => {
+    notchBar.style.width = (music.fraction() * 100).toFixed(2) + '%';
+  };
+  window.setInterval(paintBar, 250);
+  document.addEventListener('charles-media-state', paintBar);
 
   setView(view);
+  // v0.8.12: when the mouse leaves the island the page may never hear of it (the window lets the
+  // mouse through), so a button could keep its hover/pressed look; the cursor position from
+  // the main process tells the page the mouse is outside.
+  api.onCursor?.((p: { x: number; y: number }) => {
+    const r = body.getBoundingClientRect();
+    const out = p.x < r.left || p.x > r.right || p.y < r.top || p.y > r.bottom;
+    body.classList.toggle('pointer-out', out);
+  });
 }
 
 /** The music card: what is playing with its controls, or a button that starts playing. */
@@ -450,6 +469,11 @@ function musicCard(attempt: Deps['attempt']) {
   };
   range.onchange = () => {
     seeking = false;
+    // v0.8.12: show the new position at once
+    if (last) {
+      last = { ...last, position: +range.value };
+      at = Date.now();
+    }
     const old = document.getElementById('music-progress') as HTMLInputElement | null;
     if (old) {
       old.value = range.value;
@@ -463,7 +487,7 @@ function musicCard(attempt: Deps['attempt']) {
     range.style.setProperty('--fill', (last.duration > 0 ? (p / last.duration) * 100 : 0).toFixed(2) + '%');
     now.textContent = time(p);
   }
-  window.setInterval(tick, 1000);
+  window.setInterval(tick, 500);
   function paint(r: any) {
     last = r;
     at = Date.now();

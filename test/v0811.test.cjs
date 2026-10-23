@@ -125,9 +125,6 @@ test('the island is black again (as in v0.8.9)', () => {
   assert.match(read('public/styles/19-v0811.css'), /rgba\(8, 8, 7, 0\.95\) 0%, rgba\(3, 3, 3, 0\.96\) 45%, rgba\(0, 0, 0, 0\.97\) 100%\) !important/);
 });
 
-test('version 0.8.11', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.8.11-beta.1');
-  assert.match(read('public/index.html'), /v0\.8\.11 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.8\.11 Beta'/);
+test('version 0.8.11 is in the changelog', () => {
   assert.match(read('CHANGELOG.md'), /## v0\.8\.11 Beta/);
 });

@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.8.11%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.8.12%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
   <img alt="Languages: English, Türkçe, Deutsch, Français, Español, 中文" src="https://img.shields.io/badge/UI-English%20%7C%20T%C3%BCrk%C3%A7e%20%7C%20Deutsch%20%7C%20Fran%C3%A7ais%20%7C%20Espa%C3%B1ol%20%7C%20%E4%B8%AD%E6%96%87-2b2f3a?style=flat-square">
@@ -153,15 +153,15 @@ Ayrıntılar: [docs/MODULES.md](docs/MODULES.md).
 ## Screenshots · Ekran görüntüleri
 
 <p align="center">
+  <img src="docs/images/island.png" alt="The Charles island: the card shelf with AI usage, weather, converter, Charles and music; the closed notch with only Slime and with music controls; Slime with sunglasses and a banana on the desktop" width="100%">
+</p>
+
+<p align="center">
   <img src="docs/images/projects-whatsapp.png" alt="Projects in the chat list, and WhatsApp messages under the island with quick replies, a reply box and the sent state" width="100%">
 </p>
 
 <p align="center">
   <img src="docs/images/modules-whatsapp-setup.png" alt="The Modules card with open buttons, three Slimes drawn by the module kit, and the WhatsApp card with a QR code" width="100%">
-</p>
-
-<p align="center">
-  <img src="docs/images/desktop.png" alt="The Charles island at the top of the desktop and Slime wearing big sunglasses and a banana on the desktop" width="100%">
 </p>
 
 <p align="center">
@@ -177,7 +177,7 @@ Ayrıntılar: [docs/MODULES.md](docs/MODULES.md).
 </p>
 
 <p align="center">
-  <img src="docs/images/screens.png" alt="The chat panel and the Slime studio in Settings" width="100%">
+  <img src="docs/images/screens.png" alt="The chat panel growing out of the island, the converter with formats for a picture, and the AI usage rings" width="100%">
 </p>
 
 <p align="center">

@@ -66,19 +66,12 @@ export function converterSheet(d: Deps) {
     if (!batch) return [];
     const out: HTMLElement[] = [];
     if (LOSSY.includes(target)) {
-      const seg = el('div', 'conv-seg');
-      seg.setAttribute('role', 'radiogroup');
-      seg.setAttribute('aria-label', 'Kalite');
-      for (const [id, text] of [['high', 'Yüksek'], ['balanced', 'Dengeli'], ['small', 'Küçük']]) {
-        const b = button('conv-seg-btn' + (quality === id ? ' on' : ''), text, () => {
-          quality = id;
-          paint();
-        });
-        b.setAttribute('role', 'radio');
-        b.setAttribute('aria-checked', String(quality === id));
-        seg.append(b);
-      }
-      out.push(el('label', 'conv-opt', el('small', '', 'Kalite'), seg));
+      // v0.8.12: a short list (the options sit under the file now, where there is room)
+      const pick = el('select', 'conv-select') as HTMLSelectElement;
+      pick.setAttribute('aria-label', 'Kalite');
+      for (const [id, text] of [['high', 'Yüksek'], ['balanced', 'Dengeli'], ['small', 'Küçük']]) pick.add(new Option(text, id, false, quality === id));
+      pick.onchange = () => (quality = pick.value);
+      out.push(el('label', 'conv-opt', el('small', '', 'Kalite'), pick));
     }
     const sizes =
       target === 'gif' ? GIF_SIZES : batch.kind === 'image' && ['png', 'jpg', 'webp', 'avif', 'bmp', 'tiff', 'pdf'].includes(target) ? IMAGE_SIZES : batch.kind === 'video' && ['mp4', 'webm', 'mov', 'mkv'].includes(target) ? VIDEO_SIZES : null;
@@ -120,7 +113,8 @@ export function converterSheet(d: Deps) {
     });
     const list = el('div', 'conv-list', ...rows);
     list.hidden = single;
-    const files = el('div', 'conv-files', head, list);
+    // v0.8.12: quality / size under the file (they no longer get cut off below many formats)
+    const files = el('div', 'conv-files', head, el('div', 'conv-opts', ...options()), list);
     if (single) files.append(rows[0]);
     rows[0] && single && rows[0].classList.add('conv-row-single');
 
@@ -146,7 +140,7 @@ export function converterSheet(d: Deps) {
       chips.append(line);
     }
     if (!b.targets.length) chips.append(el('p', 'conv-empty', 'Bu dosyalar için ortak bir biçim yok. Aynı türden dosyaları birlikte bırak.'));
-    const formats = el('div', 'conv-formats', chips, el('div', 'conv-opts', ...options()));
+    const formats = el('div', 'conv-formats', chips);
     if (!b.ffmpeg && ['image', 'audio', 'video'].includes(b.kind)) formats.append(el('small', 'conv-note', 'FFmpeg bulunamadı; yalnızca temel biçimler gösteriliyor.'));
 
     const action = el('div', 'conv-action');

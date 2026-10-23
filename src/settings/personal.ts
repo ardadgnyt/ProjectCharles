@@ -163,7 +163,17 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
   };
   progress.onchange = () => {
     seeking = false;
-    void attempt(() => media({ action: 'seek', position: Number(progress.value) }));
+    // v0.8.12: the new position shows at once (the island, the notch and the cards follow it),
+    // not only after Spotify's next status
+    if (lastMedia) {
+      lastMedia = { ...lastMedia, position: Number(progress.value) };
+      received = Date.now();
+      document.dispatchEvent(new CustomEvent('charles-media-state', { detail: lastMedia }));
+    }
+    void attempt(async () => {
+      await media({ action: 'seek', position: Number(progress.value) });
+      window.setTimeout(() => void media().catch(() => {}), 350);
+    });
   };
   progress.onpointerup = () => (seeking = false);
   progress.onpointercancel = () => (seeking = false);
@@ -256,7 +266,9 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
       times.textContent = time(pos) + ' / ' + time(lastMedia.duration);
     }
     if (Date.now() >= nextPoll) {
-      nextPoll = Date.now() + (idle ? 30000 : 3000);
+      // v0.8.12: while a song plays the position is read every second (a seek in Spotify shows
+      // quickly); otherwise every 3 s, and every 30 s when the island is hidden
+      nextPoll = Date.now() + (idle ? 30000 : lastMedia?.state === 'Playing' ? 1000 : 3000);
       void media().catch(() => {});
     }
   }, 1000);

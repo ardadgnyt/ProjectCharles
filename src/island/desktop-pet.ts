@@ -3,6 +3,7 @@ export function desktopPet(api: any) {
   let down = false,
     moved = false,
     start = { x: 0, y: 0 },
+    pointerId = -1,
     suppressUntil = 0;
   api.onDesktopPet((value: boolean) => {
     document.body.classList.toggle('desktop-pet', !!value);
@@ -18,6 +19,7 @@ export function desktopPet(api: any) {
     document.body.classList.add('pet-dragging');
     moved = false;
     start = { x: e.screenX, y: e.screenY };
+    pointerId = e.pointerId;
     pet.setPointerCapture(e.pointerId);
     void api.petDrag(true, start);
   });
@@ -36,7 +38,20 @@ export function desktopPet(api: any) {
   };
   pet.addEventListener('pointerup', finish);
   pet.addEventListener('pointercancel', finish);
-  pet.addEventListener('lostpointercapture', finish);
+  // v0.8.12: when the drag turns Slime into the desktop pet, the island moves him to another
+  // place in the page (src/island/shelf.ts), which drops the pointer capture. The drag goes on
+  // while the button is still held: capture again; only a real release ends it.
+  pet.addEventListener('lostpointercapture', () => {
+    if (!down) return;
+    queueMicrotask(() => {
+      if (!down) return;
+      try {
+        pet.setPointerCapture(pointerId);
+      } catch {
+        finish();
+      }
+    });
+  });
   window.addEventListener('blur', finish);
   pet.addEventListener(
     'click',

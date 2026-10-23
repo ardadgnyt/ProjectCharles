@@ -197,7 +197,7 @@ export function companionUI(
     e.preventDefault();
   });
   grip.addEventListener('pointermove', (e) => {
-    if (dragging) {
+    if (dragging && Math.abs(e.screenY - startY) >= 4) {
       const height = Math.max(480, Math.min(1200, startHeight + e.screenY - startY));
       grip.title = 'Yeni yükseklik: ' + height + ' px';
       void attempt(() => api.panelResize(height, false));
@@ -212,6 +212,11 @@ export function companionUI(
     }
     if (!dragging) return;
     dragging = false;
+    // v0.8.12: a click (no drag) on the cream bar of the chat folds the island into the notch
+    if (Math.abs(e.screenY - startY) < 4) {
+      void attempt(() => api.islandView('notch'));
+      return;
+    }
     void attempt(() => api.panelResize(startHeight + e.screenY - startY, true));
   });
   grip.addEventListener('click', (e) => e.stopPropagation());
