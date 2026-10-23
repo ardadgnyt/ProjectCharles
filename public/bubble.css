@@ -88,7 +88,7 @@ body {
   text-overflow: ellipsis;
 }
 .reason::after {
-  content: '  · Charles anlatsın →';
+  content: var(--hint, '  · Charles anlatsın →');
   color: var(--muted);
 }
 .close {

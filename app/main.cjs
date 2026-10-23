@@ -1097,6 +1097,7 @@ else {
         anchor: () => (detached ? win.getBounds() : visibleBounds),
         onOpen: () => {},
         onWhatsApp: (action, args) => whatsappBubbleAction(action, args),
+        language: () => v2?.data?.language || 'tr',
       });
       // v0.8.8: WhatsApp in Charles starts with Charles once it was turned on
       if (!demo && whatsappLive().settings.enabled) setTimeout(() => void waLive.start().catch(() => {}), 4000);
@@ -1485,6 +1486,7 @@ else {
         v2.update(value);
         if (v2.data.language !== oldLanguage) {
           moduleHost?.language(v2.data.language || 'tr');
+          if (mailBubble?.items.length) void mailBubble.render();
           trayMenu();
         }
         position(oldSide !== v2.data.side);

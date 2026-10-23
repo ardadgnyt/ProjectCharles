@@ -1,6 +1,10 @@
 // Renders the notification bubbles sent by app/plugins/mail-bubble.cjs.
 // Content is always inserted as text, never as HTML: mail subjects are untrusted.
 const stack = document.getElementById('stack');
+// v0.8.8: the bubbles follow Charles' language (main sends it with the items)
+let lang = 'tr';
+const WORDS = {"en": {"Okul e-postası": "School email","Google Takvim": "Google Calendar","Outlook Takvim": "Outlook Calendar","Takvim: ": "Calendar: ","Önemli e-posta: ": "Important email: ","(Konusuz)": "(No subject)","Kapat": "Close","Bildirimi kapat": "Close notification"," bildirim daha": " more notifications","Charles anlatsın →": "Let Charles explain →","şimdi": "now"," dk": " min","Hızlı yanıtlar": "Quick replies","Yanıt yaz": "Write a reply","WhatsApp bildirimlerini kapat": "Close WhatsApp notifications"," yeni mesaj": " new messages"," ve ": " and "," kişi daha": " more","Mesajları göster": "Show messages"," sohbet": " chats","Daralt": "Collapse","Kendim yazayım…": "I’ll write my own…","Geri": "Back","Yanıt yaz…": "Write a reply…","Gönder": "Send","Emoji": "Emoji","Mesaj gönderiliyor…": "Sending message…","Yanıt gönderildi": "Reply sent","Sohbeti aç": "Open chat"},"de": {"Okul e-postası": "Schul-E-Mail","Google Takvim": "Google Kalender","Outlook Takvim": "Outlook-Kalender","Takvim: ": "Kalender: ","Önemli e-posta: ": "Wichtige E-Mail: ","(Konusuz)": "(Kein Betreff)","Kapat": "Schließen","Bildirimi kapat": "Benachrichtigung schließen"," bildirim daha": " weitere Benachrichtigungen","Charles anlatsın →": "Charles erklärt es →","şimdi": "jetzt"," dk": " Min.","Hızlı yanıtlar": "Schnellantworten","Yanıt yaz": "Antwort schreiben","WhatsApp bildirimlerini kapat": "WhatsApp-Benachrichtigungen schließen"," yeni mesaj": " neue Nachrichten"," ve ": " und "," kişi daha": " weitere","Mesajları göster": "Nachrichten anzeigen"," sohbet": " Chats","Daralt": "Einklappen","Kendim yazayım…": "Selbst schreiben…","Geri": "Zurück","Yanıt yaz…": "Antwort schreiben…","Gönder": "Senden","Emoji": "Emoji","Mesaj gönderiliyor…": "Nachricht wird gesendet…","Yanıt gönderildi": "Antwort gesendet","Sohbeti aç": "Chat öffnen"},"fr": {"Okul e-postası": "E-mail scolaire","Google Takvim": "Google Agenda","Outlook Takvim": "Calendrier Outlook","Takvim: ": "Agenda : ","Önemli e-posta: ": "E-mail important : ","(Konusuz)": "(Sans objet)","Kapat": "Fermer","Bildirimi kapat": "Fermer la notification"," bildirim daha": " autres notifications","Charles anlatsın →": "Charles explique →","şimdi": "maintenant"," dk": " min","Hızlı yanıtlar": "Réponses rapides","Yanıt yaz": "Écrire une réponse","WhatsApp bildirimlerini kapat": "Fermer les notifications WhatsApp"," yeni mesaj": " nouveaux messages"," ve ": " et "," kişi daha": " autres","Mesajları göster": "Afficher les messages"," sohbet": " discussions","Daralt": "Réduire","Kendim yazayım…": "J’écris moi-même…","Geri": "Retour","Yanıt yaz…": "Écrire une réponse…","Gönder": "Envoyer","Emoji": "Emoji","Mesaj gönderiliyor…": "Envoi du message…","Yanıt gönderildi": "Réponse envoyée","Sohbeti aç": "Ouvrir la discussion"},"es": {"Okul e-postası": "Correo escolar","Google Takvim": "Google Calendar","Outlook Takvim": "Calendario de Outlook","Takvim: ": "Calendario: ","Önemli e-posta: ": "Correo importante: ","(Konusuz)": "(Sin asunto)","Kapat": "Cerrar","Bildirimi kapat": "Cerrar notificación"," bildirim daha": " notificaciones más","Charles anlatsın →": "Que Charles lo explique →","şimdi": "ahora"," dk": " min","Hızlı yanıtlar": "Respuestas rápidas","Yanıt yaz": "Escribir respuesta","WhatsApp bildirimlerini kapat": "Cerrar notificaciones de WhatsApp"," yeni mesaj": " mensajes nuevos"," ve ": " y "," kişi daha": " más","Mesajları göster": "Mostrar mensajes"," sohbet": " chats","Daralt": "Contraer","Kendim yazayım…": "Escribiré yo…","Geri": "Atrás","Yanıt yaz…": "Escribe una respuesta…","Gönder": "Enviar","Emoji": "Emoji","Mesaj gönderiliyor…": "Enviando mensaje…","Yanıt gönderildi": "Respuesta enviada","Sohbeti aç": "Abrir chat"},"zh": {"Okul e-postası": "学校邮箱","Google Takvim": "Google 日历","Outlook Takvim": "Outlook 日历","Takvim: ": "日历：","Önemli e-posta: ": "重要邮件：","(Konusuz)": "（无主题）","Kapat": "关闭","Bildirimi kapat": "关闭通知"," bildirim daha": " 条更多通知","Charles anlatsın →": "让 Charles 解释 →","şimdi": "刚刚"," dk": " 分钟","Hızlı yanıtlar": "快速回复","Yanıt yaz": "写回复","WhatsApp bildirimlerini kapat": "关闭 WhatsApp 通知"," yeni mesaj": " 条新消息"," ve ": "和"," kişi daha": " 人","Mesajları göster": "显示消息"," sohbet": " 个对话","Daralt": "收起","Kendim yazayım…": "我自己写…","Geri": "返回","Yanıt yaz…": "写回复…","Gönder": "发送","Emoji": "表情","Mesaj gönderiliyor…": "正在发送消息…","Yanıt gönderildi": "回复已发送","Sohbeti aç": "打开对话"}};
+const T = (s) => (lang !== 'tr' && WORDS[lang]?.[s]) || s;
 const SOURCES = {
   gmail: 'Gmail',
   outlook: 'Outlook',
@@ -26,25 +30,25 @@ function mailCard(item) {
   card.setAttribute('role', 'button');
   card.setAttribute(
     'aria-label',
-    (charles ? 'Charles: ' : calendar ? 'Takvim: ' : 'Önemli e-posta: ') + item.title,
+    (charles ? 'Charles: ' : calendar ? T('Takvim: ') : T('Önemli e-posta: ')) + item.title,
   );
   card.append(element('div', 'icon', item.icon || (charles ? '?' : calendar ? '📅' : '✉')));
   const text = element('div', 'text');
-  const source = charles ? 'Charles' : SOURCES[item.kind] || item.kind;
+  const source = charles ? 'Charles' : T(SOURCES[item.kind] || item.kind);
   text.append(
     element(
       'div',
       'meta',
       calendar || charles ? source : source + (item.from ? ' · ' + item.from : ''),
     ),
-    element('div', 'subject', item.title || '(Konusuz)'),
+    element('div', 'subject', item.title || T('(Konusuz)')),
     element('div', 'reason', item.reason || ''),
   );
   card.append(text);
   const close = element('button', 'close', '×');
   close.type = 'button';
-  close.title = 'Kapat';
-  close.setAttribute('aria-label', 'Bildirimi kapat');
+  close.title = T('Kapat');
+  close.setAttribute('aria-label', T('Bildirimi kapat'));
   close.onclick = (e) => {
     e.stopPropagation();
     window.bubble.dismiss(item.id);
@@ -61,10 +65,13 @@ const resize = () =>
   // setTimeout, not requestAnimationFrame: the window is still hidden on first render.
   setTimeout(() => window.bubble.resize(Math.ceil(stack.getBoundingClientRect().height)), 0);
 const waHost = element('div', 'wa-host');
-window.bubble.onItems(({ items, more, wa }) => {
+window.bubble.onItems(({ items, more, wa, language }) => {
+  if (typeof language === 'string') lang = language;
+  document.documentElement.lang = lang;
+  document.documentElement.style.setProperty('--hint', JSON.stringify('  · ' + T('Charles anlatsın →')));
   waUpdate(Array.isArray(wa) ? wa : []);
   stack.replaceChildren(...(waHost.childElementCount ? [waHost] : []), ...items.map(mailCard));
-  if (more) stack.append(element('div', 'more', '+' + more + ' bildirim daha'));
+  if (more) stack.append(element('div', 'more', '+' + more + T(' bildirim daha')));
   resize();
 });
 new ResizeObserver(resize).observe(stack);
@@ -105,9 +112,9 @@ let waView = { mode: 'collapsed', chat: '', draft: '', error: '' };
 let waConversation = null;
 const ago = (t) => {
   const s = Math.max(0, (Date.now() - Number(t || 0)) / 1000);
-  if (s < 60) return 'şimdi';
-  if (s < 3600) return Math.floor(s / 60) + ' dk';
-  return new Date(t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  if (s < 60) return T('şimdi');
+  if (s < 3600) return Math.floor(s / 60) + T(' dk');
+  return new Date(t).toLocaleTimeString(lang === 'tr' ? 'tr-TR' : lang, { hour: '2-digit', minute: '2-digit' });
 };
 const initials = (name) =>
   String(name || '?')
@@ -211,8 +218,8 @@ function singleCard(item) {
   r.prepend(brand());
   const actions = element('span', 'wa-actions');
   actions.append(
-    iconButton('reply', 'Hızlı yanıtlar', () => setView({ mode: 'quick', chat: item.chat })),
-    iconButton('next', 'Yanıt yaz', () => openChat(item.chat)),
+    iconButton('reply', T('Hızlı yanıtlar'), () => setView({ mode: 'quick', chat: item.chat })),
+    iconButton('next', T('Yanıt yaz'), () => openChat(item.chat)),
   );
   r.append(actions);
   r.querySelector('.wa-time').remove();
@@ -220,7 +227,7 @@ function singleCard(item) {
   return card(r, dismissButton());
 }
 function dismissButton() {
-  const x = iconButton('close', 'WhatsApp bildirimlerini kapat', () => void window.bubble.wa('dismiss-all').catch(() => {}), 'wa-x');
+  const x = iconButton('close', T('WhatsApp bildirimlerini kapat'), () => void window.bubble.wa('dismiss-all').catch(() => {}), 'wa-x');
   return x;
 }
 function foldedCard() {
@@ -230,35 +237,35 @@ function foldedCard() {
   const stackEl = element('span', 'wa-stack');
   for (const i of waItems.slice(0, 3)) stackEl.append(avatar({ ...i, unread: 0 }, true));
   const who =
-    people.length <= 2 ? people.join(', ') : `${people.slice(0, 2).join(', ')} ve ${people.length - 2} kişi daha`;
-  const title = element('strong', 'wa-name', count + ' yeni mesaj');
+    people.length <= 2 ? people.join(', ') : `${people.slice(0, 2).join(', ')}${T(' ve ')}${people.length - 2}${T(' kişi daha')}`;
+  const title = element('strong', 'wa-name', count + T(' yeni mesaj'));
   const sub = element('span', 'wa-text', who);
   sub.setAttribute('translate', 'no');
   const r = element('div', 'wa-row folded');
   r.tabIndex = 0;
   r.setAttribute('role', 'button');
   r.setAttribute('aria-expanded', 'false');
-  r.append(brand(), stackEl, element('span', 'wa-body', title, sub), iconButton('down', 'Mesajları göster', () => setView({ mode: 'list' })));
+  r.append(brand(), stackEl, element('span', 'wa-body', title, sub), iconButton('down', T('Mesajları göster'), () => setView({ mode: 'list' })));
   r.onclick = () => setView({ mode: 'list' });
   return card(r, dismissButton());
 }
 function listCard() {
   const head = element('div', 'wa-head');
-  head.append(brand(), element('strong', 'wa-title', 'WhatsApp · ' + waItems.length + ' sohbet'), iconButton('down', 'Daralt', () => setView({ mode: 'collapsed', chat: '' }), 'flip'));
+  head.append(brand(), element('strong', 'wa-title', 'WhatsApp · ' + waItems.length + T(' sohbet')), iconButton('down', T('Daralt'), () => setView({ mode: 'collapsed', chat: '' }), 'flip'));
   const list = element('div', 'wa-list');
   for (const i of waItems) {
     const r = row(i, () => openChat(i.chat));
-    r.append(iconButton('reply', 'Hızlı yanıtlar', () => setView({ mode: 'quick', chat: i.chat })));
+    r.append(iconButton('reply', T('Hızlı yanıtlar'), () => setView({ mode: 'quick', chat: i.chat })));
     list.append(r);
   }
   return card(head, list);
 }
 function quickCard(item) {
   const head = element('div', 'wa-head');
-  const t = element('strong', 'wa-title', 'Hızlı yanıtlar');
+  const t = element('strong', 'wa-title', T('Hızlı yanıtlar'));
   const to = element('small', 'wa-to', item.name);
   to.setAttribute('translate', 'no');
-  head.append(glyph(G.quick, 'wa-glyph wa-head-icon'), element('span', 'wa-head-text', t, to), iconButton('close', 'Kapat', () => setView({ mode: waItems.length > 1 ? 'list' : 'collapsed' })));
+  head.append(glyph(G.quick, 'wa-glyph wa-head-icon'), element('span', 'wa-head-text', t, to), iconButton('close', T('Kapat'), () => setView({ mode: waItems.length > 1 ? 'list' : 'collapsed' })));
   const list = element('div', 'wa-quick');
   for (const text of item.quickReplies || []) {
     const b = element('button', 'wa-quick-row');
@@ -269,7 +276,7 @@ function quickCard(item) {
   }
   const own = element('button', 'wa-quick-row own');
   own.type = 'button';
-  own.append(element('span', '', 'Kendim yazayım…'), glyph(G.next));
+  own.append(element('span', '', T('Kendim yazayım…')), glyph(G.next));
   own.onclick = () => openChat(item.chat);
   list.append(own);
   return card(head, list);
@@ -302,7 +309,7 @@ function composeCard(item) {
   const name = element('strong', 'wa-name', item.name);
   name.setAttribute('translate', 'no');
   head.append(
-    iconButton('back', 'Geri', () => setView({ mode: waItems.length > 1 ? 'list' : 'collapsed' })),
+    iconButton('back', T('Geri'), () => setView({ mode: waItems.length > 1 ? 'list' : 'collapsed' })),
     avatar(item),
     element('span', 'wa-head-text', name),
     element('small', 'wa-time', ago(item.at)),
@@ -311,7 +318,7 @@ function composeCard(item) {
   if (waView.mode === 'sending') {
     const box = element('div', 'wa-sending');
     const bar = element('span', 'wa-bar', element('i'));
-    box.append(element('span', 'wa-spin'), element('span', 'wa-sending-text', element('span', '', 'Mesaj gönderiliyor…'), bar));
+    box.append(element('span', 'wa-spin'), element('span', 'wa-sending-text', element('span', '', T('Mesaj gönderiliyor…')), bar));
     body.push(box);
     return card(...body);
   }
@@ -319,10 +326,10 @@ function composeCard(item) {
   const input = element('textarea', 'wa-input');
   input.rows = 2;
   input.maxLength = 4000;
-  input.placeholder = 'Yanıt yaz…';
-  input.setAttribute('aria-label', 'Yanıt yaz');
+  input.placeholder = T('Yanıt yaz…');
+  input.setAttribute('aria-label', T('Yanıt yaz'));
   input.value = waView.draft || '';
-  const sendB = iconButton('send', 'Gönder', () => void send(item, input.value), 'wa-send');
+  const sendB = iconButton('send', T('Gönder'), () => void send(item, input.value), 'wa-send');
   const sync = () => {
     waView.draft = input.value;
     sendB.disabled = !input.value.trim();
@@ -350,7 +357,7 @@ function composeCard(item) {
     };
     emoji.append(b);
   }
-  const smile = iconButton('smile', 'Emoji', () => {
+  const smile = iconButton('smile', T('Emoji'), () => {
     emoji.hidden = !emoji.hidden;
     resize();
   });
@@ -364,10 +371,10 @@ function sentCard(item) {
   const ok = element('div', 'wa-sent');
   const text = element('span', 'wa-sent-text', waView.sentText || '');
   text.setAttribute('translate', 'no');
-  ok.append(glyph(G.check, 'wa-glyph wa-ok'), element('span', 'wa-sent-body', element('strong', '', 'Yanıt gönderildi'), text));
+  ok.append(glyph(G.check, 'wa-glyph wa-ok'), element('span', 'wa-sent-body', element('strong', '', T('Yanıt gönderildi')), text));
   const open = element('button', 'wa-open');
   open.type = 'button';
-  open.append(glyph(G.open), element('span', '', 'Sohbeti aç'));
+  open.append(glyph(G.open), element('span', '', T('Sohbeti aç')));
   open.onclick = () => void window.bubble.wa('open', { chat: item.chat }).catch(() => {});
   const r = row({ ...item, unread: 0 }, () => openChat(item.chat));
   return card(r, element('div', 'wa-done', ok, open));

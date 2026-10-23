@@ -15,8 +15,9 @@ class MailBubble {
   // anchor(): { x, y, width, height } of the visible island in screen coordinates.
   // onOpen(item): called when the user clicks a bubble.
   // onWhatsApp(action, args): v0.8.8 WhatsApp cards (reply, quick replies, open the chat…).
-  constructor({ anchor, onOpen, onWhatsApp = null }) {
+  constructor({ anchor, onOpen, onWhatsApp = null, language = () => 'tr' }) {
     this.anchor = anchor;
+    this.language = language;
     this.onOpen = onOpen;
     this.onWhatsApp = onWhatsApp;
     this.items = [];
@@ -137,6 +138,7 @@ class MailBubble {
       items: rest.slice(0, MAX_VISIBLE),
       more: Math.max(0, rest.length - MAX_VISIBLE),
       wa,
+      language: String(this.language() || 'tr'),
     });
   }
 
