@@ -8,6 +8,7 @@ import { english080, patterns080 } from './i18n-080';
 import { english085, patterns085 } from './i18n-085';
 import { english087, patterns087 } from './i18n-087';
 import { english088, patterns088 } from './i18n-088';
+import { english089 } from './i18n-089';
 import { german } from './lang/de';
 import { french } from './lang/fr';
 import { spanish } from './lang/es';
@@ -348,7 +349,7 @@ Object.assign(english, {
   'Kaydet düğmesine tıkla, ardından kısayol tuşlarına birlikte bas. Esc ile vazgeç.':
     'Click Record keys, then press the shortcut together. Press Esc to cancel.',
 });
-Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088);
+Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089);
 
 // v0.6.3: look-up that ignores line breaks/indentation from the HTML, then the patterns
 // (texts with numbers or names inside).

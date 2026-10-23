@@ -247,6 +247,8 @@ contextBridge.exposeInMainWorld('charles', {
   modulesDev: (value) => invoke('modules-dev', value),
   // v0.8.8: Slime for modules
   modulesLook: () => invoke('modules-look'),
+  historySearch: (q) => invoke('history-search', q),
+  historyImage: (name) => invoke('history-image', name),
   onModuleReact: (cb) => ipcRenderer.on('module-react', (_e, v) => cb(v)),
   onModuleWear: (cb) => ipcRenderer.on('module-wear', (_e, v) => cb(v)),
   onModulesChanged: (cb) => {

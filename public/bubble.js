@@ -47,7 +47,6 @@ function mailCard(item) {
   card.append(text);
   const close = element('button', 'close', '×');
   close.type = 'button';
-  close.title = T('Kapat');
   close.setAttribute('aria-label', T('Bildirimi kapat'));
   close.onclick = (e) => {
     e.stopPropagation();
@@ -128,7 +127,7 @@ const initials = (name) =>
 function iconButton(g, label, fn, cls = '') {
   const b = element('button', 'wa-btn ' + cls);
   b.type = 'button';
-  b.title = label;
+  // v0.8.9: no title: Windows showed its own tooltip box over the card
   b.setAttribute('aria-label', label);
   b.append(glyph(G[g]));
   b.onclick = (e) => {
@@ -227,8 +226,17 @@ function singleCard(item) {
   return card(r, dismissButton());
 }
 function dismissButton() {
-  const x = iconButton('close', T('WhatsApp bildirimlerini kapat'), () => void window.bubble.wa('dismiss-all').catch(() => {}), 'wa-x');
-  return x;
+  // v0.8.9: the card goes at once; Charles forgets the notifications after it
+  return iconButton(
+    'close',
+    T('WhatsApp bildirimlerini kapat'),
+    () => {
+      waUpdate([]);
+      resize();
+      void window.bubble.wa('dismiss-all').catch(() => {});
+    },
+    'wa-x',
+  );
 }
 function foldedCard() {
   // first names keep the line short ("Mert, Zeynep ve 1 kişi daha")
@@ -296,9 +304,15 @@ async function openChat(chat) {
 }
 function thread(item) {
   const box = element('div', 'wa-thread');
-  const list = waConversation?.chat === item.chat ? waConversation.messages.slice(-4) : [{ text: item.text, media: item.media, mine: false }];
+  const list =
+    waConversation?.chat === item.chat
+      ? waConversation.messages.slice(item.group ? -6 : -4)
+      : [{ text: item.group ? String(item.text || '').replace(/^[^:]{1,80}: /, '') : item.text, media: item.media, mine: false, name: item.sender }];
   for (const m of list) {
-    const line = element('p', 'wa-msg' + (m.mine ? ' mine' : ''), m.text || m.media || '');
+    const line = element('p', 'wa-msg' + (m.mine ? ' mine' : ''));
+    // v0.8.9: in a group every message says who wrote it
+    if (item.group && !m.mine && m.name) line.append(element('strong', 'wa-from', m.name));
+    line.append(document.createTextNode(m.text || m.media || ''));
     line.setAttribute('translate', 'no');
     box.append(line);
   }

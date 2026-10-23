@@ -38,7 +38,7 @@ const MEDIA = {
   poll: 'Anket',
 };
 
-const isGroup = (jid) => /@g\.us$/.test(jid);
+const isGroup = (jid) => /@g\.us$/.test(jid) || /@(newsletter|broadcast)$/.test(jid);
 const isPerson = (jid) => /^[0-9A-Za-z.:_-]{3,64}@(s\.whatsapp\.net|lid|c\.us)$/.test(jid);
 const now = () => Date.now();
 
@@ -84,9 +84,16 @@ function parseWebhook(body) {
   if (!id || !chat) return null;
   const media = Object.keys(MEDIA).find((k) => p[k] !== undefined && p[k] !== null) || null;
   const at = Date.parse(p.timestamp);
+  // v0.8.9: a group message is recognised by every hint the gateway gives, not only chat_id
+  const group =
+    /@g\.us$/.test(chat) ||
+    p.is_group === true ||
+    /@g\.us$/.test(String(p.chat_jid || p.group_jid || '')) ||
+    / in \S+@g\.us$/.test(String(p.from || ''));
   return {
+    group,
     id: id.slice(0, 128),
-    chat: chat.slice(0, 128),
+    chat: (group && !/@g\.us$/.test(chat) ? String(p.chat_jid || p.group_jid || String(p.from || '').split(' in ')[1] || chat) : chat).slice(0, 128),
     from: String(p.from || chat).slice(0, 128),
     name: String(p.sender_display_name || p.from_name || '').slice(0, 80),
     text: String(p.body || '').slice(0, 4000),
@@ -212,7 +219,11 @@ class WhatsAppLive extends EventEmitter {
   }
   configure(v) {
     if (!v || typeof v !== 'object') throw Error('Geçersiz WhatsApp ayarı.');
-    if ('groups' in v) this.settings.groups = v.groups === true;
+    if ('groups' in v) {
+      this.settings.groups = v.groups === true;
+      // turned off: the groups' messages go away at once
+      if (!this.settings.groups) for (const jid of [...this.chats.keys()]) if (isGroup(jid)) this.chats.delete(jid);
+    }
     if ('quickReplies' in v) this.settings.quickReplies = cleanReplies(v.quickReplies);
     this.saveSettings();
     this.changed();
@@ -312,6 +323,8 @@ class WhatsAppLive extends EventEmitter {
       WHATSAPP_WEBHOOK: `http://127.0.0.1:${this.server.address().port}/whatsapp`,
       WHATSAPP_WEBHOOK_SECRET: this.secret,
       WHATSAPP_WEBHOOK_EVENTS: 'message',
+      // channels and status updates never reach Charles
+      WHATSAPP_WEBHOOK_IGNORE_JIDS: '@newsletter,status@broadcast',
     };
     const child = this.spawnImpl(this.binary, ['rest', '--host=127.0.0.1', `--port=${this.port}`, '--auto-download-media=false'], {
       cwd,
@@ -536,7 +549,10 @@ class WhatsAppLive extends EventEmitter {
 
   // ── messages ────────────────────────────────────────────────────────────────
   receive(m) {
-    if (!isPerson(m.chat) && !(this.settings.groups && isGroup(m.chat))) return;
+    // v0.8.9: groups (and channels / status) only when "Grup mesajlarını da göster" is on
+    if (m.group || isGroup(m.chat) || !isPerson(m.chat)) {
+      if (!this.settings.groups || !/@g\.us$/.test(m.chat)) return;
+    }
     let c = this.chats.get(m.chat);
     if (!c) {
       c = { jid: m.chat, name: '', messages: [], unread: 0, wrote: false };
@@ -549,16 +565,38 @@ class WhatsAppLive extends EventEmitter {
       if (!isGroup(m.chat) && m.name) c.name = m.name;
       c.unread++;
       c.wrote = true;
+      // v0.8.9: a group shows as the group (its name), with who wrote in the line below
+      if (isGroup(m.chat) && !c.name) void this.groupName(m.chat).then((name) => {
+        if (name && !c.name) {
+          c.name = name;
+          this.emit('message', this.preview(c));
+        }
+      });
       this.emit('message', this.preview(c));
     } else c.unread = 0; // answered on the phone
   }
+  /** v0.8.9: a group's subject (GOWA's group info), remembered while Charles runs. */
+  async groupName(jid) {
+    this.groups ||= new Map();
+    if (this.groups.has(jid)) return this.groups.get(jid);
+    let name = '';
+    try {
+      const r = await this.api('GET', `/group/info?group_id=${encodeURIComponent(jid)}`);
+      name = String(r?.Name || r?.GroupName?.Name || r?.name || r?.subject || '').trim().slice(0, 80);
+    } catch {}
+    if (name) this.groups.set(jid, name);
+    return name;
+  }
   preview(c) {
     const last = [...c.messages].reverse().find((m) => !m.mine) || c.messages.at(-1);
+    const group = isGroup(c.jid);
+    const body = last ? last.text || last.media || '' : '';
     return {
       chat: c.jid,
-      name: c.name || (last?.name ?? '') || '+' + c.jid.split('@')[0],
-      group: isGroup(c.jid),
-      text: last ? last.text || last.media || '' : '',
+      name: c.name || (group ? 'WhatsApp grubu' : (last?.name ?? '') || '+' + c.jid.split('@')[0]),
+      group,
+      sender: group && last && !last.mine ? last.name || '+' + String(last.from || '').split('@')[0].split(':')[0] : '',
+      text: group && last && !last.mine && (last.name || last.from) ? `${last.name || '+' + String(last.from).split('@')[0].split(':')[0]}: ${body}` : body,
       media: last?.media || null,
       at: last?.at || now(),
       unread: c.unread,
@@ -572,6 +610,7 @@ class WhatsAppLive extends EventEmitter {
       const list = parseMessages(r);
       if (list.length) c.messages = list.slice(-20);
     } catch {}
+    if (isGroup(jid) && !c.name) c.name = await this.groupName(jid);
     return { ...this.preview(c), messages: c.messages.slice(-10).map(({ id, text, media, at, mine, name }) => ({ id, text, media, at, mine, name })) };
   }
   async markRead(jid) {

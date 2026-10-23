@@ -9,31 +9,106 @@ const MAIL_DATA = /\n\nCharles kullanıcının bağlı [\s\S]*<\/mail_verisi>\s*
 function cleanUserText(text) {
   return typeof text === 'string' ? text.replace(MAIL_DATA, '') : text;
 }
-function savedEvents(events) {
+/** Async version of writeStore: <file>.tmp-a → keep the last good copy as .bak → rename. */
+async function writeAsync(file, text, cancelled) {
+  const fsp = fs.promises;
+  await fsp.mkdir(path.dirname(file), { recursive: true });
+  const tmp = file + '.tmp-a';
+  const h = await fsp.open(tmp, 'w');
+  try {
+    await h.writeFile(text, 'utf8');
+    await h.sync();
+  } finally {
+    await h.close();
+  }
+  if (cancelled()) {
+    await fsp.rm(tmp, { force: true });
+    return;
+  }
+  const rename = async (a, b) => {
+    for (let i = 0; ; i++) {
+      try {
+        return await fsp.rename(a, b);
+      } catch (e) {
+        if (i >= 4 || !['EPERM', 'EBUSY', 'EACCES'].includes(e.code)) throw e;
+        await new Promise((r) => setTimeout(r, 40 * (i + 1)));
+      }
+    }
+  };
+  if (fs.existsSync(file)) await rename(file, file + '.bak');
+  await rename(tmp, file);
+}
+// v0.8.9: what history keeps of an event. A user's history file had grown to ~50 MB: every GPT
+// turn stored the full prompt again (the "userMessage" item, which carries the whole chat context
+// Charles adds), generated pictures stayed inside as base64, and long command outputs were kept
+// whole. That file was written on the main thread every few seconds, which made the app stutter
+// (also when switching between the island and the app window).
+const KEEP_OUTPUT = 20000;
+const KEEP_DIFF = 50000;
+const tail = (text, max) => (typeof text === 'string' && text.length > max ? '…' + text.slice(-max) : text);
+function trimItem(item, imageDir) {
+  if (!item || typeof item !== 'object') return item;
+  if (item.type === 'imageGeneration' && typeof item.result === 'string' && item.result.length > 2000 && imageDir) {
+    const name = storeImage(imageDir, item.result);
+    if (name) return { ...item, result: '', resultFile: name };
+  }
+  if (item.type === 'commandExecution' && typeof item.aggregatedOutput === 'string' && item.aggregatedOutput.length > KEEP_OUTPUT)
+    return { ...item, aggregatedOutput: tail(item.aggregatedOutput, KEEP_OUTPUT) };
+  if (item.type === 'mcpToolCall' && item.result !== undefined && item.result !== null) {
+    const text = typeof item.result === 'string' ? item.result : JSON.stringify(item.result);
+    if (text && text.length > KEEP_OUTPUT) return { ...item, result: tail(text, KEEP_OUTPUT) };
+  }
+  if (item.type === 'fileChange' && Array.isArray(item.changes) && item.changes.some((c) => typeof c?.diff === 'string' && c.diff.length > KEEP_DIFF))
+    return { ...item, changes: item.changes.map((c) => (typeof c?.diff === 'string' && c.diff.length > KEEP_DIFF ? { ...c, diff: c.diff.slice(0, KEEP_DIFF) + '\n…' } : c)) };
+  return item;
+}
+/** Writes a generated picture once into <history>/history-images/<sha1>.<ext>; → its name. */
+function storeImage(dir, result) {
+  try {
+    const m = /^data:image\/(png|jpeg|webp);base64,/.exec(result);
+    const data = Buffer.from(m ? result.slice(m[0].length) : result, 'base64');
+    if (data.length < 100) return null;
+    const ext = m ? (m[1] === 'jpeg' ? 'jpg' : m[1]) : 'png';
+    const name = require('node:crypto').createHash('sha1').update(data).digest('hex') + '.' + ext;
+    const file = path.join(dir, name);
+    if (!fs.existsSync(file)) {
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(file, data);
+    }
+    return name;
+  } catch {
+    return null;
+  }
+}
+function savedEvents(events, { imageDir = null } = {}) {
   return events
     .filter(
       (e) =>
         ['history-user', 'history-local'].includes(e.type) ||
-        (e.type === 'agent' && ['item/completed', 'turn/completed'].includes(e.data?.method)),
+        (e.type === 'agent' &&
+          ['item/completed', 'turn/completed'].includes(e.data?.method) &&
+          // the prompt as GPT received it (with the whole chat context): never shown, never needed
+          e.data?.params?.item?.type !== 'userMessage'),
     )
-    .map((e) =>
-      e.type === 'agent' && e.data.method === 'turn/completed'
-        ? {
-            type: 'agent',
-            data: {
-              method: 'turn/completed',
-              params: {
-                turn: {
-                  status:
-                    e.data.params.turn.status === 'inProgress'
-                      ? 'interrupted'
-                      : e.data.params.turn.status,
-                },
+    .map((e) => {
+      if (e.type === 'agent' && e.data.method === 'turn/completed')
+        return {
+          type: 'agent',
+          data: {
+            method: 'turn/completed',
+            params: {
+              turn: {
+                status: e.data.params.turn.status === 'inProgress' ? 'interrupted' : e.data.params.turn.status,
               },
             },
-          }
-        : e,
-    );
+          },
+        };
+      if (e.type === 'agent' && e.data.method === 'item/completed') {
+        const item = trimItem(e.data.params?.item, imageDir);
+        if (item !== e.data.params?.item) return { ...e, data: { ...e.data, params: { ...e.data.params, item } } };
+      }
+      return e;
+    });
 }
 // v0.8.8: the conversation for an AI that has no thread of its own (Claude, Gemini, Cursor,
 // Abacus AI, and GPT after a restart). Up to v0.8.7 only the last 24 messages / 30 000
@@ -105,6 +180,7 @@ class Sessions extends EventEmitter {
     super();
     this.root = root;
     this.file = directory ? path.join(directory, 'charles-history.json') : null;
+    this.imageDir = directory ? path.join(directory, 'history-images') : null;
     this.rooms = new Map();
     this.folders = [];
     this.projects = []; // v0.8.8
@@ -289,7 +365,7 @@ class Sessions extends EventEmitter {
           r.updatedAt = Date.now();
           this.scheduleSave();
         }
-        if (e.data.method === 'turn/completed') r.events = savedEvents(r.events);
+        if (e.data.method === 'turn/completed') r.events = savedEvents(r.events, { imageDir: this.imageDir });
       }
       if (this.active === id) this.emit('event', e);
       else if (e.type === 'request')
@@ -321,51 +397,96 @@ class Sessions extends EventEmitter {
         projectId: r.projectId,
         manualFolder: r.manualFolder,
         classified: r.classified,
-        search: r.events
-          .flatMap((e) =>
-            e.type === 'history-user' || e.type === 'history-local'
-              ? [String(e.data)]
-              : e.type === 'agent' &&
-                  e.data.method === 'item/completed' &&
-                  e.data.params.item.type === 'agentMessage'
-                ? [e.data.params.item.text || '']
-                : [],
-          )
-          .join(' ')
-          .toLocaleLowerCase('tr-TR'),
         updatedAt: r.updatedAt,
       }));
   }
-  scheduleSave() {
+  // v0.8.9: history is written off the main thread's critical path: a short delay batches
+  // bursts, the file is written asynchronously, and flush() writes synchronously on quit.
+  /** v0.8.9: chats whose name or text has `query` (the list no longer carries every chat's
+   *  whole text over IPC on each event). */
+  search(query) {
+    const q = String(query || '').trim().toLocaleLowerCase('tr-TR');
+    if (!q || q.length > 200) return [];
+    const out = [];
+    for (const r of this.rooms.values()) {
+      if (!hasContent(r)) continue;
+      if (!r.searchCache || r.searchCache.n !== r.events.length)
+        r.searchCache = {
+          n: r.events.length,
+          text: r.events
+            .flatMap((e) =>
+              e.type === 'history-user' || e.type === 'history-local'
+                ? [String(e.data)]
+                : e.type === 'agent' && e.data.method === 'item/completed' && e.data.params.item.type === 'agentMessage'
+                  ? [e.data.params.item.text || '']
+                  : [],
+            )
+            .join(' ')
+            .toLocaleLowerCase('tr-TR'),
+        };
+      if ((r.name + ' ' + r.searchCache.text).toLocaleLowerCase('tr-TR').includes(q)) out.push(r.id);
+    }
+    return out;
+  }
+  scheduleSave(delay = 1500) {
     if (this.loading || !this.file) return;
     clearTimeout(this.saveTimer);
-    this.saveTimer = setTimeout(() => {
-      try {
-        this.save();
-      } catch (e) {
-        this.emit('event', {
-          type: 'notice',
-          data: 'Geçmiş kaydedilemedi: ' + e.message,
-        });
-      }
-    }, 1500); // history can be large: batch bursts of events (streaming) into one write
+    this.saveTimer = setTimeout(() => this.writeSoon(), delay);
   }
   save() {
-    clearTimeout(this.saveTimer);
-    if (!this.file || this.loading) return;
-    fs.mkdirSync(path.dirname(this.file), { recursive: true });
-    const rooms = [...this.rooms.values()].filter(hasContent).map(({ agent, ...r }) => ({
+    // in the app: soon and asynchronously; outside Electron (tools, tests): right away
+    if (process.versions.electron) this.scheduleSave(200);
+    else if (this.file && !this.loading && !this.closed) {
+      clearTimeout(this.saveTimer);
+      fs.mkdirSync(path.dirname(this.file), { recursive: true });
+      writeStore(this.file, this.data());
+    }
+  }
+  data() {
+    const rooms = [...this.rooms.values()].filter(hasContent).map(({ agent, searchCache, ...r }) => ({
       ...r,
-      events: savedEvents(r.events),
+      events: savedEvents(r.events, { imageDir: this.imageDir }),
     }));
-    writeStore(this.file, {
+    return {
       version: 1,
       active: this.active,
       rooms,
       folders: this.folders,
       projects: this.projects,
       autoFolders: this.autoFolders,
-    });
+    };
+  }
+  writeSoon() {
+    clearTimeout(this.saveTimer);
+    if (!this.file || this.loading || this.closed) return;
+    if (this.writing) {
+      this.dirty = true;
+      return;
+    }
+    let text;
+    try {
+      text = JSON.stringify(this.data());
+    } catch (e) {
+      this.emit('event', { type: 'notice', data: 'Geçmiş kaydedilemedi: ' + e.message });
+      return;
+    }
+    this.writing = writeAsync(this.file, text, () => this.closed)
+      .catch((e) => this.emit('event', { type: 'notice', data: 'Geçmiş kaydedilemedi: ' + e.message }))
+      .finally(() => {
+        this.writing = null;
+        if (this.dirty) {
+          this.dirty = false;
+          this.scheduleSave(300);
+        }
+      });
+  }
+  /** Writes now, synchronously (quitting). Later async writes are dropped. */
+  flush() {
+    clearTimeout(this.saveTimer);
+    if (!this.file || this.loading) return;
+    this.closed = true;
+    fs.mkdirSync(path.dirname(this.file), { recursive: true });
+    writeStore(this.file, this.data());
   }
   add() {
     if (this.rooms.size >= 200)
@@ -384,7 +505,8 @@ class Sessions extends EventEmitter {
       model: r.model,
       busy: r.agent.busy,
       documentContext: r.documentContext,
-      events: r.events,
+      // v0.8.9: lighter replay (pictures as files); a running turn is sent as it is
+      events: r.agent.busy ? r.events : savedEvents(r.events, { imageDir: this.imageDir }),
       requests: [...r.agent.requests.values()].map((q) => ({
         ...q,
         item: r.agent.items.get(q.params.itemId) || null,

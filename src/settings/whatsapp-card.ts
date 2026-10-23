@@ -243,7 +243,17 @@ export function whatsappCard(api: any, notice: (s: string) => void) {
     const groups = h('input');
     groups.type = 'checkbox';
     groups.checked = s.groups;
-    groups.onchange = () => void run(() => api.whatsappLiveConfigure({ groups: groups.checked }));
+    // v0.8.9: saved right away, even while another action is running (it was dropped then)
+    groups.onchange = async () => {
+      const want = groups.checked;
+      try {
+        state = await api.whatsappLiveConfigure({ groups: want });
+        status.textContent = want ? 'Grup mesajları gösterilecek.' : 'Grup mesajları gösterilmeyecek.';
+      } catch (e) {
+        groups.checked = !want;
+        status.textContent = clean(e);
+      }
+    };
     const remove = button('Bağlantıyı kaldır', 'danger', () => {
       remove.replaceWith(
         h(

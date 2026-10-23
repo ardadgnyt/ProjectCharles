@@ -613,6 +613,24 @@ feed.addEventListener('click', (e) => {
   void attempt(() => api.openLink(link.getAttribute('href')));
 });
 function activity(item: any) {
+  // v0.8.9: pictures from older turns are files next to the history (loaded on demand)
+  if (item.type === 'imageGeneration' && item.status === 'completed' && !item.result && typeof item.resultFile === 'string') {
+    let node = messages.get(item.id);
+    if (!node) {
+      node = row('', 'agent image-card');
+      messages.set(item.id, node);
+    }
+    showGenerating(node);
+    const target = node;
+    void api
+      .historyImage(item.resultFile)
+      .then((data: string) => {
+        target.className = target.className.replace('image-card', 'generated-image');
+        showImage(target, data, { save: (v) => api.imageSave(v), copy: (v) => api.imageCopy(v), notice });
+      })
+      .catch(() => showFailed(target, 'Görsel bulunamadı.'));
+    return;
+  }
   if (item.type === 'imageGeneration' && item.status === 'completed' && item.result) {
     let node = messages.get(item.id);
     if (!node) {

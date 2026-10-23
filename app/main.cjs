@@ -480,7 +480,9 @@ function whatsappLive() {
     waLive = new WhatsAppLive({ dir: path.join(app.getPath('userData'), 'whatsapp') });
     waLive.on('state', (state) => {
       if (win && !win.isDestroyed()) win.webContents.send('whatsapp-live', state);
-      if (state.link !== 'connected') for (const i of mailBubble?.items || []) if (i.kind === 'whatsapp') mailBubble.remove(i.id);
+      if (state.link !== 'connected') for (const i of [...(mailBubble?.items || [])]) if (i.kind === 'whatsapp') mailBubble.remove(i.id);
+      // v0.8.9: group messages turned off → their cards go too
+      if (!state.groups) for (const i of [...(mailBubble?.items || [])]) if (i.kind === 'whatsapp' && /@(g\.us|newsletter|broadcast)$/.test(String(i.chat))) mailBubble.remove(i.id);
     });
     waLive.on('message', (m) => {
       mailBubble?.upsert({ id: 'wa|' + m.chat, kind: 'whatsapp', ...m, quickReplies: waLive.settings.quickReplies });
@@ -728,9 +730,13 @@ function position(animate = false) {
           : surface.x + Math.round((surface.width - target.width) / 2),
     y: surface.y,
   };
-  // Bubbles follow the island once its size transition has finished.
+  // Bubbles follow the island. v0.8.9: when the island grows (waking up, opening) they move to
+  // the new place at once, so the growing island never runs into them; when it shrinks they
+  // wait until it has finished.
   clearTimeout(bubbleTimer);
-  bubbleTimer = setTimeout(() => mailBubble?.place(), animate ? 230 : 0);
+  const growing = target.height > previous.height || target.width > previous.width;
+  if (growing || !animate) mailBubble?.place();
+  else bubbleTimer = setTimeout(() => mailBubble?.place(), 230);
   clearTimeout(layoutTimer);
   const id = ++layoutId;
   if (
@@ -1699,6 +1705,15 @@ else {
         return true;
       });
       safeHandler('history-manage', (args) => agent.manage(args));
+      // v0.8.9: searching chats happens here (the list no longer carries every chat's text)
+      safeHandler('history-search', (q) => agent.search(q));
+      // v0.8.9: pictures Charles generated are kept as files next to the history
+      safeHandler('history-image', (name) => {
+        if (typeof name !== 'string' || !/^[0-9a-f]{40}\.(png|jpg|webp)$/.test(name)) throw Error('Geçersiz görsel.');
+        const file = path.join(app.getPath('userData'), 'history-images', name);
+        const ext = name.split('.').pop();
+        return `data:image/${ext === 'jpg' ? 'jpeg' : ext};base64,` + fs.readFileSync(file).toString('base64');
+      });
       const folderStore = new (require('./ai/chat-folders.cjs').ChatFolders)(agent);
       safeHandler('folders-read', () => folderStore.state());
       safeHandler('folders-edit', (args) => folderStore.edit(args));
@@ -3187,6 +3202,10 @@ else {
     });
   app.on('before-quit', () => {
     quitting = true;
+    // v0.8.9: history is written asynchronously; write what is pending now
+    try {
+      agent?.flush?.();
+    } catch {}
     try {
       moduleHost?.closeAll();
     } catch {}

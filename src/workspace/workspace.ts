@@ -416,7 +416,30 @@ export function workspaceUI(d: WorkspaceDeps) {
   }
 
   // ── Enter / leave ──────────────────────────────────────────────────────────
+  // v0.8.9: while the page moves between the island and the app window the chat is not laid
+  // out (a long chat with many formulas took a moment to lay out at the new width); it comes
+  // back right after the window has its new size.
+  let switchTimer = 0;
+  let fromBottom = 0;
+  function switching() {
+    const feed = $('feed');
+    if (!document.body.classList.contains('ws-switching')) fromBottom = Math.max(0, feed.scrollHeight - feed.scrollTop - feed.clientHeight);
+    document.body.classList.add('ws-switching');
+    window.clearTimeout(switchTimer);
+    switchTimer = window.setTimeout(switched, 1500);
+  }
+  function switched() {
+    window.clearTimeout(switchTimer);
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        document.body.classList.remove('ws-switching');
+        const feed = $('feed');
+        feed.scrollTop = Math.max(0, feed.scrollHeight - feed.clientHeight - fromBottom);
+      }),
+    );
+  }
   async function enter() {
+    switching();
     try {
       await api.workspace(true);
     } catch (e) {
@@ -424,6 +447,7 @@ export function workspaceUI(d: WorkspaceDeps) {
     }
   }
   async function leave() {
+    switching();
     try {
       await api.workspace(false);
     } catch (e) {
@@ -444,7 +468,11 @@ export function workspaceUI(d: WorkspaceDeps) {
     maxB.replaceChildren(icon(maximized ? 'restore' : 'maximize'));
     maxB.title = maximized ? 'Önceki boyuta dön' : 'Ekranı kapla';
     const next = !!state?.on;
-    if (next === on) return;
+    if (next === on) {
+      if (document.body.classList.contains('ws-switching')) switched();
+      return;
+    }
+    if (!document.body.classList.contains('ws-switching')) switching();
     on = next;
     document.body.classList.toggle('workspace', on);
     root.hidden = !on;
@@ -464,8 +492,8 @@ export function workspaceUI(d: WorkspaceDeps) {
       clearFind();
       contentHome.parent.insertBefore(content, contentHome.next);
       petHome.parent.insertBefore(pet, petHome.next);
-      $('feed').scrollTop = $('feed').scrollHeight;
     }
+    switched();
   }
   api.onWorkspace?.((v: any) => {
     apply(v);

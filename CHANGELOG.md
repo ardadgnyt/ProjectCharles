@@ -4,6 +4,14 @@ Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özell
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.8.9 Beta — 23 Ekim 2026
+
+- **Adacık ↔ büyük panel geçişindeki takılma:** asıl neden sohbet geçmişinin büyüklüğüydü. GPT her mesajda Charles’ın eklediği tüm sohbet bağlamıyla birlikte isteği de kaydediyordu; oluşturulan görseller geçmişin içinde base64 olarak duruyordu ve uzun komut çıktıları olduğu gibi tutuluyordu. Bir kullanıcının geçmiş dosyası ~50 MB’a çıkmıştı ve her birkaç saniyede ana iş parçacığında yazılıyordu. Artık o istek kaydedilmiyor, görseller geçmişin yanındaki `history-images` klasörüne dosya olarak yazılıp gerektiğinde açılıyor, uzun çıktılar kısaltılıyor. Geçmiş arka planda yazılıyor (kapanışta hemen). Sohbet araması ana süreçte yapılıyor; sohbet listesi her olayda tüm sohbetlerin metnini taşımıyor. Geçiş sırasında sohbet yeni genişlikte dizilene kadar gizleniyor, kaydırma yeri korunuyor.
+- **WhatsApp grupları:** grup mesajları artık grup olarak görünüyor (grup adı, altta “Yazan: mesaj”). Açınca gruptaki son mesajlar, her birinde yazanın adıyla. “Grup mesajlarını da göster” kapalıyken grup, kanal ve durum mesajları hiç gelmiyor; kapatınca mevcut grup kartları da kalkıyor; ayar artık başka bir işlem sürerken de kaydediliyor.
+- **WhatsApp kartı:** gönder tuşu ortalandı. × tuşu kartın içinde ve her tıklamada çalışıyor (penceresinin dışında kalan kısmı tıklanamıyordu); kart hemen kapanıyor. Tuşların üzerinde Windows’un kendi ipucu kutusu çıkmıyor.
+- **Adacık uyanırken bildirimler:** adacık büyürken (uykudan uyanma, açılma) bildirim balonu hemen yeni yerine geçiyor; adacık ve balon artık birkaç saniye üst üste binmiyor. Adacık küçülürken balon önceki gibi animasyonun bitmesini bekliyor.
+- **README:** Modüller bölümü (resmî modüllerin ekran görüntüleri, Releases → Modules bağlantısı, herkesin modül geliştirebileceği), uygulama içi güncellemenin v0.8.2’den beri kararlı çalıştığı notu.
+
 ## v0.8.8 Beta — 23 Ekim 2026
 
 - **Uzun sohbetlerde geçmiş kaybolmuyor:** Claude, Gemini, Cursor ve Abacus AI ile (ve Charles yeniden açıldıktan sonra GPT ile) her mesajda sohbetin yalnızca son 24 mesajı / 30.000 karakteri gidiyordu; uzun bir sohbette baştaki içerik (ör. Charles’ın yazdığı 7 soru) kayboluyor, “7. soru geçmişte yok” deniyordu. Artık sığdığı sürece sohbetin tamamı gidiyor (160.000 karaktere kadar). Sığmazsa sohbetin başı ve son mesajlar tam kalıyor, aradakiler kısaltılıyor ve bu yapay zekâya söyleniyor. Abacus AI’nin komut satırı sınırı için ayrı, küçük bir bütçe var.

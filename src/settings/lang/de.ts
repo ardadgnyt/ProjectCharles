@@ -1463,4 +1463,7 @@ export const german: Record<string, string> = {
   "Appearance permission": "Berechtigung Aussehen",
   "On the first link the open-source WhatsApp gateway (GOWA, about 30 MB) is downloaded from GitHub and verified with SHA-256. It is an unofficial connection: use it only on your own account; WhatsApp may restrict accounts that misuse automation. Charles only replies to chats that wrote to you, when you press send.": "Bei der ersten Verbindung wird das quelloffene WhatsApp-Gateway (GOWA, etwa 30 MB) von GitHub geladen und per SHA-256 geprüft. Es ist keine offizielle Verbindung: Nutze sie nur mit deinem eigenen Konto; WhatsApp kann Konten einschränken, die Automatisierung missbrauchen. Charles antwortet nur Chats, die dir geschrieben haben, und nur wenn du auf Senden drückst.",
   "It is an unofficial connection: use it only on your own account; WhatsApp may restrict accounts that misuse automation. Charles only replies to chats that wrote to you, when you press send.": "Es ist keine offizielle Verbindung: Nutze sie nur mit deinem eigenen Konto; WhatsApp kann Konten einschränken, die Automatisierung missbrauchen. Charles antwortet nur Chats, die dir geschrieben haben, und nur wenn du auf Senden drückst.",
+  "Group messages will be shown.": "Gruppennachrichten werden angezeigt.",
+  "Group messages will not be shown.": "Gruppennachrichten werden nicht angezeigt.",
+  "The picture was not found.": "Das Bild wurde nicht gefunden.",
 };

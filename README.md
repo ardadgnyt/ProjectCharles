@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.8.8%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.8.9%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
   <img alt="Languages: English, Türkçe, Deutsch, Français, Español, 中文" src="https://img.shields.io/badge/UI-English%20%7C%20T%C3%BCrk%C3%A7e%20%7C%20Deutsch%20%7C%20Fran%C3%A7ais%20%7C%20Espa%C3%B1ol%20%7C%20%E4%B8%AD%E6%96%87-2b2f3a?style=flat-square">
@@ -13,6 +13,7 @@
   <a href="#install-and-update">Install</a> ·
   <a href="#kurulum-ve-güncelleme">Kurulum</a> ·
   <a href="#highlights--öne-çıkanlar">Highlights</a> ·
+  <a href="#modules--modüller">Modules</a> ·
   <a href="#screenshots--ekran-görüntüleri">Screenshots</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="docs/USER-GUIDE.md">User guide</a>
@@ -106,6 +107,41 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 - **Masaüstü Slime:** Slime’ı masaüstüne sürükle, fırlat, jöle gibi sekmesini izle.
 - Arayüz **English, Türkçe, Deutsch, Français, Español ve 中文**.
 
+## Modules · Modüller
+
+<p align="center">
+  <img src="docs/images/modules.png" alt="Three modules in their own windows: Study with Charles, FRP and Charles Download" width="100%">
+</p>
+
+Modules add whole new tools to Charles, each in its own window: **Study with Charles** (courses,
+sources, a tutor that reads them, focus timer, exam countdown), **FRP** (Charles runs your
+tabletop game or helps the GM) and **Charles Download** (videos, audio or just the part you
+want). Install them from a `.zip` in **Settings → Modules**; the open ones are one click away on
+the **Modules** card of the overview.
+
+**Get the official modules:** [**Releases → Modules**](https://github.com/ardadgnyt/ProjectCharles/releases#release-Modules)
+
+**Build your own:** anyone can make a module. A module is a small web page with a
+`manifest.json`; through Charles it can ask the user’s AI (with pictures), create images, speak,
+keep its own files, show notifications, use Charles’ download engine, and draw Slime with his
+accessories, reactions and cursor tracking — every ability behind a permission the user
+approves. See [docs/MODULES.md](docs/MODULES.md).
+
+Modüller Charles’a kendi penceresinde açılan yeni araçlar ekler: **Study with Charles** (dersler,
+kaynaklar, onları okuyan bir eğitmen, odak sayacı, sınav geri sayımı), **FRP** (Charles masaüstü
+rol yapma oyununu yönetir ya da GM’e yardım eder) ve **Charles Download** (video, ses ya da
+yalnızca istediğin bölüm). **Ayarlar → Modüller**’den `.zip` ile yüklenir; açılanlar genel
+bakıştaki **Modüller** kartından tek tıkla açılır.
+
+**Resmî modülleri indir:** [**Releases → Modules**](https://github.com/ardadgnyt/ProjectCharles/releases#release-Modules)
+
+**Kendi modülünü yap:** herkes modül geliştirebilir. Modül, `manifest.json` dosyası olan küçük bir
+web sayfasıdır; Charles üzerinden kullanıcının yapay zekâsına (görsellerle) soru sorabilir,
+görsel oluşturabilir, sesli okuyabilir, kendi dosyalarını tutabilir, bildirim gösterebilir,
+Charles’ın indirme altyapısını kullanabilir ve Slime’ı aksesuarları, tepkileri ve imleç
+takibiyle çizebilir. Her yetki, kullanıcının onayladığı bir izinle gelir.
+Ayrıntılar: [docs/MODULES.md](docs/MODULES.md).
+
 ## Screenshots · Ekran görüntüleri
 
 <p align="center">
@@ -144,7 +180,10 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 **Download:** the latest **ProjectCharles-vX.X.X-Beta-Setup.zip** from
 [**Releases**](../../releases). Windows 10 or 11 (64-bit), no administrator rights needed.
-Already using Charles? **Settings → General → Updates** updates it in place.
+Already using Charles? **Settings → General → Updates** updates it in place — the in-app
+updater works reliably from **v0.8.2** on. · Charles zaten kurulu mu? **Ayarlar → Genel →
+Güncellemeler** yerinde günceller; uygulama içi güncelleme **v0.8.2**’den itibaren kararlı
+çalışır.
 
 <table>
 <tr><td width="50%" valign="top">
@@ -158,8 +197,9 @@ Requires Windows 10 or 11 (64-bit). No administrator rights needed. If SmartScre
 choose **More info → Run anyway**.
 
 **Updating from an older version:** use the update option inside Charles — no need to deal
-with GitHub — or simply install vX.X.X with the steps above. Your chats, settings and keys
-stay in `%APPDATA%\Charles`.
+with GitHub — or simply install vX.X.X with the steps above. The in-app update works reliably
+from v0.8.2 on; on older versions use the setup once. Your chats, settings and keys stay in
+`%APPDATA%\Charles`.
 
 </td><td width="50%" valign="top">
 
@@ -173,6 +213,8 @@ uyarı verirse **Daha fazla bilgi → Yine de çalıştır** seçeneğini belirl
 
 **Daha eski bir sürümden güncelleme:** Charles içindeki güncelleme seçeneğiyle GitHub ile
 uğraşmadan güncelleyebilir ya da vX.X.X sürümünü yukarıdaki adımlarla kurabilirsiniz.
+Uygulama içi güncelleme v0.8.2’den itibaren kararlı çalışır; daha eski sürümlerde bir kez
+kurulumu kullanın.
 Sohbetleriniz, ayarlarınız ve anahtarlarınız `%APPDATA%\Charles` dizininde korunur.
 
 </td></tr>
@@ -188,7 +230,8 @@ eine SmartScreen-Warnung erscheint, wähle **Weitere Informationen → Trotzdem 
 
 **Aktualisierung von einer älteren Version:** Du kannst das Update direkt über die
 entsprechende Option in Charles durchführen – ohne den Umweg über GitHub – oder einfach
-Version vX.X.X mit den Schritten oben installieren. Deine Chats, Einstellungen und Schlüssel
+Version vX.X.X mit den Schritten oben installieren. Das In-App-Update funktioniert ab v0.8.2
+zuverlässig; bei älteren Versionen nutze einmal das Setup. Deine Chats, Einstellungen und Schlüssel
 bleiben in `%APPDATA%\Charles` erhalten.
 
 </td><td valign="top">
@@ -204,7 +247,8 @@ quand même**.
 
 **Mise à jour depuis une version antérieure :** utilisez l’option de mise à jour dans
 Charles — sans passer par GitHub — ou installez simplement la version vX.X.X avec les étapes
-ci-dessus. Vos discussions, paramètres et clés sont conservés dans `%APPDATA%\Charles`.
+ci-dessus. La mise à jour intégrée fonctionne de façon fiable depuis la v0.8.2 ; sur les
+versions plus anciennes, utilisez une fois l’installateur. Vos discussions, paramètres et clés sont conservés dans `%APPDATA%\Charles`.
 
 </td></tr>
 <tr><td valign="top">
@@ -218,7 +262,9 @@ Requiere Windows 10 u 11 (64 bits). No se necesitan privilegios de administrador
 una advertencia de SmartScreen, selecciona **Más información → Ejecutar de todas formas**.
 
 **Actualización desde una versión anterior:** usa la opción de actualización dentro de
-Charles —sin recurrir a GitHub— o instala la versión vX.X.X con los pasos de arriba. Tus
+Charles —sin recurrir a GitHub— o instala la versión vX.X.X con los pasos de arriba. La
+actualización integrada funciona de forma estable desde la v0.8.2; en versiones anteriores usa
+el instalador una vez. Tus
 chats, configuraciones y claves se conservan en `%APPDATA%\Charles`.
 
 </td><td valign="top">
@@ -232,7 +278,7 @@ chats, configuraciones y claves se conservan en `%APPDATA%\Charles`.
 “更多信息” (More info) → “仍要运行” (Run anyway)。
 
 **从旧版本更新：** 您可以通过 Charles 软件内的更新选项直接更新（无需访问 GitHub），或者按照上面的
-步骤安装 vX.X.X 版本。您的聊天记录、设置和密钥均保存在 `%APPDATA%\Charles` 目录下，不会丢失。
+步骤安装 vX.X.X 版本。应用内更新自 v0.8.2 起可稳定使用；更早的版本请先用安装包安装一次。您的聊天记录、设置和密钥均保存在 `%APPDATA%\Charles` 目录下，不会丢失。
 
 </td></tr>
 </table>

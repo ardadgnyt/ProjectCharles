@@ -1463,4 +1463,7 @@ export const chinese: Record<string, string> = {
   "Appearance permission": "外观权限",
   "On the first link the open-source WhatsApp gateway (GOWA, about 30 MB) is downloaded from GitHub and verified with SHA-256. It is an unofficial connection: use it only on your own account; WhatsApp may restrict accounts that misuse automation. Charles only replies to chats that wrote to you, when you press send.": "首次关联时会从 GitHub 下载开源的 WhatsApp 网关（GOWA，约 30 MB），并用 SHA-256 校验。这不是官方连接：只在你自己的账号上使用；WhatsApp 可能会限制滥用自动化的账号。Charles 只会在你按下发送时回复给你发过消息的对话。",
   "It is an unofficial connection: use it only on your own account; WhatsApp may restrict accounts that misuse automation. Charles only replies to chats that wrote to you, when you press send.": "这不是官方连接：只在你自己的账号上使用；WhatsApp 可能会限制滥用自动化的账号。Charles 只会在你按下发送时回复给你发过消息的对话。",
+  "Group messages will be shown.": "将显示群组消息。",
+  "Group messages will not be shown.": "将不显示群组消息。",
+  "The picture was not found.": "找不到图片。",
 };

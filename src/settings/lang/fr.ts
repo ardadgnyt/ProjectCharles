@@ -1463,4 +1463,7 @@ export const french: Record<string, string> = {
   "Appearance permission": "Autorisation Apparence",
   "On the first link the open-source WhatsApp gateway (GOWA, about 30 MB) is downloaded from GitHub and verified with SHA-256. It is an unofficial connection: use it only on your own account; WhatsApp may restrict accounts that misuse automation. Charles only replies to chats that wrote to you, when you press send.": "Lors de la première association, la passerelle WhatsApp open source (GOWA, environ 30 Mo) est téléchargée depuis GitHub et vérifiée par SHA-256. Ce n’est pas une connexion officielle : utilise-la uniquement avec ton propre compte ; WhatsApp peut restreindre les comptes qui abusent de l’automatisation. Charles ne répond qu’aux discussions qui t’ont écrit, quand tu appuies sur envoyer.",
   "It is an unofficial connection: use it only on your own account; WhatsApp may restrict accounts that misuse automation. Charles only replies to chats that wrote to you, when you press send.": "Ce n’est pas une connexion officielle : utilise-la uniquement avec ton propre compte ; WhatsApp peut restreindre les comptes qui abusent de l’automatisation. Charles ne répond qu’aux discussions qui t’ont écrit, quand tu appuies sur envoyer.",
+  "Group messages will be shown.": "Les messages de groupe seront affichés.",
+  "Group messages will not be shown.": "Les messages de groupe ne seront pas affichés.",
+  "The picture was not found.": "L’image est introuvable.",
 };

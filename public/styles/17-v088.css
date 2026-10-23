@@ -356,3 +356,8 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* v0.8.9: the chat is not laid out while the page moves between the island and the app window */
+body.ws-switching #feed {
+  content-visibility: hidden;
+}

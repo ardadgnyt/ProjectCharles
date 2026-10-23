@@ -32,6 +32,10 @@ export function workspaceSidebar(d: SidebarDeps) {
   const { api } = d;
   let state: { folders: Folder[]; projects: Project[]; rooms: Room[] } = { folders: [], projects: [], rooms: [] };
   const openFolders = new Set<string>();
+  // v0.8.9: the chats' text is searched in the main process (history-search)
+  let hits: Set<string> | null = null;
+  let searchTimer = 0;
+  let searchSeq = 0;
   const openProjects = new Set<string>();
   let projectsOpen = true;
   let projListOpen = true;
@@ -426,10 +430,29 @@ export function workspaceSidebar(d: SidebarDeps) {
     inline(row, '', (name) => edit({ action: 'create', name, parentId }));
   }
 
+  function runSearch() {
+    window.clearTimeout(searchTimer);
+    const q = search.value.trim();
+    if (!q) {
+      hits = null;
+      paint();
+      return;
+    }
+    searchTimer = window.setTimeout(async () => {
+      const n = ++searchSeq;
+      try {
+        const ids: string[] = await api.historySearch(q);
+        if (n === searchSeq) hits = new Set(ids);
+      } catch {
+        hits = new Set();
+      }
+      if (n === searchSeq) paint();
+    }, 160);
+  }
   function visibleRooms() {
     const q = search.value.trim().toLocaleLowerCase('tr');
     return state.rooms
-      .filter((r) => !q || (r.name + ' ' + (r.search || '')).toLocaleLowerCase('tr').includes(q))
+      .filter((r) => !q || r.name.toLocaleLowerCase('tr').includes(q) || !!hits?.has(r.id))
       .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || b.updatedAt - a.updatedAt);
   }
 
@@ -485,7 +508,10 @@ export function workspaceSidebar(d: SidebarDeps) {
     if (!loose.length && q) tree.append(el('p', 'ws-empty', 'Aramaya uyan sohbet yok.'));
   }
 
-  search.oninput = paint;
+  search.oninput = () => {
+    paint();
+    runSearch();
+  };
   api.onFoldersChanged?.(() => void run(refresh));
   document.addEventListener('charles-rooms', () => void run(refresh));
 

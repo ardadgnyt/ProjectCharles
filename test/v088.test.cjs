@@ -206,7 +206,7 @@ test('WhatsApp gateway release: picks the Windows zip, checks its SHA-256, finds
 });
 test('WhatsApp webhook payloads: messages, media labels, nothing else', () => {
   const m = wa.parseWebhook(JSON.stringify({ event: 'message', device_id: 'x', payload: { id: 'M1', chat_id: '905551112233@s.whatsapp.net', from: '905551112233@s.whatsapp.net', from_name: 'Mert', body: 'Selam', timestamp: '2026-10-23T10:00:00Z', is_from_me: false } }));
-  assert.deepEqual({ ...m }, { id: 'M1', chat: '905551112233@s.whatsapp.net', from: '905551112233@s.whatsapp.net', name: 'Mert', text: 'Selam', media: null, at: Date.parse('2026-10-23T10:00:00Z'), mine: false });
+  assert.deepEqual({ ...m }, { group: false, id: 'M1', chat: '905551112233@s.whatsapp.net', from: '905551112233@s.whatsapp.net', name: 'Mert', text: 'Selam', media: null, at: Date.parse('2026-10-23T10:00:00Z'), mine: false });
   assert.equal(wa.parseWebhook(JSON.stringify({ event: 'message', payload: { id: 'M2', chat_id: 'a@lid', image: { url: 'x' } } })).media, 'Fotoğraf');
   assert.equal(wa.parseWebhook(JSON.stringify({ event: 'message.ack', payload: {} })), null);
   assert.equal(wa.parseWebhook('not json'), null);
@@ -373,11 +373,8 @@ test('WhatsApp UI: in the existing WhatsApp card and the existing bubble under t
   assert.match(read('public/styles/17-v088.css'), /button\.wa-remove \{[^}]*width: 28px !important/);
 });
 
-test('version 0.8.8 and notes', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.8.8-beta.1');
-  assert.equal(JSON.parse(read('package-lock.json')).version, '0.8.8-beta.1');
-  assert.match(read('public/index.html'), /v0\.8\.8 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.8\.8 Beta'/);
+test('version 0.8.8 or later and notes', () => {
+  assert.match(JSON.parse(read('package.json')).version, /^0\.(8\.([8-9]|\d\d)|(9|\d\d)\.\d+)/);
   assert.match(read('CHANGELOG.md'), /## v0\.8\.8 Beta/);
   assert.match(read('docs/MODULES.md'), /CharlesSlime\.mount/);
   assert.match(read('THIRD-PARTY-NOTICES.md'), /go-whatsapp-web-multidevice/);

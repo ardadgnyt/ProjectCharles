@@ -9,6 +9,10 @@ export function historyFolders(
 ) {
   const list = document.getElementById('history-list')!;
   const search = document.getElementById('history-search') as HTMLInputElement;
+  // v0.8.9: chat text is searched in the main process
+  let hits: Set<string> | null = null;
+  let timer = 0;
+  let seq = 0;
   let state: any = { folders: [], rooms: [], auto: true },
     current: string | null = null,
     request = 0;
@@ -227,7 +231,7 @@ export function historyFolders(
     }
     for (const r of state.rooms.filter((r: any) =>
       query
-        ? (r.name + ' ' + r.search).toLocaleLowerCase('tr').includes(query)
+        ? r.name.toLocaleLowerCase('tr').includes(query) || !!hits?.has(r.id)
         : (r.folderId || null) === current,
     )) {
       const row = document.createElement('div');
@@ -291,7 +295,25 @@ export function historyFolders(
       list.append(empty);
     }
   }
-  search.oninput = paint;
+  search.oninput = () => {
+    paint();
+    window.clearTimeout(timer);
+    const q = search.value.trim();
+    if (!q) {
+      hits = null;
+      return;
+    }
+    timer = window.setTimeout(async () => {
+      const n = ++seq;
+      try {
+        const ids: string[] = await api.historySearch(q);
+        if (n === seq) hits = new Set(ids);
+      } catch {
+        hits = new Set();
+      }
+      if (n === seq) paint();
+    }, 160);
+  };
   api.onFoldersChanged(() => void run(refresh));
   new MutationObserver(() => {
     if (document.getElementById('sessions-panel')!.hasAttribute('open')) void run(refresh);
