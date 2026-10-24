@@ -53,11 +53,15 @@ export const LOW_QUOTA = 10;
 
 // Keys of low windows not warned yet; the key includes the reset time, so the next
 // window warns again after a reset.
-export function lowWindows(v: any, warned: Set<string>, provider: string) {
+export function lowWindows(v: any, warned: Set<string>, provider: string, now = Date.now()) {
   const out: { window: 'fiveHour' | 'weekly'; remaining: number; resetsAt: number | null }[] = [];
+  // v0.9.1: Codex with credits left goes on after a window runs out: nothing to warn about
+  if (v?.paid) return out;
   for (const key of ['fiveHour', 'weekly'] as const) {
     const w = v?.[key];
     if (typeof w?.remaining !== 'number' || w.remaining >= LOW_QUOTA) continue;
+    // a window whose reset time has already passed is full again (old numbers)
+    if (w.resetsAt && w.resetsAt * 1000 <= now) continue;
     const id = provider + '|' + key + '|' + (w.resetsAt || '');
     if (warned.has(id)) continue;
     warned.add(id);

@@ -27,6 +27,12 @@ class ModuleStorage {
     const rp = path.relative(this.dir, abs);
     if (!rp || rp.startsWith('..') || path.isAbsolute(rp)) throw Error('Geçersiz dosya yolu: modül yalnızca kendi veri klasörünü kullanabilir.');
     // a junction/link inside the folder must not lead outside it
+    // v0.9.1: the file itself too (reading a link to a file outside followed it)
+    try {
+      if (fs.lstatSync(abs).isSymbolicLink()) throw Error('Geçersiz dosya yolu.');
+    } catch (e) {
+      if (e.code !== 'ENOENT') throw Error('Geçersiz dosya yolu.');
+    }
     let probe = path.dirname(abs);
     while (probe.length > this.dir.length) {
       if (fs.existsSync(probe) && fs.lstatSync(probe).isSymbolicLink()) throw Error('Geçersiz dosya yolu.');

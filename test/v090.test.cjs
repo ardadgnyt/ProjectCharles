@@ -111,9 +111,6 @@ test('the island and the cards stay off the taskbar; only the app window has a b
   assert.match(mb, /offTaskbar\(\) \{/);
 });
 
-test('version 0.9.0', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.9.0-beta.1');
-  assert.match(read('public/index.html'), /v0\.9\.0 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.9\.0 Beta'/);
+test('version 0.9.0 is in the changelog', () => {
   assert.match(read('CHANGELOG.md'), /## v0\.9\.0 Beta/);
 });

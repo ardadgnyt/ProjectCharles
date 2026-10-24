@@ -1569,5 +1569,6 @@ export const chinese: Record<string, string> = {
   "Rainy": "有雨",
   "Open Spotify": "打开 Spotify",
   // v0.8.15
+  "enlarge": "放大",
   "Shrink the island": "缩小岛",
 };

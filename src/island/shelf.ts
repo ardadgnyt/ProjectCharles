@@ -429,6 +429,9 @@ export function islandShelf({ api, notice, attempt }: Deps) {
 
   // ── views ──────────────────────────────────────────────────────────────────
   function placePet() {
+    // v0.9.1: the app window (Çalışma alanı) puts Slime in its own Charles card: he stays there
+    // (moving him back to the shelf left that card empty)
+    if (body.classList.contains('workspace')) return;
     const target = body.classList.contains('desktop-pet') || view === 'chat' ? center : view === 'shelf' ? charlesSlot : notchPet;
     if (pet.parentElement !== target) target.prepend(pet);
   }

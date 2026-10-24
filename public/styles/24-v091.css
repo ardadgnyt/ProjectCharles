@@ -1,0 +1,21 @@
+/* ==========================================================================================
+   24 · v0.9.1 — no chat history button on the card shelf
+   ========================================================================================== */
+
+/* The history button belongs to the chat; on the shelf it is not shown. */
+body.v10[data-view='shelf'] #island-bar #sessions-toggle {
+  display: none !important;
+}
+
+/* --- Pictures the user sent: a click shows them large ----------------------------------- */
+.message-attachments img.zoomable {
+  cursor: zoom-in;
+  transition: filter 0.15s;
+}
+.message-attachments img.zoomable:hover {
+  filter: brightness(1.08);
+}
+.message-attachments img.zoomable:focus-visible {
+  outline: 2px solid var(--accent, #edc9a9);
+  outline-offset: 2px;
+}

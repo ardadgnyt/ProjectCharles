@@ -365,10 +365,12 @@ function zipFiles(files) {
   return Buffer.from(zipSync(entries));
 }
 /** Extracts into a new folder; entries may not leave it (no absolute paths, no ".."). */
-function unzipTo(file, folder, { maxBytes = 4 * 1024 * 1024 * 1024, maxFiles = 20000 } = {}) {
+// v0.9.1: an archive is unpacked in memory, so at most 1 GB (it was 4 GB)
+function unzipTo(file, folder, { maxBytes = 1024 * 1024 * 1024, maxFiles = 20000 } = {}) {
   const { unzipSync } = require('fflate');
   let total = 0, count = 0;
-  const data = unzipSync(new Uint8Array(fs.readFileSync(file)), {
+  const raw = fs.readFileSync(file);
+  const data = unzipSync(new Uint8Array(raw.buffer, raw.byteOffset, raw.length), {
     filter: (f) => {
       count++;
       total += f.originalSize;
@@ -376,12 +378,20 @@ function unzipTo(file, folder, { maxBytes = 4 * 1024 * 1024 * 1024, maxFiles = 2
       return true;
     },
   });
+  // v0.9.1: a damaged archive (or one whose sizes are wrong) is not unpacked as if it were whole
+  const { crc32, zipChecksums } = require('../core/zip-check.cjs');
+  const sums = zipChecksums(raw);
+  if (sums) for (const [name, bytes] of Object.entries(data)) if (sums.has(name) && crc32(bytes) !== sums.get(name)) throw Error('Arşiv bozuk: ' + name + ' doğrulanamadı.');
   const root = path.resolve(folder);
   fs.mkdirSync(root, { recursive: true });
   let written = 0;
   for (const [name, bytes] of Object.entries(data)) {
     const clean = name.replace(/\\/g, '/');
     if (!clean || clean.startsWith('/') || /^[a-z]:/i.test(clean) || clean.split('/').includes('..')) continue;
+    // v0.9.1: names Windows cannot hold as files (a ":" would write a hidden stream, CON / NUL…
+    // are devices, a trailing dot or space is dropped) are skipped
+    const parts = clean.split('/').filter(Boolean);
+    if (parts.some((p) => /[<>:"|?*\u0000-\u001f]/.test(p) || /[. ]$/.test(p) || /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\.|$)/i.test(p))) continue;
     const target = path.resolve(root, clean);
     if (target !== root && !target.startsWith(root + path.sep)) continue;
     if (clean.endsWith('/')) { fs.mkdirSync(target, { recursive: true }); continue; }

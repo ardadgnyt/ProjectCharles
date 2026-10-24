@@ -9,13 +9,13 @@ import { wardrobeUI } from './island/wardrobe';
 import { geminiLiveUI } from './voice/gemini-live';
 import { providersUI } from './settings/providers';
 import { wakeUI } from './voice/wake';
-import { usageUI, resetLabel, type LowQuota } from './island/usage';
+import { usageUI, resetLabel, LOW_QUOTA, type LowQuota } from './island/usage';
 import { proposalsUI } from './chat/proposals';
 import { paintSoundButton } from './ui/sound-button';
 import { micPrivacyUI } from './ui/mic-button';
 import { Jelly } from './island/jelly';
 import { onboardingUI } from './island/onboarding';
-import { showGenerating, showImage, showFailed } from './chat/image-card';
+import { showGenerating, showImage, showFailed, lightbox } from './chat/image-card';
 import { expressionsUI } from './settings/expressions';
 import { panelMotion } from './island/panel-motion';
 import { settingsPages } from './settings/settings-pages';
@@ -484,6 +484,30 @@ function row(text: string, className = '', attachments: any[] = []) {
           const img = document.createElement('img');
           img.src = file.thumbnail;
           img.alt = file.name;
+          // v0.9.1: a click shows the picture large (the large copy kept with the chat, or the
+          // small one for pictures sent before)
+          img.classList.add('zoomable');
+          img.tabIndex = 0;
+          img.setAttribute('role', 'button');
+          img.setAttribute('aria-label', file.name + ' · büyüt');
+          const open = () => {
+            const name = typeof file.preview === 'string' ? file.preview : '';
+            if (!name) return lightbox(file.thumbnail, file.name);
+            void api
+              .historyImage(name)
+              .then((src: string) => lightbox(src, file.name))
+              .catch(() => lightbox(file.thumbnail, file.name));
+          };
+          img.onclick = (e) => {
+            e.stopPropagation();
+            open();
+          };
+          img.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              open();
+            }
+          };
           figure.append(img);
         }
         const caption = document.createElement('figcaption');
@@ -1578,13 +1602,31 @@ const proposals = proposalsUI({
 // Kota bekçisi: under 10 % left → suggest another connected provider's model.
 const quotaProvider = (v: string) => (/^(gemini|claude|cursor|abacus):/.test(v) ? v.split(':')[0] : 'gpt');
 function onLowQuota(q: LowQuota) {
-  // v0.7.2: the model list may not be filled yet (or a refresh failed): read it first, so the
-  // other connected AIs are offered instead of "no other AI".
-  if ([...model.options].filter((o) => o.value).length === 0)
-    void populateModels()
-      .catch(() => {})
-      .then(() => lowQuota(q));
-  else lowQuota(q);
+  void confirmLowQuota(q).then((low) => {
+    if (!low) return;
+    // v0.7.2: the model list may not be filled yet (or a refresh failed): read it first, so the
+    // other connected AIs are offered instead of "no other AI".
+    if ([...model.options].filter((o) => o.value).length === 0)
+      void populateModels()
+        .catch(() => {})
+        .then(() => lowQuota(q));
+    else lowQuota(q);
+  });
+}
+// v0.9.1: the warning only after a fresh read still says so (Codex could hand over numbers from
+// before its window reset, and with credits left it simply goes on)
+async function confirmLowQuota(q: LowQuota) {
+  try {
+    const v = await api.usageRead(true, q.provider);
+    const w = v?.[q.window];
+    if (v?.paid || v?.unavailable || typeof w?.remaining !== 'number' || w.remaining >= LOW_QUOTA) return false;
+    if (w.resetsAt && w.resetsAt * 1000 <= Date.now()) return false;
+    q.remaining = w.remaining;
+    q.resetsAt = w.resetsAt ?? null;
+    return true;
+  } catch {
+    return false;
+  }
 }
 function lowQuota(q: LowQuota) {
   const seen = new Set<string>([q.provider]);

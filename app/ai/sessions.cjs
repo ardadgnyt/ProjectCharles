@@ -65,7 +65,7 @@ function trimItem(item, imageDir) {
 /** Writes a generated picture once into <history>/history-images/<sha1>.<ext>; → its name. */
 function storeImage(dir, result) {
   try {
-    const m = /^data:image\/(png|jpeg|webp);base64,/.exec(result);
+    const m = /^data:image\/(png|jpeg|webp|gif);base64,/.exec(result);
     const data = Buffer.from(m ? result.slice(m[0].length) : result, 'base64');
     if (data.length < 100) return null;
     const ext = m ? (m[1] === 'jpeg' ? 'jpg' : m[1]) : 'png';
@@ -704,4 +704,4 @@ class Sessions extends EventEmitter {
     for (const r of this.rooms.values()) r.agent.stop();
   }
 }
-module.exports = { Sessions, contextText, contextMessages, savedEvents, hasContent, CONTEXT_BUDGET };
+module.exports = { Sessions, contextText, contextMessages, savedEvents, hasContent, storeImage, CONTEXT_BUDGET };

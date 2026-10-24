@@ -1569,5 +1569,6 @@ export const spanish: Record<string, string> = {
   "Rainy": "Lluvioso",
   "Open Spotify": "Abrir Spotify",
   // v0.8.15
+  "enlarge": "ampliar",
   "Shrink the island": "Reducir la isla",
 };

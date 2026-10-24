@@ -44,6 +44,7 @@ export function drawStation(
   t: number,
   station: Station,
   eureka: boolean,
+  paws = true,
 ) {
   x.save();
   x.lineCap = 'round';
@@ -89,7 +90,8 @@ export function drawStation(
     x.lineTo(-59, 84);
     x.closePath();
     x.fill();
-    for (const side of [-1, 1]) {
+    // v0.9.1: no typing paws while Slime waves (he would have four hands)
+    for (const side of paws ? [-1, 1] : []) {
       x.fillStyle = PAW.dark;
       x.beginPath();
       x.ellipse(side * 35, 74 + Math.sin(t * 9 + side) * 2, 11, 6, side * 0.2, 0, 7);

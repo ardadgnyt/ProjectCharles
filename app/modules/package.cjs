@@ -22,6 +22,8 @@ function cleanPath(name) {
   const parts = name.split('/').filter((p) => p !== '');
   if (parts.some((p) => p === '..')) fail(`Pakette klasör dışına çıkan yol var (zip-slip): ${name.slice(0, 80)}`);
   if (parts.some((p) => p === '.' || /[<>:"|?*]/.test(p) || /[. ]$/.test(p))) fail(`Pakette Windows’ta geçersiz bir dosya adı var: ${name.slice(0, 80)}`);
+  // v0.9.1: Windows device names (CON, NUL, COM1…, also with an extension) are no files
+  if (parts.some((p) => /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\.|$)/i.test(p))) fail(`Pakette Windows’ta ayrılmış bir dosya adı var: ${name.slice(0, 80)}`);
   const clean = parts.join('/');
   if (clean.length > LIMITS.pathLength) fail(`Pakette çok uzun bir dosya yolu var: ${clean.slice(0, 80)}…`);
   return clean;

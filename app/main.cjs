@@ -1793,7 +1793,7 @@ else {
       safeHandler('history-search', (q) => agent.search(q));
       // v0.8.9: pictures Charles generated are kept as files next to the history
       safeHandler('history-image', (name) => {
-        if (typeof name !== 'string' || !/^[0-9a-f]{40}\.(png|jpg|webp)$/.test(name)) throw Error('Geçersiz görsel.');
+        if (typeof name !== 'string' || !/^[0-9a-f]{40}\.(png|jpg|webp|gif)$/.test(name)) throw Error('Geçersiz görsel.');
         const file = path.join(app.getPath('userData'), 'history-images', name);
         const ext = name.split('.').pop();
         return `data:image/${ext === 'jpg' ? 'jpeg' : ext};base64,` + fs.readFileSync(file).toString('base64');
@@ -2748,7 +2748,8 @@ else {
           displayAttachments: (args.attachments || []).map((id) => {
             const a = extras.attachments.get(id);
             if (!a) throw Error('Ek bulunamadı.');
-            let thumbnail = null;
+            let thumbnail = null,
+              preview = null;
             if (a.kind === 'image' || a.kind === 'gif') {
               const img = nativeImage.createFromPath(a.path);
               if (!img.isEmpty()) {
@@ -2760,9 +2761,24 @@ else {
                     height: Math.max(1, Math.round(size.height * ratio)),
                   })
                   .toDataURL();
+                // v0.9.1: a large copy for the full-size view (a click on the picture in the chat),
+                // kept as a file next to the history like Charles' own pictures
+                try {
+                  const { storeImage } = require('./ai/sessions.cjs');
+                  const dir = path.join(app.getPath('userData'), 'history-images');
+                  const big = Math.min(1, 1920 / size.width, 1440 / size.height);
+                  const data =
+                    a.kind === 'gif' && fs.statSync(a.path).size <= 8 * 1024 * 1024
+                      ? 'data:image/gif;base64,' + fs.readFileSync(a.path).toString('base64')
+                      : 'data:image/jpeg;base64,' +
+                        (big < 1 ? img.resize({ width: Math.max(1, Math.round(size.width * big)), height: Math.max(1, Math.round(size.height * big)), quality: 'best' }) : img)
+                          .toJPEG(88)
+                          .toString('base64');
+                  preview = storeImage(dir, data);
+                } catch {}
               }
             }
-            return { name: a.name, kind: a.kind, thumbnail };
+            return { name: a.name, kind: a.kind, thumbnail, preview };
           }),
           memory:
             personal.memory() +

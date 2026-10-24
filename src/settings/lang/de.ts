@@ -1569,5 +1569,6 @@ export const german: Record<string, string> = {
   "Rainy": "Regnerisch",
   "Open Spotify": "Spotify öffnen",
   // v0.8.15
+  "enlarge": "vergrößern",
   "Shrink the island": "Insel verkleinern",
 };

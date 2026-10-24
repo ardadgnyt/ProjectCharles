@@ -5,7 +5,7 @@ import { PAW } from '../vendor/slime/shape';
 // the reading glasses are not drawn on top of it.
 // With eyewear the engine draws Slime's normal eyes (the eyewear sits on them) and this only adds
 // the page and the paws.
-export function drawReading(x: CanvasRenderingContext2D, t: number, amount: number, glasses = true) {
+export function drawReading(x: CanvasRenderingContext2D, t: number, amount: number, glasses = true, paws = true) {
   const eyes = glasses;
   x.save();
   x.globalAlpha = amount;
@@ -75,7 +75,8 @@ export function drawReading(x: CanvasRenderingContext2D, t: number, amount: numb
   x.lineTo(49 - 10 * turn, 49);
   x.lineTo(38, 40);
   x.fill();
-  for (const side of [-1, 1]) {
+  // v0.9.1: no paws on the page while Slime waves (he would have four hands)
+  for (const side of paws ? [-1, 1] : []) {
     const hand = x.createRadialGradient(side * 48 - 3, 65, 1, side * 48, 68, 16);
     hand.addColorStop(0, PAW.light);
     hand.addColorStop(1, PAW.dark);

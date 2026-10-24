@@ -89,7 +89,8 @@ test('chatImages: a link inside the data folder cannot lead outside', { skip: pr
   fs.symlinkSync(path.join(out, 'x.png'), path.join(data, 'file.png'));
   const s = new ModuleStorage(data);
   assert.throws(() => chatImages(['link/x.png'], s), /Geçersiz/);
-  assert.throws(() => chatImages(['file.png'], s), /dosya değil/);
+  // v0.9.1: a link as the file itself is refused by the storage already
+  assert.throws(() => chatImages(['file.png'], s), /Geçersiz|dosya değil/);
   fs.rmSync(data, { recursive: true, force: true });
   fs.rmSync(out, { recursive: true, force: true });
 });

@@ -14,6 +14,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { unzipSync } = require('fflate');
 const { cleanPath } = require('../modules/package.cjs');
+const { crc32, zipChecksums } = require('./zip-check.cjs');
 
 const REPO = 'ardadgnyt/ProjectCharles';
 const API_LATEST = `https://api.github.com/repos/${REPO}/releases/latest`;
@@ -21,7 +22,9 @@ const API_LIST = `https://api.github.com/repos/${REPO}/releases?per_page=20`;
 const PAGE = `https://github.com/${REPO}`;
 const PAGE_LATEST = `${PAGE}/releases/latest`;
 // downloads only from GitHub (the release files are served from githubusercontent.com)
-const HOSTS = /^(github\.com|api\.github\.com|objects\.githubusercontent\.com|release-assets\.githubusercontent\.com|[a-z0-9-]+\.githubusercontent\.com)$/i;
+// v0.9.1: only GitHub's own release hosts (not raw.githubusercontent.com, which serves any
+// repository's files), on the default port
+const HOSTS = /^(github\.com|api\.github\.com|objects\.githubusercontent\.com|release-assets\.githubusercontent\.com|github-releases\.githubusercontent\.com)$/i;
 const LIMITS = { zipBytes: 400 * 1024 * 1024, unpackedBytes: 1536 * 1024 * 1024, files: 40000, notes: 20000 };
 // never written by an update, even if a zip contains them
 const PROTECTED_TOP = new Set(['_update', '.git', 'charles-install.json', 'charles-creator.json', '.env', 'companion.json', 'personal.json', 'charles-history.json', 'preferences.json']);
@@ -174,7 +177,7 @@ async function check({ current, fetchImpl = globalThis.fetch }) {
 function allowedUrl(u) {
   try {
     const url = new URL(u);
-    return url.protocol === 'https:' && HOSTS.test(url.hostname) && !url.username && !url.password;
+    return url.protocol === 'https:' && HOSTS.test(url.hostname) && !url.port && !url.username && !url.password;
   } catch {
     return false;
   }
@@ -183,7 +186,26 @@ function allowedUrl(u) {
 /** Streams a GitHub release file to `file`; at most `maxBytes`. → bytes written */
 async function download(url, file, { fetchImpl = globalThis.fetch, maxBytes = LIMITS.zipBytes, onProgress = () => {}, signal } = {}) {
   if (!allowedUrl(url)) fail('Güncelleme dosyası GitHub dışından indirilmek istendi; durduruldu.', String(url).slice(0, 120));
-  const res = await fetchImpl(url, { redirect: 'follow', headers: { 'User-Agent': 'ProjectCharles-updater', Accept: 'application/octet-stream' }, signal });
+  // v0.9.1: redirects are followed one by one, each target checked before it is asked
+  let current = String(url),
+    res = null;
+  for (let hop = 0; ; hop++) {
+    res = await fetchImpl(current, { redirect: 'manual', headers: { 'User-Agent': 'ProjectCharles-updater', Accept: 'application/octet-stream' }, signal });
+    if (![301, 302, 303, 307, 308].includes(res.status)) break;
+    if (hop >= 8) fail('Güncelleme dosyası çok fazla yönlendirildi; durduruldu.');
+    let next = '';
+    try {
+      next = new URL(res.headers.get('location') || '', current).toString();
+    } catch {}
+    if (!allowedUrl(next)) fail('Güncelleme dosyası GitHub dışından indirilmek istendi; durduruldu.', next.slice(0, 120));
+    try {
+      await res.body?.cancel?.();
+    } catch {}
+    current = next;
+  }
+  // a fetch that cannot hand over redirects (opaque answer): the old way, final target checked
+  if (res.type === 'opaqueredirect' || res.status === 0)
+    res = await fetchImpl(current, { redirect: 'follow', headers: { 'User-Agent': 'ProjectCharles-updater', Accept: 'application/octet-stream' }, signal });
   if (res.url && !allowedUrl(res.url)) fail('Güncelleme dosyası GitHub dışından indirilmek istendi; durduruldu.', String(res.url).slice(0, 120));
   if (res.status === 404) fail('Bu sürüm için güncelleme dosyası (charles-update-….zip) yayında yok. GitHub sayfasından indirebilirsin.', 'HTTP 404');
   if (!res.ok || !res.body) fail('Güncelleme dosyası indirilemedi.', 'HTTP ' + res.status);
@@ -257,9 +279,15 @@ function readUpdateZip(bytes, { name, expectVersion } = {}) {
     });
   } catch (e) {
     if (e instanceof UpdateError) throw e;
-    if (/zip-slip|mutlak yol|ters bölü|geçersiz|uzun bir dosya yolu|adı olmayan/i.test(e.message)) fail('Güncelleme paketinde güvenli olmayan bir dosya yolu var; kurulmadı.', e.message);
+    if (/zip-slip|mutlak yol|ters bölü|geçersiz|ayrılmış|uzun bir dosya yolu|adı olmayan/i.test(e.message)) fail('Güncelleme paketinde güvenli olmayan bir dosya yolu var; kurulmadı.', e.message);
     fail('Güncelleme dosyası açılamadı (bozuk .zip).', e.message);
   }
+  // v0.9.1: every file's checksum is compared with the zip's own record (a damaged file is
+  // never unpacked as if it were whole)
+  const crcs = zipChecksums(bytes);
+  if (crcs)
+    for (const [n, d] of Object.entries(raw))
+      if (crcs.has(n) && crc32(d) !== crcs.get(n)) fail('Güncelleme dosyası bozuk (sağlama toplamı uyuşmuyor); kurulmadı.', n);
   let files = new Map(Object.entries(raw).map(([n, d]) => [cleanPath(n), d]));
   // a zip whose files all sit in one top folder ("charles-update-0.8.1/package.json")
   if (!files.has('package.json')) {

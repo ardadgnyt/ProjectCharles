@@ -4,6 +4,21 @@ Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özell
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.1 Beta — 24 Ekim 2026
+
+- **Selamlama:** Charles kod yazarken, terminalde çalışırken ya da okurken selam verdiğinde dört eli oluyordu. Selam sırasında klavyedeki ve kitaptaki eller gizleniyor; el sallayan iki el kalıyor.
+- **Kart rafı:** küçük adadaki sohbet geçmişi tuşu kaldırıldı (geçmiş sohbette duruyor).
+- **Panel (Çalışma alanı):** Charles kartında Slime yine görünüyor. Panel açılınca Slime kart rafındaki yerine geri taşınıyor ve kart boş kalıyordu.
+- **Kota uyarısı:** Codex’in kullanım hakkı varken “%0 kaldı” uyarısı gelebiliyordu. Uyarı artık yalnızca Charles kotayı yeniden okuyup gerçekten azaldığını görürse geliyor. Sıfırlanma zamanı geçmiş eski bir pencere için uyarı yok. Codex’te kredi varsa, 5 saatlik hak dolsa bile Codex kredilerle devam edebildiği için ne uyarı geliyor ne de sohbet engelleniyor.
+- **Fotoğraflar büyüyor:** sohbete eklediğin fotoğrafa tıklayınca (ya da Enter’a basınca) büyük önizleme açılıyor; tıklayınca veya Esc ile kapanıyor. Fotoğrafın büyük bir kopyası Charles’ın ürettiği görseller gibi geçmişin yanında saklanıyor. Daha önce gönderilmiş fotoğraflar küçük kopyalarıyla büyütülüyor.
+- **Test planından düzeltmeler:**
+  - **Güncelleme ve arşiv bütünlüğü:** güncelleme paketi ve dönüştürücünün “çıkar” işlemi artık her dosyanın sağlama toplamını (CRC) kontrol ediyor. Sıkıştırılmamış bir dosyadaki bozuk bayt ya da boyutu yanlış yazılmış bir girdi eskiden fark edilmiyordu.
+  - **Windows’a özel adlar:** güncelleme ve modül paketlerinde Windows’un ayrılmış aygıt adları (CON, NUL, COM1…) reddediliyor; dönüştürücü “:” ve benzeri Windows’ta dosya olamayan adları çıkarmıyor.
+  - **Güncelleme indirme kaynakları:** güncelleme yalnızca GitHub’ın kendi yayın sunucularından, varsayılan porttan indiriliyor (raw.githubusercontent.com artık kabul edilmiyor). Her yönlendirme, istenmeden önce tek tek denetleniyor.
+  - **Modül deposu:** dosyanın kendisi bir bağlantıysa (symlink) okunmuyor; eskiden yalnızca klasörler denetleniyordu.
+  - **Arşiv sınırı:** bellekte açıldığı için dönüştürücüde çıkarılabilecek arşiv sınırı 4 GB’tan 1 GB’a indi.
+  - **Kullanıcı kılavuzu:** ada bölümü güncel tasarıma göre yeniden yazıldı; Spotify sorun giderme satırı eklendi.
+
 ## v0.9.0 Beta — 24 Ekim 2026
 
 - **Spotify v0.8.11’deki gibi:** Spotify’a bağlanan kod v0.8.11’e kadar sorunsuz çalışan sürümüne geri döndü. v0.8.13–v0.8.15’te eklenen pencere başlığından okuma, yeniden başlatma ve kısmi sorgu yolları kaldırıldı. Spotify yine 3 saniyede bir soruluyor. v0.8.12’de bu süre, şarkı çalarken 1 saniyeye inmişti; kayıtlara göre Windows’un medya bağlantısı bundan yarım saat sonra takıldı ve bir daha düzelmedi. Çubuk iki sorgu arasında akıcı ilerlemeye devam ediyor.
