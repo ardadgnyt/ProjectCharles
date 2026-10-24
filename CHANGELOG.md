@@ -4,6 +4,13 @@ Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özell
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.8.15 Beta — 24 Ekim 2026
+
+- **Spotify çubuğu ilerliyor:** Windows şarkının adını geç verdiğinde ya da hiç vermediğinde Charles medya bağlantısını yeniden başlatıp bir dakika boyunca yalnızca Spotify penceresine bakıyordu. O sırada şarkının süresi ve konumu bilinmediği için çubuk 0’da kalıyordu. Artık konum, süre ve çalma durumu her seferinde doğrudan okunuyor. Şarkının adı ve kapağı yalnızca şarkı değişince ya da 20 saniyede bir isteniyor; gecikirse ad Spotify penceresinden alınıyor ve çubuk ilerlemeye devam ediyor. Kapak resmi okunduktan sonra kapatılıyor (açık kalan akışlar Spotify’ın medya oturumunu tıkayabiliyordu). Süre hiç bilinmiyorsa 0’da duran bir çubuk yerine çubuk gizleniyor.
+- **Spotify daha sık bulunuyor:** Spotify bildirim alanına (tepsiye) küçültülmüşken de penceresinden çalan şarkı okunuyor. Medya bağlantısının nerede takıldığı `logs/perf.log` dosyasına yazılıyor.
+- **Adacık tıklamaları:** küçük adada (kart rafı) krem çizgi adayı en küçük hâline getiriyor, boş bir yere tıklamak büyük adayı (sohbet) açıyor. Büyük adada krem çizgi en küçük hâle, boş bir yere tıklamak küçük adaya götürüyor.
+- **Hava durumu:** 5 günlük paneldeki gün kartları küçüldü ve balonun alt kenarına değmiyor. Yağış olasılığı hava simgesinin yanında (yağış yoksa gösterilmiyor).
+
 ## v0.8.14 Beta — 24 Ekim 2026
 
 - **Spotify yeniden algılanıyor:** Spotify açık ve müzik çalarken Charles bunu göremiyordu. Windows’un medya bağlantısında bir istek takılınca sonraki her istek de 3 saniye bekleyip boş dönüyordu. Artık takılan bağlantı kendini yeniden başlatıyor. Windows Spotify’ı bildirmezse (Spotify’ın bir ayarı bunu kapatabiliyor) ya da bağlantı yanıt vermezse, Spotify penceresinin başlığından çalan şarkı okunuyor; oynat, duraklat, ileri ve geri medya tuşlarıyla çalışıyor. Birden çok Spotify oturumu varsa çalan seçiliyor. Şarkının adı geç gelse bile çalma durumu hemen görünüyor.

@@ -276,12 +276,12 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     .catch(() => {});
   page1.append(el('div', 'shelf-col', usageCard, weatherCard), convertCard, charlesCard, music.card);
 
-  // v0.8.14: a click on an empty part of the shelf (or of its top bar) closes the island (the
-  // cream bar below opens the chat); in the chat it goes back to the shelf (the cream bar closes)
+  // v0.8.15: a click on an empty part of the shelf (or of its top bar) opens the chat (the cream
+  // bar below closes the island); in the chat it goes back to the shelf (the cream bar closes)
   const empty = (t: HTMLElement) => !t.closest('button, a, input, select, textarea, .card, .shelf-sheet, #pet, [role="button"]');
   shelf.addEventListener('click', (e) => {
     if (view === 'shelf' && !onPath(e, 'button, a, input, select, textarea, .card, .shelf-sheet, #pet, [role="button"], dialog'))
-      void attempt(() => api.islandView('notch'));
+      void attempt(() => api.islandView('chat'));
   });
   header.addEventListener(
     'pointerdown',
@@ -294,9 +294,9 @@ export function islandShelf({ api, notice, attempt }: Deps) {
         return;
       }
       if (view !== 'shelf' || e.button !== 0 || !empty(t)) return;
-      // on the shelf an empty part of the top bar closes the island
+      // on the shelf an empty part of the top bar opens the chat
       e.stopImmediatePropagation();
-      void attempt(() => api.islandView('notch'));
+      void attempt(() => api.islandView('chat'));
     },
     true,
   );
@@ -387,9 +387,14 @@ export function islandShelf({ api, notice, attempt }: Deps) {
             'div',
             'weather-day' + (i === 0 ? ' today' : ''),
             el('small', 'weather-day-name', name),
-            el('span', 'weather-day-emoji', d.emoji || '🌤️'),
+            // v0.8.15: the rain chance next to the sky (smaller cards, room below them)
+            el(
+              'span',
+              'weather-day-sky',
+              el('span', 'weather-day-emoji', d.emoji || '🌤️'),
+              el('small', 'weather-day-rain' + (Number(d.rain) >= 40 ? ' wet' : ''), Number.isFinite(d.rain) && d.rain > 0 ? '%' + d.rain : ''),
+            ),
             el('span', 'weather-day-temps', el('b', '', deg(d.max)), el('small', '', deg(d.min))),
-            el('small', 'weather-day-rain' + (Number(d.rain) >= 40 ? ' wet' : ''), Number.isFinite(d.rain) ? '%' + d.rain : ''),
           );
           day.setAttribute('aria-label', `${name}: ${d.text || ''}, ${deg(d.max)} / ${deg(d.min)}`);
           days.append(day);
@@ -435,7 +440,7 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     const active = document.activeElement as HTMLElement | null;
     if (active && active.closest('#island-bar')) active.blur();
     const grip = document.getElementById('resize-handle');
-    grip?.setAttribute('aria-label', next === 'chat' ? 'Panel yüksekliği · sürükle' : 'Sohbeti aç');
+    grip?.setAttribute('aria-label', next === 'chat' ? 'Panel yüksekliği · sürükle' : next === 'shelf' ? 'Adayı küçült' : 'Sohbeti aç');
     grip?.setAttribute('role', next === 'chat' ? 'separator' : 'button');
     // v0.8.11: a sheet (usage, a finished conversion) does not stay open once the island closes
     if (next !== 'shelf' && closeSheet && (sheet.dataset.kind === 'usage' || !converter.running())) closeSheet();
@@ -570,6 +575,9 @@ function musicCard(attempt: Deps['attempt'], api: any) {
     const active = !!r.ok && (r.state === 'Playing' || r.state === 'Paused');
     const playing = !!r.ok && r.state === 'Playing';
     card.classList.toggle('idle', !active);
+    // v0.8.15: no length known (Spotify read from its window): no progress bar stuck at 0:00
+    card.classList.toggle('no-time', active && !(r.duration > 0));
+    document.body.classList.toggle('music-no-time', active && !(r.duration > 0));
     if (active && r.title) {
       lastTitle = r.title + (r.artist ? ' · ' + r.artist : '');
       try {

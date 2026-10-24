@@ -1,0 +1,60 @@
+/* ==========================================================================================
+   23 · v0.8.15 — smaller day cards in the weather sheet, no progress bar without a length
+   ========================================================================================== */
+
+/* --- Weather: the day cards no longer reach the bottom edge of the sheet ------------------ */
+#shelf .shelf-sheet[data-kind='weather'] {
+  padding: 6px 10px 10px;
+}
+#shelf .weather-sheet {
+  justify-content: flex-start;
+  gap: 4px;
+}
+#shelf .weather-days {
+  gap: 5px;
+  margin-top: 1px;
+}
+#shelf .weather-day {
+  padding: 2px 0 2px;
+  border-radius: 9px;
+}
+#shelf .weather-day-name {
+  font-size: 9.5px;
+  line-height: 12px;
+}
+#shelf .weather-day-emoji {
+  font-size: 13px;
+  line-height: 16px;
+}
+#shelf .weather-day-temps {
+  line-height: 14px;
+}
+#shelf .weather-day-temps b {
+  font-size: 11px;
+}
+#shelf .weather-day-temps small {
+  font-size: 9.5px;
+}
+#shelf .weather-day-sky {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 17px;
+}
+#shelf .weather-day-rain {
+  min-height: 0;
+  font-size: 8.5px;
+  line-height: 10px;
+}
+#shelf .weather-day-rain:empty {
+  display: none;
+}
+
+/* --- Music: Spotify read from its window has no length: no bar stuck at 0:00 -------------- */
+#shelf .card-music.no-time .music-progress {
+  visibility: hidden;
+}
+body.music-no-time #notch .notch-progress {
+  visibility: hidden;
+}

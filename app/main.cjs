@@ -1810,9 +1810,18 @@ else {
         }
         return panelPinned;
       });
+      let mediaNote = '';
       safeHandler('media-control', async (action) => {
         require('./system/media-request.cjs').mediaRequest(action);
-        return desktop.media(action);
+        const r = await desktop.media(action);
+        // v0.8.15: which part of Windows' media connection hung (or that Spotify's window was
+        // read instead) goes to logs/perf.log once per change, for the next fix
+        const note = r?.restart || r?.reason === 'timeout' ? 'timeout at ' + (r.stage || '?') : r?.fallback ? 'window title' : r?.ok ? 'session' : String(r?.reason || '');
+        if (note !== mediaNote) {
+          mediaNote = note;
+          perfLog('media', note);
+        }
+        return r;
       });
       safeHandler('boot', () => ({
         onboarding: !personal.data.onboarded,

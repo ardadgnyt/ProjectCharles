@@ -181,6 +181,9 @@ export function companionUI(
   // v0.8.10: on the notch and the card shelf the cream bar opens the chat (the panel grows
   // down); in the chat it still sets the panel height by dragging.
   const opensChat = () => !!document.body.dataset.view && document.body.dataset.view !== 'chat';
+  // v0.8.15: the cream bar: on the shelf it closes the island, in the small notch it opens the
+  // chat, in the chat a click closes and a drag resizes
+  const barTarget = () => (document.body.dataset.view === 'shelf' ? 'notch' : 'chat');
   let opening = false;
   grip.addEventListener('pointerdown', (e) => {
     if (opensChat()) {
@@ -207,7 +210,8 @@ export function companionUI(
     if (opening) {
       opening = false;
       e.stopPropagation();
-      void attempt(() => api.islandView('chat'));
+      const target = barTarget();
+      void attempt(() => api.islandView(target));
       return;
     }
     if (!dragging) return;
@@ -229,7 +233,8 @@ export function companionUI(
   grip.addEventListener('keydown', (e) => {
     if (opensChat() && (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown')) {
       e.preventDefault();
-      void attempt(() => api.islandView('chat'));
+      const target = barTarget();
+      void attempt(() => api.islandView(target));
       return;
     }
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {

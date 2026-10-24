@@ -78,6 +78,8 @@ class MediaWorker {
     this.start();
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
+        // v0.8.15: the worker itself did not answer: Spotify's window for a minute, then again
+        this.windowOnlyUntil = Date.now() + 60000;
         this.stop();
       }, 8000);
       this.waiter = { resolve, reject, timer };

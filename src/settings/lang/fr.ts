@@ -1568,4 +1568,6 @@ export const french: Record<string, string> = {
   "Snowy": "Neigeux",
   "Rainy": "Pluvieux",
   "Open Spotify": "Ouvrir Spotify",
+  // v0.8.15
+  "Shrink the island": "Réduire l’île",
 };

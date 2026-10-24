@@ -68,13 +68,13 @@ test('media worker: a hung Windows media call starts a fresh worker, then reads 
 
 test('media worker script: timeouts restart it, Spotify’s window answers when sessions fail', () => {
   const ps = read('app/system/media-worker.ps1');
-  assert.match(ps, /\$script:restart=\$true;throw \[System\.TimeoutException\]/);
+  assert.match(ps, /\$script:restart=\$true\};throw \[System\.TimeoutException\]/);
   assert.match(ps, /if\(\$script:restart\)\{\[Console\]::Out\.Flush\(\);exit 0\}/);
   assert.match(ps, /function Window-Status \{/);
   assert.match(ps, /if\(-not \$media\)\{\[Console\]::WriteLine\(\(Window-Answer \$action\)\);continue\}/);
   assert.match(ps, /if\(\$request\.window -eq \$true\)/);
   // the song's name may come late: the session still counts as playing
-  assert.match(ps, /TryGetMediaPropertiesAsync\(\)\) \$propertyType 2500/);
+  assert.match(ps, /TryGetMediaPropertiesAsync\(\)\) \$propertyType \d+ -Optional/);
   // several Spotify sessions: the one that plays
   assert.match(ps, /PlaybackStatus\.ToString\(\) -eq 'Playing'\)\{return \$s\}/);
 });
@@ -128,12 +128,9 @@ test('weather: five days from Open-Meteo, in a sheet the size of AI usage', asyn
 test('clicks: the chat goes back to the shelf, the shelf closes the island; the cream bar stays', () => {
   const shelf = read('src/island/shelf.ts');
   assert.match(shelf, /view === 'chat' && e\.button === 0 && empty\(t\) && !t\.closest\('\.character-center'\)\) \{\s*e\.stopImmediatePropagation\(\);\s*void attempt\(\(\) => api\.islandView\('shelf'\)\);/);
-  assert.match(shelf, /if \(view === 'shelf' && !onPath\(e, [^)]*\)\)\s*void attempt\(\(\) => api\.islandView\('notch'\)\);/);
-  assert.match(shelf, /on the shelf an empty part of the top bar closes the island\s*e\.stopImmediatePropagation\(\);\s*void attempt\(\(\) => api\.islandView\('notch'\)\);/);
-  // the cream bar: in the chat it closes, on the shelf it opens the chat (unchanged)
-  const companion = read('src/island/companion.ts');
-  assert.match(companion, /api\.islandView\('notch'\)/);
-  assert.match(companion, /api\.islandView\('chat'\)/);
+  // v0.8.15 changed the shelf again (see test/v0815.test.cjs)
+  assert.match(shelf, /if \(view === 'shelf' && !onPath\(e, [^)]*\)\)\s*void attempt/);
+  assert.match(read('src/island/companion.ts'), /api\.islandView\('notch'\)/);
 });
 
 test('chat: Slime a little higher with room above "Charles"', () => {
@@ -145,7 +142,7 @@ test('chat: Slime a little higher with room above "Charles"', () => {
 test('new texts are translated', () => {
   const en = read('src/settings/i18n-0814.ts');
   for (const s of ['5 günlük tahmin', 'Hissedilen', 'Bugün', 'Yarın', 'Şehri değiştir']) assert.ok(en.includes(`"${s}"`), s);
-  assert.match(read('src/settings/i18n.ts'), /english0811, english0814\)/);
+  assert.match(read('src/settings/i18n.ts'), /english0811, english0814/);
   for (const lang of ['de', 'fr', 'es', 'zh']) assert.match(read(`src/settings/lang/${lang}.ts`), /"Feels like": /, lang);
 });
 
@@ -164,10 +161,7 @@ test('module notices: no copies, close by themselves, a click opens the module, 
   assert.match(read('public/bubble.js'), /\(item\.module \? ' module' : ''\)/);
 });
 
-test('version 0.8.14', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.8.14-beta.1');
-  assert.match(read('public/index.html'), /v0\.8\.14 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.8\.14 Beta'/);
+test('version 0.8.14 is in the changelog', () => {
   assert.match(read('CHANGELOG.md'), /## v0\.8\.14 Beta/);
 });
 
