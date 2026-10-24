@@ -649,3 +649,14 @@ body {
   height: 26px;
   opacity: 0.55;
 }
+
+/* v0.8.14: a module's notice: a click opens the module, no "Charles explains" hint */
+.bubble.module .reason::after {
+  content: none;
+}
+.bubble.module .reason {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}

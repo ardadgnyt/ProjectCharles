@@ -297,7 +297,7 @@ function createModuleHost(o) {
             registry.recheck(id);
             win.webContents.reloadIgnoringCache();
           } catch (e) {
-            deps.notify?.(registry.get(id) ? id : 'Modül', 'Geliştirici modu: ' + e.message);
+            deps.notify?.(registry.get(id) ? id : 'Modül', 'Geliştirici modu: ' + e.message, id);
           }
         }, 350);
       });
@@ -424,7 +424,7 @@ function createModuleHost(o) {
         try {
           name = registry.manifest(id).name;
         } catch {}
-        deps.notify(name, str(args?.text, 'text', 300));
+        deps.notify(name, str(args?.text, 'text', 300), id);
         return true;
       }
       default:

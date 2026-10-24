@@ -25,7 +25,8 @@ function element(tag, className, ...content) {
 function mailCard(item) {
   const calendar = String(item.kind).includes('calendar');
   const charles = item.kind === 'charles';
-  const card = element('div', 'bubble' + (charles ? ' charles' : '') + (item.tone === 'sweat' ? ' sweat' : ''));
+  // v0.8.14: a module's notice opens that module (no "Charles anlatsın" hint)
+  const card = element('div', 'bubble' + (charles ? ' charles' : '') + (item.module ? ' module' : '') + (item.tone === 'sweat' ? ' sweat' : ''));
   card.tabIndex = 0;
   card.setAttribute('role', 'button');
   card.setAttribute(

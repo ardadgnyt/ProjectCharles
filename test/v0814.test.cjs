@@ -149,6 +149,21 @@ test('new texts are translated', () => {
   for (const lang of ['de', 'fr', 'es', 'zh']) assert.match(read(`src/settings/lang/${lang}.ts`), /"Feels like": /, lang);
 });
 
+test('module notices: no copies, close by themselves, a click opens the module, the card window comes up under the pointer', () => {
+  const main = read('app/main.cjs');
+  assert.match(main, /notify: \(title, text, moduleId\) => \{/);
+  assert.match(main, /i\.module === \(moduleId \|\| null\) && i\.reason === text\) mailBubble\.remove\(i\.id\);/);
+  assert.match(main, /ttl: 60000,/);
+  assert.match(main, /moduleHost\.open\(String\(item\.module\)\);/);
+  assert.match(main, /mailBubble\?\.hover\(point\);/);
+  const host = read('app/modules/host.cjs');
+  assert.match(host, /deps\.notify\(name, str\(args\?\.text, 'text', 300\), id\);/);
+  const mb = read('app/plugins/mail-bubble.cjs');
+  assert.match(mb, /if \(ttl > 0\) setTimeout\(\(\) => this\.remove\(item\.id\)/);
+  assert.match(mb, /hover\(point\) \{/);
+  assert.match(read('public/bubble.js'), /\(item\.module \? ' module' : ''\)/);
+});
+
 test('version 0.8.14', () => {
   assert.equal(JSON.parse(read('package.json')).version, '0.8.14-beta.1');
   assert.match(read('public/index.html'), /v0\.8\.14 Beta/);
@@ -156,3 +171,31 @@ test('version 0.8.14', () => {
   assert.match(read('CHANGELOG.md'), /## v0\.8\.14 Beta/);
 });
 
+
+test('module notice closes by itself (ttl); a removed card is not drawn again', async () => {
+  const electron = { BrowserWindow: class {}, ipcMain: { on() {}, handle() {} }, screen: {} };
+  const load = Module._load;
+  Module._load = function (request, ...rest) {
+    if (request === 'electron') return electron;
+    return load.call(this, request, ...rest);
+  };
+  let b;
+  try {
+    const file = require.resolve('../app/plugins/mail-bubble.cjs');
+    delete require.cache[file];
+    const { MailBubble } = require(file);
+    b = new MailBubble({ anchor: () => null, onOpen: () => {} });
+  } finally {
+    Module._load = load;
+  }
+  let renders = 0;
+  b.render = async () => renders++;
+  b.add({ id: 'module|1', kind: 'charles', module: 'study', reason: 'Mola bitti', ttl: 20 });
+  assert.equal(b.items.length, 1);
+  await new Promise((r) => setTimeout(r, 60));
+  assert.equal(b.items.length, 0);
+  const before = renders;
+  b.remove('module|1');
+  assert.equal(renders, before, 'removing a card that is gone does not redraw');
+  assert.equal(b.hover({ x: 0, y: 0 }), undefined);
+});

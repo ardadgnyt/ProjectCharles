@@ -12,6 +12,7 @@ Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özell
 - **Büyük adada (sohbet) boş yere tıklamak** adayı kapatmak yerine kart rafına döndürüyor. Aşağıdaki krem çubuk adayı tamamen kapatmaya devam ediyor.
 - **Kart rafında boş yere tıklamak** adayı en küçük hâline (müzik çalmıyorsa ince şeride) döndürüyor. Krem çubuk sohbeti açmaya devam ediyor.
 - **Sohbette Charles** biraz daha yukarıda; Slime ile “Charles” yazısı arasında boşluk var.
+- **Modül bildirimleri kapanıyor:** Study with Charles gibi modüllerden gelen bildirimler × ile kapanmıyordu. Fare bir bildirimin üzerine geldiğinde bildirim penceresi adanın ve diğer pencerelerin üstüne çıkarılıyor, böylece tıklama ona ulaşıyor. Modül bildirimleri bir dakika sonra kendiliğinden kapanıyor; aynı modülün aynı mesajı üst üste birikmiyor (birini kapatınca altından kopyası çıkmıyor). Bildirime tıklamak o modülün penceresini açıyor; altında artık “Charles anlatsın” yazmıyor ve mesaj iki satıra sığıyor.
 - **Hata düzeltmeleri:** müzik kartında oynat/duraklat tuşuna basınca tıklama kartın kendisine ve rafa da ulaşıp adayı kapatabiliyordu; tıklamanın nereden geldiği artık tuşun simgesi yeniden çizilse bile doğru anlaşılıyor. Eski bir ayar dosyasında ses düzeyi eksikse sesler bozulmuyor.
 
 ## v0.8.13 Beta — 24 Ekim 2026

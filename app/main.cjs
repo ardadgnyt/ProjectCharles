@@ -1190,7 +1190,15 @@ else {
           });
           if (p) proposals.add(p);
         },
-        focus: () => expand(true, true),
+        // v0.8.14: a module's notice opens that module; Charles' own ones open the panel
+        focus: (item) => {
+          if (item?.module && moduleHost)
+            try {
+              moduleHost.open(String(item.module));
+              return;
+            } catch {}
+          expand(true, true);
+        },
       });
       // Charles' own questions in the chat (calendar suggestions). When the panel is small
       // the question also appears as a bubble under the island; a click opens the panel.
@@ -2820,8 +2828,23 @@ else {
           look: () => slimeLook(),
           react: (name) => win.webContents.send('module-react', name),
           wear: (accessories) => win.webContents.send('module-wear', accessories),
-          notify: (title, text) =>
-            mailBubble?.add({ id: 'module|' + Date.now() + '|' + Math.random().toString(36).slice(2, 6), kind: 'charles', icon: '🧩', title: String(title).slice(0, 60), reason: text }),
+          // v0.8.14: a module's notice: the same text from the same module is not stacked again
+          // (closing one no longer uncovers its copy), it closes by itself after a minute, and a
+          // click opens that module's window
+          notify: (title, text, moduleId) => {
+            if (!mailBubble) return;
+            for (const i of [...mailBubble.items])
+              if (i.kind === 'charles' && i.module === (moduleId || null) && i.reason === text) mailBubble.remove(i.id);
+            mailBubble.add({
+              id: 'module|' + Date.now() + '|' + Math.random().toString(36).slice(2, 6),
+              kind: 'charles',
+              icon: '🧩',
+              module: moduleId || null,
+              title: String(title).slice(0, 60),
+              reason: text,
+              ttl: 60000,
+            });
+          },
           icon: () => {
             const saved = path.join(app.getPath('userData'), 'app-icon.png');
             return nativeImage.createFromPath(fs.existsSync(saved) ? saved : path.join(root, 'dist/icon.png'));
@@ -3272,6 +3295,9 @@ else {
           point.y >= visible.y &&
           point.y < visible.y + visible.height &&
           !mailBubble?.contains(point);
+        // v0.8.14: the pointer on a notification: the card window is raised above the island
+        // (and above any window that came up since), so the press reaches it
+        mailBubble?.hover(point);
         // Transparent space belongs to the desktop, not to the larger native surface.
         // The workspace window is a normal window: it always takes the pointer.
         const ignore = workspace ? false : !inside;

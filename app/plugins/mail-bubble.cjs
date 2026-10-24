@@ -70,6 +70,9 @@ class MailBubble {
     if (!item?.id || this.items.some((i) => i.id === item.id) || this.dismissed.has(item.id)) return;
     this.items.unshift({ ...item, at: Date.now() });
     this.items = this.items.slice(0, 12);
+    // v0.8.14: notices with a lifetime (a module's) close by themselves
+    const ttl = Number(item.ttl);
+    if (ttl > 0) setTimeout(() => this.remove(item.id), Math.min(ttl, 10 * 60000)).unref?.();
     void this.render();
   }
 
@@ -91,6 +94,7 @@ class MailBubble {
   }
 
   remove(id) {
+    if (!this.items.some((i) => i.id === id)) return;
     this.items = this.items.filter((i) => i.id !== id);
     void this.render();
   }
@@ -193,6 +197,20 @@ class MailBubble {
   raise() {
     const w = this.window;
     if (w && !w.isDestroyed() && w.isVisible()) w.moveTop();
+  }
+
+  /** v0.8.14: raises the card window once each time the pointer comes onto it. */
+  hover(point) {
+    const over = this.contains(point);
+    if (over && !this.hovered) {
+      const w = this.window;
+      try {
+        w.setIgnoreMouseEvents(false);
+        w.setAlwaysOnTop(true, 'screen-saver');
+        w.moveTop();
+      } catch {}
+    }
+    this.hovered = over;
   }
 
   /** v0.8.13: whether a screen point is over the visible cards. */
