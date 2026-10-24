@@ -8,9 +8,7 @@ class MediaWorker {
     this.child = null;
     this.waiter = null;
     this.queue = Promise.resolve();
-    // v0.8.14: after Windows' media sessions hung, Spotify's window is read for a minute instead
-    // (a fresh PowerShell for every poll would cost more than it is worth)
-    this.windowOnlyUntil = 0;
+    this.misses = 0;
   }
   request(action) {
     try {
@@ -18,7 +16,6 @@ class MediaWorker {
     } catch (e) {
       return Promise.reject(e);
     }
-    if (Date.now() < this.windowOnlyUntil) action = { ...action, window: true };
     const task = this.queue.then(() => this.send(action));
     this.queue = task.catch(() => {});
     return task;
@@ -35,9 +32,6 @@ class MediaWorker {
         '-NoLogo',
         '-NoProfile',
         '-NonInteractive',
-        // v0.8.14: Windows' media calls are awaited from a multithreaded apartment; in the
-        // default single-threaded one an answer could wait behind the blocked thread
-        '-Mta',
         '-Command',
         fs.readFileSync(path.join(__dirname, 'media-worker.ps1'), 'utf8'),
       ],
@@ -52,10 +46,15 @@ class MediaWorker {
         const w = this.waiter;
         this.waiter = null;
         clearTimeout(w.timer);
-        // v0.8.14: a Windows media call hung: this worker ends, the next request starts a new one
-        if (value && value.restart) {
-          this.windowOnlyUntil = Date.now() + 60000;
-          this.retire(child);
+        // v0.9.0: a worker that keeps answering "unavailable" may be stuck inside Windows: after
+        // two such answers in a row it is replaced by a fresh one for the next request
+        this.misses = value && value.reason === 'media-unavailable' ? this.misses + 1 : 0;
+        if (this.misses >= 2) {
+          this.misses = 0;
+          this.child = null;
+          try {
+            child.kill();
+          } catch {}
         }
         w.resolve(value);
       } catch {}
@@ -78,25 +77,11 @@ class MediaWorker {
     this.start();
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
-        // v0.8.15: the worker itself did not answer: Spotify's window for a minute, then again
-        this.windowOnlyUntil = Date.now() + 60000;
         this.stop();
       }, 8000);
       this.waiter = { resolve, reject, timer };
       this.child.stdin.write(JSON.stringify(action) + '\n');
     });
-  }
-  retire(child) {
-    if (this.child !== child) return;
-    this.child = null;
-    try {
-      child.stdin.end();
-    } catch {}
-    setTimeout(() => {
-      try {
-        child.kill();
-      } catch {}
-    }, 1500).unref?.();
   }
   stop() {
     const c = this.child;

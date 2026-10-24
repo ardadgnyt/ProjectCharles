@@ -4,6 +4,13 @@ Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özell
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.0 Beta — 24 Ekim 2026
+
+- **Spotify v0.8.11’deki gibi:** Spotify’a bağlanan kod v0.8.11’e kadar sorunsuz çalışan sürümüne geri döndü. v0.8.13–v0.8.15’te eklenen pencere başlığından okuma, yeniden başlatma ve kısmi sorgu yolları kaldırıldı. Spotify yine 3 saniyede bir soruluyor. v0.8.12’de bu süre, şarkı çalarken 1 saniyeye inmişti; kayıtlara göre Windows’un medya bağlantısı bundan yarım saat sonra takıldı ve bir daha düzelmedi. Çubuk iki sorgu arasında akıcı ilerlemeye devam ediyor.
+- Eski koda yalnızca üç koruma eklendi. Windows’un medya oturum yöneticisi her sorguda baştan istenmiyor; bir kez alınıp kullanılıyor. v0.8.12 bunu saniyede bir yeniden istiyordu ve bağlantı yarım saat sonra takıldı. Kapak resmi okunduktan sonra kapatılıyor. Art arda iki kez “kullanılamıyor” yanıtı veren medya işlemi kapatılıp yenisi başlatılıyor; eskiden takılan işlem sonsuza kadar öyle kalıyordu.
+- **Görev çubuğu:** Charles açıkken görev çubuğunda zaman zaman bir düğme beliriyor ve kalıyordu. Ada, masaüstündeki Slime ve bildirimler artık görev çubuğunda görünmüyor; Windows düğmeyi geri getirirse (pencere yeniden gösterildiğinde ya da odak aldığında) hemen yeniden kaldırılıyor. Görev çubuğunda yalnızca uygulama penceresi (Çalışma alanı) açıkken Charles görünüyor.
+- **Önemli:** Windows’un medya bağlantısı bir kez takılınca bilgisayardaki tüm uygulamalar için takılı kalabiliyor. Bu bilgisayarda bağlantı 23 Ekim 22:04’ten beri takılı: o zamandan beri yeni başlatılan medya işlemleri de ilk adımda yanıt alamıyor. Güncellemeden sonra bilgisayarı bir kez yeniden başlat; takılı bağlantıyı yalnızca bu sıfırlar.
+
 ## v0.8.15 Beta — 24 Ekim 2026
 
 - **Spotify çubuğu ilerliyor:** Windows şarkının adını geç verdiğinde ya da hiç vermediğinde Charles medya bağlantısını yeniden başlatıp bir dakika boyunca yalnızca Spotify penceresine bakıyordu. O sırada şarkının süresi ve konumu bilinmediği için çubuk 0’da kalıyordu. Artık konum, süre ve çalma durumu her seferinde doğrudan okunuyor. Şarkının adı ve kapağı yalnızca şarkı değişince ya da 20 saniyede bir isteniyor; gecikirse ad Spotify penceresinden alınıyor ve çubuk ilerlemeye devam ediyor. Kapak resmi okunduktan sonra kapatılıyor (açık kalan akışlar Spotify’ın medya oturumunu tıkayabiliyordu). Süre hiç bilinmiyorsa 0’da duran bir çubuk yerine çubuk gizleniyor.

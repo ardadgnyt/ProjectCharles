@@ -168,7 +168,7 @@ test('release: Setup ships tools/download, the update ships download-tools/', ()
 
 test('version agrees everywhere', () => {
   const v = JSON.parse(read('package.json')).version;
-  assert.match(v, /^0\.8\.\d+-beta\.\d+$/);
+  assert.match(v, /^0\.\d+\.\d+-beta\.\d+$/);
   assert.equal(JSON.parse(read('package-lock.json')).version, v);
   const label = 'v' + v.replace(/-beta\.\d+$/, '') + ' Beta';
   assert.ok(read('public/index.html').includes(label));

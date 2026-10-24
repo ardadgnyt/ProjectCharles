@@ -134,13 +134,13 @@ class Desktop {
   async media(action) {
     if (typeof action === 'object') return this.mediaWorker.request(action);
     let r = await this.helper(action);
-    // v0.8.14: "Çalmaya başla" with Spotify closed (or not answering) opens Spotify first
-    if (action === 'play' && !r?.ok) {
+    // v0.9.0: as up to v0.8.11 — "Çalmaya başla" with Spotify closed opens Spotify first
+    if (action === 'play' && r.reason === 'no-session') {
       await this.openSpotify();
-      for (let i = 0; i < 12; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        r = await this.helper(action).catch(() => r);
-        if (r?.ok) break;
+      for (let i = 0; i < 6; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        r = await this.helper(action);
+        if (r.reason !== 'no-session') break;
       }
     }
     return r;

@@ -7,28 +7,6 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
 
-test('Spotify: position, length and state never wait for the song’s name', () => {
-  const ps = read('app/system/media-worker.ps1');
-  // only the session list may restart the worker; everything else is optional
-  assert.match(ps, /if\(-not \$Optional\)\{\$script:restart=\$true\}/);
-  assert.match(ps, /\$script:manager=Await-Result \(\$managerType::RequestAsync\(\)\) \$managerType\}/);
-  assert.match(ps, /TryGetMediaPropertiesAsync\(\)\) \$propertyType 1500 -Optional/);
-  // the name is asked for on a new song or every 20 s, not on every poll
-  assert.match(ps, /\(\$m\.key -ne \$songKey -or \(\$now-\$m\.at\)\.TotalSeconds -ge 20\) -and \(\$now-\$m\.failedAt\)\.TotalSeconds -ge 30/);
-  // the timeline is read before the name, so it is there even when the name is late
-  assert.ok(ps.indexOf("$script:stage='timeline'") < ps.indexOf("$script:stage='properties'"));
-  // the cover's stream is closed
-  assert.match(ps, /if\(\$stream\)\{try\{\$stream\.Dispose\(\)\}catch\{\}\}/);
-  // Spotify's window is found also while it sits in the tray
-  assert.match(ps, /\[CharlesSpotifyWindow\]::Titles/);
-  assert.match(ps, /EnumWindows\(delegate\(IntPtr h, IntPtr l\)/);
-  // where it hung goes to perf.log
-  assert.match(ps, /stage=\$script:stage/);
-  assert.match(read('app/main.cjs'), /perfLog\('media', note\);/);
-  // the worker itself silent: Spotify's window for a minute
-  assert.match(read('app/system/media-worker.cjs'), /this\.windowOnlyUntil = Date\.now\(\) \+ 60000;\s*this\.stop\(\);/);
-});
-
 test('music without a known length: no progress bar stuck at 0:00', () => {
   const shelf = read('src/island/shelf.ts');
   assert.match(shelf, /card\.classList\.toggle\('no-time', active && !\(r\.duration > 0\)\);/);
@@ -57,9 +35,6 @@ test('weather: smaller day cards with room below them', () => {
   assert.match(read('public/index.html'), /styles\/23-v0815\.css/);
 });
 
-test('version 0.8.15', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.8.15-beta.1');
-  assert.match(read('public/index.html'), /v0\.8\.15 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.8\.15 Beta'/);
+test('version 0.8.15 is in the changelog', () => {
   assert.match(read('CHANGELOG.md'), /## v0\.8\.15 Beta/);
 });

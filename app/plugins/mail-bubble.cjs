@@ -48,6 +48,9 @@ class MailBubble {
         if (action === 'focus') {
           const w = this.window;
           w.setFocusable(!!args?.on);
+          // v0.9.0: making a window focusable gives it a taskbar button on Windows; the card
+          // never wants one
+          w.setSkipTaskbar(true);
           if (args?.on) w.focus();
           else w.blur();
           return { ok: true, value: true };
@@ -197,6 +200,12 @@ class MailBubble {
   raise() {
     const w = this.window;
     if (w && !w.isDestroyed() && w.isVisible()) w.moveTop();
+  }
+
+  /** v0.9.0: the cards never have a taskbar button. */
+  offTaskbar() {
+    const w = this.window;
+    if (w && !w.isDestroyed()) w.setSkipTaskbar(true);
   }
 
   /** v0.8.14: raises the card window once each time the pointer comes onto it. */

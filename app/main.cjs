@@ -405,6 +405,7 @@ function setWorkspace(on) {
     const area = workspaceArea();
     const restore = workspaceBounds(v2?.data.workspace, area);
     createAppWindow();
+    appWin.setSkipTaskbar(false);
     if (!demo && agent?.providers?.auth?.gemini) void agent.providers.usage(true).then(() => {
       if (win && !win.isDestroyed()) win.webContents.send('agent-event', {type:'usage-changed',provider:'gemini'});
     }).catch(() => {});
@@ -425,7 +426,10 @@ function setWorkspace(on) {
     saveWorkspace();
     workspace = null;
     moveView(islandWin);
-    if (appWin && !appWin.isDestroyed()) appWin.hide();
+    if (appWin && !appWin.isDestroyed()) {
+      appWin.hide();
+      appWin.setSkipTaskbar(true);
+    }
     mailBubble?.suppress(false);
     applyTopmost();
     sendWorkspace();
@@ -452,6 +456,15 @@ function setWorkspace(on) {
     checkWindowsSoon();
   }
   return !!workspace;
+}
+/** v0.9.0: no taskbar button for the island and the notification cards (the app window keeps its). */
+let taskbarTimer = null;
+function offTaskbar() {
+  try {
+    if (islandWin && !islandWin.isDestroyed()) islandWin.setSkipTaskbar(true);
+    if (!workspace && appWin && !appWin.isDestroyed() && !appWin.isVisible()) appWin.setSkipTaskbar(true);
+    mailBubble?.offTaskbar?.();
+  } catch {}
 }
 function workspaceWindow(action) {
   if (!workspace || !appWin || appWin.isDestroyed()) return null;
@@ -1371,6 +1384,12 @@ else {
       islandWin.on('resize', () => {
         if (activeWindow() === islandWin) fitView(islandWin);
       });
+      // v0.9.0: the island (and Slime on the desktop) never has a taskbar button; only the app
+      // window (Çalışma alanı) does. Windows can bring the button back when a window is shown
+      // again, raised or given the focus, so it is taken off again each time.
+      for (const event of ['show', 'focus', 'restore'])
+        islandWin.on(event, () => setImmediate(offTaskbar));
+      taskbarTimer = setInterval(offTaskbar, 4000);
       // a window with a separate page does not pass the keyboard focus on by itself
       islandWin.on('focus', () => {
         if (activeWindow() === islandWin && !view.webContents.isDestroyed()) view.webContents.focus();
@@ -3446,6 +3465,7 @@ else {
     performanceHistory?.stop();
     capture?.stop();
     clearInterval(cursorTimer);
+    clearInterval(taskbarTimer);
     clearInterval(serviceTimer);
     clearInterval(weeklyTimer);
     clearInterval(computerTimer);

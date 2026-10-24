@@ -5,86 +5,15 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const Module = require('node:module');
-const { EventEmitter } = require('node:events');
-const { PassThrough } = require('node:stream');
 const root = path.join(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
-
-// MediaWorker with a stand-in PowerShell: answers each request line with the next prepared reply
-function fakeWorker(replies) {
-  const spawned = [];
-  const childProcess = {
-    spawn: (exe, args) => {
-      const child = new EventEmitter();
-      child.stdout = new PassThrough();
-      child.stdin = new PassThrough();
-      child.killed = false;
-      child.kill = () => {
-        child.killed = true;
-        child.emit('exit', 0);
-      };
-      child.requests = [];
-      child.stdin.on('data', (d) => {
-        for (const line of String(d).split('\n').filter(Boolean)) {
-          child.requests.push(JSON.parse(line));
-          const reply = replies.shift();
-          setImmediate(() => child.stdout.write(JSON.stringify(reply) + '\n'));
-        }
-      });
-      spawned.push({ exe, args, child });
-      return child;
-    },
-  };
-  const load = Module._load;
-  Module._load = function (request, ...rest) {
-    if (request === 'node:child_process') return childProcess;
-    return load.call(this, request, ...rest);
-  };
-  try {
-    const file = require.resolve('../app/system/media-worker.cjs');
-    delete require.cache[file];
-    const { MediaWorker } = require(file);
-    return { worker: new MediaWorker(), spawned };
-  } finally {
-    Module._load = load;
-  }
-}
-
-test('media worker: a hung Windows media call starts a fresh worker, then reads Spotify’s window for a while', async () => {
-  const { worker, spawned } = fakeWorker([
-    { ok: false, reason: 'timeout', restart: true },
-    { ok: true, state: 'Playing', title: 'Song', artist: 'Band', fallback: true },
-  ]);
-  const first = await worker.request('status');
-  assert.equal(first.reason, 'timeout');
-  assert.equal(spawned.length, 1);
-  assert.ok(spawned[0].args.includes('-Mta'), 'awaited from a multithreaded apartment');
-  const second = await worker.request('status');
-  assert.equal(second.state, 'Playing');
-  assert.equal(spawned.length, 2, 'a new PowerShell after the hang');
-  assert.deepEqual(spawned[1].child.requests[0], { action: 'status', window: true });
-  worker.stop();
-});
-
-test('media worker script: timeouts restart it, Spotify’s window answers when sessions fail', () => {
-  const ps = read('app/system/media-worker.ps1');
-  assert.match(ps, /\$script:restart=\$true\};throw \[System\.TimeoutException\]/);
-  assert.match(ps, /if\(\$script:restart\)\{\[Console\]::Out\.Flush\(\);exit 0\}/);
-  assert.match(ps, /function Window-Status \{/);
-  assert.match(ps, /if\(-not \$media\)\{\[Console\]::WriteLine\(\(Window-Answer \$action\)\);continue\}/);
-  assert.match(ps, /if\(\$request\.window -eq \$true\)/);
-  // the song's name may come late: the session still counts as playing
-  assert.match(ps, /TryGetMediaPropertiesAsync\(\)\) \$propertyType \d+ -Optional/);
-  // several Spotify sessions: the one that plays
-  assert.match(ps, /PlaybackStatus\.ToString\(\) -eq 'Playing'\)\{return \$s\}/);
-});
 
 test('"Çalmaya başla" and a click on the music card open Spotify', async () => {
   const { Desktop } = require('../app/system/desktop.cjs');
   const opened = [];
   const d = new Desktop({ openExternal: async (u) => opened.push(u) }, async () => ({ stdout: '[]' }), () => null);
   let n = 0;
-  d.helper = async () => (++n < 3 ? { ok: false, reason: 'media-unavailable' } : { ok: true, state: 'Playing' });
+  d.helper = async () => (++n < 3 ? { ok: false, reason: 'no-session' } : { ok: true, state: 'Playing' });
   const r = await d.media('play');
   assert.deepEqual(opened, ['spotify:']);
   assert.equal(r.state, 'Playing');

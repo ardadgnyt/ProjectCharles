@@ -29,10 +29,9 @@ test('chat: a click on an empty part of the Charles panel folds the island', () 
   assert.match(read('src/island/shelf.ts'), /view === 'chat' && e\.button === 0 && empty\(t\) && !t\.closest\('\.character-center'\)/);
 });
 
-test('seek: shown at once, the position is read every second while playing, no slow fill', () => {
+test('seek: shown at once, no slow fill', () => {
   const personal = read('src/settings/personal.ts');
   assert.match(personal, /lastMedia = \{ \.\.\.lastMedia, position: Number\(progress\.value\) \};/);
-  assert.match(personal, /lastMedia\?\.state === 'Playing' \? 1000 : 3000/);
   assert.match(read('src/island/shelf.ts'), /document\.addEventListener\('charles-media-state', paintBar\)/);
   assert.match(css, /#notch \.notch-progress i \{\s*transition: none !important;/);
 });
