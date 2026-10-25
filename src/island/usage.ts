@@ -55,12 +55,10 @@ export const LOW_QUOTA = 10;
 // window warns again after a reset.
 export function lowWindows(v: any, warned: Set<string>, provider: string, now = Date.now()) {
   const out: { window: 'fiveHour' | 'weekly'; remaining: number; resetsAt: number | null }[] = [];
-  // v0.9.1: Codex with credits left goes on after a window runs out: nothing to warn about
   if (v?.paid) return out;
   for (const key of ['fiveHour', 'weekly'] as const) {
     const w = v?.[key];
     if (typeof w?.remaining !== 'number' || w.remaining >= LOW_QUOTA) continue;
-    // a window whose reset time has already passed is full again (old numbers)
     if (w.resetsAt && w.resetsAt * 1000 <= now) continue;
     const id = provider + '|' + key + '|' + (w.resetsAt || '');
     if (warned.has(id)) continue;
@@ -178,8 +176,8 @@ export function usageUI(
     if (v && !v.unavailable)
       for (const w of lowWindows(v, warned, provider)) onLow({ provider, name, ...w });
     gauges.hidden = !!v?.unavailable;
-    credit.textContent = v?.unavailable || '';
     panel.title = v?.note ? t(v.note) : '';
+    credit.textContent = v?.unavailable || '';
     credit.hidden = !credit.textContent;
     if (typeof v?.blocked === 'boolean') {
       limits.set(provider, v.blocked);
@@ -256,7 +254,8 @@ export function usageUI(
       lastValue.delete('gpt');
       if (provider === 'gpt') void refresh(true);
     } else if (e.type === 'connected' || e.type === 'usage-changed') {
-      if (provider === 'gpt' || (provider === 'gemini' && e.provider === 'gemini')) void refresh(false, true);
+      if (provider === 'gpt' || (provider === 'gemini' && e.provider === 'gemini'))
+        void refresh(false, true);
     } else if (e.type === 'agent' && e.data?.method === 'turn/completed') {
       // A finished answer used quota: re-read the provider that answered.
       if (provider === 'gpt') void refresh(true);

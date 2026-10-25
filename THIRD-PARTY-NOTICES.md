@@ -9,16 +9,17 @@ Charles’s design is inspired by Charles from the *Epic Minequest* video series
 YouTube channel (https://www.youtube.com/@SamGreen). No artwork, audio or video from that series
 is included in Project Charles, and the project is not affiliated with Sam Green.
 
-## Character engine code
+## MultiDrop / Quick Share
 
-Parts of the animation and drawing code in `src/vendor/` (`slime/engine.ts`, `slime/outfits.ts`,
-`slime/wardrobe.ts`, `core/anim.ts`, `core/sound.ts`, `core/layout.ts`) are derived from source
-code published under the MIT License. As that license requires, its copyright and permission
-notice is included in `LICENSE` and kept in `licenses/engine-MIT-LICENSE.txt`. The Slime character, its drawing, the icon
-and the sounds are not taken from that source.
-
-Some of the stroke icons of the workspace window (`src/workspace/icons.ts`) and the idea of its
-sidebar layout are adapted from the same MIT-licensed source; the same notice applies.
+The Quick Share implementation in app/files/quickshare.cjs and
+app/files/quickshare-channel.cjs adapts protocol handling from
+https://github.com/digitaldanis/multidrop (reference revision 60119f5),
+licensed GPL-3.0-or-later. The JavaScript adaptation and Charles integration
+were modified in October 2026: a persistent encrypted reader, flow control,
+file integrity checks, Windows discovery, lifecycle and UI integration.
+Project Charles source code is distributed under GPL-3.0-or-later; see LICENSE.
+The upstream notice is preserved in licenses/multidrop-NOTICES.md. Components
+mentioned there that are not shipped with Charles are not Charles dependencies.
 
 Versions of dependencies and their registry integrity hashes are pinned in `package-lock.json`. Their own license files remain in the installed packages.
 

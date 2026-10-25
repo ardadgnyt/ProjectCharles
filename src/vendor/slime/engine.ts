@@ -2,7 +2,6 @@ import { drawStation, drawEurekaBulb, type Station } from '../../chat/activity';
 import { drawReading } from '../../chat/reading';
 // Slime engine — Charles' character drawn and animated on a Canvas 2D: states, emotes,
 // tweens, particles, dancing, the mailbox morph and the Slime body, face and moustache.
-// Contains portions derived from MIT-licensed code (see THIRD-PARTY-NOTICES.md).
 
 import { Ease, lerp, type EaseFn } from '../core/anim';
 import { Sound } from '../core/sound';
@@ -1262,12 +1261,9 @@ export class BotEngine {
       PAW.dark = '#e4ddd3';
       PAW.edge = null;
     }
-    // v0.8.8: with eyewear on, the normal eyes stay (the eyewear is drawn for them) and the
-    // reading pose only adds the page and the paws
     const ownEyes = this.eyewear === 'none';
-    // v0.9.1: while the greeting's hands are out, the work props are drawn without their own
-    // paws (Slime had four hands when he greeted while typing or reading)
-    const greeting = this.hands > 0.01 || (now() >= this.waveStart && this.waveStart > 0 && now() < this.waveUntil);
+    const greeting =
+      this.hands > 0.01 || (now() >= this.waveStart && this.waveStart > 0 && now() < this.waveUntil);
     if (this.reading > 0.01) {
       if (!ownEyes) this.drawEyes(x, body, R, rx, ry);
       drawReading(x, performance.now() / 1000, this.reading, ownEyes, !greeting);

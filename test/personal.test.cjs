@@ -72,7 +72,7 @@ test('History rename pin search and delete; active work cannot be deleted', () =
     s.manage({ id, action: 'pin' });
     assert.equal(s.list()[0].name, 'Yeni ad');
     assert(s.list()[0].pinned);
-    assert.ok(s.search('eski metin').length, 'v0.8.9: search runs in the main process');
+    assert.ok(s.search('eski metin').includes(id));
     s.current.agent.busy = true;
     assert.throws(() => s.manage({ id, action: 'delete' }));
     s.current.agent.busy = false;

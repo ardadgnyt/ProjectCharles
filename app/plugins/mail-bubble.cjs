@@ -25,6 +25,7 @@ class MailBubble {
     this.window = null;
     this.ready = null;
     this.suppressed = false;
+    this.composing = false;
     // v0.8.13: what the user closed stays closed. A closed mail / reminder never comes back;
     // a closed WhatsApp chat comes back only with a newer message (not for its photo or the
     // group's name arriving a moment later).
@@ -42,17 +43,25 @@ class MailBubble {
     });
     // v0.8.8: WhatsApp cards. "focus" lets the card take the keyboard while a reply is typed
     // (the bubble window never takes focus otherwise).
+    // v0.9.2: keep the window focusable so Windows never drops input routing or topmost z-order
+    // when toggling WS_EX_NOACTIVATE via setFocusable(false).
     ipcMain.handle('bubble-wa', async (event, action, args) => {
       if (!own(event)) return { ok: false, error: 'Geçersiz pencere.' };
       try {
         if (action === 'focus') {
           const w = this.window;
-          w.setFocusable(!!args?.on);
-          // v0.9.0: making a window focusable gives it a taskbar button on Windows; the card
-          // never wants one
-          w.setSkipTaskbar(true);
-          if (args?.on) w.focus();
-          else w.blur();
+          const on = !!args?.on;
+          this.composing = on;
+          if (w && !w.isDestroyed()) {
+            w.setIgnoreMouseEvents(false);
+            w.setAlwaysOnTop(true, 'screen-saver');
+            w.setSkipTaskbar(true);
+            if (on) {
+              w.moveTop();
+              w.focus();
+              w.webContents?.focus?.();
+            }
+          }
           return { ok: true, value: true };
         }
         if (!this.onWhatsApp) throw Error('WhatsApp kapalı.');
@@ -130,7 +139,7 @@ class MailBubble {
       skipTaskbar: true,
       resizable: false,
       movable: false,
-      focusable: false,
+      focusable: true,
       show: false,
       backgroundColor: '#00000000',
       title: 'Charles · Bildirim',
@@ -146,11 +155,16 @@ class MailBubble {
     // v0.8.13: the same level as a pinned island, and raised above it, so the island's larger
     // see-through surface never sits over a card and takes its clicks
     this.window.setAlwaysOnTop(true, 'screen-saver');
+    this.window.setSkipTaskbar(true);
     this.window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     this.window.webContents.on('will-navigate', (e) => e.preventDefault());
+    this.window.on('blur', () => {
+      this.composing = false;
+    });
     this.window.on('closed', () => {
       this.window = null;
       this.ready = null;
+      this.composing = false;
     });
     this.ready = this.window.loadURL('charles://app/bubble.html');
     return this.ready;
@@ -159,6 +173,7 @@ class MailBubble {
   async render() {
     if (!this.items.length) {
       this.height = 0;
+      this.composing = false;
       this.place();
       return;
     }
@@ -166,6 +181,7 @@ class MailBubble {
     if (!this.window || this.window.isDestroyed()) return;
     // WhatsApp chats share one card (v0.8.8), the rest are bubbles as before
     const wa = this.items.filter((i) => i.kind === 'whatsapp');
+    if (!wa.length) this.composing = false;
     const rest = this.items.filter((i) => i.kind !== 'whatsapp');
     this.window.webContents.send('bubble-items', {
       items: rest.slice(0, MAX_VISIBLE),
@@ -180,6 +196,7 @@ class MailBubble {
     const w = this.window;
     if (!w || w.isDestroyed()) return;
     if (!this.items.length || !this.height || this.suppressed) {
+      this.composing = false;
       if (w.isVisible()) w.hide();
       return;
     }
@@ -192,6 +209,9 @@ class MailBubble {
     let y = a.y + a.height + GAP;
     if (y + this.height > area.y + area.height) y = Math.max(area.y, a.y - this.height - GAP);
     w.setBounds({ x, y: Math.round(y), width, height: this.height });
+    w.setIgnoreMouseEvents(false);
+    w.setAlwaysOnTop(true, 'screen-saver');
+    w.setSkipTaskbar(true);
     if (!w.isVisible()) w.showInactive();
     w.moveTop();
   }
@@ -199,7 +219,13 @@ class MailBubble {
   /** v0.8.13: keeps the cards above the island (called after the island raises itself). */
   raise() {
     const w = this.window;
-    if (w && !w.isDestroyed() && w.isVisible()) w.moveTop();
+    if (w && !w.isDestroyed() && w.isVisible()) {
+      try {
+        w.setIgnoreMouseEvents(false);
+        w.setAlwaysOnTop(true, 'screen-saver');
+        w.moveTop();
+      } catch {}
+    }
   }
 
   /** v0.9.0: the cards never have a taskbar button. */
@@ -208,14 +234,22 @@ class MailBubble {
     if (w && !w.isDestroyed()) w.setSkipTaskbar(true);
   }
 
-  /** v0.8.14: raises the card window once each time the pointer comes onto it. */
+  /** v0.9.2: whether the user is actively typing/focused in the bubble window. */
+  active() {
+    const w = this.window;
+    return Boolean(
+      w && !w.isDestroyed() && w.isVisible() && (this.composing || this.hovered || w.isFocused()),
+    );
+  }
+
+  /** v0.8.14 / v0.9.2: keeps the card window interactive and above the island whenever the pointer is on it. */
   hover(point) {
     const over = this.contains(point);
-    if (over && !this.hovered) {
+    if (over) {
       const w = this.window;
       try {
         w.setIgnoreMouseEvents(false);
-        w.setAlwaysOnTop(true, 'screen-saver');
+        if (!this.hovered) w.setAlwaysOnTop(true, 'screen-saver');
         w.moveTop();
       } catch {}
     }

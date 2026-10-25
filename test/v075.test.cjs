@@ -26,5 +26,5 @@ test('island Spotify buttons are flat icons without circles', () => {
 
 test('app window title bar matches the black theme', () => {
   assert.match(read('app/main.cjs'), /titleBarOverlay: \{ color: '#010101'/);
-  assert.match(read('package.json'), /"version": "0\.\d+\.\d+-beta\.\d+"/); // exact version: test/v085.test.cjs
+  assert.equal(JSON.parse(read('package.json')).version, JSON.parse(read('package-lock.json')).version);
 });

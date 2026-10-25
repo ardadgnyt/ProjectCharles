@@ -1,5 +1,5 @@
 // Chat rooms and history: persistence, edits/branches, search, one Agent per room.
-const { readStore, writeStore } = require('../core/store.cjs');
+const { readStore, writeStore, recoverNonEmpty } = require('../core/store.cjs');
 const { EventEmitter } = require('node:events');
 const fs = require('node:fs'),
   path = require('node:path');
@@ -188,16 +188,22 @@ class Sessions extends EventEmitter {
     this.counter = 0;
     this.loading = true;
     if (this.file) {
-      const loaded = readStore(
-        this.file,
-        (j) =>
-          j &&
-          j.version === 1 &&
-          Array.isArray(j.rooms) &&
-          j.rooms.every((r) => r && typeof r.id === 'string' && Array.isArray(r.events)),
-      );
+      const validateHistory = (j) =>
+        j &&
+        j.version === 1 &&
+        Array.isArray(j.rooms) &&
+        j.rooms.every((r) => r && typeof r.id === 'string' && Array.isArray(r.events));
+      const loaded = readStore(this.file, validateHistory);
       this.recoveryWarning = loaded.warning;
-      const j = loaded.value;
+      let j = loaded.value;
+      if (!j || !j.rooms.some(hasContent)) {
+        const recovered = recoverNonEmpty(
+          this.file,
+          validateHistory,
+          (v) => v && Array.isArray(v.rooms) && v.rooms.some(hasContent),
+        );
+        if (recovered) j = recovered;
+      }
       if (j) {
         this.folders = require('./chat-folders.cjs').restoreFolders(j.folders);
         this.projects = require('./chat-projects.cjs').restoreProjects(j.projects);

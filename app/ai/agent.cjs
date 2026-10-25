@@ -62,44 +62,48 @@ class Agent extends EventEmitter {
     this.emit('event', { type, data });
   }
   async connect() {
-    if (this.connecting) throw new Error('Bağlantı kuruluyor.');
     if (this.ready) return this.account();
+    if (this.connectPromise) return this.connectPromise;
     this.connecting = true;
-    try {
-      const spec = this.launch(this.root);
-      const env = { ...process.env, ELECTRON_RUN_AS_NODE: '1' };
-      // Personal client: use the managed ChatGPT login, not an inherited API key.
-      delete env.OPENAI_API_KEY;
-      delete env.CODEX_API_KEY;
-      this.rpc = new Rpc(spec.command, spec.args, { cwd: this.root, env });
-      this.rpc.on('notification', (msg) => this.notification(msg));
-      this.rpc.on('request', (msg) => this.serverRequest(msg));
-      this.rpc.on('closed', (reason) => {
-        this.ready = false;
-        this.busy = false;
-        this.threadId = null;
-        this.turnId = null;
-        this.requests.clear();
-        this.publish('disconnected', reason);
-      });
-      await this.rpc.request('initialize', {
-        clientInfo: {
-          name: 'charles_personal',
-          title: 'Charles Personal',
-          version: '2.2.4',
-        },
-      });
-      this.rpc.send({ method: 'initialized', params: {} });
-      this.ready = true;
-      const account = await this.account();
-      this.publish('connected', {});
-      return account;
-    } catch (e) {
-      this.rpc?.stop();
-      throw e;
-    } finally {
-      this.connecting = false;
-    }
+    this.connectPromise = (async () => {
+      try {
+        const spec = this.launch(this.root);
+        const env = { ...process.env, ELECTRON_RUN_AS_NODE: '1' };
+        // Personal client: use the managed ChatGPT login, not an inherited API key.
+        delete env.OPENAI_API_KEY;
+        delete env.CODEX_API_KEY;
+        this.rpc = new Rpc(spec.command, spec.args, { cwd: this.root, env });
+        this.rpc.on('notification', (msg) => this.notification(msg));
+        this.rpc.on('request', (msg) => this.serverRequest(msg));
+        this.rpc.on('closed', (reason) => {
+          this.ready = false;
+          this.busy = false;
+          this.threadId = null;
+          this.turnId = null;
+          this.requests.clear();
+          this.publish('disconnected', reason);
+        });
+        await this.rpc.request('initialize', {
+          clientInfo: {
+            name: 'charles_personal',
+            title: 'Charles Personal',
+            version: '2.2.4',
+          },
+        });
+        this.rpc.send({ method: 'initialized', params: {} });
+        this.ready = true;
+        const account = await this.account();
+        this.publish('connected', {});
+        return account;
+      } catch (e) {
+        this.rpc?.stop();
+        throw e;
+      } finally {
+        this.connecting = false;
+        this.connectPromise = null;
+      }
+    })();
+    return this.connectPromise;
   }
   requireReady() {
     if (!this.ready) throw new Error('Önce Codex’e bağlanın.');

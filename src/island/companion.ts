@@ -28,7 +28,8 @@ export function companionUI(
       // "Ankara · 16° · Parçalı bulutlu 🌤️" → "🌤️ 16° · Ankara" on the island; full text in title.
       const text = value.weather?.text || '';
       const parts = text.split(' · ');
-      const icon = (parts[2] || '').match(/\p{Extended_Pictographic}[\uFE0F]?/u)?.[0] || '';
+      const icon =
+        (parts[2] || '').match(new RegExp('\\p{Extended_Pictographic}[\\uFE0F]?', 'u'))?.[0] || '';
       weather.textContent = text
         ? [icon, parts[1], parts[1] ? '· ' + parts[0] : parts[0]].filter(Boolean).join(' ')
         : p.city
@@ -178,11 +179,7 @@ export function companionUI(
   let startY = 0,
     startHeight = 0,
     dragging = false;
-  // v0.8.10: on the notch and the card shelf the cream bar opens the chat (the panel grows
-  // down); in the chat it still sets the panel height by dragging.
   const opensChat = () => !!document.body.dataset.view && document.body.dataset.view !== 'chat';
-  // v0.8.15: the cream bar: on the shelf it closes the island, in the small notch it opens the
-  // chat, in the chat a click closes and a drag resizes
   const barTarget = () => (document.body.dataset.view === 'shelf' ? 'notch' : 'chat');
   let opening = false;
   grip.addEventListener('pointerdown', (e) => {
@@ -216,7 +213,6 @@ export function companionUI(
     }
     if (!dragging) return;
     dragging = false;
-    // v0.8.12: a click (no drag) on the cream bar of the chat folds the island into the notch
     if (Math.abs(e.screenY - startY) < 4) {
       void attempt(() => api.islandView('notch'));
       return;

@@ -1,0 +1,190 @@
+/* ==========================================================================================
+   25 · v0.9.2 — Half-height Dönüştürücü + Gönder (Quick Share & AirDrop) on the island shelf
+   ========================================================================================== */
+
+/* --- Shelf middle column: Dönüştürücü (top half) + Gönder (bottom half) ------------------- */
+#shelf .shelf-col.shelf-col-mid {
+  flex: 0 0 48px;
+  gap: 8px;
+}
+#shelf .shelf-col-mid .card-convert,
+#shelf .shelf-col-mid .card-send {
+  flex: 1 1 0;
+  min-height: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0;
+  text-align: left;
+}
+#shelf .shelf-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+#shelf .shelf-left {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+#shelf .shelf-left > .shelf-col { min-width: 0; }
+#shelf .card-charles { width: 112px; min-width: 0; height: 100%; align-self: center; }
+#shelf .card-music { width: auto; min-width: 0; }
+#shelf .shelf-col-mid .card-text { display: none; }
+#shelf .shelf-col-mid .convert-icon,
+#shelf .shelf-col-mid .send-icon { background: transparent; border: 0; }
+#shelf .shelf-col-mid .card-convert .convert-icon,
+#shelf .shelf-col-mid .card-send .send-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--v10-ink);
+  transition:
+    transform 0.28s var(--v10-ease),
+    background-color 0.2s,
+    color 0.2s;
+}
+#shelf .shelf-col-mid .card-convert .convert-icon svg,
+#shelf .shelf-col-mid .card-send .send-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#shelf .shelf-col-mid .card-convert .card-text,
+#shelf .shelf-col-mid .card-send .card-text {
+  gap: 1px;
+}
+#shelf .shelf-col-mid .card-convert strong,
+#shelf .shelf-col-mid .card-send strong {
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.15;
+}
+#shelf .shelf-col-mid .card-convert .convert-hint,
+#shelf .shelf-col-mid .card-send .send-hint {
+  font-size: 9.5px;
+  color: var(--v10-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+#shelf .card-send:hover .send-icon {
+  transform: translate(1.5px, -1.5px);
+  color: var(--v10-cream);
+}
+#shelf .card-send.over,
+#shelf .card-send.has-offer {
+  border: 1.5px dashed var(--v10-cream);
+  background: linear-gradient(180deg, rgba(237, 201, 169, 0.14), rgba(237, 201, 169, 0.05));
+}
+#shelf .card-send.over .send-icon,
+#shelf .card-send.has-offer .send-icon {
+  background: var(--v10-cream);
+  color: #1b1712;
+}
+#shelf .card-send.shake {
+  animation: v10-shake 0.45s;
+}
+#shelf.sheet-open[data-sheet='weather'] .shelf-col-mid,
+#shelf.sheet-open[data-sheet='usage'] .shelf-col-mid {
+  visibility: hidden;
+}
+
+/* File sharing: fixed columns and independently scrolling content. */
+#shelf .shelf-sheet[data-kind='share'] {
+  padding: 4px 12px 6px;
+  gap: 5px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #202127, #17181d);
+}
+#shelf .shelf-sheet[data-kind='share'] .sheet-body { overflow: hidden; }
+#shelf .share-sheet {
+  display: grid;
+  grid-template-columns: minmax(142px, 27%) minmax(0, 1fr);
+  gap: 12px;
+  width: 100%; height: 100%; min-height: 0;
+  color: var(--v10-ink, #f4f3f0);
+  font-size: 11px;
+  line-height: 1.35;
+  overflow: hidden;
+}
+#shelf .share-sheet *, #shelf .share-sheet *::before { box-sizing: border-box; }
+#shelf .share-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+#shelf .share-files { gap: 2px; padding-right: 10px; border-right: 1px solid #ffffff12; overflow-y: auto; }
+#shelf .share-sheet button { font: inherit; cursor: pointer; flex-shrink: 0; transition: background .15s, border-color .15s; }
+#shelf .share-sheet button:focus-visible { outline: 2px solid #a7caff; outline-offset: -2px; }
+#shelf .share-sheet button:hover { border-color: #ffffff38; background-color: #ffffff14; }
+#shelf .share-sheet svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#shelf .share-pick-empty { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 30px; flex: 1; border: 1px dashed #ffffff2a; border-radius: 10px; background: #ffffff04; color: #e1e5ee; padding: 6px; }
+#shelf .share-file-head { display: flex; align-items: center; gap: 7px; min-width: 0; }
+#shelf .share-file-icon { display: grid; place-items: center; width: 27px; height: 27px; flex: none; color: #a7caff; background: #a7caff12; border-radius: 8px; }
+#shelf .share-file-meta { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+#shelf .share-file-head .share-file-icon { width: 22px; height: 22px; }
+#shelf .share-file-meta small { flex: none; }
+#shelf .share-file-meta strong { font-size: 11px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#shelf .share-file-meta small { color: #a2a7b3; font-size: 10px; }
+#shelf .share-file-actions, #shelf .share-transfer-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+#shelf .share-mini-btn, #shelf .share-scan-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 22px; padding: 2px 7px; border: 1px solid #ffffff18; border-radius: 7px; color: #e1e5ee; background: #ffffff06; font-size: 10px !important; }
+#shelf .share-mini-btn svg { width: 11px; height: 11px; }
+#shelf .share-mode-box { margin-top: auto; display: flex; flex-direction: column; gap: 2px; flex: none; }
+#shelf .share-mode-head { display: flex; align-items: center; gap: 5px; min-width: 0; line-height: 10px; }
+#shelf .share-mode-dot { width: 5px; height: 5px; flex: none; border-radius: 50%; background: #7bd9ac; }
+#shelf .share-mode-dot.off { background: #858998; }
+#shelf .share-mode-dot.auto { background: #a7caff; }
+#shelf .share-mode-title { font-size: 9px; color: #b8bfcc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#shelf .share-mode-seg { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); padding: 2px; gap: 2px; background: #00000024; border: 1px solid #ffffff0d; border-radius: 8px; }
+#shelf .share-mode-pill { min-width: 0; height: 18px; padding: 0 2px; border: 0; border-radius: 6px; color: #969dab; background: transparent; font-size: 9px !important; }
+#shelf .share-file-actions .share-mini-btn { min-height: 18px; padding: 0 6px; }
+#shelf .share-mode-pill.active { color: #e5edf9; background: #ffffff16; }
+#shelf .share-mode-pill.active.everyone { color: #9ce5bd; background: #7bd9ac16; }
+#shelf .share-mode-pill.active.auto { color: #b8d4ff; background: #a7caff16; }
+#shelf .share-center { gap: 5px; }
+#shelf .share-peers-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; }
+#shelf .share-peers-head small { color: #b8bfcc; font-size: 10px; }
+#shelf .share-peers-list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #ffffff25 transparent; }
+#shelf .share-peers-empty { display: flex; align-items: center; gap: 10px; min-height: 42px; height: 100%; padding: 8px 12px; color: #a2a7b3; border: 1px solid #ffffff0d; border-radius: 10px; background: #ffffff03; font-size: 10px; }
+#shelf .share-peers-empty svg { color: #a7caff; width: 20px; height: 20px; }
+#shelf .share-peer { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 6px 9px; border: 1px solid #ffffff12; border-radius: 10px; background: #ffffff04; color: #e1e5ee; text-align: left; }
+#shelf .share-peer.selected { border-color: #a7caff55; }
+#shelf .share-peer-icon { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; background: #ffffff08; color: #a7caff; flex: none; }
+#shelf .share-peer-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#shelf .share-peer-text strong { font-size: 11px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+#shelf .share-peer-text small { font-size: 9px; color: #969dab; }
+#shelf .share-peer-go { color: #a7caff; }
+#shelf .share-badge { flex: none; padding: 2px 6px; border-radius: 5px; font-size: 9px; font-weight: 500; white-space: nowrap; }
+#shelf .share-badge.quickshare { background: #a7caff12; color: #a7caff; }
+#shelf .share-badge.airdrop { background: #ffffff0a; color: #c9cad1; }
+#shelf .share-offer, #shelf .share-transfer { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: 1px solid #ffffff12; border-radius: 12px; background: #ffffff04; overflow-y: auto; }
+#shelf .share-offer { border-color: #a7caff45; background: #a7caff08; }
+#shelf .share-offer-top, #shelf .share-transfer-top { display: flex; align-items: center; gap: 7px; min-width: 0; flex: none; }
+#shelf .share-offer-top strong, #shelf .share-transfer-top strong { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; }
+#shelf .share-pin { margin-left: auto; color: #b8d4ff; font: 600 10px ui-monospace, monospace; white-space: nowrap; flex: none; }
+#shelf .share-offer-files, #shelf .share-transfer-file { color: #aeb5c2; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
+#shelf .share-offer-actions, #shelf .share-transfer-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; flex: none; }
+#shelf .share-offer-actions { justify-content: flex-end; }
+#shelf .share-transfer-foot > small { min-width: 0; font-size: 10px; color: #b8bfcc; overflow-wrap: anywhere; }
+#shelf .share-transfer.error .share-transfer-foot > small { color: #ffb6b6; }
+#shelf .share-transfer.done .share-transfer-foot > small { color: #9ce5bd; }
+#shelf .share-btn-primary, #shelf .share-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 26px; padding: 3px 12px; border: 1px solid #ffffff20; border-radius: 8px; font-size: 11px; }
+#shelf .share-btn-primary { background: #b8d4ff; color: #142238; border-color: transparent; }
+#shelf .share-btn-primary:hover { background: #d4e5ff !important; }
+#shelf .share-btn-ghost { background: transparent; color: #c5cbd6; }
+#shelf .share-bar { flex: none; height: 4px; width: 100%; border-radius: 8px; background: #ffffff0e; overflow: hidden; }
+#shelf .share-bar i { display: block; height: 100%; border-radius: inherit; background: #a7caff; transition: width .18s; }
+#shelf .share-sheet.over { outline: 1px dashed var(--v10-cream); outline-offset: -2px; border-radius: 10px; background: #edc9a908; }
+

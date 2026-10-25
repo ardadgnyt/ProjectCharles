@@ -1,117 +1,90 @@
-// v0.8.8: Charles' Slime for module windows — window.CharlesSlime.
-//
-// A module page loads it from Charles itself (nothing to copy into the module):
-//   <script src="/_charles/slime.js"></script>
-//   const slime = CharlesSlime.mount(document.querySelector('#pet'), { size: 160 });
-//
-// It is the same engine as the island: the user's colour and accessories (or the module's own),
-// the eyes follow the cursor, hovering makes him blink and send a heart, a click is a slap with a
-// jelly wobble, three quick slaps make him dizzy, a double click gets a wink, a fast cursor
-// pokes him, and Charles' own interface sounds. Everything runs inside the module window.
-import { BotEngine } from '../vendor/slime/engine';
-import { Jelly } from '../island/jelly';
-import { Sound } from '../vendor/core/sound';
-import { clashes, wornAccessories, SLOT_ITEMS, type Accessories } from '../vendor/slime/wardrobe';
-import { SLIME_COLOR_IDS, type SlimeColor } from '../vendor/slime/shape';
-import type { BotEmoteName, BotStateName } from '../vendor/core/layout';
-import type { Station } from '../chat/activity';
+import { Sound } from "../vendor/core/sound";
+import { BotEngine } from "../vendor/slime/engine";
+import { SLIME_COLOR_IDS as SLIME_COLOR_KEYS } from "../vendor/slime/shape";
+import { Jelly } from "../island/jelly";
+import { SLOT_ITEMS as SLOTS, clashes } from "../vendor/slime/wardrobe";
+import { wearable } from "../settings/slime-preview";
 
-Sound.base = '/_charles/sounds/';
+Sound.base = "/_charles/sounds/";
 
-const EMOTES: BotEmoteName[] = ['love', 'surprised', 'proud', 'wink', 'yawn', 'happy', 'annoyed'];
-const STATES: BotStateName[] = ['idle', 'working', 'thinking', 'searching', 'question', 'error', 'finished', 'sleeping'];
-const STATIONS: Station[] = ['none', 'terminal', 'web', 'read', 'code', 'image'];
-const TALL = ['partyHat', 'witchHat', 'santaHat', 'bunnyEars', 'fedora'];
+const EMOTES = ["love", "surprised", "proud", "wink", "yawn", "happy", "annoyed"] as const;
+const STATES = ["idle", "working", "thinking", "searching", "question", "error", "finished", "sleeping"] as const;
+const STATIONS = ["none", "terminal", "web", "read", "code", "image"] as const;
+const TALL_OUTFITS = ["partyHat", "witchHat", "santaHat", "bunnyEars", "fedora"];
 
-type Look = { color?: string; mustache?: boolean; hat?: string; eyes?: string; other?: string };
-type MountOptions = {
-  /** CSS pixels (square). Default 160. */
-  size?: number;
-  /** Cursor following, hover, slaps, wink… Default true. */
-  interactive?: boolean;
-  /** Charles' sounds. Default true (they start after the first click, as browsers require). */
-  sound?: boolean;
-  /** 'charles' (default): the user's look, kept up to date; or a look of the module's own. */
-  look?: 'charles' | Look;
-  /** Accessories always worn on top of the look, e.g. { eyes: 'roundGlasses' }. */
-  wear?: Look;
-  /** Accessible name of the canvas. */
-  label?: string;
-};
+const mod = () => (window as any).charlesModule;
 
-const api = () => (window as any).charlesModule;
-
-function cleanLook(v: any): Required<Look> {
-  const pick = (slot: 'hat' | 'eyes' | 'other') => (SLOT_ITEMS[slot].includes(v?.[slot]) ? v[slot] : 'none');
+function normalizeLook(e: any) {
+  const pick = (slot: "hat" | "eyes" | "other") => ((SLOTS[slot] as readonly string[]).includes(e?.[slot]) ? e[slot] : "none");
   return {
-    color: (SLIME_COLOR_IDS as string[]).includes(v?.color) ? v.color : 'green',
-    mustache: !!v?.mustache,
-    hat: pick('hat'),
-    eyes: pick('eyes'),
-    other: pick('other'),
+    color: (SLIME_COLOR_KEYS as readonly string[]).includes(e?.color) ? e.color : "green",
+    mustache: !!e?.mustache,
+    hat: pick("hat"),
+    eyes: pick("eyes"),
+    other: pick("other")
   };
 }
 
-function mount(target: HTMLElement, o: MountOptions = {}) {
-  if (!(target instanceof HTMLElement)) throw Error('CharlesSlime.mount: bir HTML öğesi ver.');
-  const size = Math.max(48, Math.min(640, Number(o.size) || 160));
-  const interactive = o.interactive !== false;
-  const canvas = document.createElement('canvas');
+function mount(host: HTMLElement, opts: any = {}) {
+  if (!(host instanceof HTMLElement)) throw new Error("CharlesSlime.mount: bir HTML \xF6\u011Fesi ver.");
+  const size = Math.max(48, Math.min(640, Number(opts.size) || 160));
+  const interactive = opts.interactive !== false;
+  const canvas = document.createElement("canvas");
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   canvas.width = Math.round(size * dpr);
   canvas.height = Math.round(size * dpr);
-  canvas.style.width = canvas.style.height = size + 'px';
-  canvas.style.display = 'block';
-  canvas.style.touchAction = 'none';
-  canvas.setAttribute('role', 'img');
-  canvas.setAttribute('aria-label', o.label || 'Slime');
-  target.append(canvas);
-  const ctx = canvas.getContext('2d')!;
+  canvas.style.width = canvas.style.height = size + "px";
+  canvas.style.display = "block";
+  canvas.style.touchAction = "none";
+  canvas.setAttribute("role", "img");
+  canvas.setAttribute("aria-label", opts.label || "Slime");
+  host.append(canvas);
+  const ctx = canvas.getContext("2d")!;
   const bot = new BotEngine();
   const jelly = new Jelly();
-  let look = cleanLook(typeof o.look === 'object' ? o.look : {});
-  let extra: Look = { ...(o.wear || {}) };
-  let soundOn = o.sound !== false;
-  Sound.setEnabled(soundOn);
+  let look = normalizeLook(typeof opts.look === "object" ? opts.look : {});
+  let wear: Record<string, string> = { ...(opts.wear || {}) };
+  let sound = opts.sound !== false;
+  Sound.setEnabled(sound);
 
-  function dress() {
-    bot.look = { color: look.color as SlimeColor, mustache: look.mustache };
-    const acc = { hat: look.hat, eyes: look.eyes, other: look.other, ...extra } as Accessories;
+  function applyLook() {
+    bot.look = { color: look.color, mustache: look.mustache };
+    const acc: any = { hat: look.hat, eyes: look.eyes, other: look.other, ...wear };
     if (clashes(acc)) {
-      if (extra.other === 'pumpkin') acc.hat = 'none';
-      else acc.other = 'none';
+      if (wear.other === "pumpkin") acc.hat = "none";
+      else acc.other = "none";
     }
-    const w = wornAccessories({ ...acc, hand: 'none' }, new Date());
-    bot.setAccessories({ hat: w.hat as any, eyes: w.eyes as any, other: w.other as any, hand: 'none' as any }, false);
+    const worn = wearable({ ...acc, hand: "none" }, new Date());
+    bot.setAccessories({ hat: worn.hat, eyes: worn.eyes, other: worn.other, hand: "none" }, false);
   }
-  dress();
-  // the user's look from Charles, and its changes
-  let off: (() => void) | null = null;
-  if (o.look === undefined || o.look === 'charles') {
-    const C = api();
-    void C?.slime?.look?.()
-      .then((v: any) => {
-        look = cleanLook(v);
-        dress();
+  applyLook();
+
+  let offLook: (() => void) | null = null;
+  if (opts.look === undefined || opts.look === "charles") {
+    const m = mod();
+    m?.slime
+      ?.look?.()
+      .then((p: any) => {
+        look = normalizeLook(p);
+        applyLook();
       })
       .catch(() => {});
     try {
-      off = C?.on?.('slime-look', (v: any) => {
-        look = cleanLook(v);
-        dress();
+      offLook = m?.on?.("slime-look", (p: any) => {
+        look = normalizeLook(p);
+        applyLook();
       });
     } catch {
-      off = null;
+      offLook = null;
     }
   }
 
-  // ── drawing ────────────────────────────────────────────────────────────────
-  let last = performance.now();
-  let raf = 0;
-  let alive = true;
+  let last = performance.now(),
+    raf = 0,
+    alive = true;
   const frame = (now: number) => {
     if (!alive) return;
-    const dt = Math.min((now - last) / 1000, 0.05);
+    const dt = Math.min((now - last) / 1e3, 0.05);
     last = now;
     bot.update(dt);
     jelly.step(dt);
@@ -119,7 +92,7 @@ function mount(target: HTMLElement, o: MountOptions = {}) {
     ctx.clearRect(0, 0, 240, 240);
     ctx.save();
     jelly.apply(ctx);
-    if (TALL.includes(bot.outfit)) {
+    if (TALL_OUTFITS.includes(bot.outfit)) {
       ctx.translate(28.8, 62);
       ctx.scale(0.76, 0.76);
     } else ctx.translate(0, 8);
@@ -131,166 +104,159 @@ function mount(target: HTMLElement, o: MountOptions = {}) {
   raf = requestAnimationFrame(frame);
   bot.greet();
 
-  // ── the island's reactions ────────────────────────────────────────────────
-  let hovering = false;
-  let hoverTimer = 0;
-  let lastLove = -Infinity;
-  let dizzy = false;
-  let dizzyTimer = 0;
-  let origin = { x: 0, y: 0 };
-  let poke = { x: 0, y: 0, t: 0, over: false, at: 0 };
-  const play = (name: Parameters<typeof Sound.play>[0]) => soundOn && Sound.play(name);
-  const love = () => {
-    window.clearTimeout(hoverTimer);
-    hoverTimer = window.setTimeout(() => {
-      if (!hovering || dizzy || performance.now() - lastLove < 6000) return;
+  let hovering = false,
+    loveTimer = 0,
+    lastLove = -Infinity,
+    dizzy = false,
+    dizzyTimer = 0,
+    lovePos = { x: 0, y: 0 },
+    ptr = { x: 0, y: 0, t: 0, over: false, at: 0 };
+  const play = (name: any) => sound && Sound.play(name);
+  const scheduleLove = () => {
+    window.clearTimeout(loveTimer);
+    loveTimer = window.setTimeout(() => {
+      if (!hovering || dizzy || performance.now() - lastLove < 6e3) return;
       lastLove = performance.now();
-      bot.triggerEmote('love');
-      play('love');
+      bot.triggerEmote("love");
+      play("love");
     }, 1900);
   };
   const onMove = (e: PointerEvent) => {
     const r = canvas.getBoundingClientRect();
     if (!r.width) return;
-    const dx = e.clientX - r.x - r.width / 2;
-    const dy = e.clientY - r.y - r.height / 2;
-    const scale = 240 / r.width;
+    const dx = e.clientX - r.x - r.width / 2,
+      dy = e.clientY - r.y - r.height / 2,
+      scale = 240 / r.width;
     bot.lookX = Math.tanh((dx * scale) / 260);
     bot.lookY = -Math.tanh((dy * scale) / 200);
-    const over = Math.hypot(dx, dy) <= r.width * 0.3;
-    // a fast cursor running into the body pokes it
-    const t = performance.now();
-    const speed = (Math.hypot(e.clientX - poke.x, e.clientY - poke.y) / Math.max(1, t - poke.t)) * 1000;
-    if (over && !poke.over && speed > 250 && t - poke.at > 400) {
-      jelly.poke(e.clientX - poke.x, speed);
+    const over = Math.hypot(dx, dy) <= r.width * 0.3,
+      now = performance.now(),
+      speed = (Math.hypot(e.clientX - ptr.x, e.clientY - ptr.y) / Math.max(1, now - ptr.t)) * 1e3;
+    if (over && !ptr.over && speed > 250 && now - ptr.at > 400) {
+      jelly.poke(e.clientX - ptr.x, speed);
       bot.blink();
-      poke.at = t;
+      ptr.at = now;
     }
-    poke = { ...poke, x: e.clientX, y: e.clientY, t, over };
+    ptr = { ...ptr, x: e.clientX, y: e.clientY, t: now, over };
     if (over && !hovering && !dizzy) {
-      origin = { x: e.clientX, y: e.clientY };
-      if (performance.now() - lastLove >= 6000) {
+      lovePos = { x: e.clientX, y: e.clientY };
+      if (performance.now() - lastLove >= 6e3) {
         bot.blink();
         bot.tgEs = 1.08;
-        play('hover');
-        love();
+        play("hover");
+        scheduleLove();
       }
     }
     if (!over && hovering) {
-      window.clearTimeout(hoverTimer);
+      window.clearTimeout(loveTimer);
       bot.tgEs = 1;
     }
     hovering = over;
-    if (over && Math.hypot(e.clientX - origin.x, e.clientY - origin.y) > 40) {
-      origin = { x: e.clientX, y: e.clientY };
-      love();
+    if (over && Math.hypot(e.clientX - lovePos.x, e.clientY - lovePos.y) > 40) {
+      lovePos = { x: e.clientX, y: e.clientY };
+      scheduleLove();
     }
   };
   bot.onDizzy = () => {
     dizzy = true;
-    window.clearTimeout(hoverTimer);
+    window.clearTimeout(loveTimer);
     bot.tgEs = 1;
     bot.eyeOverride = null;
     bot.eyeOverrideUntil = 0;
-    bot.setState('dizzy', true);
-    play('dizzy');
+    bot.setState("dizzy", true);
+    play("dizzy");
     window.clearTimeout(dizzyTimer);
     dizzyTimer = window.setTimeout(() => {
       dizzy = false;
-      bot.setState(state);
-      bot.triggerEmote('happy');
+      bot.setState(baseState as any);
+      bot.triggerEmote("happy");
     }, 3300);
   };
   const onClick = (e: MouseEvent) => {
-    if (soundOn) void Sound.preload().then(() => Sound.resume());
-    window.clearTimeout(hoverTimer);
+    if (sound) Sound.preload().then(() => Sound.resume());
+    window.clearTimeout(loveTimer);
     bot.slap();
     jelly.tap();
-    play('slap');
+    play("slap");
     if (e.detail === 2 && !dizzy) {
-      bot.triggerEmote('wink', 0.7);
-      play('wink');
+      bot.triggerEmote("wink", 0.7);
+      play("wink");
     }
   };
   const onLeave = () => {
     hovering = false;
-    window.clearTimeout(hoverTimer);
+    window.clearTimeout(loveTimer);
     bot.tgEs = 1;
   };
   if (interactive) {
-    document.addEventListener('pointermove', onMove, { passive: true });
-    document.addEventListener('pointerleave', onLeave);
-    canvas.addEventListener('click', onClick);
-    canvas.style.cursor = 'pointer';
+    document.addEventListener("pointermove", onMove, { passive: true });
+    document.addEventListener("pointerleave", onLeave);
+    canvas.addEventListener("click", onClick);
+    canvas.style.cursor = "pointer";
   }
-  const startSound = () => {
-    if (soundOn) void Sound.preload().then(() => Sound.resume());
+  const unlock = () => {
+    if (sound) Sound.preload().then(() => Sound.resume());
   };
-  document.addEventListener('pointerdown', startSound, { once: true, capture: true });
-
-  let state: BotStateName = 'idle';
+  document.addEventListener("pointerdown", unlock, { once: true, capture: true });
+  let baseState = "idle";
   return {
     canvas,
     engine: bot,
-    /** love, surprised, proud, wink, yawn, happy, annoyed */
-    emote(name: BotEmoteName, seconds = 1.8) {
-      if (!EMOTES.includes(name)) throw Error('Geçersiz ifade: ' + String(name));
-      bot.triggerEmote(name, Math.max(0.3, Math.min(10, Number(seconds) || 1.8)));
+    emote(name: string, duration = 1.8) {
+      if (!(EMOTES as readonly string[]).includes(name)) throw new Error("Ge\xE7ersiz ifade: " + String(name));
+      bot.triggerEmote(name as any, Math.max(0.3, Math.min(10, Number(duration) || 1.8)));
     },
-    /** greet, blink, squash, slap, dizzy, gulp */
     react(name: string) {
-      if (name === 'greet') bot.greet();
-      else if (name === 'blink') bot.blink();
-      else if (name === 'squash') {
+      if (name === "greet") bot.greet();
+      else if (name === "blink") bot.blink();
+      else if (name === "squash") {
         bot.squash();
         jelly.tap();
-      } else if (name === 'slap') {
+      } else if (name === "slap") {
         bot.slap();
         jelly.tap();
-        play('slap');
-      } else if (name === 'dizzy') bot.onDizzy?.();
-      else if (name === 'gulp') bot.gulp();
-      else throw Error('Geçersiz tepki: ' + String(name));
+        play("slap");
+      } else if (name === "dizzy") bot.onDizzy?.();
+      else if (name === "gulp") bot.gulp();
+      else throw new Error("Ge\xE7ersiz tepki: " + String(name));
     },
-    /** idle, working, thinking, searching, question, error, finished, sleeping */
-    state(name: BotStateName) {
-      if (!STATES.includes(name)) throw Error('Geçersiz durum: ' + String(name));
-      state = name;
-      if (!dizzy) bot.setState(name);
+    state(name: string) {
+      if (!(STATES as readonly string[]).includes(name)) throw new Error("Ge\xE7ersiz durum: " + String(name));
+      baseState = name;
+      if (!dizzy) bot.setState(name as any);
     },
-    /** Work animations: none, terminal, web, read, code, image. */
-    station(name: Station) {
-      if (!STATIONS.includes(name)) throw Error('Geçersiz çalışma animasyonu: ' + String(name));
-      bot.station = name;
-      bot.reading = name === 'read' ? 1 : 0;
+    station(name: string) {
+      if (!(STATIONS as readonly string[]).includes(name)) throw new Error("Ge\xE7ersiz \xE7al\u0131\u015Fma animasyonu: " + String(name));
+      bot.station = name as any;
+      bot.reading = name === "read" ? 1 : 0;
     },
-    /** Accessories on top of the look, e.g. { eyes: 'roundGlasses' }; {} takes them off. */
-    wear(v: Look = {}) {
-      extra = {};
-      for (const slot of ['hat', 'eyes', 'other'] as const)
-        if (v?.[slot] !== undefined) {
-          if (!SLOT_ITEMS[slot].includes(String(v[slot]))) throw Error(`Geçersiz ${slot} aksesuarı: ${String(v[slot])}`);
-          extra[slot] = v[slot];
+    wear(next: any = {}) {
+      wear = {};
+      for (const slot of ["hat", "eyes", "other"] as const) {
+        if (next?.[slot] !== undefined) {
+          if (!(SLOTS[slot] as readonly string[]).includes(String(next[slot])))
+            throw new Error(`Ge\xE7ersiz ${slot} aksesuar\u0131: ${String(next[slot])}`);
+          wear[slot] = next[slot];
         }
-      dress();
+      }
+      applyLook();
     },
-    /** A look of the module's own ({ color, mustache, hat, eyes, other }) or 'charles'. */
-    setLook(v: 'charles' | Look) {
-      if (v === 'charles') {
-        void api()
+    setLook(next: any) {
+      if (next === "charles") {
+        mod()
           ?.slime?.look?.()
-          .then((x: any) => {
-            look = cleanLook(x);
-            dress();
+          .then((p: any) => {
+            look = normalizeLook(p);
+            applyLook();
           });
         return;
       }
-      look = cleanLook(v);
-      dress();
+      look = normalizeLook(next);
+      applyLook();
     },
     setSound(on: boolean) {
-      soundOn = !!on;
-      Sound.setEnabled(soundOn);
+      sound = !!on;
+      Sound.setEnabled(sound);
     },
     dance(on: boolean) {
       bot.setDancing(!!on);
@@ -298,23 +264,23 @@ function mount(target: HTMLElement, o: MountOptions = {}) {
     destroy() {
       alive = false;
       cancelAnimationFrame(raf);
-      window.clearTimeout(hoverTimer);
+      window.clearTimeout(loveTimer);
       window.clearTimeout(dizzyTimer);
-      document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerleave', onLeave);
-      off?.();
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerleave", onLeave);
+      offLook?.();
       canvas.remove();
-    },
+    }
   };
 }
 
 (window as any).CharlesSlime = Object.freeze({
   version: 1,
   mount,
-  accessories: { hat: [...SLOT_ITEMS.hat], eyes: [...SLOT_ITEMS.eyes], other: [...SLOT_ITEMS.other] },
-  colors: [...SLIME_COLOR_IDS],
+  accessories: { hat: [...SLOTS.hat], eyes: [...SLOTS.eyes], other: [...SLOTS.other] },
+  colors: [...SLIME_COLOR_KEYS],
   emotes: [...EMOTES],
-  reactions: ['greet', 'blink', 'squash', 'slap', 'dizzy', 'gulp'],
+  reactions: ["greet", "blink", "squash", "slap", "dizzy", "gulp"],
   states: [...STATES],
-  stations: [...STATIONS],
+  stations: [...STATIONS]
 });

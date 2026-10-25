@@ -38,9 +38,9 @@ export type SoundName = (typeof SOUND_NAMES)[number];
 
 class SoundEngine {
   enabled = true;
+  volume = 0.12;
   /** v0.8.8: where the WAVs are served (the module kit uses /_charles/sounds/). */
   base = '/sounds/';
-  volume = 0.12;
 
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -104,7 +104,6 @@ class SoundEngine {
   }
 
   setVolume(v: number) {
-    // v0.8.14: a missing or broken value (an old settings file) keeps the current volume
     if (!Number.isFinite(Number(v))) return;
     this.volume = Math.max(0, Math.min(0.2, Number(v)));
     if (this.master) this.master.gain.value = this.volume;

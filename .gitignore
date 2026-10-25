@@ -48,5 +48,6 @@ docs/VERIFICATION-v0.4.4.md
 # Local visual regression captures
 .qa/
 
-# Built Windows launcher
-/Charles.exe
+# Agent scratch files and local rollback copies
+.mimocode/
+alpha-backups/

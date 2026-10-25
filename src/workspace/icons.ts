@@ -1,10 +1,14 @@
 // v0.7.1 SpecialBeta: stroke icons for the workspace window, on a 24×24 grid.
-// Several paths are adapted from source code published under the MIT License (the same
-// source as the character engine, see THIRD-PARTY-NOTICES.md); the others are Charles' own.
 
 export const ICONS: Record<string, string> = {
+  // v0.9.2: Gönder (Quick Share & AirDrop)
+  send: 'M21 3 3 10.5l7.5 3L13.5 21 21 3zM10.5 13.5 21 3',
+  qr: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h3v3h-3zM17 17h3v3h-3zM14 19h2M19 14v2',
+  phone: 'M7.5 3.5h9a1.5 1.5 0 0 1 1.5 1.5v14a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19V5a1.5 1.5 0 0 1 1.5-1.5zM11 17.5h2',
+  radar: 'M12 12m-2 0a2 2 0 1 0 4 0 2 2 0 1 0-4 0M7.8 7.8a6 6 0 0 1 8.4 0M16.2 16.2a6 6 0 0 1-8.4 0M5 5a10 10 0 0 1 14 0M19 19a10 10 0 0 1-14 0',
   // v0.8.8
-  project: 'M4 8.5h16v10.5H4zM9 8.5V6.2c0-.9.7-1.7 1.7-1.7h2.6c1 0 1.7.8 1.7 1.7v2.3M4 13.2h16M11 13.2v1.8h2v-1.8',
+  project:
+    'M4 8.5h16v10.5H4zM9 8.5V6.2c0-.9.7-1.7 1.7-1.7h2.6c1 0 1.7.8 1.7 1.7v2.3M4 13.2h16M11 13.2v1.8h2v-1.8',
   // v0.8.0
   blocks: 'M4.5 4.5h6v6h-6zM13.5 4.5h6v6h-6zM4.5 13.5h6v6h-6zM16.5 13.5v6M13.5 16.5h6',
   // v0.7.7

@@ -13,6 +13,7 @@ import { english0810, patterns0810 } from './i18n-0810';
 import { english0811 } from './i18n-0811';
 import { english0814 } from './i18n-0814';
 import { english0815 } from './i18n-0815';
+import { english092, patterns092 } from './i18n-092';
 import { german } from './lang/de';
 import { french } from './lang/fr';
 import { spanish } from './lang/es';
@@ -353,7 +354,7 @@ Object.assign(english, {
   'Kaydet düğmesine tıkla, ardından kısayol tuşlarına birlikte bas. Esc ile vazgeç.':
     'Click Record keys, then press the shortcut together. Press Esc to cancel.',
 });
-Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089, english0810, english0811, english0814, english0815);
+Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089, english0810, english0811, english0814, english0815, english092);
 
 // v0.6.3: look-up that ignores line breaks/indentation from the HTML, then the patterns
 // (texts with numbers or names inside).
@@ -364,7 +365,7 @@ function toEnglish(source: string): string | undefined {
   if (!key) return undefined;
   const hit = english[source.trim()] ?? collapsed.get(key);
   if (hit !== undefined) return hit;
-  for (const [re, fn] of [...englishPatterns, ...specialPatterns, ...patterns072, ...patterns077, ...patterns080, ...patterns085, ...patterns087, ...patterns088, ...patterns0810]) {
+  for (const [re, fn] of [...englishPatterns, ...specialPatterns, ...patterns072, ...patterns077, ...patterns080, ...patterns085, ...patterns087, ...patterns088, ...patterns0810, ...patterns092]) {
     const m = key.match(re);
     if (m) return fn(...(m as unknown as string[]));
   }

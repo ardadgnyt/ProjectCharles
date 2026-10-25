@@ -21,7 +21,16 @@ body {
   flex-direction: column;
   gap: 6px;
   /* v0.8.9: room for the WhatsApp card's × inside the window (it was cut off and missed clicks) */
-  padding: 9px 9px 6px;
+  padding: 11px 11px 8px;
+}
+.mail-host {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wa-host[hidden],
+.mail-host[hidden] {
+  display: none;
 }
 .bubble {
   position: relative;
@@ -643,11 +652,11 @@ body {
   font-size: 17px;
 }
 .wa-x {
-  top: -8px;
-  right: -8px;
-  width: 26px;
-  height: 26px;
-  opacity: 0.55;
+  top: -7px;
+  right: -7px;
+  width: 28px;
+  height: 28px;
+  opacity: 0.78;
 }
 
 /* v0.8.14: a module's notice: a click opens the module, no "Charles explains" hint */

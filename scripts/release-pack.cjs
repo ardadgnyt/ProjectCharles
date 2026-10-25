@@ -14,7 +14,7 @@ const crypto = require('node:crypto');
 const { zipSync } = require('fflate');
 
 const ROOT = path.resolve(__dirname, '..');
-const BASE = ['Charles.exe', 'app', 'dist', 'public', 'package.json', 'package-lock.json', 'LICENSE', 'README.md', 'CHANGELOG.md', 'setup', 'scripts', 'Start-Charles.cmd', 'licenses', 'THIRD-PARTY-NOTICES.md'];
+const BASE = ['Charles.exe', 'src', 'test', 'docs', 'DEVELOPMENT.md', 'LICENSE-ASSETS.md', 'app', 'dist', 'public', 'package.json', 'package-lock.json', 'LICENSE', 'README.md', 'CHANGELOG.md', 'setup', 'scripts', 'Start-Charles.cmd', 'licenses', 'THIRD-PARTY-NOTICES.md'];
 // never shipped, wherever they are
 const SKIP = /(^|\/)(\.git|node_modules|_update|_to_delete|__pycache__|\.DS_Store|Thumbs\.db)(\/|$)|(^|\/)(\.env(\..*)?|Charles-creator\.json|charles-install\.json|charles-manifest\.json|personal\.json|companion\.json|charles-history\.json|preferences\.json|[^/]*\.enc\.json|[^/]*\.key|[^/]*\.pem|[^/]*\.log)$/i;
 

@@ -557,8 +557,7 @@ body.v10[data-view='shelf']:not(.desktop-pet) header > .chat-nav {
 #shelf .card-convert:hover .convert-icon {
   transform: rotate(-35deg);
 }
-#shelf .card-convert.over,
-body.dropping #shelf .card-convert {
+#shelf .card-convert.over {
   border: 1.5px dashed var(--v10-cream);
   background: linear-gradient(180deg, rgba(237, 201, 169, 0.14), rgba(237, 201, 169, 0.05));
 }
@@ -1597,9 +1596,7 @@ body.v10[data-view='chat']:not(.desktop-pet) #toggle #status {
 #shelf .music-range::-webkit-slider-runnable-track {
   background: linear-gradient(90deg, #f4efe8 var(--fill), rgba(255, 255, 255, 0.14) var(--fill));
 }
-body.v10.dropping[data-view='shelf'] .island {
-  outline-color: rgba(255, 255, 255, 0.16);
-}
+
 body.v10[data-view='chat'] #toggle #status,
 body.v10[data-view='chat'] #toggle .version-label {
   line-height: 18px !important;

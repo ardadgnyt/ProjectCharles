@@ -3,9 +3,34 @@ const fs = require('node:fs'),
   path = require('node:path'),
   { randomUUID } = require('node:crypto');
 function parse(file, validate) {
-  const value = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''));
-  if (validate && !validate(value)) throw Error('Geçersiz kayıt yapısı');
-  return value;
+  for (let i = 0; ; i++) {
+    try {
+      const value = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''));
+      if (validate && !validate(value)) throw Error('Geçersiz kayıt yapısı');
+      return value;
+    } catch (e) {
+      if (i < 4 && ['EPERM', 'EBUSY', 'EACCES'].includes(e?.code)) {
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25 * (i + 1));
+        continue;
+      }
+      throw e;
+    }
+  }
+}
+function backupCandidates(file) {
+  const list = [file + '.tmp', file + '.tmp-a', file + '.bak'];
+  try {
+    const dir = path.dirname(file);
+    const prefix = path.basename(file) + '.corrupt-';
+    const corrupts = fs
+      .readdirSync(dir)
+      .filter((n) => n.startsWith(prefix))
+      .sort()
+      .reverse()
+      .map((n) => path.join(dir, n));
+    list.push(...corrupts);
+  } catch {}
+  return list;
 }
 function writeDurable(file, text) {
   const fd = fs.openSync(file, 'w');
@@ -19,11 +44,11 @@ function writeDurable(file, text) {
 function readStore(file, validate) {
   if (!fs.existsSync(file)) {
     // A crash between the two renames in writeStore leaves only .tmp / .bak behind.
-    for (const candidate of [file + '.tmp', file + '.bak']) {
+    for (const candidate of backupCandidates(file)) {
       try {
         const value = parse(candidate, validate);
         writeDurable(file + '.recovery', JSON.stringify(value));
-        fs.renameSync(file + '.recovery', file);
+        renameRetry(file + '.recovery', file);
         return { value, warning: null };
       } catch {}
     }
@@ -33,9 +58,12 @@ function readStore(file, validate) {
     return { value: parse(file, validate), warning: null };
   } catch (error) {
     const preserved = file + '.corrupt-' + Date.now() + '-' + randomUUID();
-    fs.copyFileSync(file, preserved, fs.constants.COPYFILE_EXCL);
+    try {
+      fs.copyFileSync(file, preserved, fs.constants.COPYFILE_EXCL);
+    } catch {}
     let value = null;
-    for (const candidate of [file + '.tmp', file + '.bak']) {
+    for (const candidate of backupCandidates(file)) {
+      if (candidate === preserved) continue;
       try {
         value = parse(candidate, validate);
         break;
@@ -43,8 +71,12 @@ function readStore(file, validate) {
     }
     if (value) {
       writeDurable(file + '.recovery', JSON.stringify(value));
-      fs.renameSync(file + '.recovery', file);
-    } else fs.unlinkSync(file);
+      renameRetry(file + '.recovery', file);
+    } else {
+      try {
+        fs.unlinkSync(file);
+      } catch {}
+    }
     return {
       value,
       warning:
@@ -55,6 +87,20 @@ function readStore(file, validate) {
           : 'Okunabilir yedek yok; yeni kayıtla devam ediliyor.'),
     };
   }
+}
+function recoverNonEmpty(file, validate, hasItems) {
+  for (const candidate of backupCandidates(file)) {
+    try {
+      if (!fs.existsSync(candidate)) continue;
+      const value = parse(candidate, validate);
+      if (hasItems(value)) {
+        writeDurable(file + '.recovery', JSON.stringify(value));
+        renameRetry(file + '.recovery', file);
+        return value;
+      }
+    } catch {}
+  }
+  return null;
 }
 // Cheap sanity check before the current file becomes the backup: a zero-filled or
 // truncated-at-start file (typical after power loss) must not overwrite a good .bak.
@@ -91,4 +137,4 @@ function writeStore(file, value) {
   if (fs.existsSync(file) && looksLikeJson(file)) renameRetry(file, file + '.bak');
   renameRetry(file + '.tmp', file);
 }
-module.exports = { readStore, writeStore };
+module.exports = { readStore, writeStore, recoverNonEmpty };

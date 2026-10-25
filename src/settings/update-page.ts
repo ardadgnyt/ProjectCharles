@@ -1,6 +1,7 @@
 // v0.8.0: Ayarlar → Genel → Güncellemeler. Checks GitHub Releases, shows the release notes
 // and installs the update in place (app/core/updater.cjs does the work).
 import { renderMarkdown } from '../chat/markdown';
+
 type Release = {
   version: string;
   label: string;
@@ -62,8 +63,6 @@ export function updatePage(api: any, notice: (s: string) => void) {
     if (r.zip?.size) meta.append(raw((meta.childNodes.length ? ' · ' : '') + mb(r.zip.size)));
     const notes = h('div', 'update-notes');
     notes.setAttribute('translate', 'no');
-    // v0.8.11: the notes are Markdown (bold, italic, lists, links); markdown-it with raw HTML
-    // turned off, so a release note can never inject HTML
     notes.classList.add('markdown');
     notes.innerHTML = r.notes.trim() ? renderMarkdown(r.notes.trim()) : '';
     notes.onclick = (e) => {

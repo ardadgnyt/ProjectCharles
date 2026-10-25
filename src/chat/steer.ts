@@ -19,13 +19,9 @@ export type SteerDeps = {
   t: (s: string) => string;
   /** Is an answer running right now (for the "Şimdi" button)? */
   running?: () => boolean;
+  feed?: HTMLElement;
   /** Stops the running answer. */
   interrupt?: () => Promise<void>;
-  /**
-   * v0.8.5: the chat itself. Queued instructions are shown there, as the newest messages (like
-   * Claude), instead of in a box above the message box.
-   */
-  feed?: HTMLElement;
 };
 
 export function steerUI(d: SteerDeps) {
@@ -36,7 +32,6 @@ export function steerUI(d: SteerDeps) {
   if (d.feed) {
     box.className = 'steer-pending';
     d.feed.append(box);
-    // the waiting instructions stay the newest thing in the chat while the answer runs
     new MutationObserver(() => {
       if (queue.length && d.feed!.lastElementChild !== box) d.feed!.append(box);
     }).observe(d.feed, { childList: true });

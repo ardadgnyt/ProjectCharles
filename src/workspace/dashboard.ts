@@ -8,8 +8,8 @@ import { calendarCard } from './calendar';
 import { homeCard } from './home';
 import { t } from '../settings/i18n';
 import { commandsCard, notesCard, systemUsageCard, systemInfoCard } from './extra-cards';
-import { dashEditor } from './dash-edit';
 import { modulesCard } from './modules-card';
+import { dashEditor } from './dash-edit';
 
 export type DashboardDeps = {
   api: any;
@@ -547,9 +547,6 @@ export function workspaceDashboard(d: DashboardDeps) {
           c.note.textContent = 'Bağlı değil';
           return;
         }
-        // Gemini starts its CLI to read the quota: once when the window opens (v0.7.2), then
-        // only with the refresh button
-        // Cache reads are cheap; the main process does not poll Gemini for these calls.
         if (id === 'gemini' && !c.col.dataset.loaded) c.note.textContent = 'Okunuyor…';
         try {
           const u = await api.usageRead(force, id);
@@ -558,7 +555,12 @@ export function workspaceDashboard(d: DashboardDeps) {
           c.five.hidden = !!u.missingWindows?.includes('fiveHour');
           setRing(c.five, u.fiveHour, u.labels?.fiveHour || '5 saatlik');
           setRing(c.week, u.weekly, u.labels?.weekly || 'Haftalık');
-          c.note.textContent = !u.fiveHour && !u.weekly ? u.unavailable || 'Bilgi yok' : u.stale ? 'Son bilinen değer' : u.note || '';
+          c.note.textContent =
+            !u.fiveHour && !u.weekly
+              ? u.unavailable || 'Bilgi yok'
+              : u.stale
+                ? 'Son bilinen değer'
+                : u.note || '';
         } catch (err) {
           c.col.classList.add('off');
           c.note.textContent = (err as Error).message.slice(0, 60);
@@ -578,7 +580,6 @@ export function workspaceDashboard(d: DashboardDeps) {
   const notes = notesCard(extra);
   const sysUsage = systemUsageCard(extra);
   const sysInfo = systemInfoCard(extra);
-  // v0.8.7: installed modules with quick "Aç" buttons
   const modules = modulesCard({ api, notice: d.notice, openSettings: d.openSettings, save: saveDash });
   let dash: any = null;
   const editor = dashEditor({

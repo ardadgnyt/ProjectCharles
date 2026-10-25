@@ -1,6 +1,6 @@
 # Charles — User Guide
 
-This guide covers Charles **v0.9.1 Beta** on Windows 10/11. For installation, see the
+This guide covers Charles **v0.8.0 Beta** on Windows 10/11. For installation, see the
 [README](../README.md#installation). For the full history of changes, see
 [CHANGELOG.md](../CHANGELOG.md) (Turkish).
 
@@ -17,34 +17,21 @@ This guide covers Charles **v0.9.1 Beta** on Windows 10/11. For installation, se
 
 ## The island
 
-Charles lives in an island at the top of the screen. It has four sizes:
+When Charles starts, a small island sits at the top of the screen.
 
-- **The thin strip (closed):** when nothing plays, the closed island is a thin strip at the top
-  edge. Rest the pointer on it for a moment and the card shelf opens.
-- **The music notch (closed, while music plays):** Slime, the name and the Spotify controls with
-  the song's progress line. It shows by itself when a song starts and goes back into the strip a
-  moment after you pause and move the pointer away.
-- **The card shelf (small island):** AI usage, the weather, the converter, Charles and the music
-  card. A click on an empty part opens the chat; the cream bar below closes the island.
-  - **AI usage** shows what is left of the current AI's 5-hour and weekly limits.
-  - **Weather** opens the next five days (temperature, feels like, humidity, wind, chance of
-    rain); the pencil button changes the city.
-  - **Converter:** drop files on it (or click it to pick them) to turn them into other formats.
-    Everything runs on your computer; the result is saved next to the original.
-  - **Music:** a click on the card opens Spotify; its buttons control playback.
-- **The chat (big island):** the island grows down into the chat panel. A click on an empty part
-  goes back to the card shelf; a click on the cream bar closes the island, dragging it changes
-  the panel's height.
+- **Left:** how much quota your current AI has left (5-hour and weekly windows for Codex,
+  similar meters for Claude and Gemini).
+- **Middle:** Slime and the Charles name. Click Slime to open the large panel.
+- **Right:** the weather for your city and your Spotify controls.
+- **Below the island:** bubbles for important new emails and calendar reminders. Click a bubble
+  and Charles explains the email.
 
-Bubbles below the island show important new emails, calendar reminders, WhatsApp messages and
-module notices. The × closes a bubble (a closed one does not come back unless something new
-arrives); a click on an email asks Charles to explain it, a click on a module notice opens that
-module. Module notices also close by themselves after a minute.
+The **×** on the large panel closes it back to the island; Charles keeps running. To quit,
+Shift-click the × or use the tray icon → Çıkış (Quit).
 
-The **×** in the island's top bar closes it; Charles keeps running. To quit, Shift-click the ×
-or use the tray icon → Çıkış (Quit). Use the **‹ ›** arrows to dock the island to the left or
-right corner. The pin button keeps it open. The island never has a taskbar button of its own;
-only the app window does.
+Use the **‹ ›** arrows to dock the island to the left or right corner. The pin button keeps the
+large panel open. When the pointer moves away, the panel collapses on its own. You can change
+this in Settings → General.
 
 ## The app window
 
@@ -250,6 +237,5 @@ Anything else, in any language, goes to the AI you selected.
 | “Sign-in required” | Settings → AI models → sign in again. Finish the sign-in in the browser window that opens. |
 | No sound | Check the speaker button at the top right and Settings → General → Sounds. |
 | Hey Charles does not react | Check the microphone button at the top right (red means off). Check that the microphone is allowed in Windows privacy settings, then redo the training in Settings → General. |
-| Spotify is not shown or its buttons do nothing | Charles reads Spotify through Windows' media controls. If Windows' own media controls (the volume flyout) do not show Spotify either, quit Spotify from its tray icon and start it again; if that does not help, restart the computer once. |
 | Mail is not shown | Settings → Plugins → *Test connection*. Mail is checked every five minutes while Charles is open. |
 | Something looks broken after an update | Use `setup\Reset-Charles.cmd`. Your old data is backed up first. |

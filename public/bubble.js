@@ -90,13 +90,33 @@ function closed(item) {
 let quietUntil = 0;
 const quiet = () => Date.now() < quietUntil;
 function dismissOnPress(button, fn) {
-  let done = false;
+  let lastRun = 0;
   const go = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (done) return;
-    done = true;
-    quietUntil = Date.now() + 450;
+    const now = Date.now();
+    if (now - lastRun < 300) return;
+    lastRun = now;
+    quietUntil = now + 450;
+    fn();
+  };
+  button.addEventListener('pointerdown', (e) => {
+    if (e.button === 0) go(e);
+  });
+  button.addEventListener('click', go);
+  button.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') go(e);
+  });
+}
+function actOnPress(button, fn) {
+  let lastRun = 0;
+  const go = (e) => {
+    if (button.disabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const now = Date.now();
+    if (now - lastRun < 280) return;
+    lastRun = now;
     fn();
   };
   button.addEventListener('pointerdown', (e) => {
@@ -111,6 +131,10 @@ const resize = () =>
   // setTimeout, not requestAnimationFrame: the window is still hidden on first render.
   setTimeout(() => window.bubble.resize(Math.ceil(stack.getBoundingClientRect().height)), 0);
 const waHost = element('div', 'wa-host');
+const mailHost = element('div', 'mail-host');
+waHost.hidden = true;
+mailHost.hidden = true;
+stack.append(waHost, mailHost);
 window.bubble.onItems(({ items, more, wa, language }) => {
   if (typeof language === 'string') lang = language;
   for (const i of [...(items || []), ...(Array.isArray(wa) ? wa : [])]) if (closed(i)) window.bubble.dismiss(i.id);
@@ -119,8 +143,10 @@ window.bubble.onItems(({ items, more, wa, language }) => {
   document.documentElement.lang = lang;
   document.documentElement.style.setProperty('--hint', JSON.stringify('  · ' + T('Charles anlatsın →')));
   waUpdate(Array.isArray(wa) ? wa : []);
-  stack.replaceChildren(...(waHost.childElementCount ? [waHost] : []), ...items.map(mailCard));
-  if (more) stack.append(element('div', 'more', '+' + more + T(' bildirim daha')));
+  waHost.hidden = !waHost.childElementCount;
+  mailHost.replaceChildren(...items.map(mailCard));
+  if (more) mailHost.append(element('div', 'more', '+' + more + T(' bildirim daha')));
+  mailHost.hidden = !mailHost.childElementCount;
   resize();
 });
 new ResizeObserver(resize).observe(stack);
@@ -180,10 +206,7 @@ function iconButton(g, label, fn, cls = '') {
   // v0.8.9: no title: Windows showed its own tooltip box over the card
   b.setAttribute('aria-label', label);
   b.append(glyph(G[g]));
-  b.onclick = (e) => {
-    e.stopPropagation();
-    fn();
-  };
+  actOnPress(b, fn);
   return b;
 }
 function avatar(item, small = false) {
@@ -202,7 +225,7 @@ function setView(next) {
   const was = waView.mode;
   waView = { ...waView, ...next };
   const typing = waView.mode === 'compose';
-  if (typing !== (was === 'compose')) void window.bubble.wa('focus', { on: typing }).catch(() => {});
+  if (typing !== (was === 'compose') || typing) void window.bubble.wa('focus', { on: typing }).catch(() => {});
   paintWa();
 }
 function waUpdate(list) {
@@ -211,6 +234,7 @@ function waUpdate(list) {
     if (waView.mode === 'compose') void window.bubble.wa('focus', { on: false }).catch(() => {});
     waView = { mode: 'collapsed', chat: '', draft: '', error: '' };
     waHost.replaceChildren();
+    waHost.hidden = true;
     return;
   }
   // a reply being typed or sent is never redrawn under the user's hands
@@ -232,7 +256,14 @@ function row(item, onOpen) {
   // v0.8.11: a photo shows as a small picture at the end of the row
   if (photoOk(item.image)) r.append(photo(item.image, 'wa-thumb'));
   r.append(element('small', 'wa-time', ago(item.at)));
-  r.onclick = () => {
+  r.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || quiet()) return;
+    if (e.target.closest('button')) return;
+    e.preventDefault();
+    onOpen();
+  });
+  r.onclick = (e) => {
+    if (e.target.closest('button')) return;
     if (!quiet()) onOpen();
   };
   r.onkeydown = (e) => {
@@ -249,7 +280,11 @@ function card(...kids) {
 function paintWa() {
   const mode = waView.mode;
   const item = find(waView.chat) || waItems[0];
-  if (!item) return;
+  if (!item) {
+    waHost.replaceChildren();
+    waHost.hidden = true;
+    return;
+  }
   let view;
   if (mode === 'collapsed' && waItems.length > 1) view = foldedCard();
   else if (mode === 'list') view = listCard();
@@ -258,11 +293,16 @@ function paintWa() {
   else if (mode === 'sent') view = sentCard(item);
   else view = singleCard(item);
   waHost.replaceChildren(view);
+  waHost.hidden = false;
   if (mode === 'compose') {
     const input = view.querySelector('textarea');
     if (input) {
-      input.focus();
-      input.setSelectionRange(input.value.length, input.value.length);
+      setTimeout(() => {
+        try {
+          input.focus();
+          input.setSelectionRange(input.value.length, input.value.length);
+        } catch {}
+      }, 0);
     }
   }
   resize();
@@ -280,7 +320,7 @@ function singleCard(item) {
   r.querySelector('.wa-line').append(element('small', 'wa-time', ago(item.at)));
   return card(r, dismissButton());
 }
-function dismissButton() {
+function dismissButton(singleItem = null) {
   // v0.8.9: the card goes at once; Charles forgets the notifications after it
   // v0.8.11: on pointerdown (see dismissOnPress), so a redraw can never swallow it
   const b = element('button', 'wa-btn wa-x');
@@ -288,6 +328,17 @@ function dismissButton() {
   b.setAttribute('aria-label', T('WhatsApp bildirimlerini kapat'));
   b.append(glyph(G.close));
   dismissOnPress(b, () => {
+    sendSeq++;
+    if (waView.mode === 'compose') void window.bubble.wa('focus', { on: false }).catch(() => {});
+    if (singleItem && waItems.length > 1) {
+      forget(singleItem);
+      const rest = waItems.filter((i) => i.id !== singleItem.id);
+      waView = { mode: rest.length > 1 ? 'list' : 'collapsed', chat: '', draft: '', error: '' };
+      waUpdate(rest);
+      resize();
+      window.bubble.dismiss(singleItem.id);
+      return;
+    }
     for (const i of waItems) forget(i);
     waUpdate([]);
     resize();
@@ -311,7 +362,13 @@ function foldedCard() {
   r.setAttribute('role', 'button');
   r.setAttribute('aria-expanded', 'false');
   r.append(brand(), stackEl, element('span', 'wa-body', title, sub), iconButton('down', T('Mesajları göster'), () => setView({ mode: 'list' })));
-  r.onclick = () => {
+  r.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || quiet() || e.target.closest('button')) return;
+    e.preventDefault();
+    setView({ mode: 'list' });
+  });
+  r.onclick = (e) => {
+    if (e.target.closest('button')) return;
     if (!quiet()) setView({ mode: 'list' });
   };
   return card(r, dismissButton());
@@ -325,28 +382,28 @@ function listCard() {
     r.append(iconButton('reply', T('Hızlı yanıtlar'), () => setView({ mode: 'quick', chat: i.chat })));
     list.append(r);
   }
-  return card(head, list);
+  return card(head, list, dismissButton());
 }
 function quickCard(item) {
   const head = element('div', 'wa-head');
   const t = element('strong', 'wa-title', T('Hızlı yanıtlar'));
   const to = element('small', 'wa-to', item.name);
   to.setAttribute('translate', 'no');
-  head.append(glyph(G.quick, 'wa-glyph wa-head-icon'), element('span', 'wa-head-text', t, to), iconButton('close', T('Kapat'), () => setView({ mode: waItems.length > 1 ? 'list' : 'collapsed' })));
+  head.append(glyph(G.quick, 'wa-glyph wa-head-icon'), element('span', 'wa-head-text', t, to), iconButton('close', T('Kapat'), () => setView({ mode: waItems.length > 1 ? 'list' : 'collapsed', chat: '' })));
   const list = element('div', 'wa-quick');
   for (const text of item.quickReplies || []) {
     const b = element('button', 'wa-quick-row');
     b.type = 'button';
     b.append(element('span', '', text), glyph(G.next));
-    b.onclick = () => void send(item, text);
+    actOnPress(b, () => void send(item, text));
     list.append(b);
   }
   const own = element('button', 'wa-quick-row own');
   own.type = 'button';
   own.append(element('span', '', T('Kendim yazayım…')), glyph(G.next));
-  own.onclick = () => openChat(item.chat);
+  actOnPress(own, () => openChat(item.chat));
   list.append(own);
-  return card(head, list);
+  return card(head, list, dismissButton(item));
 }
 async function openChat(chat) {
   waConversation = null;
@@ -375,6 +432,7 @@ function photo(src, cls) {
 }
 function thread(item) {
   const box = element('div', 'wa-thread');
+  if (!item) return box;
   const list =
     waConversation?.chat === item.chat
       ? waConversation.messages.slice(item.group ? -6 : -4)
@@ -399,7 +457,10 @@ function composeCard(item) {
   const name = element('strong', 'wa-name', item.name);
   name.setAttribute('translate', 'no');
   head.append(
-    iconButton('back', T('Geri'), () => setView({ mode: waItems.length > 1 ? 'list' : 'collapsed' })),
+    iconButton('back', T('Geri'), () => {
+      sendSeq++;
+      setView({ mode: waItems.length > 1 ? 'list' : 'collapsed', chat: '', error: '' });
+    }),
     avatar(item),
     element('span', 'wa-head-text', name),
     element('small', 'wa-time', ago(item.at)),
@@ -410,7 +471,7 @@ function composeCard(item) {
     const bar = element('span', 'wa-bar', element('i'));
     box.append(element('span', 'wa-spin'), element('span', 'wa-sending-text', element('span', '', T('Mesaj gönderiliyor…')), bar));
     body.push(box);
-    return card(...body);
+    return card(...body, dismissButton(item));
   }
   const box = element('div', 'wa-compose');
   const input = element('textarea', 'wa-input');
@@ -419,6 +480,10 @@ function composeCard(item) {
   input.placeholder = T('Yanıt yaz…');
   input.setAttribute('aria-label', T('Yanıt yaz'));
   input.value = waView.draft || '';
+  input.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    void window.bubble.wa('focus', { on: true }).catch(() => {});
+  });
   const sendB = iconButton('send', T('Gönder'), () => void send(item, input.value), 'wa-send');
   const sync = () => {
     waView.draft = input.value;
@@ -430,21 +495,21 @@ function composeCard(item) {
       e.preventDefault();
       if (input.value.trim()) void send(item, input.value);
     }
-    if (e.key === 'Escape') setView({ mode: waItems.length > 1 ? 'list' : 'collapsed' });
+    if (e.key === 'Escape') setView({ mode: waItems.length > 1 ? 'list' : 'collapsed', chat: '', error: '' });
   };
   const emoji = element('div', 'wa-emoji');
   emoji.hidden = true;
   for (const e of EMOJIS) {
     const b = element('button', '', e);
     b.type = 'button';
-    b.onclick = () => {
+    actOnPress(b, () => {
       const at = input.selectionStart ?? input.value.length;
       input.value = input.value.slice(0, at) + e + input.value.slice(input.selectionEnd ?? at);
       sync();
       input.focus();
       emoji.hidden = true;
       resize();
-    };
+    });
     emoji.append(b);
   }
   const smile = iconButton('smile', T('Emoji'), () => {
@@ -455,7 +520,7 @@ function composeCard(item) {
   sync();
   body.push(box, emoji);
   if (waView.error) body.push(element('p', 'wa-error', waView.error));
-  return card(...body);
+  return card(...body, dismissButton(item));
 }
 function sentCard(item) {
   const ok = element('div', 'wa-sent');
@@ -465,18 +530,27 @@ function sentCard(item) {
   const open = element('button', 'wa-open');
   open.type = 'button';
   open.append(glyph(G.open), element('span', '', T('Sohbeti aç')));
-  open.onclick = () => void window.bubble.wa('open', { chat: item.chat }).catch(() => {});
+  actOnPress(open, () => void window.bubble.wa('open', { chat: item.chat }).catch(() => {}));
   const r = row({ ...item, unread: 0 }, () => openChat(item.chat));
-  return card(r, element('div', 'wa-done', ok, open));
+  return card(r, element('div', 'wa-done', ok, open), dismissButton(item));
 }
 let sentTimer = 0;
+let sendSeq = 0;
 async function send(item, text) {
   text = String(text || '').trim();
   if (!text) return;
+  const seq = ++sendSeq;
   setView({ mode: 'sending', chat: item.chat, error: '' });
   void window.bubble.wa('focus', { on: false }).catch(() => {});
+  let timeoutId = 0;
   try {
-    await window.bubble.wa('reply', { chat: item.chat, text });
+    await Promise.race([
+      window.bubble.wa('reply', { chat: item.chat, text }),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(Error('Yanıt zaman aşımına uğradı; tekrar dene.')), 15000);
+      }),
+    ]);
+    if (seq !== sendSeq) return;
     clearTimeout(sentTimer);
     setView({ mode: 'sent', chat: item.chat, draft: '', sentText: text });
     sentTimer = setTimeout(() => {
@@ -486,6 +560,9 @@ async function send(item, text) {
       }
     }, 8000);
   } catch (e) {
+    if (seq !== sendSeq) return;
     setView({ mode: 'compose', chat: item.chat, draft: text, error: String(e.message || e).replace(/^Error: /, '') });
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

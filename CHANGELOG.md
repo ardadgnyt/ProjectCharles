@@ -4,6 +4,23 @@ Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özell
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.2 Beta — 25 Ekim 2026
+
+- Paylaşım paneli QR alanı olmadan yeniden düzenlendi; taşma, kayma ve yeniden açmada kabul isteğinin kaybolması düzeltildi.
+- Alım servisi uygulamayla başlar; panel kapalıyken keşif sürer ve uyku/ağ değişiminden sonra yenilenir.
+- Quick Share şifreli aktarım, gecikmeli kabul, iptal ve dosya bütünlüğü testleri; S24+ ile iki yönlü doğrulama.
+- Kaynak kod GPL-3.0-or-later; MultiDrop bildirimleri ve dağıtımlarda karşılık gelen kaynak kod eklendi.
+
+
+- **WhatsApp bildirim balonu düzeltmesi:** Adacığın altında açılan WhatsApp bildirim balonunda bazen tıklamaların algılanmaması, ne yanıt yazılabilmesi ne de kapatma (`×`) tuşunun çalışması sorunu giderildi.
+  - Ada penceresinin (`panel-pointer-enter`, `expand`, `blur`) bildirim balonunun üzerindeyken fare tıklamalarını yutması engellendi.
+  - Bildirim güncellemelerinde (`bubble-items`) WhatsApp kartının DOM’dan sökülüp yeniden eklenmesi nedeniyle oluşan metin kutusu odak kaybı ve tıklama iptali düzeltildi.
+  - Windows’ta pencere odağı ve en-üstte (topmost) sıralamasını bozan `setFocusable(false)` geçişi kaldırıldı; her görünüm moduna (`×`) kapatma düğmesi ve 15 saniyelik gönderim zaman aşımı koruması eklendi.
+- **Küçük adada yarı boy Dönüştürücü ve yeni Gönder kartı:** Küçük adacığın kart rafındaki (`#shelf`) **Dönüştürücü** kutucuğu yarı boyuta indirildi; alt yarısına **Gönder** kartı eklendi.
+- **Quick Share / Nearby Share ve AirDrop dosya gönderme & alma (`multidrop` tabanlı):**
+  - **Quick Share / Nearby Share:** mDNS (`_FC9F5ED42C8A._tcp.local.`), EndpointInfo, QR kod ile eşleşme (`https://quickshare.google/qrcode#key=...`), UKEY2 (`P-256 ECDH` + `SHA-512` + `HKDF-SHA256`), `AES-256-CBC` + `HMAC-SHA256` şifreli D2D çerçeveleri ve PIN doğrulaması ile Android, Samsung ve Windows cihazlara kablosuz dosya gönderme ve alma.
+  - **AirDrop:** mDNS (`_airdrop._tcp.local.`), HTTPS (`/Discover`, `/Ask`, `/Upload`), ikili `bplist00` ve `CPIO` + `gzip` arşiv akışı (ve Wi-Fi üzerinden LocalSend v2 uyumluluğu) ile iPhone, iPad ve Mac cihazlara kablosuz dosya gönderme ve alma.
+
 ## v0.9.1 Beta — 24 Ekim 2026
 
 - **Selamlama:** Charles kod yazarken, terminalde çalışırken ya da okurken selam verdiğinde dört eli oluyordu. Selam sırasında klavyedeki ve kitaptaki eller gizleniyor; el sallayan iki el kalıyor.

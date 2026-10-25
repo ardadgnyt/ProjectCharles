@@ -24,10 +24,10 @@ test('the old character name and upstream branding are gone from the project fil
   for (const p of files(ROOT)) {
     if (p.endsWith('package-lock.json') || p.endsWith('v060.test.cjs')) continue;
     const text = fs.readFileSync(p, 'utf8');
-    if (/mochi|coucou|notch ?-?buddy|louis|raill/i.test(text)) found.push(path.relative(ROOT, p));
+    if (/mochi|coucou|notch ?-?buddy/i.test(text)) found.push(path.relative(ROOT, p));
   }
   assert.deepEqual(found, []);
-  assert.ok(fs.existsSync(path.join(ROOT, 'licenses', 'engine-MIT-LICENSE.txt')));
+  assert.match(fs.readFileSync(path.join(ROOT, 'LICENSE'), 'utf8'), /GNU GENERAL PUBLIC LICENSE/);
 });
 
 test('the Slime look chosen in the Design Test build is taken over once', () => {

@@ -1,5 +1,4 @@
 // Slime's accessories, drawn in code (hats, glasses, bow, scarf, pumpkin, felt hat).
-// Contains portions derived from MIT-licensed code (see THIRD-PARTY-NOTICES.md).
 //
 // Coordinates are BotEngine's body space: origin at the body centre, y down,
 // R = W × 0.3, rx/ry from ./shape.ts. The head is a superellipsoid whose

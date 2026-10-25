@@ -3,8 +3,9 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.1%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.2%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
+  <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
   <img alt="Languages: English, Türkçe, Deutsch, Français, Español, 中文" src="https://img.shields.io/badge/UI-English%20%7C%20T%C3%BCrk%C3%A7e%20%7C%20Deutsch%20%7C%20Fran%C3%A7ais%20%7C%20Espa%C3%B1ol%20%7C%20%E4%B8%AD%E6%96%87-2b2f3a?style=flat-square">
 </p>
@@ -37,12 +38,69 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 ---
 
+## v0.9.2 Beta · Convert & share / Dönüştür ve paylaş
+
+<p align="center">
+  <img src="docs/images/island.png" alt="v0.9.2 island: icon-only converter and send buttons, centered Charles and music" width="100%">
+</p>
+
+### Convert files on your desktop · Masaüstünde dosya dönüştür
+
+Drop a file on the **circular arrow** beside Charles, choose an output format, then press
+**Convert**. Images, audio, video, documents, data and archives stay on your computer.
+Supported formats depend on the selected file and the installed tools; image and video
+options include quality and output size. The result is saved beside the original.
+
+Charles’ın yanındaki **dairesel ok** simgesine dosyanı bırak, hedef biçimi seç ve
+**Dönüştür**’e bas. Görsel, ses, video, belge, veri ve arşiv işlemleri bilgisayarında yapılır.
+Seçenekler dosya türüne ve kurulu araçlara göre gösterilir; görsel ve videolarda kalite ve
+boyut seçebilirsin. Sonuç, orijinal dosyanın yanına kaydedilir.
+
+<p align="center">
+  <img src="docs/images/converter.png" alt="Converter with a sample PNG, output formats, quality and size controls" width="100%">
+</p>
+
+### Quick Share from the island · Adacıktan dosya paylaş
+
+Drop files on the **paper plane**, select a nearby device and send. Quick Share supports
+two-way transfers with compatible Android/Samsung devices and computers on the same local
+network. Charles remains discoverable while running when receiving is enabled, even with
+the panel closed. An incoming request opens the accept/reject panel immediately.
+
+**Kâğıt uçak** simgesine dosya bırak, yakındaki cihazı seç ve gönder. Quick Share ile aynı
+yerel ağdaki uyumlu Android/Samsung cihazlar ve bilgisayarlar arasında iki yönlü aktarım
+yapabilirsin. Alım açıkken Charles çalıştığı sürece bilgisayarın görünür kalır; paneli açık
+tutman gerekmez. Gelen istek, kabul/ret panelini doğrudan açar.
+
+<p align="center">
+  <img src="docs/images/sharing.png" alt="File sharing panel with a sample Galaxy S24+ and receive visibility controls" width="100%">
+</p>
+
+- **Everyone / Herkes:** asks before receiving / almadan önce onay ister.
+- **Automatic / Otomatik:** receives without a prompt / onay beklemeden alır.
+- **Off / Kapalı:** disables receiving and visibility / alımı ve görünürlüğü kapatır.
+
+<p align="center">
+  <img src="docs/images/sharing-receive.png" alt="Incoming file request with a matching PIN and accept/reject buttons" width="100%">
+</p>
+
+Received files go to Downloads; an existing file with the same name is preserved. QR is no
+longer needed in this panel. Samsung S24+ transfers have been tested in both directions.
+Windows uses LocalSend for compatible iPhone apps; native Apple AirDrop/AWDL is not supported.
+
+Alınan dosyalar İndirilenler’e kaydedilir; aynı adlı eski dosyanın üzerine yazılmaz. Bu panelde
+QR alanı kaldırıldı. Samsung S24+ ile iki yönlü aktarım test edildi. Windows’ta iPhone için
+uyumlu LocalSend uygulaması gerekir; yerel Apple AirDrop/AWDL desteklenmez.
+
+*Screenshots use sample file, device and status data. / Ekran görüntülerindeki dosya, cihaz
+ve durum bilgileri tanıtım için örnektir.* [Sharing guide / Paylaşım rehberi](docs/SHARING.md)
+
 ## Highlights · Öne çıkanlar
 
 ### An assistant that does things
 
 - **Island v2:** a thin strip at the top of the screen (a small notch with music controls while
-  a song plays) opens into a card shelf (AI usage, weather, converter, Charles, music) and grows
+  a song plays) opens into a card shelf (AI usage, weather, converter, file sharing, Charles, music) and grows
   down into the chat.
 - **Converter:** drop files on the island to turn them into other formats: pictures, audio,
   video, Word/Markdown/PDF text, CSV/JSON, subtitles, ZIP. Offline, saved next to the original.
@@ -81,7 +139,7 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 ### İş yapan bir asistan
 
 - **Ada v2:** ekranın üstündeki ince şerit (şarkı çalarken müzik tuşlu küçük notch), kart rafına
-  (AI kullanımı, hava, Dönüştürücü, Charles, müzik) açılır ve aşağı uzayıp sohbete dönüşür.
+  (AI kullanımı, hava, Dönüştürücü, dosya paylaşımı, Charles, müzik) açılır ve aşağı uzayıp sohbete dönüşür.
 - **Dönüştürücü:** dosyaları adaya bırak, başka biçime çevir: görsel, ses, video, Word/Markdown/PDF
   metni, CSV/JSON, altyazı, ZIP. İnternetsiz, sonuç orijinalin yanına kaydedilir.
 - **Kendi yapay zekâ hesapların:** **ChatGPT (Codex)**, **Claude**, **Gemini**, **Cursor** ya da
@@ -154,7 +212,7 @@ Ayrıntılar: [docs/MODULES.md](docs/MODULES.md).
 ## Screenshots · Ekran görüntüleri
 
 <p align="center">
-  <img src="docs/images/island.png" alt="The Charles island: the card shelf with AI usage, weather, converter, Charles and music; the thin strip it closes into when nothing plays and the closed notch with music controls; Slime with sunglasses and a banana on the desktop" width="100%">
+  <img src="docs/images/island.png" alt="The updated v0.9.2 island with centered Charles, converter and file-sharing icons" width="100%">
 </p>
 
 <p align="center">
@@ -391,20 +449,21 @@ ProjectCharles/
   [Sam Green’s YouTube channel](https://www.youtube.com/@SamGreen). Project Charles is a
   fan-inspired, independent project, not affiliated with or endorsed by Sam Green. · Project
   Charles hayran esinli, bağımsız bir projedir; Sam Green ile bağlantılı değildir.
-- Parts of the character engine are derived from MIT-licensed code (see [LICENSE](LICENSE)). ·
-  Karakter motorunun bazı bölümleri MIT lisanslı koddan türetilmiştir.
+- Quick Share protocol adaptation: [MultiDrop](https://github.com/digitaldanis/multidrop), GPL-3.0-or-later.
 
 ## License · Lisans
 
-Copyright © 2026 **HzPederPan**. All rights reserved. · Tüm hakları saklıdır.
+Copyright © 2026 **HzPederPan**.
 
-You may download, run and study Charles for personal, non-commercial use. Redistribution,
-modified versions and commercial use require written permission. Parts of the character
-engine are derived from MIT-licensed code, and third-party components keep their own
-licenses. See [LICENSE](LICENSE), [LICENSE-ASSETS.md](LICENSE-ASSETS.md) and
-[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). · Charles’ı kişisel ve ticari olmayan
-kullanım için indirip çalıştırabilir ve inceleyebilirsin. Yeniden dağıtım, değiştirilmiş
-sürümler ve ticari kullanım yazılı izin gerektirir.
+The source code is licensed under **GNU GPL v3 or later**. You may use, modify
+and redistribute it under that license, including commercially. Distributed
+builds include the corresponding Charles source and build scripts. Third-party
+components retain their notices. Artwork and names are described separately in
+[LICENSE-ASSETS.md](LICENSE-ASSETS.md).
+
+Kaynak kod **GNU GPL v3 veya sonraki sürümler** ile lisanslanmıştır. Lisans
+koşulları altında kullanım, değiştirme ve ticari kullanım dahil yeniden dağıtım
+serbesttir. Bkz. [LICENSE](LICENSE) ve [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 Charles is an independent project. It is not affiliated with OpenAI, Anthropic, Google,
 Cursor, Abacus AI or WhatsApp. · Charles bağımsız bir projedir; bu şirketlerle bağlantılı

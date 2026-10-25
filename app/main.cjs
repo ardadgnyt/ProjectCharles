@@ -33,9 +33,15 @@ const {
   globalShortcut,
   powerMonitor,
 } = require('electron');
-require('./core/system-ca.cjs').trustSystemCertificates();
 const fs = require('node:fs');
 const path = require('node:path');
+app.setName('Charles');
+try {
+  const roaming =
+    process.env.APPDATA || path.join(require('node:os').homedir(), 'AppData', 'Roaming');
+  app.setPath('userData', path.join(roaming, 'Charles'));
+} catch {}
+require('./core/system-ca.cjs').trustSystemCertificates();
 const { pathToFileURL } = require('node:url');
 const { Sessions } = require('./ai/sessions.cjs');
 const { Extras } = require('./core/extras.cjs');
@@ -848,18 +854,20 @@ function expand(value, focus = false, chat = true) {
   }
   clearTimeout(blurTimer);
   hidden = false;
-  win.setIgnoreMouseEvents(false);
-  ignoringPointer = false;
+  const overBubble = Boolean(mailBubble?.contains(screen.getCursorScreenPoint()));
+  win.setIgnoreMouseEvents(overBubble, overBubble ? { forward: true } : undefined);
+  ignoringPointer = overBubble;
   lastInside = Date.now();
   expanded = !!value;
   if (expanded) chatOpen = !!chat;
   else shelfHeld = false;
   if (win.isMinimized()) win.restore();
   position(true);
-  if (focus) {
+  if (focus && !overBubble && !mailBubble?.active()) {
     win.show();
     win.focus();
   }
+  mailBubble?.raise();
 
   return expanded;
 }
@@ -938,9 +946,51 @@ function eventToUi(event) {
   if (event.type === 'resolved') win.flashFrame(false);
 }
 if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
-if (!app.requestSingleInstanceLock()) app.quit();
+let gotSingleLock = app.requestSingleInstanceLock({ root });
+if (!gotSingleLock && process.platform === 'win32' && !demo) {
+  // If another Charles installation (e.g. 9.1 vs vArgon) is running in the tray and holding
+  // %APPDATA%\Charles, close that background host so this installation can bind to %APPDATA%\Charles.
+  try {
+    const myDir = path.resolve(root).toLowerCase();
+    const ps = `$myPid=${process.pid}; $myDir='${myDir.replace(/'/g, "''")}'; Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $myPid -and ($_.Name -like 'charles-host-*.exe' -or ($_.Name -eq 'electron.exe' -and $_.CommandLine -like '*Charles*')) } | ForEach-Object { $p = ($_.ExecutablePath + ' ' + $_.CommandLine).ToLowerInvariant(); if (-not $p.Contains($myDir)) { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } }`;
+    require('node:child_process').execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', ps], {
+      windowsHide: true,
+      timeout: 5000,
+    });
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 450);
+    gotSingleLock = app.requestSingleInstanceLock({ root });
+  } catch {}
+}
+if (!gotSingleLock) app.quit();
 else {
-  app.on('second-instance', () => {
+  app.on('second-instance', (_event, commandLine, workingDirectory, additionalData) => {
+    const otherRoot = additionalData?.root || workingDirectory;
+    if (
+      otherRoot &&
+      typeof otherRoot === 'string' &&
+      path.resolve(otherRoot).toLowerCase() !== path.resolve(root).toLowerCase() &&
+      fs.existsSync(path.join(otherRoot, 'app', 'main.cjs'))
+    ) {
+      // Another Charles installation (e.g. 9.1) was launched while this instance was in the tray:
+      // flush data, release the lock, and relaunch the requested installation cleanly.
+      try {
+        agent?.flush?.();
+      } catch {}
+      try {
+        app.releaseSingleInstanceLock();
+      } catch {}
+      try {
+        const entry = path.join(otherRoot, 'Charles.exe');
+        if (fs.existsSync(entry)) {
+          require('node:child_process')
+            .spawn(entry, [], { cwd: otherRoot, detached: true, stdio: 'ignore', windowsHide: true })
+            .unref();
+        }
+      } catch {}
+      quitting = true;
+      app.quit();
+      return;
+    }
     if (win) expand(true, true);
   });
   app
@@ -1423,6 +1473,8 @@ else {
             !panelPinned &&
             !dialogOpen &&
             !(shelfHeld && !chatOpen) &&
+            !mailBubble?.active() &&
+            !mailBubble?.contains(screen.getCursorScreenPoint()) &&
             Date.now() > dropHeldUntil &&
             !capture?.busy &&
             !voiceHeld &&
@@ -1656,9 +1708,17 @@ else {
       });
       safeHandler('pet-detach', (value) => detachPet(value));
       safeHandler('panel-pointer-enter', () => {
+        const p = screen.getCursorScreenPoint();
+        if (mailBubble?.contains(p)) {
+          mailBubble.hover(p);
+          if (!workspace && !ignoringPointer) {
+            win.setIgnoreMouseEvents(true, { forward: true });
+            ignoringPointer = true;
+          }
+          return false;
+        }
         if (ignoringPointer) {
-          const p = screen.getCursorScreenPoint(),
-            b = visibleBounds;
+          const b = visibleBounds;
           if (b && p.x >= b.x && p.x < b.x + b.width && p.y >= b.y && p.y < b.y + b.height) {
             win.setIgnoreMouseEvents(false);
             ignoringPointer = false;
@@ -2332,6 +2392,107 @@ else {
         const out = getConverter().output(String(id));
         if (!out) throw Error('Dönüştürülen dosya bulunamadı.');
         shell.showItemInFolder(out);
+        return true;
+      });
+      // v0.9.2: Gönder (Quick Share / Nearby Share & AirDrop Send & Receive — app/files/share.cjs)
+      let shareService = null;
+      const getShare = () => {
+        if (!shareService) {
+          const { ShareService } = require('./files/share.cjs');
+          shareService = new ShareService({
+            userData: app.getPath('userData'),
+            downloadDir: app.getPath('downloads'),
+          });
+          shareService.on('state', (st) => {
+            if (!win.isDestroyed()) win.webContents.send('share-state', st);
+          });
+          shareService.on('offer', (offer) => {
+            if (!workspace) expand(true, true, false);
+            shelfHeld = true;
+            if (win.isMinimized()) win.restore();
+            win.show();
+            win.flashFrame(true);
+            if (!win.isDestroyed()) win.webContents.send('share-offer', offer);
+          });
+          shareService.on('received', (entry) => {
+            if (!win.isDestroyed()) win.webContents.send('share-received', entry);
+          });
+        }
+        return shareService;
+      };
+      // Discovery belongs to the application lifetime, never to the share sheet.
+      if (!demo) {
+        void getShare().start().catch(() => {});
+        powerMonitor.on('resume', () => void getShare().resume().catch(() => {}));
+        powerMonitor.on('unlock-screen', () => void getShare().resume().catch(() => {}));
+        app.once('before-quit', () => shareService?.stop());
+      }
+      ipcMain.handle('share-drop', async (event, paths) => {
+        if (event.sender !== win.webContents || !event.senderFrame?.url.startsWith('charles://app/')) throw Error('Geçersiz arayüz.');
+        try {
+          const s = getShare();
+          await s.start();
+          return { ok: true, value: s.stageFiles(paths) };
+        } catch (e) {
+          return { ok: false, error: e.message };
+        }
+      });
+      safeHandler('share-state', async () => {
+        const s = getShare();
+        await s.start();
+        return s.state();
+      });
+      safeHandler('share-discover', async () => {
+        const s = getShare();
+        await s.start();
+        return s.discover();
+      });
+      safeHandler('share-qr-refresh', async () => {
+        const s = getShare();
+        await s.start();
+        return s.refreshQr();
+      });
+      safeHandler('share-choose', async () => {
+        dialogOpen = true;
+        try {
+          const r = await dialog.showOpenDialog(win.native, {
+            title: 'Gönderilecek dosyaları seç',
+            properties: ['openFile', 'multiSelections'],
+          });
+          if (r.canceled || !r.filePaths.length) return null;
+          const s = getShare();
+          await s.start();
+          return s.stageFiles(r.filePaths);
+        } finally {
+          dialogOpen = false;
+          lastInside = Date.now();
+        }
+      });
+      safeHandler('share-remove-file', (filePath) => getShare().removeStagedFile(filePath));
+      safeHandler('share-receive-mode', async (mode) => {
+        const s = getShare();
+        await s.start();
+        return s.setReceiveMode(String(mode || 'everyone'));
+      });
+      safeHandler('share-send', async (target) => {
+        const s = getShare();
+        await s.start();
+        shelfHeld = true;
+        try {
+          return await s.send(target || {});
+        } finally {
+          shelfHeld = false;
+          lastInside = Date.now();
+        }
+      });
+      safeHandler('share-cancel', () => getShare().cancel());
+      safeHandler('share-respond', (id, accept) => getShare().respondOffer(String(id || ''), Boolean(accept)));
+      safeHandler('share-reveal', (filePath) => {
+        if (filePath && typeof filePath === 'string' && fs.existsSync(filePath)) {
+          shell.showItemInFolder(filePath);
+          return true;
+        }
+        shell.openPath(app.getPath('downloads'));
         return true;
       });
       // the converter is working / a sheet is open on the shelf: it does not close by itself
@@ -3332,13 +3493,14 @@ else {
         const bounds = win.getContentBounds();
         const cursor = { x: point.x - bounds.x, y: point.y - bounds.y };
         const visible = visibleBounds || bounds;
+        const onBubble = Boolean(mailBubble?.contains(point));
         // v0.8.13: a notification card is never under the island's pointer area
         const inside =
           point.x >= visible.x &&
           point.x < visible.x + visible.width &&
           point.y >= visible.y &&
           point.y < visible.y + visible.height &&
-          !mailBubble?.contains(point);
+          !onBubble;
         // v0.8.14: the pointer on a notification: the card window is raised above the island
         // (and above any window that came up since), so the press reaches it
         mailBubble?.hover(point);
@@ -3350,7 +3512,7 @@ else {
           ignoringPointer = ignore;
         }
         if (!inside || !hidden) stripSince = 0;
-        if (workspace) {
+        if (workspace || onBubble || mailBubble?.active()) {
           lastInside = Date.now();
         } else if (inside) {
           lastInside = Date.now();

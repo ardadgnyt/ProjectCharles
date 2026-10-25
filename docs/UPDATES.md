@@ -59,3 +59,7 @@ Runs with Windows PowerShell after Charles quits: waits for Charles to close, mo
 zip replaces into `_update\backup`, moves the new item into place, and on any error removes the
 new items and moves the old ones back (roll-back). Then it writes `_update\result.json` and
 starts Charles again; Charles reports the result once.
+
+## Download tools in 0.8.1
+
+Run `npm run setup:download` and `npm run build`, then `npm run release:pack -- --with tools/download`. The 0.8.1 update includes the native tools, module ZIP and notices. Full installers include the same files.

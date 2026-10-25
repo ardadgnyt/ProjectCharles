@@ -17,7 +17,7 @@ import sys
 import time
 import zipfile
 
-SKIP_DIRS = {'.git', '_to_delete', '_update', 'release', 'modules-bundled', '__pycache__', '.qa'}
+SKIP_DIRS = {'.git', '_to_delete', '_update', 'release', 'modules-bundled', '__pycache__', '.qa', '.mimocode', 'alpha-backups', '.codex', '.agents'}
 # personal / machine-local files never go into an installer
 SKIP_FILES = {
     'Charles.zip',

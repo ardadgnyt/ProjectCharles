@@ -163,8 +163,6 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
   };
   progress.onchange = () => {
     seeking = false;
-    // v0.8.12: the new position shows at once (the island, the notch and the cards follow it),
-    // not only after Spotify's next status
     if (lastMedia) {
       lastMedia = { ...lastMedia, position: Number(progress.value) };
       received = Date.now();
@@ -250,10 +248,9 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
   });
   let nextPoll = 0;
   window.setInterval(() => {
-    // v0.8.13: the hidden strip is the normal closed island now: music is still looked for
-    // there (every 3 s), so the music notch comes out as soon as a song starts
     const hiddenStrip = document.body.classList.contains('hidden-island');
-    const idle = document.visibilityState !== 'visible' || document.body.classList.contains('desktop-pet');
+    const idle =
+      document.visibilityState !== 'visible' || document.body.classList.contains('desktop-pet');
     if (!idle && !hiddenStrip && !seeking && lastMedia?.duration > 0) {
       const pos = Math.min(
         lastMedia.duration,
@@ -263,9 +260,6 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
       times.textContent = time(pos) + ' / ' + time(lastMedia.duration);
     }
     if (Date.now() >= nextPoll) {
-      // v0.9.0: every 3 s again, as up to v0.8.11 (v0.8.12 asked Spotify every second while a
-      // song played; on Windows that could leave the media connection stuck); every 30 s while
-      // Slime is out on the desktop. The bar moves smoothly in between.
       nextPoll = Date.now() + (idle ? 30000 : 3000);
       void media().catch(() => {});
     }

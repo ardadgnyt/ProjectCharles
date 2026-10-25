@@ -24,7 +24,7 @@ const TABS: [Tab, string][] = [
   ['other', 'Diğer'],
 ];
 
-const ITEMS: Record<AccessorySlot, [string, string, string][]> = {
+export const SLOTS: Record<AccessorySlot, [string, string, string][]> = {
   hat: [
     ['none', 'Şapka yok', '○'],
     ['auto', 'Mevsime göre', '🗓️'],
@@ -56,6 +56,7 @@ const ITEMS: Record<AccessorySlot, [string, string, string][]> = {
     ['arrow', 'Batmış ok', '🏹'],
   ],
 };
+const ITEMS = SLOTS;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = '') {
   const node = document.createElement(tag);
@@ -188,7 +189,7 @@ export function wardrobeUI(api: any, bot: BotEngine) {
   let moduleWear: Partial<Accessories> | null = null;
   const worn = () => {
     if (!moduleWear) return wearable(saved.acc);
-    const acc = { ...saved.acc, ...moduleWear } as Accessories;
+    const acc = { ...saved.acc, ...moduleWear };
     if (clashes(acc)) {
       if (moduleWear.other === 'pumpkin') acc.hat = 'none';
       else acc.other = 'none';
@@ -264,7 +265,6 @@ export function wardrobeUI(api: any, bot: BotEngine) {
   const apply = (p: any) => {
     const before = JSON.stringify(saved);
     saved = { acc: accessoriesOf(p), look: parseLook(p.slime) };
-    // v0.8.8: open module windows learn the new look (charlesModule.on('slime-look'))
     if (JSON.stringify(saved) !== before) void api.modulesLook?.().catch(() => {});
     bot.look = { ...saved.look };
     bot.setAccessories(worn());
@@ -295,14 +295,12 @@ export function wardrobeUI(api: any, bot: BotEngine) {
     tryOn();
     paint();
   };
-  // v0.8.8: a module (with the "appearance" permission) dresses the desktop Slime while it is
-  // open; the user's own choice stays saved and comes back when the module lets go.
+  showTab('hat');
+  api.onPersonal(apply);
   api.onModuleWear?.((v: any) => {
     moduleWear = v && typeof v === 'object' ? v : null;
     bot.setAccessories(worn());
   });
-  showTab('hat');
-  api.onPersonal(apply);
   void api.personalRead().then(apply);
   // "Mevsime göre" follows the date.
   window.setInterval(() => bot.setAccessories(worn()), 60000);

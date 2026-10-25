@@ -1,10 +1,11 @@
 {
   "name": "project-charles",
-  "version": "0.9.1-beta.1",
+  "productName": "Charles",
+  "version": "0.9.2-beta.1",
   "private": true,
   "description": "Charles — Windows desktop AI companion (Electron).",
   "author": "HzPederPan",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "GPL-3.0-or-later",
   "main": "app/main.cjs",
   "scripts": {
     "build": "node scripts/build.mjs",

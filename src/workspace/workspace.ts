@@ -416,14 +416,12 @@ export function workspaceUI(d: WorkspaceDeps) {
   }
 
   // ── Enter / leave ──────────────────────────────────────────────────────────
-  // v0.8.9: while the page moves between the island and the app window the chat is not laid
-  // out (a long chat with many formulas took a moment to lay out at the new width); it comes
-  // back right after the window has its new size.
   let switchTimer = 0;
   let fromBottom = 0;
   function switching() {
     const feed = $('feed');
-    if (!document.body.classList.contains('ws-switching')) fromBottom = Math.max(0, feed.scrollHeight - feed.scrollTop - feed.clientHeight);
+    if (!document.body.classList.contains('ws-switching'))
+      fromBottom = Math.max(0, feed.scrollHeight - feed.scrollTop - feed.clientHeight);
     document.body.classList.add('ws-switching');
     window.clearTimeout(switchTimer);
     switchTimer = window.setTimeout(switched, 1500);
@@ -443,6 +441,7 @@ export function workspaceUI(d: WorkspaceDeps) {
     try {
       await api.workspace(true);
     } catch (e) {
+      switched();
       d.notice((e as Error).message);
     }
   }
@@ -452,8 +451,7 @@ export function workspaceUI(d: WorkspaceDeps) {
       await api.workspace(false);
     } catch (e) {
       d.notice((e as Error).message);
-      // v0.8.8: show what Charles really is in (v0.7.2 switched the page to the island even
-      // when the big window stayed, so the island ended up inside the big window)
+      // v0.7.2: never leave the user without Charles: fall back to the island
       try {
         apply(await api.workspaceState());
       } catch {

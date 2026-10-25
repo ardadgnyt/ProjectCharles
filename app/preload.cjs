@@ -20,6 +20,13 @@ const convertCallback = (v) => {
       cb(v);
     } catch {}
 };
+const shareDropCallbacks = new Set();
+const shareDropCallback = (v) => {
+  for (const cb of shareDropCallbacks)
+    try {
+      cb(v);
+    } catch {}
+};
 let lastDropSignal = 0;
 function dropActive(active) {
   if (active && Date.now() - lastDropSignal < 350) return;
@@ -80,6 +87,22 @@ window.addEventListener(
       );
       return;
     }
+    // v0.9.2: files dropped on the Gönder (Quick Share / AirDrop) card go to the share service
+    const shareTarget = event.target && event.target.closest ? event.target.closest('[data-drop="share"]') : null;
+    if (shareTarget && files.length) {
+      let paths;
+      try {
+        paths = files.map((f) => webUtils.getPathForFile(f));
+      } catch (error) {
+        shareDropCallback({ error: error.message });
+        return;
+      }
+      invoke('share-drop', paths).then(
+        (state) => shareDropCallback({ state }),
+        (error) => shareDropCallback({ error: error.message }),
+      );
+      return;
+    }
     let task;
     try {
       task = files.length
@@ -116,6 +139,23 @@ contextBridge.exposeInMainWorld('charles', {
   convertRun: (id, target, options) => invoke('convert-run', id, target, options),
   convertCancel: (id) => invoke('convert-cancel', id),
   convertReveal: (id) => invoke('convert-reveal', id),
+  // v0.9.2: Gönder (Quick Share / AirDrop Send & Receive)
+  onShareDrop: (cb) => {
+    if (typeof cb === 'function') shareDropCallbacks.add(cb);
+  },
+  onShareState: (cb) => ipcRenderer.on('share-state', (_e, st) => cb(st)),
+  onShareOffer: (cb) => ipcRenderer.on('share-offer', (_e, offer) => cb(offer)),
+  onShareReceived: (cb) => ipcRenderer.on('share-received', (_e, entry) => cb(entry)),
+  shareState: () => invoke('share-state'),
+  shareDiscover: () => invoke('share-discover'),
+  shareQrRefresh: () => invoke('share-qr-refresh'),
+  shareChoose: () => invoke('share-choose'),
+  shareRemoveFile: (filePath) => invoke('share-remove-file', filePath),
+  shareReceiveMode: (mode) => invoke('share-receive-mode', mode),
+  shareSend: (target) => invoke('share-send', target),
+  shareCancel: () => invoke('share-cancel'),
+  shareRespond: (id, accept) => invoke('share-respond', id, accept),
+  shareReveal: (filePath) => invoke('share-reveal', filePath),
   wakeEnable: (value) => invoke('wake-enable', value),
   micPrivacy: (value) => invoke('mic-privacy', value),
   wakeArm: () => invoke('wake-arm'),

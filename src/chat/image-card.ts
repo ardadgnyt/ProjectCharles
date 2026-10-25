@@ -115,9 +115,10 @@ const ICONS: Record<string, string> = {
   ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
 };
 
-/** The picture over the whole window; a click or Esc closes it. v0.9.1: also for pictures the
- *  user sent (alt names the file). */
-export function lightbox(src: string, alt = 'Charles tarafından oluşturulan görsel (büyük)') {
+export function lightbox(
+  src: string,
+  alt = 'Charles tarafından oluşturulan görsel (büyük)',
+) {
   const box = el('div', 'image-lightbox');
   box.setAttribute('role', 'dialog');
   box.setAttribute('aria-label', 'Görsel büyük boy');

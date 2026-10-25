@@ -9,13 +9,12 @@ export function historyFolders(
 ) {
   const list = document.getElementById('history-list')!;
   const search = document.getElementById('history-search') as HTMLInputElement;
-  // v0.8.9: chat text is searched in the main process
-  let hits: Set<string> | null = null;
-  let timer = 0;
-  let seq = 0;
   let state: any = { folders: [], rooms: [], auto: true },
     current: string | null = null,
-    request = 0;
+    request = 0,
+    hits: Set<string> | null = null,
+    timer = 0,
+    seq = 0;
   const toolbar = document.createElement('div');
   toolbar.className = 'folder-toolbar';
   list.before(toolbar);
@@ -306,7 +305,7 @@ export function historyFolders(
     timer = window.setTimeout(async () => {
       const n = ++seq;
       try {
-        const ids: string[] = await api.historySearch(q);
+        const ids = await api.historySearch(q);
         if (n === seq) hits = new Set(ids);
       } catch {
         hits = new Set();

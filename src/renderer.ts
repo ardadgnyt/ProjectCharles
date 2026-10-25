@@ -23,7 +23,6 @@ import { workspaceUI } from './settings/workspace';
 import { noNativeTooltips } from './ui/no-native-tooltips';
 import { profileTransferUI } from './settings/profile-transfer';
 import { statusScroll } from './chat/status-scroll';
-import { islandShelf } from './island/shelf';
 import { companionUI } from './island/companion';
 import { ActivityState } from './chat/activity';
 import { modelPicker } from './chat/model-picker';
@@ -34,8 +33,8 @@ import { Sound } from './vendor/core/sound';
 import type { BotStateName } from './vendor/core/layout';
 import { extraUI } from './settings/extras';
 import { updateMarkdown, messageSource, setQuestionHandler, renderMarkdown } from './chat/markdown';
-import { questionCard } from './chat/ai-questions';
 import { formulaClip, selectionClip } from './chat/math-copy';
+import { questionCard } from './chat/ai-questions';
 import { steerUI } from './chat/steer';
 import { settingsPolish } from './settings/polish-070';
 import { workspaceUI as appWindowUI } from './workspace/workspace';
@@ -44,6 +43,7 @@ import { whatsappCard } from './settings/whatsapp-card';
 import { modulesPage } from './settings/modules-page';
 import { updatePage } from './settings/update-page';
 import { accountTab } from './settings/account-tab';
+import { islandShelf } from './island/shelf';
 import { textReaction, answerReaction, isRateLimit } from './chat/reactions';
 
 declare global {
@@ -484,8 +484,6 @@ function row(text: string, className = '', attachments: any[] = []) {
           const img = document.createElement('img');
           img.src = file.thumbnail;
           img.alt = file.name;
-          // v0.9.1: a click shows the picture large (the large copy kept with the chat, or the
-          // small one for pictures sent before)
           img.classList.add('zoomable');
           img.tabIndex = 0;
           img.setAttribute('role', 'button');
@@ -553,10 +551,8 @@ function row(text: string, className = '', attachments: any[] = []) {
   feed.scrollTop = feed.scrollHeight;
   return el;
 }
-// v0.8.5: an extra instruction (steer) sits in the chat where it was sent, like Claude: what
-// the AI writes or does after it continues below it instead of growing above it.
 const streaming = new Set<string>();
-const splitAt = new Map<string, number>(); // message id → characters shown before the steer
+const splitAt = new Map<string, number>();
 function splitAfterSteer() {
   activityGroup = null;
   for (const id of streaming) {
@@ -576,7 +572,6 @@ function agentMessage(id: string, text: string, replace = false) {
   if (replace && cut) text = text.slice(cut).replace(/^\s+/, '');
   updateMarkdown(el, text, replace);
 }
-// v0.8.5: a selection with formulas is copied with the formulas as LaTeX (+ MathML as HTML)
 feed.addEventListener('copy', (e) => {
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed || !e.clipboardData) return;
@@ -589,14 +584,13 @@ feed.addEventListener('copy', (e) => {
   e.clipboardData.setData('text/html', clip.html);
 });
 feed.addEventListener('click', (e) => {
-  const action = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-answer-action]');
+  const action = (e.target as HTMLElement).closest<HTMLElement>('[data-answer-action]');
   if (action) {
     e.preventDefault();
     const message = action.closest<HTMLElement>('.message')!;
     const block = action.closest<HTMLElement>('.code-block');
-    // v0.8.5: formulas (src/chat/math-copy.ts)
     if (action.dataset.answerAction === 'math') {
-      if (String(window.getSelection() || '').trim()) return; // selecting text, not clicking
+      if (String(window.getSelection() || '').trim()) return;
       const el = action.closest<HTMLElement>('[data-tex]');
       if (!el) return;
       const clip = formulaClip(el);
@@ -638,8 +632,12 @@ feed.addEventListener('click', (e) => {
   void attempt(() => api.openLink(link.getAttribute('href')));
 });
 function activity(item: any) {
-  // v0.8.9: pictures from older turns are files next to the history (loaded on demand)
-  if (item.type === 'imageGeneration' && item.status === 'completed' && !item.result && typeof item.resultFile === 'string') {
+  if (
+    item.type === 'imageGeneration' &&
+    item.status === 'completed' &&
+    !item.result &&
+    typeof item.resultFile === 'string'
+  ) {
     let node = messages.get(item.id);
     if (!node) {
       node = row('', 'agent image-card');
@@ -651,7 +649,11 @@ function activity(item: any) {
       .historyImage(item.resultFile)
       .then((data: string) => {
         target.className = target.className.replace('image-card', 'generated-image');
-        showImage(target, data, { save: (v) => api.imageSave(v), copy: (v) => api.imageCopy(v), notice });
+        showImage(target, data, {
+          save: (v) => api.imageSave(v),
+          copy: (v) => api.imageCopy(v),
+          notice,
+        });
       })
       .catch(() => showFailed(target, 'Görsel bulunamadı.'));
     return;
@@ -1171,7 +1173,6 @@ modulesPage(api, notice);
 api.onModuleEmote?.((name: string) => {
   if (['love', 'surprised', 'proud', 'wink', 'yawn', 'happy', 'annoyed'].includes(name)) bot.triggerEmote(name as any, 2.5);
 });
-// v0.8.8: a WhatsApp message arrived (it shows under the island): Slime notices it
 api.onWhatsappMessage?.(() => {
   if (quotaBlocked || dizzy || busy) return;
   touchCharacter();
@@ -1179,7 +1180,6 @@ api.onWhatsappMessage?.(() => {
   bot.triggerEmote('happy', 1.2);
   Sound.play('pop');
 });
-// v0.8.8: reactions a module asks for (charlesModule.slime.react)
 api.onModuleReact?.((name: string) => {
   if (quotaBlocked || dizzy) return;
   touchCharacter();
@@ -1459,8 +1459,6 @@ $('composer').addEventListener('submit', (e) => {
 });
 // A click on an important-mail bubble: the mail arrives as a text attachment and
 // Charles is asked to explain it, exactly as if the user had typed the request.
-// v0.8.5: the mail always gets its own new chat when the current one is busy or already has
-// messages; the other chat keeps working in the background (it used to land in that chat).
 api.onMailExplain((request: any) =>
   attempt(async () => {
     if (voice.active()) {
@@ -1482,7 +1480,6 @@ api.onMailExplain((request: any) =>
     await features.addFiles(request.items || []);
     prompt.value = request.prompt;
     ($('composer') as HTMLFormElement).requestSubmit();
-    // what the user was typing stays in the box
     if (draft.trim() && draft !== request.prompt) {
       const started = Date.now();
       const wait = window.setInterval(() => {
@@ -1576,10 +1573,23 @@ void attempt(async () => {
     state('idle', 'Merhaba, ben Charles.');
     $('account').textContent = 'Önizleme';
   } else {
-    const a = await api.connect();
-    ready = true;
-    account(a);
-    if (!a.signedIn) notice('Sohbete başlamak için ChatGPT ile giriş yap.');
+    try {
+      const a = await api.connect();
+      ready = true;
+      account(a);
+    } catch (e: any) {
+      notice(e?.message || 'Codex bağlantısı kurulamadı.');
+    }
+    await populateModels().catch(() => {});
+    const requested = b.room?.model || startupModel || defaultModel;
+    if (requested && [...model.options].some((o) => o.value === requested)) {
+      model.value = requested;
+      model.dispatchEvent(new Event('change'));
+    }
+    controls();
+    if (!signedIn && ![...model.options].some((o) => o.value)) {
+      notice('Sohbete başlamak için ChatGPT ile giriş yap.');
+    }
   }
   if (b.recoveryWarnings?.length) notice(b.recoveryWarnings.join(' '));
   // v0.6.2: first start after a fresh install → Slime introduces itself.
@@ -1613,13 +1623,12 @@ function onLowQuota(q: LowQuota) {
     else lowQuota(q);
   });
 }
-// v0.9.1: the warning only after a fresh read still says so (Codex could hand over numbers from
-// before its window reset, and with credits left it simply goes on)
 async function confirmLowQuota(q: LowQuota) {
   try {
     const v = await api.usageRead(true, q.provider);
     const w = v?.[q.window];
-    if (v?.paid || v?.unavailable || typeof w?.remaining !== 'number' || w.remaining >= LOW_QUOTA) return false;
+    if (v?.paid || v?.unavailable || typeof w?.remaining !== 'number' || w.remaining >= LOW_QUOTA)
+      return false;
     if (w.resetsAt && w.resetsAt * 1000 <= Date.now()) return false;
     q.remaining = w.remaining;
     q.resetsAt = w.resetsAt ?? null;
@@ -1700,7 +1709,6 @@ usageUI(
   },
   onLowQuota,
 );
-// v0.8.10: notch → card shelf → chat (src/island/shelf.ts)
 islandShelf({ api, notice, attempt });
 
 document.addEventListener('charles-live-transcript', (event: any) => {

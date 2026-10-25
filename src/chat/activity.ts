@@ -90,7 +90,6 @@ export function drawStation(
     x.lineTo(-59, 84);
     x.closePath();
     x.fill();
-    // v0.9.1: no typing paws while Slime waves (he would have four hands)
     for (const side of paws ? [-1, 1] : []) {
       x.fillStyle = PAW.dark;
       x.beginPath();

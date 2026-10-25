@@ -520,10 +520,7 @@ summary {
   font-size: 10px;
   padding: 4px 6px;
 }
-body.dropping .island {
-  outline: 2px dashed var(--accent);
-  outline-offset: -4px;
-}
+
 body.hidden-island header,
 body.hidden-island .content {
   display: none;
@@ -1836,10 +1833,7 @@ body.compact #mini-music {
 .activity-group .progress-message {
   font-size: 12px;
 }
-body.dropping .island {
-  outline: 2px dashed var(--accent);
-  outline-offset: -4px;
-}
+
 html,
 body,
 header,

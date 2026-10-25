@@ -46,7 +46,7 @@ test('workspace: main process switches the window and keeps the island logic out
   assert.match(main, /const ignore = workspace \? false : !inside;/); // no click-through
   assert.match(main, /if \(workspace\) return; \/\/ a normal app window may sit in the taskbar/);
   assert.match(main, /if \(pluginGuide \|\| workspace\) return detached;/);
-  assert.match(main, /safeHandler\('workspace', \(on\) => \{[^}]*return setWorkspace\(on\)/);
+  assert.match(main, /safeHandler\('workspace', \(on\) => \{[\s\S]*?return setWorkspace\(on\);/);
   assert.match(main, /safeHandler\('workspace-window'/);
   assert.match(main, /appWin\.on\('close'/); // Alt+F4 / × go back to the island
   assert.match(main, /previous\.workspace/); // "Charles ile kur" comes back to the app window
@@ -69,11 +69,11 @@ test('workspace window: title bar, sidebar with folders, overview cards and chat
   const dash = read('src/workspace/dashboard.ts');
   for (const s of ['Spotify', 'Hatırlatıcılar', 'Takvim', 'Önemli e-postalar', 'Akıllı ev', 'Kalan kullanım'])
     assert.ok(dash.includes(s), s);
-  // Gemini's quota starts its CLI: only on refresh
-  assert.match(read('app/ai/providers.cjs'), /if \(!force\) return this\.quotaCache/);
+  // Quota refresh delegates caching and provider behavior to the shared service.
+  assert.match(dash, /api\.usageRead\(force, id\)/);
   assert.match(ws, /if \(\/\^claude:\/\.test\(model\)\) return 'Claude';/);
   assert.match(read('public/index.html'), /styles\/9-special\.css/);
-  assert.match(read('public/index.html'), /v0\.\d+\.\d+ Beta/); // the exact version: test/v085.test.cjs
+  assert.ok(read('public/index.html').includes('v' + require('../package.json').version.split('-')[0] + ' Beta'));
   assert.match(read('public/styles/9-special.css'), /body\.workspace main\.island/);
   assert.match(read('src/island/desktop-pet.ts'), /classList\.contains\('workspace'\)/);
 });

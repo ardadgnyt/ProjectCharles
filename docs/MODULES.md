@@ -57,7 +57,7 @@ npm run module:pack <folder> <out.zip>
 | `entry` | An `.html` file inside the package. |
 | `icon` | Optional `.png`, `.jpg`, `.svg` or `.webp` inside the package (shown in Settings). |
 | `window` | Optional. `width`/`height` (default 1100 × 760), `minWidth`/`minHeight` (default 480 × 360). |
-| `permissions` | Optional list of `ai`, `image`, `voice`, `download`, `appearance`. |
+| `permissions` | Optional list of `ai`, `image`, `voice`. |
 
 Unknown fields, unknown permissions, missing fields or a bad id are refused with a clear message.
 
@@ -65,13 +65,11 @@ Unknown fields, unknown permissions, missing fields or a bad id are refused with
 
 | Permission | Allows |
 | --- | --- |
-| `ai` | `ai.chat` — ask the user's connected AI, optionally with images from the module's own data folder. Nothing is written to the chat history. |
+| `ai` | `ai.chat` — ask the user's connected AI. Nothing is written to the chat history. |
 | `image` | `ai.image` — create an image with the chat's image tool. |
 | `voice` | `voice.speak` / `voice.stop` — read text aloud. |
-| `download` | `download.*` — Charles' download engine (yt-dlp, FFmpeg, the download queue). |
-| `appearance` | `slime.wear` — accessories on the desktop Slime while the module is open (Charles 0.8.8+). |
 | `storage` *(always)* | Files in the module's own data folder only. |
-| `slime` *(always)* | `slime.emote`, `slime.react`, `slime.look` — Slime's expressions and reactions, and reading his look. |
+| `slime` *(always)* | `slime.emote` — make Slime show an expression. |
 | `notify` *(always)* | `notify` — a short message in Charles' notification bubble. |
 
 Before installing, the user sees the name, version, author, description and every permission
@@ -86,22 +84,12 @@ module (e.g. 60 calls / 10 s in general, `ai.chat` 12 / min, `ai.image` 4 / min)
 const C = window.charlesModule;
 
 await C.info();
-// → { id, version, charlesVersion, language, permissions, features }
-//   `features` (Charles 0.8.7+) lists optional abilities, e.g. ['ai.images']. Older Charles
-//   versions send no `features`: treat it as an empty list.
+// → { id, version, charlesVersion, language, permissions }
 
 await C.ai.chat({ system: 'Answer briefly.', messages: [{ role: 'user', content: 'Hi' }], model });
 // → answer text. `model` is optional (the user's default model). `role`: "user" | "assistant";
 //   the last message must be the user's. Up to 50 messages, 100 000 characters in total.
 //   Optional `onChunk(text)` is called once with the whole answer (no streaming in API v1).
-
-if ((await C.info()).features?.includes('ai.images'))
-  await C.ai.chat({ messages: [{ role: 'user', content: 'What does this page say?' }], images: ['courses/k1/sources/s9.png'] });
-// Charles 0.8.7+: optional `images` — up to 10 PNG / JPG / JPEG / WebP files (20 MB each) from
-//   the module's own data folder (the same paths as `storage`). Nothing outside that folder can
-//   be sent. Needs only the `ai` permission. Works with GPT, Claude and Gemini; with a Cursor or
-//   Abacus AI model the call fails with “Görseller şu an yalnızca GPT, Claude ve Gemini ile
-//   çalışıyor.” When `features` has no 'ai.images', show your own “images can't be sent” note.
 
 await C.ai.image({ prompt: 'A green slime in a red hat, watercolour' });
 // → { path: 'images/2026-….png', url: 'charles-module://<id>/_data/images/2026-….png' }
@@ -119,44 +107,10 @@ await C.voice.speak('Merhaba!');
 await C.voice.stop();
 
 await C.slime.emote('happy');   // love, surprised, proud, wink, yawn, happy, annoyed
-// Charles 0.8.8+ (features: slime.look, slime.react, slime.wear):
-await C.slime.react('greet');   // greet, blink, squash, slap, dizzy, gulp (or an expression above)
-await C.slime.look();           // → { color, mustache, hat, eyes, other } — the user's choice
-await C.slime.wear({ eyes: 'roundGlasses' });  // "appearance" permission; taken off when the window closes
-await C.slime.wear(null);                      // take it off now
-C.on('slime-look', (look) => { /* the user changed colour or accessories */ });
 await C.notify('Done!');        // at most 300 characters
 
 const off = C.on('language', (lang) => { /* 'tr', 'en', 'de', … */ });
 ```
-
-## Slime in your module window — `CharlesSlime` (Charles 0.8.8+)
-
-Charles serves its own Slime to every module; nothing has to be copied into the module:
-
-```html
-<div id="pet"></div>
-<script src="/_charles/slime.js"></script>
-<script>
-  const slime = CharlesSlime.mount(document.getElementById('pet'), {
-    size: 160,                 // CSS pixels
-    look: 'charles',           // the user's colour and accessories (default), or { color, mustache, hat, eyes, other }
-    wear: { eyes: 'roundGlasses' },  // always worn on top of the look
-    interactive: true,         // eyes follow the cursor, hover heart, slap wobble, dizzy after 3 taps, wink
-    sound: true,               // Charles' interface sounds (after the first click)
-  });
-  slime.emote('happy');        // expressions
-  slime.react('greet');        // greet, blink, squash, slap, dizzy, gulp
-  slime.state('thinking');     // idle, working, thinking, searching, question, error, finished, sleeping
-  slime.station('read');       // work animations: none, terminal, web, read, code, image
-  slime.wear({ hat: 'crown' }); slime.setLook({ color: 'blue' }); slime.dance(true);
-  slime.destroy();
-</script>
-```
-
-`CharlesSlime.accessories`, `.colors`, `.emotes`, `.reactions`, `.states` and `.stations` list the
-valid values. Only `/_charles/slime.js` and `/_charles/sounds/<name>.wav` are served there.
-Check `(await C.info()).features.includes('slime.kit')` before loading it on older Charles versions.
 
 Files in the data folder can be shown directly in the page with
 `charles-module://<id>/_data/<path>` (for example the `url` that `ai.image` returns).
@@ -199,3 +153,11 @@ notification bubble. Removing such a module never deletes the folder.
 ## Not in API v1
 
 Streaming answers, downloading modules from the internet, a module store, signing, native code.
+
+
+## First-party Download extension (0.8.1)
+
+The optional first-party `download` module has a dedicated host extension at
+`window.charlesModule.download`. It is available only to that enabled module ID;
+other modules keep the original API v1 sandbox. See [DOWNLOAD-MODULE.md](DOWNLOAD-MODULE.md)
+for installation, clipboard permissions, methods and limits.

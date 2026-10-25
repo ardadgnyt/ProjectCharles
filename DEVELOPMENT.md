@@ -1,6 +1,6 @@
 # ProjectCharles — Geliştirici Rehberi (DEVELOPMENT)
 
-Sürüm: **v0.8.4 Beta** · Fikir ve yön: **HzPederPan**
+Sürüm: **v0.9.2 Beta** · Fikir ve yön: **HzPederPan**
 
 Charles’ın tasarımı, [Sam Green’in YouTube kanalındaki](https://www.youtube.com/@SamGreen)
 *Epic Minequest* video serisindeki Charles’tan esinlenmiştir. Proje bağımsızdır; Sam Green ile
@@ -15,7 +15,7 @@ sürüm geçmişi için `CHANGELOG.md` dosyasına bak.
 ## 1. Ana klasörün düzeni
 
 ```
-ProjectCharles v0.8.4 Beta/
+ProjectCharles v0.9.2 Beta/
 ├── Start-Charles.cmd            Charles'ı mevcut verilerle açar (Node.js gerekmez)
 ├── setup/                       Kurulum araçları:
 │   ├── Install.cmd              Başka bilgisayara kurulum (install.ps1'i çalıştırır)
@@ -78,7 +78,7 @@ Windows'un uygulama veri klasöründe tutulur: `%APPDATA%\Charles`
 | `app/core/` | Temel altyapı | `store.cjs` (güvenli JSON kaydı), `policy.cjs` (Codex izinleri), `layout.cjs` (panel ölçüleri), `preferences.cjs`, `shortcuts.cjs`, `startup.cjs`, `extras.cjs` (görünüm tercihleri + ekler), `desktop-pet.cjs`, `task-mode.cjs`, **`proposals.cjs`** (Charles’ın sohbette düğmeli soruları), **`ask-format.cjs`** (yapay zekâya soru sorma biçimi), **`reset.cjs`** (Ayarlar → Hesap sıfırlama: istek dosyası, açılışta yedeğe taşıma), **`file-preview.cjs`** (v0.7.2 yan panel: izinli klasörlerdeki dosyayı güvenle okuma), **`change-review.cjs`** (v0.7.7 değişiklik inceleme: dosyaların önceki/sonraki hali, güvenli geri al), **`dash-layout.cjs`** (v0.7.7 ana sayfa kart yerleşimi, notlar, hızlı komutlar), **`system-info.cjs`** (v0.7.7 sistem kullanımı ve bilgileri kartları) |
 | `app/ai/` | Yapay zekâ ve sohbetler | `agent.cjs` + `rpc.cjs` (Codex), `providers.cjs` (Gemini/Claude/Cursor), **`provider-tools.cjs`** (proje modunda erişim ayarına göre araç izinleri; izin atlatma modu yok), `sessions.cjs` (sohbet geçmişi), `chat-folders.cjs`, `chat-classifier.cjs`, `ask-once.cjs` (arka plan tek soru), `chat-actions.cjs`, `conversation-tools.cjs` |
 | `app/usage/` | Adacıktaki kalan kullanım | `codex-usage.cjs`, `gemini-usage.cjs`, `claude-usage.cjs`, **`cursor-usage.cjs`** (Cursor CLI oturumuyla plan kullanımı) |
-| `app/modules/` | v0.8.4 modüller | `manifest.cjs` (manifest doğrulama), `package.cjs` (zip/klasör denetimleri), `registry.cjs` (kurulum, güncelleme, kaldırma, `modules.json`), `storage.cjs` (modül verisi, kota), `protocol.cjs` (`charles-module://`, CSP), `host.cjs` (pencere, izinli API, geliştirici modu), `module-preload.cjs` (`window.charlesModule`), `ai-image.cjs` (görsel oluşturma); belge: `docs/MODULES.md`, örnek: `docs/examples/hello-module` |
+| `app/modules/` | v0.8.2 modüller | `manifest.cjs` (manifest doğrulama), `package.cjs` (zip/klasör denetimleri), `registry.cjs` (kurulum, güncelleme, kaldırma, `modules.json`), `storage.cjs` (modül verisi, kota), `protocol.cjs` (`charles-module://`, CSP), `host.cjs` (pencere, izinli API, geliştirici modu), `module-preload.cjs` (`window.charlesModule`), `ai-image.cjs` (görsel oluşturma); belge: `docs/MODULES.md`, örnek: `docs/examples/hello-module` |
 | `app/plugins/` | Hesaplar ve bildirimler | `plugins.cjs` (Gmail, Outlook, takvim, Drive, okul e-postası, Home Assistant), `pop3.cjs`, `plugin-commands.cjs`, **`home-climate.cjs`** (v0.7.4 ev içi sıcaklık/nem soruları), **`mail-search.cjs`** (kelime/tarihle mail arama), `oauth-setup.cjs`, **`mail-triage.cjs`** (önem değerlendirme), **`mail-alerts.cjs`** (akış), **`mail-bubble.cjs`** + `bubble-preload.cjs` (adacık baloncukları), **`deadlines.cjs`** (e-postadaki tarihler → hatırlatma + .ics) |
 | `app/voice/` | Ses | `voice.cjs` + `voice.ps1` (Whisper, Windows sesi), `gemini-live.cjs`, `live-computer.cjs`, `live-plugins.cjs`, `wake-profile.cjs` |
 | `app/personal/` | Kişisel veriler | `personal.cjs` (hafıza, hatırlatıcı, görünüm, erişim), `memory.cjs`, `profile-transfer.cjs`, `creator-profile.cjs`, `companion.cjs`, `weather.cjs`, `weather-chat.cjs` |
@@ -217,3 +217,10 @@ Biçimlendirme (isteğe bağlı): `npx @biomejs/biome format --write app src tes
 Kullanıcıya verilecek klasör: bu klasörün tamamı. ZIP'ten çıkarılınca
 `Start-Charles.cmd` ile açılır. `test/`, `src/`, `scripts/` olmadan da çalışır;
 bunlar geliştirme içindir.
+
+
+## Charles Download (optional)
+
+İndirme motoru ve pano/adacık köprüsü `app/modules/download/` altında ayrıdır.
+`app/modules/host.cjs` çağrıları yönlendirir; `module-preload.cjs` sınırlı API verir.
+`main.cjs` değişmedi. Modül ve araç kurulumu için [DOWNLOAD-MODULE.md](docs/DOWNLOAD-MODULE.md).

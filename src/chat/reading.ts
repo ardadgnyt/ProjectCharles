@@ -1,11 +1,13 @@
 import { PAW } from '../vendor/slime/shape';
 // Vector accessories inspired by the user's Charles-okuyor.gif.
 // Drawn in the character's own coordinate system so they remain crisp at any size.
-// v0.8.8: `glasses` false when Slime already wears eyewear (round glasses, sunglasses…), so
-// the reading glasses are not drawn on top of it.
-// With eyewear the engine draws Slime's normal eyes (the eyewear sits on them) and this only adds
-// the page and the paws.
-export function drawReading(x: CanvasRenderingContext2D, t: number, amount: number, glasses = true, paws = true) {
+export function drawReading(
+  x: CanvasRenderingContext2D,
+  t: number,
+  amount: number,
+  glasses = true,
+  paws = true,
+) {
   const eyes = glasses;
   x.save();
   x.globalAlpha = amount;
@@ -75,7 +77,6 @@ export function drawReading(x: CanvasRenderingContext2D, t: number, amount: numb
   x.lineTo(49 - 10 * turn, 49);
   x.lineTo(38, 40);
   x.fill();
-  // v0.9.1: no paws on the page while Slime waves (he would have four hands)
   for (const side of paws ? [-1, 1] : []) {
     const hand = x.createRadialGradient(side * 48 - 3, 65, 1, side * 48, 68, 16);
     hand.addColorStop(0, PAW.light);
