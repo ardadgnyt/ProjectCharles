@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.3%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.4%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -38,7 +38,15 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 ---
 
-## v0.9.3 Beta · Convert & share / Dönüştür ve paylaş
+## v0.9.4 Beta · Reliable sharing & file checks / Paylaşım ve dosya doğrulama
+
+Sharing recovers failed Bluetooth advertisements and reconnects discovery after network changes or resume, without opening the island. ZIP/ZIP64 updates, module packages and extraction verify CRC and sizes. Case-conflicting archive paths, duplicate CSV headers, excess columns and invalid subtitle times now produce an error. Pre-cancelled media jobs do not start FFmpeg.
+
+Paylaşım, durmuş Bluetooth duyurusunu yeniden başlatır; ağ değişimi ve uyku dönüşünde adacığı açmaya gerek kalmadan keşfi yeniler. ZIP/ZIP64 güncellemeleri, modüller ve arşiv çıkarımı CRC ve boyut doğrulamasından geçer. Çakışan arşiv yolları, tekrarlanan CSV başlıkları, fazla kolonlar ve geçersiz altyazı zamanları hata verir. Önceden iptal edilen medya işleri FFmpeg'i başlatmaz.
+
+[Validation and device-test checklist / Doğrulama ve cihaz testi](docs/VERIFICATION-v0.9.4.md)
+
+### Convert & share / Dönüştür ve paylaş
 
 <p align="center">
   <img src="docs/images/island.png" alt="v0.9.3 island: icon-only converter and send buttons, centered Charles and music" width="100%">

@@ -171,7 +171,7 @@ class ShareService extends EventEmitter {
     this.ad.on('received', onReceived);
 
     const onError = (err) => {
-      if (this.pendingOffer?.id === err.id) {
+      if (this.pendingOffer && this.pendingOffer.id === err.id) {
         this.pendingOffer.respond(false);
         this.pendingOffer = null;
       }
@@ -190,6 +190,13 @@ class ShareService extends EventEmitter {
   }
 
   async start() {
+    // A failed startup must recover without opening the share sheet.
+    if (!this.retryTimer) {
+      this.retryTimer = setInterval(() => {
+        if (!this.started && !this.startPromise) void this.start().catch(() => {});
+      }, 15000);
+      this.retryTimer.unref?.();
+    }
     if (this.startPromise) return this.startPromise;
     if (this.started) return this.state();
     this.startPromise = (async () => {
@@ -212,13 +219,15 @@ class ShareService extends EventEmitter {
 
   async resume() {
     await this.start();
-    await this.qs.refreshNetwork();
+    await this.qs.refreshNetwork({ force: true });
     await this.ad.refreshNetwork();
     this.ad.setVisible(this.receiveMode !== 'off');
     this.discover();
   }
 
   stop() {
+    clearInterval(this.retryTimer);
+    this.retryTimer = null;
     this.started = false;
     this.qs.stop();
     this.ad.stop();

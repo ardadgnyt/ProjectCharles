@@ -1225,13 +1225,13 @@ function uniqueDestPath(dir, rawName) {
 }
 
 // ── Windows BLE Fast Pair / Nearby 0xFE2C Wake-Up Advertiser (`ble.py`) ─────
-function startWindowsBleWakeAdvertiser() {
+function startWindowsBleWakeAdvertiser(log = () => {}) {
   if (process.platform !== 'win32') return null;
   try {
     const randHex = crypto.randomBytes(10).toString('hex');
     const payloadHex = 'fc128e0142' + '00'.repeat(9) + randHex;
     const psScript = `
-$ErrorActionPreference = 'SilentlyContinue'
+$ErrorActionPreference = 'Stop'
 [void][Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementPublisher, Windows.Devices.Bluetooth, ContentType=WindowsRuntime]
 [void][Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementDataSection, Windows.Devices.Bluetooth, ContentType=WindowsRuntime]
 [void][Windows.Storage.Streams.DataWriter, Windows.Storage.Streams, ContentType=WindowsRuntime]
@@ -1246,14 +1246,26 @@ $section = [Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementData
 $pub = [Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementPublisher]::new()
 $pub.Advertisement.DataSections.Add($section)
 $pub.Start()
-while ($true) { Start-Sleep -Seconds 30 }
+$lastStatus = ''
+$waitingSince = [DateTime]::UtcNow
+try {
+  while (Get-Process -Id ${process.pid} -ErrorAction SilentlyContinue) {
+    $status = [string]$pub.Status
+    if ($status -ne $lastStatus) { [Console]::Out.WriteLine($status); $lastStatus = $status; $waitingSince = [DateTime]::UtcNow }
+    if ($status -eq 'Aborted' -or $status -eq 'Stopped') { exit 2 }
+    if ($status -ne 'Started' -and ([DateTime]::UtcNow - $waitingSince).TotalSeconds -gt 30) { exit 3 }
+    Start-Sleep -Seconds 2
+  }
+} finally { $pub.Stop() }
 `.trim();
     const child = spawn(
       'powershell.exe',
       ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', psScript],
-      { stdio: 'ignore', windowsHide: true },
+      { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true },
     );
-    child.on('error', () => {});
+    child.stdout.on('data', data => log('ble-status', String(data).trim().slice(0, 160)));
+    child.stderr.on('data', data => log('ble-error', String(data).trim().slice(0, 240)));
+    child.on('error', error => log('ble-error', error.message));
     child.unref();
     return child;
   } catch {
@@ -1286,6 +1298,9 @@ class QuickShareEngine extends EventEmitter {
     super();
     this.logFile = opts.logFile || null;
     this.discoveryEnabled = opts.discovery !== false;
+    this.networkAddress = opts.networkAddress || getRoutedIPv4;
+    this.createMdnsSocket = opts.createMdnsSocket || (() => dgram.createSocket({ type: 'udp4', reuseAddr: true }));
+    this.startBle = opts.startBle || startWindowsBleWakeAdvertiser;
     this.#deviceName = opts.deviceName || os.hostname() || 'Charles PC';
     this.#downloadDir = opts.downloadDir || path.join(os.homedir(), 'Downloads');
     this.#receiveMode = opts.receiveMode || 'everyone';
@@ -1361,7 +1376,7 @@ class QuickShareEngine extends EventEmitter {
   async start() {
     if (this.#tcpServer) return this.#tcpPort;
     fs.mkdirSync(this.#downloadDir, { recursive: true });
-    this.#advertiseIp = await getRoutedIPv4();
+    this.#advertiseIp = await this.networkAddress();
 
     await new Promise((resolve, reject) => {
       const srv = net.createServer((socket) => {
@@ -1390,10 +1405,11 @@ class QuickShareEngine extends EventEmitter {
   }
 
   #ensureBleWake() {
-    if (this.discoveryEnabled && this.#tcpServer && !this.#bleProcess && process.platform === 'win32') {
-      this.#bleProcess = startWindowsBleWakeAdvertiser();
+    if (this.discoveryEnabled && this.#tcpServer && !this.#bleProcess) {
+      this.#bleProcess = this.startBle((stage, detail) => this.#log(stage, detail));
       const child = this.#bleProcess;
       child?.once('exit', () => { if (this.#bleProcess === child) this.#bleProcess = null; });
+      child?.once('error', () => { if (this.#bleProcess === child) this.#bleProcess = null; });
     }
   }
 
@@ -1446,14 +1462,21 @@ class QuickShareEngine extends EventEmitter {
     this.#announce();
   }
 
-  async refreshNetwork() {
+  async refreshNetwork({ force = false } = {}) {
     if (!this.#tcpServer) return;
-    const ip = await getRoutedIPv4();
+    const ip = await this.networkAddress();
     if (!this.#tcpServer) return;
-    if (ip !== this.#advertiseIp) {
+    if (force || ip !== this.#advertiseIp || (this.discoveryEnabled && !this.#mdnsSocket)) {
       this.#advertiseIp = ip;
-      try { this.#mdnsSocket?.addMembership(MDNS_ADDR, ip); } catch {}
-      try { this.#mdnsSocket?.setMulticastInterface(ip); } catch {}
+      // Rebind after resume even if DHCP assigned the same address. Windows can
+      // retain a socket whose multicast membership belongs to the old adapter.
+      clearInterval(this.#announceTimer);
+      this.#announceTimer = null;
+      const old = this.#mdnsSocket;
+      this.#mdnsSocket = null;
+      try { old?.close(); } catch {}
+      if (this.discoveryEnabled) this.#startMdns();
+      this.#stopBleWake();
       this.#log('network-changed', ip);
     }
     if (this.#receiveMode !== 'off') this.#ensureBleWake();
@@ -1522,11 +1545,19 @@ class QuickShareEngine extends EventEmitter {
   }
 
   #startMdns() {
-    const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+    const sock = this.createMdnsSocket();
     this.#mdnsSocket = sock;
-    sock.on('error', () => {});
+    sock.on('error', error => {
+      this.#log('mdns-error', error.message);
+      if (this.#mdnsSocket !== sock) return;
+      this.#mdnsSocket = null;
+      clearInterval(this.#announceTimer);
+      this.#announceTimer = null;
+      try { sock.close(); } catch {}
+    });
     sock.on('message', (msg, rinfo) => this.#onMdnsMessage(msg, rinfo));
     sock.bind(MDNS_PORT, '0.0.0.0', () => {
+      if (this.#mdnsSocket !== sock) return;
       for (const ip of getLocalIPv4Interfaces()) {
         try {
           sock.addMembership(MDNS_ADDR, ip);

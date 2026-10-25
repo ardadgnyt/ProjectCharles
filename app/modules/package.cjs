@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { unzipSync } = require('fflate');
+const { zipChecksums, verifyZipFiles } = require('../core/zip-check.cjs');
 const { parseManifest } = require('./manifest.cjs');
 
 const LIMITS = { totalBytes: 100 * 1024 * 1024, files: 2000, pathLength: 200 };
@@ -74,6 +75,7 @@ function readZip(bytes) {
   const declared = [];
   let raw;
   try {
+    const sums = zipChecksums(bytes);
     raw = unzipSync(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes), {
       filter(file) {
         if (file.name.endsWith('/')) return false; // folder entries
@@ -83,7 +85,9 @@ function readZip(bytes) {
         return true;
       },
     });
+    verifyZipFiles(sums, raw);
   } catch (e) {
+    if (/aynı adlı|yolları çakışıyor/.test(e.message)) fail('Pakette aynı adlı iki dosya veya çakışan yol var.');
     if (/^Pakette|^Paket |^Bu dosya/.test(e.message)) throw e;
     fail('Zip açılamadı: dosya bozuk ya da desteklenmeyen bir sıkıştırma kullanıyor.');
   }

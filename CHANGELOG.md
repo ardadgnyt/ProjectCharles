@@ -1,5 +1,17 @@
 # ProjectCharles — Yama notları
 
+## v0.9.4 Beta — 25 Ekim 2026
+
+- Quick Share: Bluetooth yayın durumu izlenir; duran/hatalı yayın arka planda yeniden başlatılır. Ağ değişimi ve uyku dönüşünde mDNS soketi yeniden kurulur. Başlatma hataları panel açılmadan tekrar denenir.
+- ZIP64 merkez dizini ve ek alanları okunur; CRC ve boyut doğrulaması atlanmaz. Bozuk veya okunamayan dizinler reddedilir.
+- Modül ZIP okuyucusu da dosya CRC/boyutunu doğrular.
+- Büyük/küçük harf ve dosya/klasör yol çakışmaları, arşiv çıkarılmadan reddedilir.
+- CSV → JSON: tekrarlanan başlıklar ve başlıktan fazla hücre hata verir; veri sessizce atılmaz.
+- SRT/VTT: geçersiz dakika/saniye ve bitişi başlangıçtan önce/eşit zaman aralıkları reddedilir.
+- Önceden iptal edilmiş FFmpeg işi alt süreç başlatmaz.
+- SHA-256 güncelleme doğrulaması korunur; CRC düzeltmesi bir SHA-256 aşımı iddiası değildir.
+
+
 ## v0.9.3 Beta — 25 Ekim 2026
 
 - LocalSend: outgoing TLS client certificate, register handshake and periodic discovery replies.

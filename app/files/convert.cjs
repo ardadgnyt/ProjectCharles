@@ -134,7 +134,12 @@ function writeDelimited(rows, sep) {
 }
 function tableToObjects(rows) {
   const [head = [], ...body] = rows;
-  return body.map((r) => Object.fromEntries(head.map((h, i) => [h || `sütun${i + 1}`, r[i] ?? ''])));
+  const keys = head.map((h, i) => h || `sütun${i + 1}`);
+  if (new Set(keys).size !== keys.length) throw Error('CSV başlıkları tekrarlanıyor. Her kolona farklı bir ad verin.');
+  return body.map((r, index) => {
+    if (r.length > keys.length) throw Error(`CSV satır ${index + 2}: başlıklardan fazla kolon var; veri kaybını önlemek için dönüşüm durduruldu.`);
+    return Object.fromEntries(keys.map((h, i) => [h, r[i] ?? '']));
+  });
 }
 function objectsToTable(value) {
   const list = Array.isArray(value) ? value : value && typeof value === 'object' ? (Object.values(value).find(Array.isArray) || [value]) : [{ değer: value }];
@@ -143,10 +148,31 @@ function objectsToTable(value) {
   for (const r of rows) for (const k of Object.keys(r)) if (!head.includes(k)) head.push(k);
   return [head, ...rows.map((r) => head.map((h) => r[h]))];
 }
+function validateSubtitleTimes(text, vtt) {
+  const lines = text.replace(/^\uFEFF/, '').replace(/\r/g, '').split('\n');
+  let count = 0;
+  const parse = value => {
+    const match = value.match(vtt ? /^(?:(\d{2,}):)?(\d{2}):(\d{2})\.(\d{3})$/ : /^(\d{2,}):(\d{2}):(\d{2}),(\d{3})$/);
+    if (!match || +match[2] > 59 || +match[3] > 59) throw Error('Altyazıda geçersiz zaman var: ' + value);
+    const result = ((+(match[1] || 0) * 60 + +match[2]) * 60 + +match[3]) * 1000 + +match[4];
+    if (!Number.isSafeInteger(result)) throw Error('Altyazı zamanı çok büyük.');
+    return result;
+  };
+  for (const line of lines) {
+    if (!line.includes('-->')) continue;
+    const match = line.trim().match(/^(\S+)\s+-->\s+(\S+)(.*)$/);
+    if (!match || (!vtt && match[3].trim())) throw Error('Altyazı zaman satırı geçersiz.');
+    if (parse(match[2]) <= parse(match[1])) throw Error('Altyazı bitiş zamanı başlangıçtan sonra olmalıdır.');
+    count++;
+  }
+  if (!count) throw Error('Altyazıda geçerli zaman aralığı bulunamadı.');
+}
 function srtToVtt(text) {
+  validateSubtitleTimes(text, false);
   return 'WEBVTT\n\n' + text.replace(/^\uFEFF/, '').replace(/\r/g, '').replace(/(\d\d:\d\d:\d\d),(\d\d\d)/g, '$1.$2').trim() + '\n';
 }
 function vttToSrt(text) {
+  validateSubtitleTimes(text, true);
   const blocks = text.replace(/^\uFEFF/, '').replace(/\r/g, '').split(/\n{2,}/).filter((b) => /-->/.test(b));
   return blocks.map((b, i) => {
     const lines = b.split('\n');
@@ -370,6 +396,8 @@ function unzipTo(file, folder, { maxBytes = 1024 * 1024 * 1024, maxFiles = 20000
   const { unzipSync } = require('fflate');
   let total = 0, count = 0;
   const raw = fs.readFileSync(file);
+  const { zipChecksums, verifyZipFiles } = require('../core/zip-check.cjs');
+  const sums = zipChecksums(raw);
   const data = unzipSync(new Uint8Array(raw.buffer, raw.byteOffset, raw.length), {
     filter: (f) => {
       count++;
@@ -379,9 +407,7 @@ function unzipTo(file, folder, { maxBytes = 1024 * 1024 * 1024, maxFiles = 20000
     },
   });
   // v0.9.1: a damaged archive (or one whose sizes are wrong) is not unpacked as if it were whole
-  const { crc32, zipChecksums } = require('../core/zip-check.cjs');
-  const sums = zipChecksums(raw);
-  if (sums) for (const [name, bytes] of Object.entries(data)) if (sums.has(name) && crc32(bytes) !== sums.get(name)) throw Error('Arşiv bozuk: ' + name + ' doğrulanamadı.');
+  verifyZipFiles(sums, data);
   const root = path.resolve(folder);
   fs.mkdirSync(root, { recursive: true });
   let written = 0;
@@ -447,10 +473,12 @@ function ffmpegArgs(input, output, target, { quality = 'balanced', size = 0 } = 
 const seconds = (h, m, s) => +h * 3600 + +m * 60 + +s;
 function runFFmpeg(ffmpeg, args, { signal, onProgress, spawnFn = spawn } = {}) {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(Object.assign(Error('İptal edildi.'), { cancelled: true }));
     const child = spawnFn(ffmpeg, args, { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
     let duration = 0, tail = '';
     const abort = () => { try { child.kill(); } catch {} };
     signal?.addEventListener('abort', abort, { once: true });
+    if (signal?.aborted) abort();
     child.stderr.setEncoding('utf8');
     child.stderr.on('data', (text) => {
       tail = (tail + text).slice(-6000);
@@ -459,7 +487,7 @@ function runFFmpeg(ffmpeg, args, { signal, onProgress, spawnFn = spawn } = {}) {
       const t = [...text.matchAll(/time=\s*(\d+):(\d+):([\d.]+)/g)].pop();
       if (t && duration > 0) onProgress?.(Math.max(0, Math.min(0.99, seconds(t[1], t[2], t[3]) / duration)));
     });
-    child.on('error', (e) => reject(Error('FFmpeg başlatılamadı: ' + e.message)));
+    child.on('error', (e) => { signal?.removeEventListener('abort', abort); reject(Error('FFmpeg başlatılamadı: ' + e.message)); });
     child.on('close', (code) => {
       signal?.removeEventListener('abort', abort);
       if (signal?.aborted) return reject(Object.assign(Error('İptal edildi.'), { cancelled: true }));

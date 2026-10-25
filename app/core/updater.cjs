@@ -14,7 +14,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { unzipSync } = require('fflate');
 const { cleanPath } = require('../modules/package.cjs');
-const { crc32, zipChecksums } = require('./zip-check.cjs');
+const { zipChecksums, verifyZipFiles } = require('./zip-check.cjs');
 
 const REPO = 'ardadgnyt/ProjectCharles';
 const API_LATEST = `https://api.github.com/repos/${REPO}/releases/latest`;
@@ -264,6 +264,7 @@ function readUpdateZip(bytes, { name, expectVersion } = {}) {
   const seen = new Set();
   let raw;
   try {
+    const crcs = zipChecksums(bytes);
     raw = unzipSync(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes), {
       filter(file) {
         if (file.name.endsWith('/')) return false;
@@ -277,17 +278,15 @@ function readUpdateZip(bytes, { name, expectVersion } = {}) {
         return true;
       },
     });
+    verifyZipFiles(crcs, raw);
   } catch (e) {
     if (e instanceof UpdateError) throw e;
+    if (/aynı adlı|yolları çakışıyor/.test(e.message)) fail('Güncelleme paketinde aynı adlı iki dosya veya çakışan yol var.', e.message);
     if (/zip-slip|mutlak yol|ters bölü|geçersiz|ayrılmış|uzun bir dosya yolu|adı olmayan/i.test(e.message)) fail('Güncelleme paketinde güvenli olmayan bir dosya yolu var; kurulmadı.', e.message);
     fail('Güncelleme dosyası açılamadı (bozuk .zip).', e.message);
   }
   // v0.9.1: every file's checksum is compared with the zip's own record (a damaged file is
   // never unpacked as if it were whole)
-  const crcs = zipChecksums(bytes);
-  if (crcs)
-    for (const [n, d] of Object.entries(raw))
-      if (crcs.has(n) && crc32(d) !== crcs.get(n)) fail('Güncelleme dosyası bozuk (sağlama toplamı uyuşmuyor); kurulmadı.', n);
   let files = new Map(Object.entries(raw).map(([n, d]) => [cleanPath(n), d]));
   // a zip whose files all sit in one top folder ("charles-update-0.8.1/package.json")
   if (!files.has('package.json')) {
