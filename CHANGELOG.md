@@ -1,5 +1,13 @@
 # ProjectCharles — Yama notları
 
+## v0.9.3 Beta — 25 Ekim 2026
+
+- LocalSend: outgoing TLS client certificate, register handshake and periodic discovery replies.
+- Route multicast through the active network; refresh after network changes.
+- Label LocalSend devices separately from native AirDrop.
+- Non-Samsung Android Quick Share confirmed by the maintainer.
+- LocalSend real-device test passed; black sharing panel and cream discovery icon.
+
 Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.

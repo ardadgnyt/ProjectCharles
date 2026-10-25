@@ -6,6 +6,7 @@ const dgram = require('node:dgram');
 const EventEmitter = require('node:events');
 const fs = require('node:fs');
 const https = require('node:https');
+const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
 const zlib = require('node:zlib');
@@ -14,6 +15,7 @@ const {
   buildMdnsAnnouncement,
   parseMdnsPacket,
   getLocalIPv4,
+  getRoutedIPv4,
 } = require('./quickshare.cjs');
 
 const MDNS_ADDR = '224.0.0.251';
@@ -526,10 +528,13 @@ class AirDropEngine extends EventEmitter {
     this.hostAddresses = new Map();
     this.pendingSessions = new Map();
     this.lastAirDropPeer = null;
+    this.networkIp = getLocalIPv4();
+    this.registrations = new Set();
   }
 
   async start() {
     if (this.server) return this.port;
+    this.networkIp = await getRoutedIPv4();
     this.server = https.createServer(
       { key: this.tls.key, cert: this.tls.cert, requestCert: false, rejectUnauthorized: false },
       (req, res) => {
@@ -538,7 +543,7 @@ class AirDropEngine extends EventEmitter {
             res.writeHead(500);
             res.end();
           }
-          this.emit('error', err);
+          this.emit('transfer-error', { protocol: 'localsend', error: err.message });
         });
       },
     );
@@ -585,30 +590,42 @@ class AirDropEngine extends EventEmitter {
         this.mdns.send(q, 0, q.length, MDNS_PORT, MDNS_ADDR);
       } catch {}
     }
-    if (this.lsSocket && this.port) {
-      try {
-        const msg = Buffer.from(
-          JSON.stringify({
-            alias: this.deviceName,
-            version: '2.1',
-            deviceModel: 'Windows PC',
-            deviceType: 'desktop',
-            fingerprint: this.tls.fingerprint,
-            port: this.port,
-            protocol: 'https',
-            download: false,
-            announce: true,
-          }),
-          'utf8',
-        );
-        this.lsSocket.send(msg, 0, msg.length, LOCALSEND_PORT, LOCALSEND_MCAST);
-      } catch {}
+    this.announceLocalSend(true);
+  }
+
+  localSendInfo() {
+    return { alias: this.deviceName, version: '2.1', deviceModel: 'Windows PC',
+      deviceType: 'desktop', fingerprint: this.tls.fingerprint, port: this.port,
+      protocol: 'https', download: false };
+  }
+
+  announceLocalSend(announce = false) {
+    if (!this.visible || !this.lsSocket || !this.port) return;
+    const msg = Buffer.from(JSON.stringify({ ...this.localSendInfo(), announce }));
+    try { this.lsSocket.send(msg, LOCALSEND_PORT, LOCALSEND_MCAST); } catch {}
+  }
+
+  async refreshNetwork() {
+    const ip = await getRoutedIPv4();
+    if (ip !== this.networkIp) {
+      for (const [socket, group] of [[this.mdns, MDNS_ADDR], [this.lsSocket, LOCALSEND_MCAST]]) {
+        if (!socket) continue;
+        try { socket.dropMembership(group, this.networkIp); } catch {}
+        try { socket.addMembership(group, ip); socket.setMulticastInterface(ip); } catch {}
+      }
+      this.networkIp = ip;
     }
+    const now = Date.now();
+    let changed = false;
+    for (const [key, peer] of this.peers) if (now - peer.seenAt > 45000) { this.peers.delete(key); changed = true; }
+    if (changed) this.emit('peers', Array.from(this.peers.values()));
+    this.announce();
   }
 
   announce() {
     if (!this.port || !this.visible) return;
-    const ip = getLocalIPv4();
+    this.announceLocalSend(false);
+    const ip = this.networkIp;
     if (this.mdns) {
       try {
         const adPkt = buildMdnsAnnouncement({
@@ -634,15 +651,16 @@ class AirDropEngine extends EventEmitter {
       sock.bind(MDNS_PORT, '0.0.0.0', () => {
         if (this.mdns !== sock) return;
         try {
-          const ip = getLocalIPv4();
+          const ip = this.networkIp;
           sock.addMembership(MDNS_ADDR, ip !== '127.0.0.1' ? ip : undefined);
+          sock.setMulticastInterface(ip);
           sock.setMulticastTTL(255);
           sock.setMulticastLoopback(true);
         } catch {}
         this.announce();
         this.scan();
         this.announceTimer = setInterval(() => {
-          if (this.visible) this.announce();
+          void this.refreshNetwork().catch(() => {});
         }, 8000);
         this.announceTimer.unref?.();
       });
@@ -657,10 +675,13 @@ class AirDropEngine extends EventEmitter {
       ls.bind(LOCALSEND_PORT, '0.0.0.0', () => {
         if (this.lsSocket !== ls) return;
         try {
-          const ip = getLocalIPv4();
+          const ip = this.networkIp;
           ls.addMembership(LOCALSEND_MCAST, ip !== '127.0.0.1' ? ip : undefined);
+          ls.setMulticastInterface(ip);
+          ls.setMulticastTTL(1);
           ls.setMulticastLoopback(true);
         } catch {}
+        this.announceLocalSend(true);
       });
     } catch {}
   }
@@ -671,13 +692,13 @@ class AirDropEngine extends EventEmitter {
       if (!data || data.fingerprint === this.tls.fingerprint) return;
       const ip = rinfo?.address;
       const port = Number(data.port) || LOCALSEND_PORT;
-      if (!ip) return;
+      if (!ip || !Number.isInteger(port) || port < 1 || port > 65535 || !data.fingerprint) return;
       const key = `ls:${ip}:${port}`;
       const peer = {
         id: 'ad:' + key,
-        protocol: 'airdrop',
+        protocol: 'localsend',
         subProtocol: 'localsend',
-        name: data.alias || data.deviceModel || 'iPhone / AirDrop',
+        name: data.alias || data.deviceModel || 'LocalSend',
         host: ip,
         port,
         https: data.protocol !== 'http',
@@ -686,6 +707,15 @@ class AirDropEngine extends EventEmitter {
       };
       this.peers.set(key, peer);
       this.emit('peers', Array.from(this.peers.values()));
+      if (this.visible && data.announce === true) {
+        this.announceLocalSend(false);
+        if (!this.registrations.has(key)) {
+          this.registrations.add(key);
+          void this.#httpsPost(ip, port, '/api/localsend/v2/register',
+            Buffer.from(JSON.stringify(this.localSendInfo())), 'application/json', undefined,
+            peer.https, 5000).catch(() => {}).finally(() => this.registrations.delete(key));
+        }
+      }
     } catch {}
   }
 
@@ -865,6 +895,16 @@ class AirDropEngine extends EventEmitter {
       return;
     }
 
+    if (req.method === 'POST' && pathname === '/api/localsend/v2/register') {
+      if (!this.visible) { res.writeHead(403); res.end(); return; }
+      const data = JSON.parse((await this.#readBody(req, 64 * 1024)).toString('utf8'));
+      this.#onLocalSendUdp(Buffer.from(JSON.stringify({ ...data, announce: false })),
+        { address: req.socket.remoteAddress?.replace(/^::ffff:/, '') });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(this.localSendInfo()));
+      return;
+    }
+
     // --- LocalSend v2 Endpoints (Wi-Fi iOS / Android / Desktop Compatibility) ---
     if (req.method === 'GET' && pathname === '/api/localsend/v2/info') {
       const info = JSON.stringify({
@@ -897,7 +937,7 @@ class AirDropEngine extends EventEmitter {
         allow = await new Promise((resolve) => {
           this.emit('offer', {
             id: sessionId,
-            protocol: 'airdrop',
+            protocol: 'localsend',
             peerName,
             files: summaryFiles,
             respond: (ok) => resolve(Boolean(ok)),
@@ -940,13 +980,14 @@ class AirDropEngine extends EventEmitter {
         this.emit('progress', {
           id: sessionId,
           direction: 'receive',
-          protocol: 'airdrop',
+          protocol: 'localsend',
           peerName: session.peerName,
           fileName: path.basename(finalPath),
           transferred,
           total: fMeta.size || transferred,
         });
       });
+      if (raw.length !== fMeta.size) { res.writeHead(400); res.end('File size mismatch'); return; }
       fs.writeFileSync(partPath, raw);
       fs.renameSync(partPath, finalPath);
       session.saved.push({ name: path.basename(finalPath), path: finalPath, size: raw.length });
@@ -957,7 +998,7 @@ class AirDropEngine extends EventEmitter {
         this.pendingSessions.delete(sessionId);
         this.emit('received', {
           id: sessionId,
-          protocol: 'airdrop',
+          protocol: 'localsend',
           peerName: session.peerName,
           files: session.saved,
         });
@@ -985,32 +1026,37 @@ class AirDropEngine extends EventEmitter {
       });
       req.on('end', () => resolve(Buffer.concat(chunks)));
       req.on('error', reject);
+      req.on('aborted', () => reject(Error('Dosya aktarımı yarıda kesildi.')));
     });
   }
 
-  #httpsPost(host, port, reqPath, bodyBuf, contentType = 'application/octet-stream', signal) {
+  #httpsPost(host, port, reqPath, bodyBuf, contentType = 'application/octet-stream', signal, encrypted = true, timeout = 90000) {
     return new Promise((resolve, reject) => {
-      const req = https.request(
+      const req = (encrypted ? https : http).request(
         {
           host,
           port: Number(port),
           path: reqPath,
           method: 'POST',
           rejectUnauthorized: false,
+          key: this.tls.key,
+          cert: this.tls.cert,
+          signal,
           headers: {
             'Content-Type': contentType,
             'Content-Length': String(bodyBuf.length),
-            'User-Agent': 'AirDrop/1.0',
+            'User-Agent': reqPath.startsWith('/api/localsend/') ? 'Charles-LocalSend/0.9.3' : 'AirDrop/1.0',
             Connection: 'close',
           },
         },
         (res) => {
+          res.on('error', reject);
           const chunks = [];
           res.on('data', (c) => chunks.push(c));
           res.on('end', () => resolve({ statusCode: res.statusCode || 0, body: Buffer.concat(chunks) }));
         },
       );
-      if (signal) signal.addEventListener('abort', () => req.destroy(Error('Aktarım iptal edildi.')), { once: true });
+      req.setTimeout(timeout, () => req.destroy(Error('LocalSend bağlantısı zaman aşımına uğradı.')));
       req.on('error', reject);
       req.write(bodyBuf);
       req.end();
@@ -1018,7 +1064,7 @@ class AirDropEngine extends EventEmitter {
   }
 
   // --- Outbound Sender (AirDrop /Discover -> /Ask -> /Upload, or LocalSend v2) ---
-  async sendFiles({ host, port, subProtocol, files, onProgress, signal }) {
+  async sendFiles({ host, port, subProtocol, https: encrypted = true, files, onProgress, signal }) {
     const fileList = (files || []).map((f, idx) => {
       const filePath = typeof f === 'string' ? f : f.path;
       const stat = fs.statSync(filePath);
@@ -1032,7 +1078,7 @@ class AirDropEngine extends EventEmitter {
     if (!fileList.length) throw Error('Gönderilecek dosya seçilmedi.');
 
     if (subProtocol === 'localsend') {
-      return this.#sendLocalSend({ host, port, fileList, onProgress, signal });
+      return this.#sendLocalSend({ host, port, fileList, onProgress, signal, encrypted });
     }
 
     // 1. AirDrop /Discover
@@ -1079,7 +1125,7 @@ class AirDropEngine extends EventEmitter {
     return { ok: true, files: fileList.map((f) => ({ name: f.name, size: f.size })) };
   }
 
-  async #sendLocalSend({ host, port, fileList, onProgress, signal }) {
+  async #sendLocalSend({ host, port, fileList, onProgress, signal, encrypted }) {
     const filesMeta = {};
     for (const f of fileList) {
       filesMeta[f.id] = {
@@ -1091,13 +1137,7 @@ class AirDropEngine extends EventEmitter {
     }
     const prepPayload = Buffer.from(
       JSON.stringify({
-        info: {
-          alias: this.deviceName,
-          version: '2.1',
-          deviceModel: 'Windows PC',
-          deviceType: 'desktop',
-          fingerprint: this.tls.fingerprint,
-        },
+        info: this.localSendInfo(),
         files: filesMeta,
       }),
       'utf8',
@@ -1109,25 +1149,29 @@ class AirDropEngine extends EventEmitter {
       prepPayload,
       'application/json',
       signal,
+      encrypted,
     );
     if (prepResp.statusCode !== 200) {
       throw Error('Alıcı dosya aktarımını reddetti.');
     }
     const prep = JSON.parse(prepResp.body.toString('utf8'));
     const sessionId = prep.sessionId;
+    if (!sessionId || !fileList.some(f => prep.files?.[f.id])) throw Error('Alıcı hiçbir dosyayı kabul etmedi.');
     const tokens = prep.files || {};
     const totalBytes = fileList.reduce((s, f) => s + f.size, 0);
     let sentBytes = 0;
+    const sentFiles = [];
 
     for (const f of fileList) {
       const tok = tokens[f.id];
       if (!tok) continue;
       const data = fs.readFileSync(f.path);
       const q = `/api/localsend/v2/upload?sessionId=${encodeURIComponent(sessionId)}&fileId=${encodeURIComponent(f.id)}&token=${encodeURIComponent(tok)}`;
-      const up = await this.#httpsPost(host, port, q, data, 'application/octet-stream', signal);
+      const up = await this.#httpsPost(host, port, q, data, 'application/octet-stream', signal, encrypted);
       if (up.statusCode < 200 || up.statusCode >= 300) {
         throw Error('Dosya yüklenemedi (' + up.statusCode + ').');
       }
+      sentFiles.push({ name: f.name, size: f.size });
       sentBytes += data.length;
       onProgress?.({
         fileName: f.name,
@@ -1135,7 +1179,7 @@ class AirDropEngine extends EventEmitter {
         total: totalBytes,
       });
     }
-    return { ok: true, files: fileList.map((f) => ({ name: f.name, size: f.size })) };
+    return { ok: true, files: sentFiles };
   }
 }
 

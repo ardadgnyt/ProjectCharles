@@ -213,6 +213,7 @@ class ShareService extends EventEmitter {
   async resume() {
     await this.start();
     await this.qs.refreshNetwork();
+    await this.ad.refreshNetwork();
     this.ad.setVisible(this.receiveMode !== 'off');
     this.discover();
   }
@@ -416,11 +417,12 @@ class ShareService extends EventEmitter {
         this.emit('state', this.state());
       };
       let res;
-      if (protocol === 'airdrop') {
+      if (protocol === 'airdrop' || protocol === 'localsend') {
         res = await this.ad.sendFiles({
           host,
           port,
           subProtocol,
+          https: peer?.https !== false,
           files,
           onProgress,
           signal: ac.signal,

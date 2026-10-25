@@ -1955,4 +1955,5 @@ module.exports = {
   computePin: derivePin,
   renderQrSvg,
   getLocalIPv4,
+  getRoutedIPv4,
 };

@@ -110,7 +110,8 @@
   gap: 5px;
   overflow: hidden;
   border-radius: 18px;
-  background: linear-gradient(145deg, #202127, #17181d);
+  background: #000;
+  backdrop-filter: none;
 }
 #shelf .shelf-sheet[data-kind='share'] .sheet-body { overflow: hidden; }
 #shelf .share-sheet {
@@ -157,8 +158,8 @@
 #shelf .share-peers-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; }
 #shelf .share-peers-head small { color: #b8bfcc; font-size: 10px; }
 #shelf .share-peers-list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #ffffff25 transparent; }
-#shelf .share-peers-empty { display: flex; align-items: center; gap: 10px; min-height: 42px; height: 100%; padding: 8px 12px; color: #a2a7b3; border: 1px solid #ffffff0d; border-radius: 10px; background: #ffffff03; font-size: 10px; }
-#shelf .share-peers-empty svg { color: #a7caff; width: 20px; height: 20px; }
+#shelf .share-peers-empty { display: flex; align-items: center; gap: 10px; min-height: 42px; height: 100%; padding: 8px 12px; color: #a2a7b3; border: 1px solid #ffffff0d; border-radius: 10px; background: #080808; font-size: 10px; }
+#shelf .share-peers-empty svg { color: var(--v10-cream, #edc9a9); width: 20px; height: 20px; }
 #shelf .share-peer { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 6px 9px; border: 1px solid #ffffff12; border-radius: 10px; background: #ffffff04; color: #e1e5ee; text-align: left; }
 #shelf .share-peer.selected { border-color: #a7caff55; }
 #shelf .share-peer-icon { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; background: #ffffff08; color: #a7caff; flex: none; }

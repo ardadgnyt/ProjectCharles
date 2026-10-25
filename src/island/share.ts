@@ -128,7 +128,7 @@ export function shareSheet(d: any) {
 
     if (state.offer) {
       const offer = state.offer;
-      const protoLabel = offer.protocol === "airdrop" ? "AirDrop" : "Quick Share";
+      const protoLabel = offer.protocol === "localsend" ? "LocalSend" : offer.protocol === "airdrop" ? "AirDrop" : "Quick Share";
       const fileNames = (offer.files || []).map((f: any) => f.name).join(", ") || "Dosya";
       const totalBytes = (offer.files || []).reduce((s: number, f: any) => s + (f.size || 0), 0);
       const offerBox = el(
@@ -163,7 +163,7 @@ export function shareSheet(d: any) {
     } else if (state.transfer) {
       const tr = state.transfer;
       const pct = tr.total > 0 ? Math.min(100, Math.round((tr.transferred / tr.total) * 100)) : tr.status === "done" ? 100 : 0;
-      const protoLabel = tr.protocol === "airdrop" ? "AirDrop" : "Quick Share";
+      const protoLabel = tr.protocol === "localsend" ? "LocalSend" : tr.protocol === "airdrop" ? "AirDrop" : "Quick Share";
       const statusText =
         tr.status === "connecting"
           ? "Bağlanıyor…"
@@ -233,7 +233,7 @@ export function shareSheet(d: any) {
         );
       } else {
         for (const p of peers) {
-          const isAd = p.protocol === "airdrop";
+          const label = p.protocol === "localsend" || p.subProtocol === "localsend" ? "LocalSend" : p.protocol === "airdrop" ? "AirDrop" : "Quick Share";
           const row = el(
             "button",
             "share-peer" + (selectedPeerId === p.id ? " selected" : ""),
@@ -242,9 +242,9 @@ export function shareSheet(d: any) {
               "span",
               "share-peer-text",
               el("strong", "", p.name || "Cihaz"),
-              el("small", "", isAd ? "AirDrop" : "Quick Share")
+              el("small", "", label)
             ),
-            el("span", "share-badge " + p.protocol, isAd ? "AirDrop" : "Quick Share"),
+            el("span", "share-badge " + p.protocol, label),
             el("span", "share-peer-go", icon("send"))
           );
           row.type = "button";

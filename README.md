@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.2%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.3%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -38,10 +38,10 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 ---
 
-## v0.9.2 Beta · Convert & share / Dönüştür ve paylaş
+## v0.9.3 Beta · Convert & share / Dönüştür ve paylaş
 
 <p align="center">
-  <img src="docs/images/island.png" alt="v0.9.2 island: icon-only converter and send buttons, centered Charles and music" width="100%">
+  <img src="docs/images/island.png" alt="v0.9.3 island: icon-only converter and send buttons, centered Charles and music" width="100%">
 </p>
 
 ### Convert files on your desktop · Masaüstünde dosya dönüştür
@@ -60,17 +60,19 @@ boyut seçebilirsin. Sonuç, orijinal dosyanın yanına kaydedilir.
   <img src="docs/images/converter.png" alt="Converter with a sample PNG, output formats, quality and size controls" width="100%">
 </p>
 
-### Quick Share from the island · Adacıktan dosya paylaş
+### All Android devices with Quick Share · Tüm Android cihazlarda Quick Share
 
 Drop files on the **paper plane**, select a nearby device and send. Quick Share supports
-two-way transfers with compatible Android/Samsung devices and computers on the same local
+two-way transfers between Android devices and computers on the same local
 network. Charles remains discoverable while running when receiving is enabled, even with
 the panel closed. An incoming request opens the accept/reject panel immediately.
+Quick Share must be available and enabled on the Android device.
 
 **Kâğıt uçak** simgesine dosya bırak, yakındaki cihazı seç ve gönder. Quick Share ile aynı
-yerel ağdaki uyumlu Android/Samsung cihazlar ve bilgisayarlar arasında iki yönlü aktarım
+yerel ağdaki tüm Android cihazlar ve bilgisayarlar arasında iki yönlü aktarım
 yapabilirsin. Alım açıkken Charles çalıştığı sürece bilgisayarın görünür kalır; paneli açık
 tutman gerekmez. Gelen istek, kabul/ret panelini doğrudan açar.
+Android cihazda Quick Share özelliğinin bulunması ve açık olması gerekir.
 
 <p align="center">
   <img src="docs/images/sharing.png" alt="File sharing panel with a sample Galaxy S24+ and receive visibility controls" width="100%">
@@ -85,12 +87,15 @@ tutman gerekmez. Gelen istek, kabul/ret panelini doğrudan açar.
 </p>
 
 Received files go to Downloads; an existing file with the same name is preserved. QR is no
-longer needed in this panel. Samsung S24+ transfers have been tested in both directions.
-Windows uses LocalSend for compatible iPhone apps; native Apple AirDrop/AWDL is not supported.
+longer needed in this panel. Transfers have been tested successfully on Samsung and other Android brands.
+Apple devices (iPhone, iPad and Mac) use the **LocalSend app** to share files with Charles
+on the same local network. Native Apple AirDrop/AWDL is not supported on Windows.
 
 Alınan dosyalar İndirilenler’e kaydedilir; aynı adlı eski dosyanın üzerine yazılmaz. Bu panelde
-QR alanı kaldırıldı. Samsung S24+ ile iki yönlü aktarım test edildi. Windows’ta iPhone için
-uyumlu LocalSend uygulaması gerekir; yerel Apple AirDrop/AWDL desteklenmez.
+QR alanı kaldırıldı. Samsung ve farklı markalardaki Android telefonlarda aktarım başarıyla test edildi.
+**Apple cihazlarda (iPhone, iPad ve Mac) LocalSend uygulaması ile dosya paylaşımı desteklenir.**
+Apple cihazda LocalSend açık olmalı ve cihazlar aynı yerel ağa bağlı olmalıdır.
+Windows’ta yerel Apple AirDrop/AWDL desteklenmez.
 
 *Screenshots use sample file, device and status data. / Ekran görüntülerindeki dosya, cihaz
 ve durum bilgileri tanıtım için örnektir.* [Sharing guide / Paylaşım rehberi](docs/SHARING.md)
@@ -212,7 +217,7 @@ Ayrıntılar: [docs/MODULES.md](docs/MODULES.md).
 ## Screenshots · Ekran görüntüleri
 
 <p align="center">
-  <img src="docs/images/island.png" alt="The updated v0.9.2 island with centered Charles, converter and file-sharing icons" width="100%">
+  <img src="docs/images/island.png" alt="The updated v0.9.3 island with centered Charles, converter and file-sharing icons" width="100%">
 </p>
 
 <p align="center">

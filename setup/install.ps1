@@ -13,7 +13,7 @@
 param([string]$Root = $PSScriptRoot)
 
 $ErrorActionPreference = 'Stop'
-$Version = 'v0.9.2 Beta'
+$Version = 'v0.9.3 Beta'
 $Name = "ProjectCharles $Version"
 $DefaultTarget = "C:\$Name"
 $Log = Join-Path $env:TEMP 'Charles-setup.log'
