@@ -1,5 +1,3 @@
-> **v0.9.5 Beta:** Windows Quick Share, MultiDrop’un gerçek motorunu kullanır. Tüm Android cihazlarla Quick Share; Apple cihazlarla LocalSend uygulaması üzerinden paylaşım sunar. WhatsApp fotoğrafları yerel köprüden yüklenir. [Sürüm doğrulaması](docs/VERIFICATION-v0.9.5.md).
-
 <p align="center">
   <img src="docs/images/banner.png" alt="Project Charles — seven Slimes in different colours and accessories" width="100%">
 </p>
@@ -463,7 +461,6 @@ ProjectCharles/
   [Sam Green’s YouTube channel](https://www.youtube.com/@SamGreen). Project Charles is a
   fan-inspired, independent project, not affiliated with or endorsed by Sam Green. · Project
   Charles hayran esinli, bağımsız bir projedir; Sam Green ile bağlantılı değildir.
-- Quick Share protocol adaptation: [MultiDrop](https://github.com/digitaldanis/multidrop), GPL-3.0-or-later.
 
 ## License · Lisans
 

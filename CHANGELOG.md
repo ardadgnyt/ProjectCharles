@@ -1,6 +1,6 @@
 ## v0.9.5 Beta
 
-- Windows Quick Share: doğrudan MultiDrop motoru ve dahil edilmiş Python çalışma ortamı.
+- Windows Quick Share: cihaz keşfi ve dosya aktarımı için yenilenen paylaşım motoru.
 - Sürekli alım, sıralı açma/kapatma, aktarım başına durum yönetimi ve açık kabul isteği.
 - Telefonda gizli yayımlanan cihaz adları bağlantıda öğrenilince hatırlanır; bilinmeyen telefonlar sade bir adla gösterilir.
 - WhatsApp fotoğraf yüklemesi GOWA 9.x yerel dosya bağlantılarıyla uyumlu hale getirildi. Geçici indirme hataları yeniden denenir; bildirim güncellemeleri kapatılan kartları geri açmaz.
@@ -13,9 +13,9 @@
 - Gemini model listesi bağlı Antigravity hesabından okunur ve önbelleğe alınır. Argon Low/Medium/High seçenekleri görünür; seçilen model kimliği Flash’a çevrilmeden CLI’ye iletilir.
 - Dosya alımı artık Açık/Kapalı seçenekleriyle yönetilir ve Charles açıldığında Açık başlar. Otomatik kabul kaldırıldı; gelen dosyalar kullanıcının onayını bekler.
 - Slime’ın uyuması, adacığın küçülmesi veya paylaşım panelinin kapanması alımı durdurmaz. Ana süreç, açık alıcıları 10 saniyede bir denetler ve gerektiğinde görünürlüğü yeniden uygular; kullanıcının Kapalı seçimini bozmaz.
-- Quick Share cihaz kimliği ve mDNS bilgisi uygulama çalıştığı sürece sabit kalır; her aktarım sonunda cihaz yenilenip telefonda çoğalmaz. MultiDrop ile uyumlu ağ duyuruları ve sorgu yanıtları kullanılır.
+- Quick Share cihaz kimliği ve mDNS bilgisi uygulama çalıştığı sürece sabit kalır; her aktarım sonunda cihaz yenilenip telefonda çoğalmaz. Ağ duyuruları ve cihaz keşfi sorgularına verilen yanıtlar iyileştirildi.
 - Gönderici Bluetooth yayını dosya aramasıyla sınırlandırılır; alıcı açılışında başlatılmaz. Windows WinRT veri bölümü ve koleksiyon çağrıları düzeltildi.
-- Dosya listesi öncesindeki ara Quick Share mesajları, MultiDrop’taki gibi bekleme süresi içinde okunmaya devam edilir; kullanıcı onayı, iptal ve zaman aşımı kontrolleri korunur.
+- Dosya listesi öncesindeki ara Quick Share mesajları bekleme süresi içinde okunmaya devam edilir; kullanıcı onayı, iptal ve zaman aşımı kontrolleri korunur.
 - ZIP64 merkez dizini ve ek alanları okunur; CRC ve boyut doğrulaması atlanmaz. Bozuk veya okunamayan dizinler reddedilir.
 - Modül ZIP okuyucusu da dosya CRC/boyutunu doğrular.
 - Büyük/küçük harf ve dosya/klasör yol çakışmaları, arşiv çıkarılmadan reddedilir.
@@ -42,7 +42,7 @@ Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özell
 - Paylaşım paneli QR alanı olmadan yeniden düzenlendi; taşma, kayma ve yeniden açmada kabul isteğinin kaybolması düzeltildi.
 - Alım servisi uygulamayla başlar; panel kapalıyken keşif sürer ve uyku/ağ değişiminden sonra yenilenir.
 - Quick Share şifreli aktarım, gecikmeli kabul, iptal ve dosya bütünlüğü testleri; S24+ ile iki yönlü doğrulama.
-- Kaynak kod GPL-3.0-or-later; MultiDrop bildirimleri ve dağıtımlarda karşılık gelen kaynak kod eklendi.
+- Kaynak kod GPL-3.0-or-later; üçüncü taraf lisans bildirimleri ve dağıtımlarda karşılık gelen kaynak kod eklendi.
 
 
 - **WhatsApp bildirim balonu düzeltmesi:** Adacığın altında açılan WhatsApp bildirim balonunda bazen tıklamaların algılanmaması, ne yanıt yazılabilmesi ne de kapatma (`×`) tuşunun çalışması sorunu giderildi.
@@ -50,7 +50,7 @@ Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özell
   - Bildirim güncellemelerinde (`bubble-items`) WhatsApp kartının DOM’dan sökülüp yeniden eklenmesi nedeniyle oluşan metin kutusu odak kaybı ve tıklama iptali düzeltildi.
   - Windows’ta pencere odağı ve en-üstte (topmost) sıralamasını bozan `setFocusable(false)` geçişi kaldırıldı; her görünüm moduna (`×`) kapatma düğmesi ve 15 saniyelik gönderim zaman aşımı koruması eklendi.
 - **Küçük adada yarı boy Dönüştürücü ve yeni Gönder kartı:** Küçük adacığın kart rafındaki (`#shelf`) **Dönüştürücü** kutucuğu yarı boyuta indirildi; alt yarısına **Gönder** kartı eklendi.
-- **Quick Share / Nearby Share ve AirDrop dosya gönderme & alma (`multidrop` tabanlı):**
+- **Quick Share / Nearby Share ve AirDrop dosya gönderme & alma:**
   - **Quick Share / Nearby Share:** mDNS (`_FC9F5ED42C8A._tcp.local.`), EndpointInfo, QR kod ile eşleşme (`https://quickshare.google/qrcode#key=...`), UKEY2 (`P-256 ECDH` + `SHA-512` + `HKDF-SHA256`), `AES-256-CBC` + `HMAC-SHA256` şifreli D2D çerçeveleri ve PIN doğrulaması ile Android, Samsung ve Windows cihazlara kablosuz dosya gönderme ve alma.
   - **AirDrop:** mDNS (`_airdrop._tcp.local.`), HTTPS (`/Discover`, `/Ask`, `/Upload`), ikili `bplist00` ve `CPIO` + `gzip` arşiv akışı (ve Wi-Fi üzerinden LocalSend v2 uyumluluğu) ile iPhone, iPad ve Mac cihazlara kablosuz dosya gönderme ve alma.
 
