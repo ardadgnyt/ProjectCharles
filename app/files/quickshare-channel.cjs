@@ -114,8 +114,16 @@ module.exports = function secureChannel(socket, fq, session, wire, log = () => {
         if (e.kind !== 'bytes') throw Error('Dosya kabul edilmeden veri gönderildi.');
         const frame = parseSharing(e.body);
         log('sharing-frame', String(frame.type));
+        if (frame.type === 2) {
+          const status = Number(first(fields(first(frame.v1Fields, 3)), 1) || 0);
+          log('sharing-response', `status=${status}, expected=${type}`);
+        }
         if (frame.type === type) return frame;
-        if (frame.type !== 5) throw Error(`Beklenmeyen Quick Share mesajı (${frame.type}, beklenen ${type}).`);
+        // MultiDrop QSConnection.expect_sharing keeps reading ancillary frames.
+        // In particular Samsung can send RESPONSE/ACCEPT before INTRODUCTION.
+        // This is not our consent: the engine still requires the introduction
+        // and a local user's decision before accepting any file payload.
+        log('sharing-frame-ignored', `type=${frame.type}, expected=${type}`);
       }
       throw Error('Quick Share yanıt zaman aşımı.');
     },

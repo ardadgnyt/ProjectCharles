@@ -148,7 +148,7 @@
 #shelf .share-mode-dot.off { background: #858998; }
 #shelf .share-mode-dot.auto { background: #a7caff; }
 #shelf .share-mode-title { font-size: 9px; color: #b8bfcc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#shelf .share-mode-seg { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); padding: 2px; gap: 2px; background: #00000024; border: 1px solid #ffffff0d; border-radius: 8px; }
+#shelf .share-mode-seg { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); padding: 2px; gap: 2px; background: #00000024; border: 1px solid #ffffff0d; border-radius: 8px; }
 #shelf .share-mode-pill { min-width: 0; height: 18px; padding: 0 2px; border: 0; border-radius: 6px; color: #969dab; background: transparent; font-size: 9px !important; }
 #shelf .share-file-actions .share-mini-btn { min-height: 18px; padding: 0 6px; }
 #shelf .share-mode-pill.active { color: #e5edf9; background: #ffffff16; }

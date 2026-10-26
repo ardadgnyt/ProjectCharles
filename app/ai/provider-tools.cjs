@@ -18,9 +18,11 @@ const READ_TOOLS = ['Read', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'TodoWrite'
 const EDIT_TOOLS = [...READ_TOOLS, 'Edit', 'MultiEdit', 'Write', 'NotebookEdit'];
 
 function geminiModel(model) {
-  return model === 'auto'
-    ? []
-    : ['--model', model === 'pro' ? 'gemini-3.1-pro-high' : 'gemini-3.8-flash-medium'];
+  if (model === 'auto') return [];
+  if (model === 'pro') return ['--model', 'gemini-3.1-pro-high'];
+  if (model === 'flash') return ['--model', 'gemini-3.8-flash-medium'];
+  if (/^gemini-[a-z0-9._-]+$/i.test(model || '')) return ['--model', model];
+  throw Error('Geçersiz Gemini modeli. Model listesini yenile.');
 }
 
 // Antigravity reads its permissions from <profile>/.gemini/antigravity-cli/settings.json.

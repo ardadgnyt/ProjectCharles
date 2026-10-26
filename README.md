@@ -86,9 +86,8 @@ Android cihazda Quick Share özelliğinin bulunması ve açık olması gerekir.
   <img src="docs/images/sharing.png" alt="File sharing panel with a sample Galaxy S24+ and receive visibility controls" width="100%">
 </p>
 
-- **Everyone / Herkes:** asks before receiving / almadan önce onay ister.
-- **Automatic / Otomatik:** receives without a prompt / onay beklemeden alır.
-- **Off / Kapalı:** disables receiving and visibility / alımı ve görünürlüğü kapatır.
+- **Receiving On / Dosya alımı Açık:** enabled at startup; every file still needs your approval. It stays on while Slime sleeps or the sharing panel is closed. / Açılışta etkindir; her dosya için onay ister. Slime uyusa veya paylaşım paneli kapansa da açık kalır.
+- **Off / Kapalı:** disables receiving and visibility until you enable it again or restart Charles. Sending remains available. / Yeniden açana veya Charles’ı yeniden başlatana kadar alımı ve görünürlüğü kapatır. Dosya göndermeye devam edebilirsin.
 
 <p align="center">
   <img src="docs/images/sharing-receive.png" alt="Incoming file request with a matching PIN and accept/reject buttons" width="100%">

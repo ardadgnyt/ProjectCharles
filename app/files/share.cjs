@@ -15,9 +15,11 @@ class ShareService extends EventEmitter {
     this.settingsFile = path.join(this.userData, 'share-settings.json');
     const saved = this.#loadSettings();
     this.deviceName = saved.deviceName || os.hostname() || 'Charles PC';
-    this.receiveMode = ['everyone', 'auto', 'off'].includes(saved.receiveMode)
-      ? saved.receiveMode
-      : 'everyone';
+    // Start visible, with explicit consent for every incoming offer. Never restore
+    // the removed legacy automatic-accept mode from an older installation.
+    this.receiveMode = 'everyone';
+    this.receiveGeneration = 0;
+    this.receiveStarting = false;
 
     this.qs = new QuickShareEngine({
       deviceName: this.deviceName,
@@ -73,22 +75,6 @@ class ShareService extends EventEmitter {
     const onOffer = (offer) => {
       if (this.receiveMode === 'off') {
         offer.respond(false);
-        return;
-      }
-      if (this.receiveMode === 'auto') {
-        this.transfer = {
-          id: offer.id,
-          status: 'receiving',
-          direction: 'receive',
-          protocol: offer.protocol,
-          peerName: offer.peerName,
-          pin: offer.pin || null,
-          fileName: offer.files?.[0]?.name || 'Dosya',
-          transferred: 0,
-          total: (offer.files || []).reduce((s, f) => s + (Number(f.size) || 0), 0),
-        };
-        emitChange();
-        offer.respond(true);
         return;
       }
       if (this.pendingOffer) {
@@ -194,7 +180,8 @@ class ShareService extends EventEmitter {
     if (!this.retryTimer) {
       this.retryTimer = setInterval(() => {
         if (!this.started && !this.startPromise) void this.start().catch(() => {});
-      }, 15000);
+        else if (this.started) void this.maintainReceiving().catch(() => {});
+      }, 10000);
       this.retryTimer.unref?.();
     }
     if (this.startPromise) return this.startPromise;
@@ -206,6 +193,11 @@ class ShareService extends EventEmitter {
         this.qs.start(),
         this.ad.start().catch(error => this.ad.emit('transfer-error', { protocol: 'airdrop', error: 'Dosya alımı başlatılamadı: ' + error.message })),
       ]);
+      // Apply visibility again with live listeners, just as the receive-mode
+      // control does. Use the current setting, including changes during startup.
+      this.qs.setReceiveMode(this.receiveMode);
+      this.ad.setVisible(this.receiveMode !== 'off');
+      this.discover();
       this.started = true;
       this.emit('state', this.state());
       return this.state();
@@ -225,7 +217,28 @@ class ShareService extends EventEmitter {
     this.discover();
   }
 
+  async maintainReceiving() {
+    // Owned by the main process, independent of the island/renderer sleep state.
+    // Restore listeners and visibility without cycling Off/On or changing identity.
+    if (!this.started || this.receiveStarting || this.receiveMode === 'off' || this.maintenancePromise) return;
+    const generation = this.receiveGeneration;
+    const current = () => this.started && !this.receiveStarting && this.receiveMode !== 'off' && generation === this.receiveGeneration;
+    this.maintenancePromise = (async () => {
+      await Promise.all([this.qs.start(), this.ad.start()]);
+      if (!current()) return;
+      if (this.qs.receiveMode !== this.receiveMode) this.qs.setReceiveMode(this.receiveMode);
+      if (!this.ad.visible) this.ad.setVisible(true);
+      await Promise.all([this.qs.refreshNetwork(), this.ad.refreshNetwork()]);
+      if (!current()) return;
+      this.qs.announce();
+      this.ad.announce();
+    })();
+    try { await this.maintenancePromise; }
+    finally { this.maintenancePromise = null; }
+  }
+
   stop() {
+    ++this.receiveGeneration;
     clearInterval(this.retryTimer);
     this.retryTimer = null;
     this.started = false;
@@ -252,6 +265,7 @@ class ShareService extends EventEmitter {
       qsPort: this.qs.port,
       adPort: this.ad.port,
       receiveMode: this.receiveMode,
+      receiveStarting: this.receiveStarting,
       peers: this.peers(),
       stagedFiles: this.stagedFiles,
       transfer: this.transfer,
@@ -269,7 +283,7 @@ class ShareService extends EventEmitter {
   }
 
   setReceiveMode(mode) {
-    if (!['everyone', 'auto', 'off'].includes(mode)) throw Error('Geçersiz görünürlük modu.');
+    if (!['everyone', 'off'].includes(mode)) throw Error('Dosya alımı yalnızca açık veya kapalı olabilir.');
     this.receiveMode = mode;
     const vis = mode !== 'off';
     this.qs.setReceiveMode(mode);
@@ -280,8 +294,36 @@ class ShareService extends EventEmitter {
     return st;
   }
 
-  discover() {
-    this.qs.scan();
+  async setReceiving(enabled) {
+    if (typeof enabled !== 'boolean') throw Error('Geçersiz dosya alım seçimi.');
+    const generation = ++this.receiveGeneration;
+    this.receiveStarting = enabled;
+    this.setReceiveMode('off');
+    if (this.pendingOffer) this.respondOffer(this.pendingOffer.id, false);
+    if (this.transfer?.direction === 'receive' && this.transfer.status === 'receiving') this.cancel();
+    if (!enabled) return this.state();
+    try {
+      await this.start();
+      if (generation !== this.receiveGeneration) return this.state();
+      await this.qs.refreshNetwork({ force: true });
+      await this.ad.refreshNetwork();
+      if (generation !== this.receiveGeneration) return this.state();
+      this.setReceiveMode('everyone');
+      this.discover();
+    } catch (error) {
+      if (generation === this.receiveGeneration) this.setReceiveMode('off');
+      throw error;
+    } finally {
+      if (generation === this.receiveGeneration) {
+        this.receiveStarting = false;
+        this.emit('state', this.state());
+      }
+    }
+    return this.state();
+  }
+
+  discover({ wake = false } = {}) {
+    this.qs.scan({ wake });
     this.ad.scan();
     this.qs.announce();
     this.ad.announce();
@@ -318,6 +360,7 @@ class ShareService extends EventEmitter {
       } catch {}
     }
     this.stagedFiles = next.slice(0, 24);
+    if (this.stagedFiles.length) this.qs.scan({ wake: true });
     const st = this.state();
     this.emit('state', st);
     return st;
@@ -326,6 +369,7 @@ class ShareService extends EventEmitter {
   removeStagedFile(filePath) {
     if (!filePath) this.stagedFiles = [];
     else this.stagedFiles = this.stagedFiles.filter((f) => f.path !== filePath);
+    if (!this.stagedFiles.length) this.qs.stopDiscoveryWake();
     const st = this.state();
     this.emit('state', st);
     return st;
@@ -490,6 +534,7 @@ class ShareService extends EventEmitter {
       this.emit('state', this.state());
       throw err;
     } finally {
+      this.qs.stopDiscoveryWake();
       if (this.activeAbort === ac) this.activeAbort = null;
     }
   }

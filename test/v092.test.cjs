@@ -179,8 +179,8 @@ test('v0.9.2 · Quick Share uçtan uca (UKEY2 + AES-256-CBC/HMAC) dosya gönderm
   fs.writeFileSync(srcFile, payload, 'utf8');
   const recvDir = path.join(tmp, 'downloads');
 
-  const receiver = new QuickShareEngine({ deviceName: 'Alıcı PC', downloadDir: recvDir });
-  const sender = new QuickShareEngine({ deviceName: 'Gönderici PC', downloadDir: tmp });
+  const receiver = new QuickShareEngine({ deviceName: 'Alıcı PC', downloadDir: recvDir, discovery: false });
+  const sender = new QuickShareEngine({ deviceName: 'Gönderici PC', downloadDir: tmp, discovery: false });
 
   let offeredPin = null;
   let senderPin = null;
@@ -216,7 +216,8 @@ test('v0.9.2 · Quick Share uçtan uca (UKEY2 + AES-256-CBC/HMAC) dosya gönderm
   }
 });
 
-test('v0.9.2 · AirDrop uçtan uca (/Discover -> /Ask -> /Upload) dosya gönderme ve alma', async () => {
+test('v0.9.2 · AirDrop uçtan uca (/Discover -> /Ask -> /Upload) dosya gönderme ve alma', async (t) => {
+  require('./no-lan-discovery.cjs')(t);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'charles-ad-'));
   const srcFile = path.join(tmp, 'fotograf.txt');
   const payload = 'AirDrop üzerinden gönderilen dosya içeriği! '.repeat(200);
@@ -258,14 +259,16 @@ test('v0.9.2 · ShareService dosya hazırlama ve görünürlük modu yönetimi',
   const f1 = path.join(tmp, 'test.txt');
   fs.writeFileSync(f1, 'merhaba', 'utf8');
   const svc = new ShareService({ userData: tmp, downloadDir: tmp });
+  svc.qs.discoveryEnabled = false;
+  svc.ad.start = async () => {}; // This test exercises coordinator state, not LAN discovery.
   try {
     await svc.start();
     const st1 = svc.stageFiles([f1]);
     assert.equal(st1.stagedFiles.length, 1);
     assert.equal(st1.stagedFiles[0].name, 'test.txt');
 
-    const st2 = svc.setReceiveMode('auto');
-    assert.equal(st2.receiveMode, 'auto');
+    const st2 = svc.setReceiveMode('everyone');
+    assert.equal(st2.receiveMode, 'everyone');
 
     const st3 = svc.removeStagedFile(f1);
     assert.equal(st3.stagedFiles.length, 0);

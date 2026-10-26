@@ -26,6 +26,7 @@ export function shareSheet(d: any) {
   };
   let isOpen = false;
   let selectedPeerId = "";
+  let modeBusy = false;
 
   const root = el("div", "share-sheet");
   root.dataset.kind = "share";
@@ -99,11 +100,10 @@ export function shareSheet(d: any) {
 
     const modeSeg = el("div", "share-mode-seg");
     modeSeg.setAttribute("role", "radiogroup");
-    modeSeg.setAttribute("aria-label", "Alım görünürlüğü");
+    modeSeg.setAttribute("aria-label", "Dosya alımı");
     for (const [val, label, tip] of [
-      ["everyone", "Herkes", "Yakındaki cihazlar göndermeden önce onay ister"],
-      ["auto", "Otomatik", "Gelen dosyaları onay sormadan otomatik kabul eder"],
-      ["off", "Kapalı", "Cihaz görünürlüğünü ve dosya alımını kapatır"],
+      ["everyone", "Açık", "Dosya alımını aç; gelen dosya için kabul sorulur"],
+      ["off", "Kapalı", "Dosya alımını kapat; bilgisayardan dosya göndermeye devam edebilirsin"],
     ] as const) {
       const active = (state.receiveMode || "everyone") === val;
       const b = el("button", "share-mode-pill" + (active ? " active " + val : ""), el("span", "", label));
@@ -111,16 +111,20 @@ export function shareSheet(d: any) {
       b.title = tip;
       b.setAttribute("role", "radio");
       b.setAttribute("aria-checked", String(active));
+      b.disabled = modeBusy || Boolean(state.receiveStarting);
       b.onclick = () => {
-        if (active) return;
+        if (active || modeBusy) return;
         void d.attempt(async () => {
-          const st = await api.shareReceiveMode(val);
-          applyState(st);
+          modeBusy = true;
+          paint();
+          try { applyState(await api.shareReceiveMode(val)); }
+          finally { modeBusy = false; paint(); }
         });
       };
       modeSeg.append(b);
     }
-    const modeBox = el("div", "share-mode-box", modeSeg);
+    const modeTitle = el("span", "share-mode-title", modeBusy || state.receiveStarting ? "Dosya alımı açılıyor…" : "Dosya alımı");
+    const modeBox = el("div", "share-mode-box", modeTitle, modeSeg);
     filesCol.append(modeBox);
 
     // 2. Center Column: Offer / Active Transfer / Nearby Devices

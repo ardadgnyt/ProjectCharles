@@ -2445,7 +2445,7 @@ else {
       safeHandler('share-discover', async () => {
         const s = getShare();
         await s.start();
-        return s.discover();
+        return s.discover({ wake: s.stagedFiles.length > 0 });
       });
       safeHandler('share-qr-refresh', async () => {
         const s = getShare();
@@ -2471,8 +2471,8 @@ else {
       safeHandler('share-remove-file', (filePath) => getShare().removeStagedFile(filePath));
       safeHandler('share-receive-mode', async (mode) => {
         const s = getShare();
-        await s.start();
-        return s.setReceiveMode(String(mode || 'everyone'));
+        if (mode !== 'everyone' && mode !== 'off') throw Error('Dosya alımı yalnızca açık veya kapalı olabilir.');
+        return s.setReceiving(mode === 'everyone');
       });
       safeHandler('share-send', async (target) => {
         const s = getShare();

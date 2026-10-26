@@ -1008,6 +1008,7 @@ function buildMdnsAnnouncement({
   txtMap,
   txtEntries,
   ttl = 120,
+  otherTtl = ttl,
   queryId = 0,
   questions = [],
   legacy = false,
@@ -1039,7 +1040,8 @@ function buildMdnsAnnouncement({
   const effTtl = legacy ? Math.min(ttl, 10) : ttl;
 
   const ptrData = encodeDnsName(fullInstance);
-  const ptrRec = buildDnsRecord(svc, 12, effTtl, ptrData, false);
+  const sharedTtl = legacy ? Math.min(otherTtl, 10) : otherTtl;
+  const ptrRec = buildDnsRecord(svc, 12, sharedTtl, ptrData, false);
 
   const hostEncoded = encodeDnsName(fullHost);
   const srvPre = Buffer.alloc(6);
@@ -1060,7 +1062,7 @@ function buildMdnsAnnouncement({
     if (b.length <= 255) txtChunks.push(Buffer.from([b.length]), b);
   }
   const txtData = txtChunks.length ? Buffer.concat(txtChunks) : Buffer.from([0]);
-  const txtRec = buildDnsRecord(fullInstance, 16, effTtl, txtData, flush);
+  const txtRec = buildDnsRecord(fullInstance, 16, sharedTtl, txtData, flush);
 
   const ipParts = String(ip || '127.0.0.1').split('.').map((x) => Number(x) & 0xff);
   const aData = Buffer.from(ipParts.length === 4 ? ipParts : [127, 0, 0, 1]);
@@ -1233,18 +1235,21 @@ function startWindowsBleWakeAdvertiser(log = () => {}) {
     const psScript = `
 $ErrorActionPreference = 'Stop'
 [void][Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementPublisher, Windows.Devices.Bluetooth, ContentType=WindowsRuntime]
+[void][Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisement, Windows.Devices.Bluetooth, ContentType=WindowsRuntime]
 [void][Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementDataSection, Windows.Devices.Bluetooth, ContentType=WindowsRuntime]
-[void][Windows.Storage.Streams.DataWriter, Windows.Storage.Streams, ContentType=WindowsRuntime]
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
 $hex = '2cfe' + '${payloadHex}'
 $bytes = New-Object byte[] ($hex.Length / 2)
 for ($i = 0; $i -lt $hex.Length; $i += 2) {
   $bytes[$i / 2] = [Convert]::ToByte($hex.Substring($i, 2), 16)
 }
-$writer = [Windows.Storage.Streams.DataWriter]::new()
-$writer.WriteBytes($bytes)
-$section = [Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementDataSection]::new(0x16, $writer.DetachBuffer())
+$section = [Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementDataSection]::new()
+$section.DataType = [byte]0x16
+$section.Data = [System.Runtime.InteropServices.WindowsRuntime.WindowsRuntimeBufferExtensions]::AsBuffer($bytes)
 $pub = [Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementPublisher]::new()
-$pub.Advertisement.DataSections.Add($section)
+$sections = $pub.Advertisement.DataSections
+$listType = [System.Collections.Generic.ICollection[Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementDataSection]]
+$listType.GetMethod('Add').Invoke($sections, @($section))
 $pub.Start()
 $lastStatus = ''
 $waitingSince = [DateTime]::UtcNow
@@ -1280,6 +1285,8 @@ class QuickShareEngine extends EventEmitter {
   #tcpPort = 0;
   #advertiseIp = null;
   #endpointId = crypto.randomBytes(2).toString('hex').toUpperCase();
+  #endpointInfo = null;
+  #nearbyListeners = new Map();
   #deviceName = 'Charles PC';
   #receiveMode = 'everyone'; // 'everyone' | 'auto' | 'off'
   #downloadDir = '';
@@ -1293,6 +1300,10 @@ class QuickShareEngine extends EventEmitter {
   #announceTimer = null;
   #networkTimer = null;
   #bleProcess = null;
+  #bleUntil = 0;
+  #bleTimer = null;
+  #registrationTimers = new Set();
+  #lastReplies = new Map();
 
   constructor(opts = {}) {
     super();
@@ -1302,6 +1313,8 @@ class QuickShareEngine extends EventEmitter {
     this.createMdnsSocket = opts.createMdnsSocket || (() => dgram.createSocket({ type: 'udp4', reuseAddr: true }));
     this.startBle = opts.startBle || startWindowsBleWakeAdvertiser;
     this.#deviceName = opts.deviceName || os.hostname() || 'Charles PC';
+    if (/^[A-Z0-9]{4}$/.test(opts.endpointId || '')) this.#endpointId = opts.endpointId;
+    this.#endpointInfo = buildEndpointInfo(this.#deviceName, 3);
     this.#downloadDir = opts.downloadDir || path.join(os.homedir(), 'Downloads');
     this.#receiveMode = opts.receiveMode || 'everyone';
     this.#qrSession = new QrKeySession();
@@ -1338,31 +1351,41 @@ class QuickShareEngine extends EventEmitter {
 
   setReceiveMode(mode) {
     if (['everyone', 'auto', 'off'].includes(mode)) {
+      const changed = mode !== this.#receiveMode;
+      if (mode === 'off') this.#announce(null, null, 0);
       this.#receiveMode = mode;
       if (mode !== 'off') {
-        this.#ensureBleWake();
-        this.#announce();
+        // MultiDrop publishes the receiver without the sender-only FE2C wake-up.
+        if (changed) { this.stopDiscoveryWake(); this.#registerAdvertisement(); }
+        else this.#announce();
       } else {
-        this.#stopBleWake();
+        this.#clearRegistration();
       }
     }
     return this.#receiveMode;
   }
 
   setVisible(vis) {
-    if (vis) {
-      if (this.#receiveMode === 'off') this.#receiveMode = 'everyone';
-      this.#ensureBleWake();
-      this.#announce();
-    } else {
-      this.#receiveMode = 'off';
-      this.#stopBleWake();
-    }
+    this.setReceiveMode(vis ? 'everyone' : 'off');
     return vis;
   }
 
-  scan() {
+  scan({ wake = false } = {}) {
+    if (wake && !this.#activeSockets.size) {
+      this.#bleUntil = Date.now() + 15000;
+      clearTimeout(this.#bleTimer);
+      this.#bleTimer = setTimeout(() => this.stopDiscoveryWake(), 15000);
+      this.#bleTimer.unref?.();
+      this.#ensureBleWake();
+    }
     this.discover();
+  }
+
+  stopDiscoveryWake() {
+    this.#bleUntil = 0;
+    clearTimeout(this.#bleTimer);
+    this.#bleTimer = null;
+    this.#stopBleWake();
   }
 
   announce() {
@@ -1400,13 +1423,17 @@ class QuickShareEngine extends EventEmitter {
       this.#networkTimer = setInterval(() => void this.refreshNetwork().catch(() => {}), 15000);
       this.#networkTimer.unref?.();
     }
-    if (this.#receiveMode !== 'off') this.#ensureBleWake();
     return this.#tcpPort;
   }
 
   #ensureBleWake() {
-    if (this.discoveryEnabled && this.#tcpServer && !this.#bleProcess) {
-      this.#bleProcess = this.startBle((stage, detail) => this.#log(stage, detail));
+    if (Date.now() < this.#bleUntil && this.discoveryEnabled && this.#tcpServer && !this.#bleProcess) {
+      this.#bleProcess = this.startBle((stage, detail) => {
+        this.#log(stage, detail);
+        // Phones can start listening for mDNS only after receiving the BLE
+        // wake-up. Publish again when Windows confirms advertising is active.
+        if (stage === 'ble-status' && detail.split(/\s+/).includes('Started') && Date.now() < this.#bleUntil) this.discover();
+      });
       const child = this.#bleProcess;
       child?.once('exit', () => { if (this.#bleProcess === child) this.#bleProcess = null; });
       child?.once('error', () => { if (this.#bleProcess === child) this.#bleProcess = null; });
@@ -1423,12 +1450,14 @@ class QuickShareEngine extends EventEmitter {
   }
 
   stop() {
+    this.#announce(null, null, 0);
+    this.#clearRegistration();
     clearInterval(this.#networkTimer);
     this.#networkTimer = null;
     this.cancelAll();
     clearInterval(this.#announceTimer);
     this.#announceTimer = null;
-    this.#stopBleWake();
+    this.stopDiscoveryWake();
     for (const s of this.#activeSockets) {
       try {
         s.destroy();
@@ -1437,7 +1466,9 @@ class QuickShareEngine extends EventEmitter {
     this.#activeSockets.clear();
     if (this.#mdnsSocket) {
       try {
-        this.#mdnsSocket.close();
+        const socket = this.#mdnsSocket;
+        // Let the queued goodbye reach the socket before closing it.
+        setImmediate(() => { try { socket.close(); } catch {} });
       } catch {}
       this.#mdnsSocket = null;
     }
@@ -1479,7 +1510,7 @@ class QuickShareEngine extends EventEmitter {
       this.#stopBleWake();
       this.#log('network-changed', ip);
     }
-    if (this.#receiveMode !== 'off') this.#ensureBleWake();
+    this.#ensureBleWake();
     this.discover();
   }
 
@@ -1507,7 +1538,7 @@ class QuickShareEngine extends EventEmitter {
     const instanceName = `${endpointName}.${QS_SERVICE}`;
     const hostBase = os.hostname().replace(/[^a-zA-Z0-9-]/g, '') || 'Charles-PC';
     const hostName = `${hostBase}-charles-${this.#endpointId.toLowerCase()}.local.`;
-    const epInfo = b64UrlEncode(buildEndpointInfo(this.#deviceName, 3));
+    const epInfo = b64UrlEncode(this.#endpointInfo);
     return [this.#advertiseIp || getLocalIPv4()].map((ip) =>
       buildMdnsAnnouncement({
         serviceType: QS_SERVICE,
@@ -1517,6 +1548,7 @@ class QuickShareEngine extends EventEmitter {
         port: this.#tcpPort,
         txtMap: { n: epInfo },
         ttl,
+        otherTtl: ttl === 120 ? 4500 : ttl,
         legacy: Boolean(legacyQuery),
         queryId: legacyQuery?.id || 0,
         questions: legacyQuery?.questions || [],
@@ -1524,15 +1556,42 @@ class QuickShareEngine extends EventEmitter {
     );
   }
 
-  #announce(unicastTarget = null, legacyQuery = null) {
+  #clearRegistration() {
+    for (const timer of this.#registrationTimers) clearTimeout(timer);
+    this.#registrationTimers.clear();
+  }
+
+  #registerAdvertisement() {
+    this.#clearRegistration();
+    if (!this.#tcpPort || this.#receiveMode === 'off') return;
+    this.#log('receiver-advertising', `${this.#endpointId} ${this.#advertiseIp}:${this.#tcpPort}`);
+    this.#announce();
+    // Repeat initial registration like a DNS-SD publisher; do not rotate the
+    // endpoint or withdraw/re-register it when a transfer socket closes.
+    for (const delay of [1000, 3000]) {
+      const timer = setTimeout(() => {
+        this.#registrationTimers.delete(timer);
+        this.#announce();
+      }, delay);
+      timer.unref?.();
+      this.#registrationTimers.add(timer);
+    }
+  }
+
+  #announce(unicastTarget = null, legacyQuery = null, ttl = 120) {
     if (!this.#mdnsSocket || !this.#tcpPort || this.#receiveMode === 'off') return;
     try {
-      const packets = this.#buildAnnouncePackets(120);
+      const packets = this.#buildAnnouncePackets(ttl);
+      const targets = new Set(unicastTarget?.address ? [unicastTarget.address] : []);
+      for (const [address, seen] of this.#nearbyListeners) {
+        if (Date.now() - seen > 120000) this.#nearbyListeners.delete(address);
+        else targets.add(address);
+      }
       for (const pkt of packets) {
         this.#mdnsSocket.send(pkt, 0, pkt.length, MDNS_PORT, MDNS_ADDR);
-        if (unicastTarget?.address) {
+        for (const address of targets) {
           // RFC 6762 §5.4: unicast reply to the querier's 5353 (passes through mDNS-filtering routers)
-          this.#mdnsSocket.send(pkt, 0, pkt.length, MDNS_PORT, unicastTarget.address);
+          this.#mdnsSocket.send(pkt, 0, pkt.length, MDNS_PORT, address);
         }
       }
       // RFC 6762 §6.7 legacy unicast: querier port != 5353 → same id, questions repeated, TTL<=10, to its port
@@ -1568,12 +1627,13 @@ class QuickShareEngine extends EventEmitter {
       } catch {}
       try {
         sock.setMulticastTTL(255);
+        sock.setTTL?.(255); // mDNS unicast replies must also arrive with IP TTL 255.
         if (this.#advertiseIp) sock.setMulticastInterface(this.#advertiseIp);
         sock.setMulticastLoopback(true);
       } catch {}
       this.discover();
+      this.#registerAdvertisement();
       this.#announceTimer = setInterval(() => {
-        this.#announce();
         this.discover();
       }, 6000);
       this.#announceTimer.unref?.();
@@ -1586,8 +1646,21 @@ class QuickShareEngine extends EventEmitter {
 
     const myIps = new Set(getLocalIPv4Interfaces());
     const myEndpointPrefix = buildMdnsEndpointName(this.#endpointId);
+    const remote = rinfo?.address && !myIps.has(rinfo.address);
+    // Android can advertise its service without asking a fresh PTR question.
+    // Remember that listener and answer directly: some routers filter multicast
+    // towards Wi-Fi clients even though their announcements reach the PC.
+    if (remote && (parsed.questions.some(q => q.name.toUpperCase().includes('_FC9F5ED42C8A')) ||
+      parsed.records.some(r => r.name.toUpperCase().includes('_FC9F5ED42C8A') && r.ttl > 0))) {
+      const previous = this.#nearbyListeners.get(rinfo.address) || 0;
+      this.#nearbyListeners.set(rinfo.address, Date.now());
+      if (!previous) {
+        this.#log('mdns-listener', rinfo.address);
+        if (parsed.isResponse) this.#announce(rinfo);
+      }
+    }
 
-    if (!parsed.isResponse && parsed.questions.length) {
+    if (remote && !parsed.isResponse && parsed.questions.length) {
       const asksQs = parsed.questions.some((q) => {
         const qn = q.name.toUpperCase();
         return (
@@ -1597,7 +1670,16 @@ class QuickShareEngine extends EventEmitter {
         );
       });
       if (asksQs) {
-        this.#announce(rinfo, parsed);
+        const now = Date.now();
+        const last = this.#lastReplies.get(rinfo.address) || 0;
+        // MultiDrop limits ordinary replies to one per second per querier.
+        // Legacy router queries still need their matching id/port immediately.
+        if (rinfo.port !== MDNS_PORT || now - last >= 1000) {
+          this.#lastReplies.set(rinfo.address, now);
+          for (const [address, at] of this.#lastReplies) if (now - at > 120000) this.#lastReplies.delete(address);
+          this.#announce(rinfo, parsed);
+          this.#log('mdns-answer', `${rinfo.address}:${rinfo.port} endpoint=${this.#endpointId}`);
+        }
       }
     }
 
@@ -1807,7 +1889,7 @@ class QuickShareEngine extends EventEmitter {
       const fq = createFrameQueue(socket);
       checkAbort();
       const client = createUkey2Client();
-      fq.writeFrame(buildConnectionRequestFrame(this.#endpointId, this.#deviceName, buildEndpointInfo(this.#deviceName, 3)));
+      fq.writeFrame(buildConnectionRequestFrame(this.#endpointId, this.#deviceName, this.#endpointInfo));
       fq.writeFrame(client.clientInitMsgBytes);
       const session = client.processServerInit(await fq.nextFrame(15000));
       fq.writeFrame(client.clientFinishMsgBytes);
@@ -1869,11 +1951,13 @@ class QuickShareEngine extends EventEmitter {
       signal?.removeEventListener('abort', abort);
       this.#activeSockets.delete(socket);
       if (channel) channel.close(); else socket.destroy();
+      this.stopDiscoveryWake();
     }
   }
 
   async #handleIncoming(socket) {
     if (this.#receiveMode === 'off') { socket.destroy(); return; }
+    this.stopDiscoveryWake();
     this.#activeSockets.add(socket);
     const fq = createFrameQueue(socket);
     const id = crypto.randomUUID();

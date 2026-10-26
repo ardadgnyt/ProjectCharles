@@ -2,7 +2,12 @@
 
 ## v0.9.4 Beta — 25 Ekim 2026
 
-- Quick Share: Bluetooth yayın durumu izlenir; duran/hatalı yayın arka planda yeniden başlatılır. Ağ değişimi ve uyku dönüşünde mDNS soketi yeniden kurulur. Başlatma hataları panel açılmadan tekrar denenir.
+- Gemini model listesi bağlı Antigravity hesabından okunur ve önbelleğe alınır. Argon Low/Medium/High seçenekleri görünür; seçilen model kimliği Flash’a çevrilmeden CLI’ye iletilir.
+- Dosya alımı artık Açık/Kapalı seçenekleriyle yönetilir ve Charles açıldığında Açık başlar. Otomatik kabul kaldırıldı; gelen dosyalar kullanıcının onayını bekler.
+- Slime’ın uyuması, adacığın küçülmesi veya paylaşım panelinin kapanması alımı durdurmaz. Ana süreç, açık alıcıları 10 saniyede bir denetler ve gerektiğinde görünürlüğü yeniden uygular; kullanıcının Kapalı seçimini bozmaz.
+- Quick Share cihaz kimliği ve mDNS bilgisi uygulama çalıştığı sürece sabit kalır; her aktarım sonunda cihaz yenilenip telefonda çoğalmaz. MultiDrop ile uyumlu ağ duyuruları ve sorgu yanıtları kullanılır.
+- Gönderici Bluetooth yayını dosya aramasıyla sınırlandırılır; alıcı açılışında başlatılmaz. Windows WinRT veri bölümü ve koleksiyon çağrıları düzeltildi.
+- Dosya listesi öncesindeki ara Quick Share mesajları, MultiDrop’taki gibi bekleme süresi içinde okunmaya devam edilir; kullanıcı onayı, iptal ve zaman aşımı kontrolleri korunur.
 - ZIP64 merkez dizini ve ek alanları okunur; CRC ve boyut doğrulaması atlanmaz. Bozuk veya okunamayan dizinler reddedilir.
 - Modül ZIP okuyucusu da dosya CRC/boyutunu doğrular.
 - Büyük/küçük harf ve dosya/klasör yol çakışmaları, arşiv çıkarılmadan reddedilir.

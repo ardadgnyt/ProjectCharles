@@ -50,6 +50,17 @@ const MODELS = [
 // account (`cursor-agent models`); only the Composer and Grok families are offered.
 const CURSOR_FALLBACK = [['composer-2.5', 'Composer 2.5']];
 const stripAnsi = (s) => String(s || '').replace(/\x1b\[[0-9;?]*[ -\/]*[@-~]/g, '');
+function parseGeminiModels(text) {
+  const seen = new Set(), models = [];
+  for (const line of stripAnsi(text).split(/\r?\n/)) {
+    const match = line.trim().match(/^(gemini-[a-z0-9._-]+)\s+([^\x00-\x1f]{1,120})$/i);
+    if (!match || seen.has(match[1])) continue;
+    seen.add(match[1]);
+    models.push([match[1], match[2].trim()]);
+    if (models.length === 100) break;
+  }
+  return models;
+}
 function prettyCursorName(id) {
   return id
     .split('-')
@@ -115,6 +126,11 @@ class Providers {
     for (const p of ['claude', 'gemini/.gemini', 'workspace'])
       fs.mkdirSync(path.join(this.dir, p), { recursive: true });
     this.env = subscriptionEnv(process.env, this.dir);
+    this.geminiModels = [];
+    try {
+      const saved = JSON.parse(fs.readFileSync(path.join(this.dir, 'gemini-models.json'), 'utf8'));
+      if (Array.isArray(saved)) this.geminiModels = parseGeminiModels(saved.filter(x => Array.isArray(x) && x.length === 2 && x.every(v => typeof v === 'string' && !/[\r\n\t]/.test(v))).map(x => x.join('\t')).join('\n'));
+    } catch {}
     try {
       const saved = JSON.parse(fs.readFileSync(path.join(this.dir, 'cursor-models.json'), 'utf8'));
       if (Array.isArray(saved))
@@ -295,7 +311,8 @@ class Providers {
       ['abacus:auto', 'Abacus AI · Otomatik'],
       ...this.abacus.models.map(([id, name]) => ['abacus:' + id, 'Abacus AI · ' + name]),
     ];
-    return [MODELS[0], ...cursor, ...MODELS.slice(1), ...abacusModels];
+    const gemini = this.geminiModels.map(([id, name]) => ['gemini:' + id, 'Gemini · ' + name.replace(/^Gemini\s+/i, '')]);
+    return [MODELS[0], ...cursor, ...MODELS.slice(1), ...gemini, ...abacusModels];
   }
   saveAbacus() {
     try {
@@ -396,6 +413,26 @@ class Providers {
       isDefault: false,
     }));
   }
+  async refreshGeminiModels() {
+    if (this.geminiListing) return this.geminiListing;
+    const spec = this.spec('gemini');
+    if (!spec.exe || !fs.existsSync(spec.exe)) return this.geminiModels;
+    this.geminiListing = (async () => {
+      const { error, out } = await runOffThread(spec.exe, [...spec.args, 'models'], {
+        cwd: path.join(this.dir, 'workspace'),
+        env: { ...this.env, USERPROFILE: path.join(this.dir, 'gemini') },
+        windowsHide: true, timeout: 20000, maxBuffer: 1024 * 1024,
+      });
+      const list = error ? [] : parseGeminiModels(out);
+      if (list.length) {
+        this.geminiModels = list;
+        try { fs.writeFileSync(path.join(this.dir, 'gemini-models.json'), JSON.stringify(list)); } catch {}
+      }
+      return this.geminiModels;
+    })();
+    try { return await this.geminiListing; }
+    finally { this.geminiListing = null; }
+  }
   // Legacy preferences cannot establish authentication.
   enable(id, value) {
     this.spec(id);
@@ -484,6 +521,7 @@ class Providers {
       this.authChecked = Date.now();
       // v0.7.3: Cursor's Composer and Grok models (in the background, the list is cached)
       if (this.auth.cursor) void this.refreshCursorModels().catch(() => {});
+      if (this.auth.gemini) await this.refreshGeminiModels().catch(() => {});
       if (this.auth.abacus) void this.refreshAbacusModels().catch(() => {});
       return this.status();
     })();
@@ -851,4 +889,5 @@ module.exports = {
   subscriptionEnv,
   MODELS,
   parseCursorModels,
+  parseGeminiModels,
 };
