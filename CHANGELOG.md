@@ -1,3 +1,11 @@
+## v0.9.5 Beta
+
+- Windows Quick Share: doğrudan MultiDrop motoru ve dahil edilmiş Python çalışma ortamı.
+- Sürekli alım, sıralı açma/kapatma, aktarım başına durum yönetimi ve açık kabul isteği.
+- Telefonda gizli yayımlanan cihaz adları bağlantıda öğrenilince hatırlanır; bilinmeyen telefonlar sade bir adla gösterilir.
+- WhatsApp fotoğraf yüklemesi GOWA 9.x yerel dosya bağlantılarıyla uyumlu hale getirildi. Geçici indirme hataları yeniden denenir; bildirim güncellemeleri kapatılan kartları geri açmaz.
+- Güncelleme paketi yeni paylaşım çalışma ortamını mevcut AI ve ses araçlarını koruyarak kurar.
+
 # ProjectCharles — Yama notları
 
 ## v0.9.4 Beta — 25 Ekim 2026

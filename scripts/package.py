@@ -30,7 +30,7 @@ SKIP_FILES = {
     'docs/VERIFICATION-v0.4.4.md',
 }
 STORE = ('.zip', '.gz', '.png', '.jpg', '.ico', '.mp3', '.ogg', '.wav', '.bin', '.onnx', '.woff2', '.7z', '.asar')
-PE = ('.exe', '.dll', '.node')
+PE = ('.exe', '.dll', '.node', '.pyd')
 CHUNK = 256 * 1024  # bigger reads come back wrong through the VM folder share
 
 
@@ -83,6 +83,10 @@ def main(src, out):
         dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS and os.path.relpath(os.path.join(root, d), src).replace(os.sep, '/') not in {'modules/download'})
         for name in sorted(names):
             rel = os.path.relpath(os.path.join(root, name), src).replace(os.sep, '/')
+            # CLI self-updaters leave very large obsolete executable backups.
+            # They are not runtime dependencies and can exceed release limits.
+            if rel.startswith(('tools/', 'node_modules/')) and rel.lower().endswith(('.old', '.bak', '.download')):
+                continue
             if rel in SKIP_FILES or rel.endswith(('.tar', '.log', '.pyc')) or (rel.startswith('node_modules/electron/dist/charles-host-') and rel.endswith('.exe')):
                 continue
             files.append(rel)

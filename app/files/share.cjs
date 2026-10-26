@@ -1,11 +1,22 @@
 'use strict';
-// v0.9.2: Charles Gönder — Unified Quick Share / Nearby Share & AirDrop Send/Receive Coordinator.
+// v0.9.5: Charles Gönder — Quick Share / LocalSend / AirDrop send & receive
+// coordinator. The Quick Share engine owns discovery, the listener and the
+// offer/transfer lifecycle; this service only maps events to UI state and must
+// never tear down a newer transfer while cleaning up an older one.
 const EventEmitter = require('node:events');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { QuickShareEngine, getLocalIPv4 } = require('./quickshare.cjs');
+const { getLocalIPv4 } = require('./quickshare.cjs');
+const { MultiDropEngine } = require('./quickshare-multidrop.cjs');
 const { AirDropEngine } = require('./airdrop.cjs');
+
+function clearOfferTimer(offer) {
+  if (offer?.timer) {
+    clearTimeout(offer.timer);
+    offer.timer = null;
+  }
+}
 
 class ShareService extends EventEmitter {
   constructor(opts = {}) {
@@ -21,20 +32,25 @@ class ShareService extends EventEmitter {
     this.receiveGeneration = 0;
     this.receiveStarting = false;
 
-    this.qs = new QuickShareEngine({
+    this.qs = opts.quickShareEngine || new MultiDropEngine({
       deviceName: this.deviceName,
       downloadDir: this.downloadDir,
       logFile: path.join(this.userData, 'logs', 'quickshare.log'),
+      identityFile: path.join(this.userData, 'quickshare-identity.json'),
     });
     this.ad = new AirDropEngine({
       deviceName: this.deviceName,
       downloadDir: this.downloadDir,
     });
+    // The two engines share UDP/5353. Windows may hand a unicast mDNS query to
+    // only one socket, so let the Quick Share responder see every packet.
+    this.ad.onMdnsPacket = (msg, rinfo) => this.qs.handleMdnsPacket(msg, rinfo);
 
     this.stagedFiles = [];
     this.transfer = null;
     this.activeAbort = null;
     this.pendingOffer = null;
+    this.currentJobId = null;
     this.history = [];
     this.started = false;
     this.revision = 0;
@@ -78,26 +94,32 @@ class ShareService extends EventEmitter {
         return;
       }
       if (this.pendingOffer) {
+        clearOfferTimer(this.pendingOffer);
         try {
           this.pendingOffer.respond(false);
         } catch {}
+        this.pendingOffer = null;
       }
-      const timer = setTimeout(() => {
-        if (this.pendingOffer?.id === offer.id) {
-          this.respondOffer(offer.id, false);
-        }
-      }, 45000);
-      this.pendingOffer = {
+      // Quick Share owns its own 120 s consent deadline. AirDrop/LocalSend
+      // offers wait for this service, so every protocol gets a hard deadline
+      // here as well; otherwise an ignored HTTP upload never ends.
+      const pending = {
         id: offer.id,
         protocol: offer.protocol,
         peerName: offer.peerName,
         pin: offer.pin || null,
         files: offer.files || [],
+        timer: null,
         respond: (ok) => {
-          clearTimeout(timer);
+          clearOfferTimer(pending);
           offer.respond(ok);
         },
       };
+      pending.timer = setTimeout(() => {
+        if (this.pendingOffer === pending) this.respondOffer(pending.id, false);
+      }, 125000);
+      pending.timer.unref?.();
+      this.pendingOffer = pending;
       this.emit('offer', {
         id: offer.id,
         protocol: offer.protocol,
@@ -107,11 +129,19 @@ class ShareService extends EventEmitter {
       });
       emitChange();
     };
-
     this.qs.on('offer', onOffer);
     this.ad.on('offer', onOffer);
+    this.qs.on('offer-closed', ({ id }) => {
+      if (this.pendingOffer?.id !== id) return;
+      clearOfferTimer(this.pendingOffer);
+      this.pendingOffer = null;
+      emitChange();
+    });
 
     const onProgress = (prog) => {
+      // A late event from the previous transfer must not repaint the new one.
+      if (this.currentJobId && prog.id !== this.currentJobId) return;
+      if (!this.currentJobId) this.currentJobId = prog.id || null;
       this.transfer = {
         id: prog.id,
         status: prog.direction === 'receive' ? 'receiving' : 'sending',
@@ -139,17 +169,20 @@ class ShareService extends EventEmitter {
       };
       this.history.unshift(entry);
       if (this.history.length > 12) this.history.length = 12;
-      this.transfer = {
-        id: rec.id,
-        status: 'done',
-        direction: 'receive',
-        protocol: rec.protocol,
-        peerName: rec.peerName,
-        fileName: rec.files.map((f) => f.name).join(', '),
-        files: rec.files,
-        transferred: rec.files.reduce((s, f) => s + (f.size || 0), 0),
-        total: rec.files.reduce((s, f) => s + (f.size || 0), 0),
-      };
+      if (!this.currentJobId || rec.id === this.currentJobId) {
+        this.currentJobId = rec.id;
+        this.transfer = {
+          id: rec.id,
+          status: 'done',
+          direction: 'receive',
+          protocol: rec.protocol,
+          peerName: rec.peerName,
+          fileName: rec.files.map((f) => f.name).join(', '),
+          files: rec.files,
+          transferred: rec.files.reduce((s, f) => s + (f.size || 0), 0),
+          total: rec.files.reduce((s, f) => s + (f.size || 0), 0),
+        };
+      }
       this.emit('received', entry);
       emitChange();
     };
@@ -158,9 +191,14 @@ class ShareService extends EventEmitter {
 
     const onError = (err) => {
       if (this.pendingOffer && this.pendingOffer.id === err.id) {
-        this.pendingOffer.respond(false);
+        clearOfferTimer(this.pendingOffer);
+        try {
+          this.pendingOffer.respond(false);
+        } catch {}
         this.pendingOffer = null;
       }
+      // Never replace the state of a newer transfer with an old failure.
+      if (this.currentJobId && err.id && err.id !== this.currentJobId) return;
       this.transfer = {
         id: err.id || 'err',
         status: 'error',
@@ -191,7 +229,12 @@ class ShareService extends EventEmitter {
       this.ad.setVisible(this.receiveMode !== 'off');
       await Promise.all([
         this.qs.start(),
-        this.ad.start().catch(error => this.ad.emit('transfer-error', { protocol: 'airdrop', error: 'Dosya alımı başlatılamadı: ' + error.message })),
+        this.ad.start().catch((error) =>
+          this.ad.emit('transfer-error', {
+            protocol: 'airdrop',
+            error: 'Dosya alımı başlatılamadı: ' + error.message,
+          }),
+        ),
       ]);
       // Apply visibility again with live listeners, just as the receive-mode
       // control does. Use the current setting, including changes during startup.
@@ -202,17 +245,24 @@ class ShareService extends EventEmitter {
       this.emit('state', this.state());
       return this.state();
     })();
-    try { return await this.startPromise; }
-    catch (error) {
-      this.qs.emit('transfer-error', { protocol: 'quickshare', error: 'Quick Share başlatılamadı: ' + error.message });
+    try {
+      return await this.startPromise;
+    } catch (error) {
+      this.qs.emit('transfer-error', {
+        protocol: 'quickshare',
+        error: 'Quick Share başlatılamadı: ' + error.message,
+      });
       throw error;
-    } finally { this.startPromise = null; }
+    } finally {
+      this.startPromise = null;
+    }
   }
 
   async resume() {
     await this.start();
     await this.qs.refreshNetwork({ force: true });
-    await this.ad.refreshNetwork();
+    await this.ad.refreshNetwork().catch(() => {});
+    this.qs.setReceiveMode(this.receiveMode);
     this.ad.setVisible(this.receiveMode !== 'off');
     this.discover();
   }
@@ -220,21 +270,45 @@ class ShareService extends EventEmitter {
   async maintainReceiving() {
     // Owned by the main process, independent of the island/renderer sleep state.
     // Restore listeners and visibility without cycling Off/On or changing identity.
-    if (!this.started || this.receiveStarting || this.receiveMode === 'off' || this.maintenancePromise) return;
+    if (
+      !this.started ||
+      this.receiveStarting ||
+      this.receiveMode === 'off' ||
+      this.maintenancePromise
+    )
+      return;
     const generation = this.receiveGeneration;
-    const current = () => this.started && !this.receiveStarting && this.receiveMode !== 'off' && generation === this.receiveGeneration;
+    const current = () =>
+      this.started &&
+      !this.receiveStarting &&
+      this.receiveMode !== 'off' &&
+      generation === this.receiveGeneration;
     this.maintenancePromise = (async () => {
       await Promise.all([this.qs.start(), this.ad.start()]);
       if (!current()) return;
-      if (this.qs.receiveMode !== this.receiveMode) this.qs.setReceiveMode(this.receiveMode);
-      if (!this.ad.visible) this.ad.setVisible(true);
-      await Promise.all([this.qs.refreshNetwork(), this.ad.refreshNetwork()]);
-      if (!current()) return;
-      this.qs.announce();
-      this.ad.announce();
+      let repaired = false;
+      if (this.qs.receiveMode !== this.receiveMode) {
+        this.qs.setReceiveMode(this.receiveMode);
+        repaired = true;
+      }
+      if (!this.ad.visible) {
+        this.ad.setVisible(true);
+        repaired = true;
+      }
+      const health = this.qs.health || {};
+      if (repaired || health.listening === false || health.mdns === false) {
+        await this.qs.refreshNetwork({ force: repaired });
+        await this.ad.refreshNetwork().catch(() => {});
+        if (!current()) return;
+        this.qs.announce();
+        this.ad.announce();
+      }
     })();
-    try { await this.maintenancePromise; }
-    finally { this.maintenancePromise = null; }
+    try {
+      await this.maintenancePromise;
+    } finally {
+      this.maintenancePromise = null;
+    }
   }
 
   stop() {
@@ -242,8 +316,30 @@ class ShareService extends EventEmitter {
     clearInterval(this.retryTimer);
     this.retryTimer = null;
     this.started = false;
+    if (this.pendingOffer) {
+      clearOfferTimer(this.pendingOffer);
+      this.pendingOffer = null;
+    }
+    this.currentJobId = null;
     this.qs.stop();
     this.ad.stop();
+  }
+
+  health() {
+    return {
+      ...(this.qs.health || {}),
+      started: this.started,
+      receiveMode: this.receiveMode,
+      receiveStarting: this.receiveStarting,
+      pendingOffer: this.pendingOffer?.id || null,
+      transfer: this.transfer
+        ? { id: this.transfer.id, status: this.transfer.status, direction: this.transfer.direction }
+        : null,
+    };
+  }
+
+  note(stage, detail = '') {
+    this.qs.note?.(stage, detail);
   }
 
   peers() {
@@ -283,7 +379,8 @@ class ShareService extends EventEmitter {
   }
 
   setReceiveMode(mode) {
-    if (!['everyone', 'off'].includes(mode)) throw Error('Dosya alımı yalnızca açık veya kapalı olabilir.');
+    if (!['everyone', 'off'].includes(mode))
+      throw Error('Dosya alımı yalnızca açık veya kapalı olabilir.');
     this.receiveMode = mode;
     const vis = mode !== 'off';
     this.qs.setReceiveMode(mode);
@@ -298,18 +395,18 @@ class ShareService extends EventEmitter {
     if (typeof enabled !== 'boolean') throw Error('Geçersiz dosya alım seçimi.');
     const generation = ++this.receiveGeneration;
     this.receiveStarting = enabled;
-    this.setReceiveMode('off');
-    if (this.pendingOffer) this.respondOffer(this.pendingOffer.id, false);
-    if (this.transfer?.direction === 'receive' && this.transfer.status === 'receiving') this.cancel();
-    if (!enabled) return this.state();
+    // One desired state, one serialized backend transition. Never cycle a
+    // healthy receiver Off/On just because the user selected On again.
+    this.setReceiveMode(enabled ? 'everyone' : 'off');
+    if (!enabled && this.pendingOffer) this.respondOffer(this.pendingOffer.id, false);
+    if (!enabled && this.transfer?.direction === 'receive' && this.transfer.status === 'receiving')
+      this.cancelTransfer(this.transfer.id);
     try {
       await this.start();
       if (generation !== this.receiveGeneration) return this.state();
-      await this.qs.refreshNetwork({ force: true });
-      await this.ad.refreshNetwork();
+      await this.qs.modePromise;
       if (generation !== this.receiveGeneration) return this.state();
-      this.setReceiveMode('everyone');
-      this.discover();
+      if (enabled) this.discover();
     } catch (error) {
       if (generation === this.receiveGeneration) this.setReceiveMode('off');
       throw error;
@@ -378,8 +475,10 @@ class ShareService extends EventEmitter {
   respondOffer(id, accept) {
     const offer = this.pendingOffer;
     if (!offer || (id && offer.id !== id)) return this.state();
+    clearOfferTimer(offer);
     this.pendingOffer = null;
     if (accept) {
+      this.currentJobId = offer.id;
       this.transfer = {
         id: offer.id,
         status: 'receiving',
@@ -398,18 +497,31 @@ class ShareService extends EventEmitter {
     return st;
   }
 
+  cancelTransfer(id) {
+    const job = String(id || '');
+    if (!job) return false;
+    const found = this.qs.cancelTransfer ? Boolean(this.qs.cancelTransfer(job)) : false;
+    if (this.transfer?.id === job) this.transfer = null;
+    if (this.currentJobId === job) this.currentJobId = null;
+    const st = this.state();
+    this.emit('state', st);
+    return found;
+  }
+
   cancel() {
-    this.qs.cancelAll();
-    if (this.pendingOffer) {
-      this.respondOffer(this.pendingOffer.id, false);
-    }
-    if (this.activeAbort) {
-      try {
-        this.activeAbort.abort();
-      } catch {}
-      this.activeAbort = null;
+    if (this.pendingOffer) this.respondOffer(this.pendingOffer.id, false);
+    const tr = this.transfer;
+    if (tr && ['connecting', 'sending', 'receiving'].includes(tr.status)) {
+      if (tr.direction === 'receive') this.qs.cancelTransfer?.(tr.id);
+      else if (tr.direction === 'send' && this.activeAbort) {
+        try {
+          this.activeAbort.abort();
+        } catch {}
+        this.activeAbort = null;
+      }
     }
     this.transfer = null;
+    this.currentJobId = null;
     const st = this.state();
     this.emit('state', st);
     return st;
@@ -433,9 +545,12 @@ class ShareService extends EventEmitter {
     const peerName = target.peerName || peer?.name || `${host}:${port}`;
     if (!host || !port) throw Error('Hedef cihaz bulunamadı. Listeyi yenileyip tekrar dene.');
 
-    const jobId = 'send-' + Date.now();
+    if (this.transfer && ['connecting', 'sending', 'receiving'].includes(this.transfer.status))
+      throw Error('Devam eden aktarımın bitmesini bekle.');
+    const jobId = 'send-' + require('node:crypto').randomUUID();
     const ac = new AbortController();
     this.activeAbort = ac;
+    this.currentJobId = jobId;
     const total = files.reduce((s, f) => {
       try {
         return s + fs.statSync(typeof f === 'string' ? f : f.path).size;
@@ -459,7 +574,7 @@ class ShareService extends EventEmitter {
 
     try {
       const onProgress = (p) => {
-        if (ac.signal.aborted || this.transfer?.id !== jobId) return;
+        if (ac.signal.aborted || this.currentJobId !== jobId) return;
         this.transfer = {
           ...this.transfer,
           status: p.status === 'connecting' ? 'connecting' : 'sending',
@@ -509,28 +624,32 @@ class ShareService extends EventEmitter {
       };
       this.history.unshift(entry);
       if (this.history.length > 12) this.history.length = 12;
-      this.transfer = {
-        id: jobId,
-        status: 'done',
-        direction: 'send',
-        protocol,
-        peerName,
-        fileName: res.files.map((f) => f.name).join(', '),
-        transferred: total,
-        total,
-      };
+      if (this.currentJobId === jobId) {
+        this.transfer = {
+          id: jobId,
+          status: 'done',
+          direction: 'send',
+          protocol,
+          peerName,
+          fileName: res.files.map((f) => f.name).join(', '),
+          transferred: total,
+          total,
+        };
+      }
       this.emit('state', this.state());
       return this.state();
     } catch (err) {
       if (ac.signal.aborted) return this.state();
-      this.transfer = {
-        id: jobId,
-        status: 'error',
-        direction: 'send',
-        protocol,
-        peerName,
-        error: err.message || String(err),
-      };
+      if (this.currentJobId === jobId) {
+        this.transfer = {
+          id: jobId,
+          status: 'error',
+          direction: 'send',
+          protocol,
+          peerName,
+          error: err.message || String(err),
+        };
+      }
       this.emit('state', this.state());
       throw err;
     } finally {

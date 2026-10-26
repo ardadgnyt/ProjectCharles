@@ -214,7 +214,10 @@ test('sharing retries failed startup without UI activity and stops its retry tim
 });
 test('one receiver accepts four rapid transfers with fresh consent and one stable discovery identity', async () => {
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'charles-sequential-'));
-  const service=new ShareService({userData:path.join(dir,'settings'),downloadDir:path.join(dir,'in')});
+  // Retain the legacy engine's regression coverage explicitly. The production
+  // service now uses the bundled MultiDrop backend (tested independently).
+  const service=new ShareService({userData:path.join(dir,'settings'),downloadDir:path.join(dir,'in'),
+    quickShareEngine:new QuickShareEngine({downloadDir:path.join(dir,'in')})});
   const packets=[];
   service.qs.networkAddress=async()=> '127.0.0.1';
   service.qs.createMdnsSocket=()=>{
@@ -255,24 +258,28 @@ test('one receiver accepts four rapid transfers with fresh consent and one stabl
     assert.ok(withdrawals.some(record=>record.ttl===0&&record.parsed===services[0].parsed),'Off withdraws the same receiver');
   } finally {service.stop();sender.stop();fs.rmSync(dir,{recursive:true,force:true});}
 });
-test('explicit receiving opens fresh discovery, asks consent, closes and rejects stale enable attempts', async () => {
+test('receiving awaits the backend transition, asks consent and rejects stale enable attempts', async () => {
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'charles-receive-switch-'));
   const service=new ShareService({userData:dir});const operations=[];
   service.qs.start=service.ad.start=async()=>{};
-  service.qs.setReceiveMode=mode=>operations.push(mode);service.ad.setVisible=()=>{};
-  service.qs.refreshNetwork=async options=>{assert.equal(options.force,true);operations.push('refresh')};
+  let blocked=null, fail=null;
+  service.qs.setReceiveMode=mode=>{
+    operations.push(mode);
+    service.qs.modePromise=mode==='off'?Promise.resolve():fail?Promise.reject(fail):blocked||Promise.resolve();
+  };service.ad.setVisible=()=>{};
+  service.qs.refreshNetwork=async()=>{};
   service.ad.refreshNetwork=async()=>{};service.discover=()=>service.state();
   try {
     await service.start();assert.equal(service.receiveMode,'everyone');await service.setReceiving(false);
     await service.setReceiving(true);assert.equal(service.receiveMode,'everyone');assert.equal(service.receiveStarting,false);
-    assert.ok(operations.lastIndexOf('refresh')<operations.lastIndexOf('everyone'));
+    assert.equal(service.receiveMode,'everyone');
     let accepted;service.qs.emit('offer',{id:'consent',files:[],respond:value=>accepted=value});
     assert.equal(accepted,undefined);assert.equal(service.pendingOffer.id,'consent');
     await service.setReceiving(false);assert.equal(accepted,false);assert.equal(service.pendingOffer,null);
-    let release;service.qs.refreshNetwork=()=>new Promise(resolve=>release=resolve);
+    let release;blocked=new Promise(resolve=>release=resolve);
     const pending=service.setReceiving(true);await new Promise(resolve=>setImmediate(resolve));
     await service.setReceiving(false);release();await pending;assert.equal(service.receiveMode,'off');
-    service.qs.refreshNetwork=async()=>{throw Error('adapter failed')};
+    blocked=null;fail=Error('adapter failed');
     await assert.rejects(service.setReceiving(true),/adapter failed/);assert.equal(service.receiveMode,'off');assert.equal(service.receiveStarting,false);
     assert.throws(()=>service.setReceiveMode('auto'),/açık veya kapalı/);
   } finally {service.stop();fs.rmSync(dir,{recursive:true,force:true});}

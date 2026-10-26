@@ -1,0 +1,48 @@
+--- a/multidrop/backends/quickshare/inbound.py
++++ b/multidrop/backends/quickshare/inbound.py
+@@ -191,6 +191,13 @@
+                 _finish_file(writers.pop(pid, None), files[pid], sender, on_event)
+                 pending.discard(pid)
+         on_event("session_done", {"from": sender})
++    except asyncio.CancelledError:
++        # Charles adaptation: explicit UI cancellation must not look like a
++        # successful receipt to the sender when the connection is closed.
++        if accepted_transfer:
++            with contextlib.suppress(Exception):
++                await asyncio.wait_for(conn.send_sharing(frames.cancel()), 2)
++        raise
+     except TransferError as e:
+         on_event("failed", {"from": sender, "error": str(e)})
+         if accepted_transfer:
+--- a/multidrop/backends/quickshare/outbound.py
++++ b/multidrop/backends/quickshare/outbound.py
+@@ -113,17 +113,18 @@
+         on_event("file_sent", {"file": name})
+ 
+     # The receiver disconnects once it has everything; that is our receipt.
+-    with contextlib.suppress(ProtocolError):
+-        while True:
+-            ev = await conn.next_event(timeout=30)
+-            if ev.kind == "closed":
+-                break
+-            if ev.kind == "error":
+-                raise TransferError(ev.reason)
+-            if ev.kind == "bytes":
+-                v1 = parse_sharing(ev.data)
+-                if v1 is not None and v1.type == wf.V1Frame.CANCEL:
+-                    raise TransferError("cancelled by receiver")
++    # Charles adaptation: silence is not a receipt. Propagate a timeout rather
++    # than showing a completed transfer when the receiver never confirms it.
++    while True:
++        ev = await conn.next_event(timeout=30)
++        if ev.kind == "closed":
++            break
++        if ev.kind == "error":
++            raise TransferError(ev.reason)
++        if ev.kind == "bytes":
++            v1 = parse_sharing(ev.data)
++            if v1 is not None and v1.type == wf.V1Frame.CANCEL:
++                raise TransferError("cancelled by receiver")
+     on_event("done", {"to": target, "files": len(files) + (text_pid is not None)})
+ 
+ 

@@ -1,0 +1,197 @@
+{
+  "repository": "https://github.com/digitaldanis/multidrop",
+  "commit": "60119f5d32ae2c68ca755c04776e0d62b6a43489",
+  "license": "GPL-3.0-or-later",
+  "files": {
+    "LICENSE": {
+      "originalSha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/ble.py": {
+      "originalSha256": "f929ba2ffea2cb992ab92bc17dd4259ce9d782327869f6e7fa21e50f935e341c",
+      "sha256": "f929ba2ffea2cb992ab92bc17dd4259ce9d782327869f6e7fa21e50f935e341c",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/connection.py": {
+      "originalSha256": "d653e2457f135af3d59474f2aa2fb11d517920e407761a4dd6d9b2d84cc9c5a0",
+      "sha256": "d653e2457f135af3d59474f2aa2fb11d517920e407761a4dd6d9b2d84cc9c5a0",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/crypto.py": {
+      "originalSha256": "7971a9eb1c76118df342a00d0f504901e45038214215706ffbc2d86eb9d5d682",
+      "sha256": "7971a9eb1c76118df342a00d0f504901e45038214215706ffbc2d86eb9d5d682",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/frames.py": {
+      "originalSha256": "b2463eac9a5bec65865ebc81d559039734bce702e012417764888649b4767523",
+      "sha256": "b2463eac9a5bec65865ebc81d559039734bce702e012417764888649b4767523",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/inbound.py": {
+      "originalSha256": "8fcd6b703f0f96ea773455db01d8cb23b464f41ff83682ebbaa05dd246b55a07",
+      "sha256": "056b9602f58ca7af3cba96e4722558d7e553e7652a972b98bb5f79e1fd528e02",
+      "modified": true
+    },
+    "multidrop/backends/quickshare/mdns.py": {
+      "originalSha256": "fde3f89e3cc5c3575266911e69bda2e050f12b27d0c4a207ee823210e0dbec05",
+      "sha256": "fde3f89e3cc5c3575266911e69bda2e050f12b27d0c4a207ee823210e0dbec05",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/outbound.py": {
+      "originalSha256": "676e0b16484b664edbef6480f10d7a2b6470c64d72add4f05ca536c59ce1b57e",
+      "sha256": "608b75b77c3ee6afb4da95b356bbbf5e631ea5d8712aeffe390a82a224abb55c",
+      "modified": true
+    },
+    "multidrop/backends/quickshare/pb/device_to_device_messages_pb2.py": {
+      "originalSha256": "f64b4a8119050372768c28369604100045fd9780c2d904f84ad555a1aacfe2c8",
+      "sha256": "f64b4a8119050372768c28369604100045fd9780c2d904f84ad555a1aacfe2c8",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/pb/device_to_device_messages_pb2.pyi": {
+      "originalSha256": "9483aaaf5c0a85f22b338377a1b562aa2e645622933a868e95d1afc9cd1e84ac",
+      "sha256": "9483aaaf5c0a85f22b338377a1b562aa2e645622933a868e95d1afc9cd1e84ac",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/pb/offline_wire_formats_pb2.py": {
+      "originalSha256": "ca986fbcc428138a19d72c002bc856ac63c780b0ae03d92df3c505948b04d7e3",
+      "sha256": "ca986fbcc428138a19d72c002bc856ac63c780b0ae03d92df3c505948b04d7e3",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/pb/offline_wire_formats_pb2.pyi": {
+      "originalSha256": "22158c9269e31f2e22673614d2f1d48004619f40785b820a6693b97768bf5e29",
+      "sha256": "22158c9269e31f2e22673614d2f1d48004619f40785b820a6693b97768bf5e29",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/pb/securegcm_pb2.py": {
+      "originalSha256": "8ce70e90679d8fb15fd29c1747c60846de1b634148f21282535714f51753a97b",
+      "sha256": "8ce70e90679d8fb15fd29c1747c60846de1b634148f21282535714f51753a97b",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/pb/securegcm_pb2.pyi": {
+      "originalSha256": "144407f0346a4ccbb53d8b30851c49dfde41a2db8496e09d4e7713ded15816d7",
+      "sha256": "144407f0346a4ccbb53d8b30851c49dfde41a2db8496e09d4e7713ded15816d7",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/pb/securemessage_pb2.py": {
+      "originalSha256": "dccff8868fa0a6f4fdc80fdbf8dc46890ba291a856ccd8c571d584a7deff0852",
+      "sha256": "dccff8868fa0a6f4fdc80fdbf8dc46890ba291a856ccd8c571d584a7deff0852",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/pb/securemessage_pb2.pyi": {
+      "originalSha256": "8968d6512390974bdc210dbf451432fd10113e48ad46b2b8e4f4f809fb4c418f",
+      "sha256": "8968d6512390974bdc210dbf451432fd10113e48ad46b2b8e4f4f809fb4c418f",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/pb/sharing_enums_pb2.py": {
+      "originalSha256": "0eb858aa7bd2d1eb5956a4e5f0aa957bea192d4212dddcee740faa434f46a945",
+      "sha256": "0eb858aa7bd2d1eb5956a4e5f0aa957bea192d4212dddcee740faa434f46a945",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/pb/sharing_enums_pb2.pyi": {
+      "originalSha256": "ffa33ac4eb131d9de407803963f4a701487626f51524e89b40f7c69373854467",
+      "sha256": "ffa33ac4eb131d9de407803963f4a701487626f51524e89b40f7c69373854467",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/pb/ukey_pb2.py": {
+      "originalSha256": "d5106678468f936e9e6ff6e3368a6d76b97e3b0fbf25a860685cdf5dda2f0c47",
+      "sha256": "d5106678468f936e9e6ff6e3368a6d76b97e3b0fbf25a860685cdf5dda2f0c47",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/pb/ukey_pb2.pyi": {
+      "originalSha256": "14ac2b05f79d482434d1ea5086ecc42b6961df19605af09370864176e0de7991",
+      "sha256": "14ac2b05f79d482434d1ea5086ecc42b6961df19605af09370864176e0de7991",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/pb/wire_format_pb2.py": {
+      "originalSha256": "4814eb9fa4bb842eb17470f985d5a2613aae68568abfbe5b1c2081cbc57eb0e1",
+      "sha256": "4814eb9fa4bb842eb17470f985d5a2613aae68568abfbe5b1c2081cbc57eb0e1",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/pb/wire_format_pb2.pyi": {
+      "originalSha256": "711cc7218aede83d2ea7381b6cbd57cfe0ca6fade8c02084ac9754a311d5552e",
+      "sha256": "711cc7218aede83d2ea7381b6cbd57cfe0ca6fade8c02084ac9754a311d5552e",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/pb/__init__.py": {
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/proto/device_to_device_messages.proto": {
+      "originalSha256": "e111fcfa7bad453221e5e9163b6c74bd60bfdc10d5607cd3722b49f07ea6f6a4",
+      "sha256": "e111fcfa7bad453221e5e9163b6c74bd60bfdc10d5607cd3722b49f07ea6f6a4",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/proto/offline_wire_formats.proto": {
+      "originalSha256": "1633517a23a22c7240b4d94f3dfc16aeb4e52bbe6f1248eea272f966741afb5a",
+      "sha256": "1633517a23a22c7240b4d94f3dfc16aeb4e52bbe6f1248eea272f966741afb5a",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/proto/securegcm.proto": {
+      "originalSha256": "2e7c6b57141a25448f9a014297b38c5da596f1e5aaf207b14fd2a90e0d21a1f1",
+      "sha256": "2e7c6b57141a25448f9a014297b38c5da596f1e5aaf207b14fd2a90e0d21a1f1",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/proto/securemessage.proto": {
+      "originalSha256": "159721009a11f86f3504335993b72c64195eda9e3044cbfc29936fbafcf1544b",
+      "sha256": "159721009a11f86f3504335993b72c64195eda9e3044cbfc29936fbafcf1544b",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/proto/sharing_enums.proto": {
+      "originalSha256": "6318a159ac272003a38ad22a9afb8c01137666f0e683b883edbfdccce7594cd9",
+      "sha256": "6318a159ac272003a38ad22a9afb8c01137666f0e683b883edbfdccce7594cd9",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/proto/ukey.proto": {
+      "originalSha256": "51afa615ebc1e31e92afcb23c333abd480aefecb7593da0b5c65f451f7d18613",
+      "sha256": "51afa615ebc1e31e92afcb23c333abd480aefecb7593da0b5c65f451f7d18613",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/proto/UNLICENSE-NearDrop": {
+      "originalSha256": "ca2abdf695884c77ea4b4a5b64ca7b732d9d9dbade4eebc1c2e76c53e9e3bc83",
+      "sha256": "ca2abdf695884c77ea4b4a5b64ca7b732d9d9dbade4eebc1c2e76c53e9e3bc83",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/proto/wire_format.proto": {
+      "originalSha256": "dab3251e4572f2722161db809f848f012dd9f917997e832aa8b8b9bbe295fa7f",
+      "sha256": "dab3251e4572f2722161db809f848f012dd9f917997e832aa8b8b9bbe295fa7f",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/qr.py": {
+      "originalSha256": "9e57b5efca17c7840d1fd47be35f2e97a809fae673bcad8aaf026a3918113ff1",
+      "sha256": "9e57b5efca17c7840d1fd47be35f2e97a809fae673bcad8aaf026a3918113ff1",
+      "modified": false
+    },
+    "multidrop/backends/quickshare/__init__.py": {
+      "originalSha256": "3b1776af1c0846c371148f5bf03510ec3f3dcd82340d773056ac88e94f48763e",
+      "sha256": "3b1776af1c0846c371148f5bf03510ec3f3dcd82340d773056ac88e94f48763e",
+      "modified": false
+    },
+    "multidrop/backends/__init__.py": {
+      "originalSha256": "cc321604ea09e1ed233adb2382f9b77a0f162f54fb9f4228f04fd5c3de64ba99",
+      "sha256": "cc321604ea09e1ed233adb2382f9b77a0f162f54fb9f4228f04fd5c3de64ba99",
+      "modified": false
+    },
+    "multidrop/config.py": {
+      "originalSha256": "e5c97a347bda3fa017f37f0e5502198db4384a77a4ebb7adaa048ebb658a0e0c",
+      "sha256": "e5c97a347bda3fa017f37f0e5502198db4384a77a4ebb7adaa048ebb658a0e0c",
+      "modified": false
+    },
+    "multidrop/core.py": {
+      "originalSha256": "ce0dc42c21ea8d6c3547ed1771732b682dd967fd12ba2a5ee91402855fadcdc6",
+      "sha256": "ce0dc42c21ea8d6c3547ed1771732b682dd967fd12ba2a5ee91402855fadcdc6",
+      "modified": false
+    },
+    "multidrop/__init__.py": {
+      "originalSha256": "232b7c17db2baa80274c0cca31779f5081026388cd5956396c6b7dc15870dbb5",
+      "sha256": "232b7c17db2baa80274c0cca31779f5081026388cd5956396c6b7dc15870dbb5",
+      "modified": false
+    },
+    "THIRD_PARTY_NOTICES.md": {
+      "originalSha256": "2864831d0deae591f4a21924fb5cf26d8859c23799c80ce2fc87686e3773502a",
+      "sha256": "2864831d0deae591f4a21924fb5cf26d8859c23799c80ce2fc87686e3773502a",
+      "modified": false
+    }
+  }
+}

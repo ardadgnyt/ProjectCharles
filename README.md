@@ -1,3 +1,5 @@
+> **v0.9.5 Beta:** Windows Quick Share, MultiDrop’un gerçek motorunu kullanır. Tüm Android cihazlarla Quick Share; Apple cihazlarla LocalSend uygulaması üzerinden paylaşım sunar. WhatsApp fotoğrafları yerel köprüden yüklenir. [Sürüm doğrulaması](docs/VERIFICATION-v0.9.5.md).
+
 <p align="center">
   <img src="docs/images/banner.png" alt="Project Charles — seven Slimes in different colours and accessories" width="100%">
 </p>

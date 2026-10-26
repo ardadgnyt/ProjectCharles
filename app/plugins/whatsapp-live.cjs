@@ -23,7 +23,54 @@ const MAX_BODY = 4 * 1024 * 1024;
 // v0.8.11: photos are fetched from the gateway (base64) and kept in memory only
 const MAX_PHOTO = 24 * 1024 * 1024;
 const PHOTO_KINDS = ['image', 'sticker'];
-const PHOTO_TYPES = /^image\/(jpeg|png|webp|gif)$/;
+
+function photoType(bytes) {
+  if (bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) return 'image/png';
+  if (bytes.length >= 3 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return 'image/jpeg';
+  if (bytes.length >= 6 && /^GIF8[79]a$/.test(bytes.subarray(0, 6).toString('ascii'))) return 'image/gif';
+  if (bytes.length >= 12 && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP') return 'image/webp';
+  return null;
+}
+
+// GOWA 9.x returns file_url/file_path, not inline Base64. Never fetch a CDN or
+// arbitrary URL with the local bridge credentials, and never read a disk path.
+function localPhotoRoute(metadata, port) {
+  const base = new URL(`http://127.0.0.1:${port}`);
+  for (const value of [metadata?.file_url, metadata?.file_path]) {
+    if (typeof value !== 'string' || /[\x00-\x1f\x7f]/.test(value)) continue;
+    let input = value.replace(/\\/g, '/');
+    if (input.startsWith('statics/')) input = '/' + input;
+    try {
+      const url = new URL(input, base);
+      if (url.origin !== base.origin || url.username || url.password || !url.pathname.startsWith('/statics/')) continue;
+      const parts = url.pathname.split('/').map(decodeURIComponent);
+      if (parts.some(p => p === '.' || p === '..' || /[\\/\x00-\x1f\x7f]/.test(p))) continue;
+      return url.pathname + url.search;
+    } catch {}
+  }
+  return null;
+}
+
+async function limitedBody(res, max) {
+  if (Number(res.headers?.get?.('content-length') || 0) > max) throw Error('WhatsApp köprüsünün yanıtı çok büyük.');
+  if (!res.body?.getReader) {
+    const bytes = Buffer.from(await res.arrayBuffer());
+    if (bytes.length > max) throw Error('WhatsApp köprüsünün yanıtı çok büyük.');
+    return bytes;
+  }
+  const reader = res.body.getReader(), parts = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.length;
+      if (size > max) { await reader.cancel(); throw Error('WhatsApp köprüsünün yanıtı çok büyük.'); }
+      parts.push(Buffer.from(value));
+    }
+    return Buffer.concat(parts, size);
+  } finally { reader.releaseLock(); }
+}
 const DEVICE = 'charles';
 const SEND_LIMIT = [8, 60000]; // messages per minute
 const DEFAULT_REPLIES = ['Tamam, bakıyorum', 'Birazdan döneceğim', 'Teşekkürler', 'Şimdi müsait değilim'];
@@ -162,6 +209,8 @@ class WhatsAppLive extends EventEmitter {
   constructor({ dir, fetch = globalThis.fetch, spawn = require('node:child_process').spawn, unzip = (b) => require('fflate').unzipSync(b), platform = process.platform, thumbnail = null }) {
     super();
     this.thumbnail = thumbnail; // v0.8.11: (bytes, type) → small data URL or null
+    this.photoJobs = new Map();
+    this.photoGeneration = 0;
     this.dir = dir;
     this.fetchImpl = fetch;
     this.spawnImpl = spawn;
@@ -387,6 +436,8 @@ class WhatsAppLive extends EventEmitter {
     } catch {}
   }
   async stop() {
+    ++this.photoGeneration;
+    this.photoJobs.clear();
     clearInterval(this.pollTimer);
     this.pollTimer = null;
     const child = this.child;
@@ -453,9 +504,9 @@ class WhatsAppLive extends EventEmitter {
         },
         body: body ? JSON.stringify(body) : undefined,
         signal: ctrl.signal,
+        redirect: 'error',
       });
-      const buf = Buffer.from(await res.arrayBuffer());
-      if (buf.length > max) throw Error('WhatsApp köprüsünün yanıtı çok büyük.');
+      const buf = await limitedBody(res, max);
       if (raw) return { ok: res.ok, status: res.status, buf, type: res.headers?.get?.('content-type') || '' };
       let json = null;
       try {
@@ -588,25 +639,63 @@ class WhatsAppLive extends EventEmitter {
   }
   /**
    * v0.8.11: the picture of a photo (or sticker) message as a small data URL, kept in memory
-   * with the message (never written to disk). GOWA: GET /message/{id}/download?phone=<chat>.
+   * with the message. GOWA may store the original in its own statics directory;
+   * Charles reads only the authenticated loopback URL and keeps the preview in memory.
    */
   async photo(c, m) {
-    if (m.image || m.photoTried) return !!m.image;
-    m.photoTried = true;
-    try {
-      const r = await this.api('GET', `/message/${encodeURIComponent(m.id)}/download?phone=${encodeURIComponent(c.jid)}`, null, { timeout: 30000, max: MAX_PHOTO });
-      const type = String(r?.mime_type || '').split(';')[0].trim().toLowerCase();
-      const data = typeof r?.data === 'string' ? r.data.replace(/^data:[^,]*,/, '') : '';
-      if (!PHOTO_TYPES.test(type) || !data || !/^[A-Za-z0-9+/=\s]+$/.test(data.slice(0, 2000))) return false;
-      const bytes = Buffer.from(data, 'base64');
-      if (!bytes.length) return false;
-      const small = this.thumbnail ? this.thumbnail(bytes, type) : null;
-      if (small) m.image = small;
-      else if (bytes.length <= 1.5 * 1024 * 1024) m.image = `data:${type};base64,${bytes.toString('base64')}`;
-      return !!m.image;
-    } catch {
-      return false;
+    if (m.image) return true;
+    if (m.photoRetryAt > now()) return false;
+    const generation = this.photoGeneration;
+    const key = `${c.jid}\n${m.id}`;
+    let job = this.photoJobs.get(key);
+    if (!job) {
+      job = (async () => {
+        for (let attempt = 0; attempt < 3; attempt++) {
+          if (generation !== this.photoGeneration) return null;
+          try {
+            const response = await this.api('GET', `/message/${encodeURIComponent(m.id)}/download?phone=${encodeURIComponent(c.jid)}`, null, { raw: true, timeout: 30000, max: MAX_PHOTO });
+            if (!response.ok) throw Error('Fotoğraf henüz hazır değil.');
+            let bytes = response.buf;
+            if (!photoType(bytes)) {
+              const json = JSON.parse(bytes.toString('utf8'));
+              const metadata = json?.results ?? json;
+              if (typeof metadata?.data === 'string') {
+                const data = metadata.data.replace(/^data:[^,]*,/, '');
+                if (!/^[A-Za-z0-9+/=\s]+$/.test(data)) return null;
+                bytes = Buffer.from(data, 'base64');
+              } else {
+                if (Number(metadata?.file_size || 0) > MAX_PHOTO) return null;
+                const route = localPhotoRoute(metadata, this.port);
+                if (!route) return null;
+                const file = await this.api('GET', route, null, { raw: true, timeout: 30000, max: MAX_PHOTO });
+                if (!file.ok) throw Error('Fotoğraf henüz hazır değil.');
+                bytes = file.buf;
+              }
+            }
+            const type = photoType(bytes);
+            if (!type || bytes.length > MAX_PHOTO) return null;
+            let small = null;
+            try { small = this.thumbnail?.(bytes, type); } catch {}
+            return small || (bytes.length <= 1.5 * 1024 * 1024 ? `data:${type};base64,${bytes.toString('base64')}` : null);
+          } catch {
+            if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+          }
+        }
+        return null;
+      })();
+      this.photoJobs.set(key, job);
+      job.finally(() => { if (this.photoJobs.get(key) === job) this.photoJobs.delete(key); });
     }
+    const image = await job;
+    if (generation !== this.photoGeneration) return false;
+    if (image) {
+      m.image = image;
+      // The conversation can have refreshed its stored-message objects while
+      // downloading. Update that canonical copy as well as the webhook object.
+      const current = c.messages?.find(x => x.id === m.id);
+      if (current) current.image = image;
+    } else m.photoRetryAt = now() + 5000;
+    return Boolean(image);
   }
   /** v0.8.9: a group's subject (GOWA's group info), remembered while Charles runs. */
   async groupName(jid) {
@@ -649,7 +738,7 @@ class WhatsAppLive extends EventEmitter {
         for (const x of list) {
           const o = old.get(x.id);
           if (o?.image) x.image = o.image;
-          if (o?.photoTried) x.photoTried = true;
+          if (o?.photoRetryAt) x.photoRetryAt = o.photoRetryAt;
         }
         c.messages = list.slice(-20);
       }
@@ -657,7 +746,7 @@ class WhatsAppLive extends EventEmitter {
     if (isGroup(jid) && !c.name) c.name = await this.groupName(jid);
     // the photos of the last messages shown in the card (at most three new downloads)
     const shown = c.messages.slice(-10);
-    await Promise.all(shown.filter((x) => !x.mine && PHOTO_KINDS.includes(x.kind) && !x.image && !x.photoTried).slice(-3).map((x) => this.photo(c, x)));
+    await Promise.all(shown.filter((x) => !x.mine && PHOTO_KINDS.includes(x.kind) && !x.image).slice(-3).map((x) => this.photo(c, x)));
     return { ...this.preview(c), messages: shown.map(({ id, text, media, image, at, mine, name }) => ({ id, text, media, image: image || null, at, mine, name })) };
   }
   async markRead(jid) {

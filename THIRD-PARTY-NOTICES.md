@@ -11,6 +11,15 @@ is included in Project Charles, and the project is not affiliated with Sam Green
 
 ## MultiDrop / Quick Share
 
+Since v0.9.5, Windows Quick Share runs the MultiDrop Python backend directly
+from tools/quickshare/vendor, reference commit
+60119f5d32ae2c68ca755c04776e0d62b6a43489 (GPL-3.0-or-later).
+Its source, LICENSE and THIRD_PARTY_NOTICES.md are shipped there. Charles's
+adapter, source hashes, dependency lock and explicit upstream modifications
+are documented in tools/quickshare/README.md and charles.patch.
+The private Python runtime and cryptography/cffi/protobuf/zeroconf/ifaddr/
+pycparser libraries retain their original license files in that folder.
+
 The Quick Share implementation in app/files/quickshare.cjs and
 app/files/quickshare-channel.cjs adapts protocol handling from
 https://github.com/digitaldanis/multidrop (reference revision 60119f5),

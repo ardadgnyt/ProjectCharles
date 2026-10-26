@@ -5,6 +5,11 @@ dist/
 # Large downloads and third-party tools (made by `npm run setup:voice` or bundled in releases)
 models/
 tools/
+!tools/
+tools/*
+!tools/quickshare/
+tools/quickshare/python/*
+!tools/quickshare/python/python313._pth
 
 # Release packages
 *.zip

@@ -24,6 +24,7 @@ function collect(rel, out) {
   const st = fs.lstatSync(abs);
   if (st.isSymbolicLink()) return;
   const name = rel.split(path.sep).join('/');
+  if (/^(tools|node_modules)\//.test(name) && /\.(old|bak|download)$/i.test(name)) return;
   if (/^(modules-bundled|modules\/download|tools\/download)(\/|$)/i.test(name)) return;
   if (SKIP.test(name) || ['docs/GITHUB.md', 'docs/VERIFICATION-v0.4.4.md'].includes(name)) return;
   if (st.isDirectory()) for (const f of fs.readdirSync(abs).sort()) collect(path.join(rel, f), out);
@@ -42,6 +43,16 @@ function pack({ outDir = path.join(ROOT, 'release'), extra = [] } = {}) {
   // The installed 0.8.0 updater swaps whole top-level directories. Ship complete roots
   // even when --with names a child, so tools/download never replaces the other tools.
   for (const rel of replacementRoots([...BASE, ...extra])) collect(rel, files);
+  // v0.9.5: transport the complete QS runtime under its own update root so old
+  // updaters never remove tools/cursor, antigravity or whisper. At next launch
+  // quickshare-runtime.cjs installs this directory into tools/quickshare.
+  if (fs.existsSync(path.join(ROOT, 'app/files/quickshare-multidrop.cjs'))) {
+    const qs = new Map();
+    collect(path.join('tools', 'quickshare'), qs);
+    if (!qs.has('tools/quickshare/python/python.exe') || !qs.has('tools/quickshare/bridge.py'))
+      throw Error('Quick Share çalışma ortamı eksik; scripts/setup-quickshare.py çalıştırılmalı.');
+    for (const [name, data] of qs) files.set('quickshare-tools/' + name.slice('tools/quickshare/'.length), data);
+  }
   // v0.8.5: yt-dlp / FFmpeg for Charles Download. Updaters up to 0.8.4 replace whole top-level
   // folders, so the tools travel as download-tools/ and Charles moves them into tools/download
   // on its first start (app/modules/download/bridge.cjs → migrateTools).

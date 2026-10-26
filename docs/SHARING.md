@@ -1,10 +1,13 @@
-# Dosya paylaşımı — v0.9.2 Beta
+# Dosya paylaşımı — v0.9.5 Beta
 
-Charles açıkken **Herkes** veya **Otomatik** alım modu, paylaşım paneli kapalı olsa da bilgisayarı aynı yerel ağda görünür tutar. Uyku dönüşünde ve ağ adresi değiştiğinde keşif yenilenir. Telefonun Quick Share ekranında Wi-Fi ve Bluetooth açık olmalıdır; ağ yönlendiricisinin cihazlar arası iletişime izin vermesi gerekir.
+Charles açıldığında **Dosya alımı Açık** başlar. Alım açık olması otomatik kabul anlamına gelmez; gelen her aktarımda onay istenir. Quick Share, MultiDrop'un Windows motorunu doğrudan kullanır; gerekli çalışma ortamı pakete dahildir. Ağdaki cihazların birbirine ulaşabilmesi gerekir.
 
-- **Herkes:** gelen dosyanın adı, boyutu ve eşleşme kodu gösterilir; Kabul et veya Reddet seçilir.
-- **Otomatik:** gelen dosyalar onay beklemeden İndirilenler klasörüne kaydedilir.
+- **Açık:** gelen dosyanın adı, boyutu ve eşleşme kodu gösterilir; Kabul et veya Reddet seçilir.
 - **Kapalı:** cihaz duyurusu ve gelen dosya alımı kapanır.
+
+Tüm Android cihazlarla yerleşik Quick Share; Apple cihazlarla LocalSend uygulaması üzerinden paylaşım desteklenir. Telefon adı gizlenmişse bağlantıda öğrenilen ad oturum içinde hatırlanır; bilinmeyen telefonlar **Android cihazı** olarak gösterilir. Aynı adlı farklı gerçek cihazlar birleştirilmez.
+
+Windows ilk kullanımda ağ izni isteyebilir. `tools/quickshare/Allow-Local-Network.ps1`, yönetici onayıyla yalnızca özel ağdaki yerel cihazlardan TCP/53318 ve UDP/5353 erişimi sağlar. Slime uyku davranışının gerçek cihaz doğrulaması `VERIFICATION-v0.9.5.md` dosyasında kayıtlıdır.
 
 Dosya seçip yakındaki cihaza tıklamak gönderimi başlatır. Alıcı kabul ettikten sonra ilerleme gösterilir. Alınan dosyalar için **Klasörde göster** kullanılabilir. Aynı adlı dosyalar üzerine yazılmaz; yeni ad verilir. İptal edilen veya eksik aktarım başarılı gösterilmez ve yarım dosyası temizlenir.
 

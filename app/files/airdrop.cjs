@@ -720,6 +720,9 @@ class AirDropEngine extends EventEmitter {
   }
 
   #onMdns(msg, rinfo) {
+    // Windows shared UDP/5353 can deliver a unicast query to this socket.
+    // The sole Quick Share engine answers it through MultiDrop's responder.
+    try { this.onMdnsPacket?.(msg, rinfo); } catch {}
     const parsed = parseMdnsPacket(msg);
     if (!parsed) return;
     if (
