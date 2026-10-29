@@ -12,7 +12,7 @@ test('greeting while typing or reading: the work props lose their paws (two hand
   const engine = read('src/vendor/slime/engine.ts');
   assert.match(engine, /const greeting =\s*this\.hands > 0\.01 \|\| \(now\(\) >= this\.waveStart && this\.waveStart > 0 && now\(\) < this\.waveUntil\);/);
   // v0.9.6: the props are also put away while he waves (`reading` is this.reading * keep)
-  assert.match(engine, /drawReading\(x, performance\.now\(\) \/ 1000, reading, ownEyes, !greeting\);/);
+  assert.match(engine, /drawReading\(x, performance\.now\(\) \/ 1000, reading, ownEyes, !greeting, /);
   assert.match(engine, /drawStation\(x, performance\.now\(\) \/ 1000, this\.shownStation, false, !greeting\);/);
   assert.match(read('src/chat/activity.ts'), /for \(const side of paws \? \[-1, 1\] : \[\]\) \{\s*x\.fillStyle = PAW\.dark;/);
   assert.match(read('src/chat/reading.ts'), /for \(const side of paws \? \[-1, 1\] : \[\]\) \{\s*const hand = x\.createRadialGradient/);
@@ -61,9 +61,9 @@ test('pictures sent in the chat open large on a click', () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('version 0.9.9', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.9.9-beta.1');
-  assert.match(read('public/index.html'), /v0\.9\.9 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.9\.9 Beta'/);
-  assert.match(read('CHANGELOG.md'), /## v0\.9\.9 Beta/);
+test('version 0.9.10', () => {
+  assert.equal(JSON.parse(read('package.json')).version, '0.9.10-beta.1');
+  assert.match(read('public/index.html'), /v0\.9\.10 Beta/);
+  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.9\.10 Beta'/);
+  assert.match(read('CHANGELOG.md'), /## v0\.9\.10 Beta/);
 });

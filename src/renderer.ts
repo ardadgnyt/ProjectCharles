@@ -23,7 +23,7 @@ import { workspaceUI } from './settings/workspace';
 import { noNativeTooltips } from './ui/no-native-tooltips';
 import { profileTransferUI } from './settings/profile-transfer';
 import { statusScroll } from './chat/status-scroll';
-import { stickToBottom } from './chat/follow';
+import { stickToBottom, following, restore as restoreFeed } from './chat/follow';
 import { companionUI } from './island/companion';
 import { ActivityState } from './chat/activity';
 import { modelPicker } from './chat/model-picker';
@@ -74,6 +74,7 @@ pin.onclick = async () => {
 };
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const feed = $('feed');
+restoreFeed(feed); // v0.9.10: starts remembering its place (chat/follow.ts)
 const prompt = $<HTMLTextAreaElement>('prompt');
 const model = $<HTMLSelectElement>('model');
 modelPicker(model);
@@ -203,10 +204,38 @@ function scheduleLove() {
   }, 1900);
 }
 let lastPoke = { x: 0, y: 0, t: 0, over: false, at: 0 };
+// v0.9.10: the pointer arrives up to 60 times a second from the main process and again from
+// the page's own pointer events; each one measured the canvas (a forced layout). In the app
+// window, with a long chat being written, that made Slime and the panel stutter. Positions are
+// now handled once per frame and the canvas box is measured at most four times a second.
+let canvasRect: DOMRect | null = null,
+  canvasRectAt = 0;
+function canvasBox() {
+  const t = performance.now();
+  if (!canvasRect || t - canvasRectAt > 250) {
+    canvasRect = canvas.getBoundingClientRect();
+    canvasRectAt = t;
+  }
+  return canvasRect;
+}
+window.addEventListener('resize', () => (canvasRect = null));
+new MutationObserver(() => (canvasRect = null)).observe(document.body, { attributes: true, attributeFilter: ['class', 'data-view'] });
+let queuedCursor: { x: number; y: number } | null = null,
+  cursorFrame = 0;
+function queueCursor(point: { x: number; y: number }) {
+  queuedCursor = point;
+  if (cursorFrame) return;
+  cursorFrame = requestAnimationFrame(() => {
+    cursorFrame = 0;
+    const p = queuedCursor;
+    queuedCursor = null;
+    if (p) onCursor(p);
+  });
+}
 function onCursor(point: { x: number; y: number }) {
   pokeCheck(point);
   cursorPosition = point;
-  const rect = canvas.getBoundingClientRect();
+  const rect = canvasBox();
   const dx = point.x - rect.x - rect.width / 2;
   const dy = point.y - rect.y - rect.height / 2;
   // Distance curves and vertical sign for following the cursor.
@@ -230,7 +259,7 @@ function onCursor(point: { x: number; y: number }) {
     scheduleLove();
   }
 }
-api.onCursor(onCursor);
+api.onCursor(queueCursor);
 // Desktop Slime: a fast cursor running into the body pokes it — it wobbles.
 function pokeCheck(point: { x: number; y: number }) {
   if (
@@ -238,7 +267,7 @@ function pokeCheck(point: { x: number; y: number }) {
     document.body.classList.contains('pet-dragging')
   )
     return;
-  const rect = canvas.getBoundingClientRect();
+  const rect = canvasBox();
   const over =
     Math.hypot(point.x - rect.x - rect.width / 2, point.y - rect.y - rect.height / 2 - 6) <=
     rect.width * 0.3;
@@ -264,9 +293,7 @@ api.onPetPhysics((e: any) => {
     if ((Number(e.strength) || 0) > 0.25) Sound.play('slap');
   }
 });
-document.addEventListener('pointermove', (event) =>
-  onCursor({ x: event.clientX, y: event.clientY }),
-);
+document.addEventListener('pointermove', (event) => queueCursor({ x: event.clientX, y: event.clientY }));
 bot.onDizzy = () => {
   window.clearTimeout(reactionTimer);
   bot.interruptGreet();
@@ -351,6 +378,7 @@ function reactToText(text: string) {
   const reaction = textReaction(text);
   if (quotaBlocked || !reaction || dizzy || requests.size) return;
   bot.interruptGreet();
+  touchCharacter(); // v0.9.10: a sleeping Charles wakes up before he reacts
   if (reaction === 'greet') bot.greet();
   else {
     bot.triggerEmote(reaction, 2.5);
@@ -1167,8 +1195,17 @@ function olderMessages(head: any[], token: number) {
     feed.scrollTop = feed.scrollHeight - height + top;
   };
   more.onclick = draw;
+  // v0.9.10: only when you scrolled up to it. Moving the chat between the app window and the
+  // island (or hiding it behind the island's shelf) briefly puts the list at its top: the
+  // older messages were then drawn and the chat stayed at its very beginning.
   const observer = new IntersectionObserver((entries) => {
-    if (entries.some((e) => e.isIntersecting)) window.setTimeout(draw, 60);
+    if (
+      entries.some((e) => e.isIntersecting) &&
+      feed.clientHeight > 0 &&
+      !following(feed) &&
+      !document.body.classList.contains('ws-switching')
+    )
+      window.setTimeout(draw, 60);
   }, { root: feed });
   // only once the latest messages are on screen (the list opens scrolled to the bottom)
   window.setTimeout(() => token === roomToken && more.isConnected && observer.observe(more), 600);

@@ -1,4 +1,5 @@
 import { t } from '../settings/i18n';
+import { shortMinutes, percent } from '../settings/time-units';
 // Remaining-quota gauges on the compact island.
 //
 // The gauges always describe the provider behind the model currently selected in the
@@ -31,16 +32,11 @@ const COLORS: Record<Provider, string> = {
 const REFRESH_ICON =
   '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 6.4A5.3 5.3 0 1 0 13 10"/><path d="M13.4 2.8v3.8H9.6"/></svg>';
 
-// "2sa 10dk", "45 dk", "3 gün" — short time until a usage window resets.
+// "2sa 10dk", "45 dk", "3g 4sa" — short time until a usage window resets, in the UI language
+// (v0.9.10: it was Turkish in every language).
 export function resetLabel(resetsAt: number | null | undefined, now = Date.now()) {
   if (!resetsAt) return '';
-  const minutes = Math.max(0, Math.round((resetsAt * 1000 - now) / 60000));
-  if (minutes < 1) return 'şimdi';
-  if (minutes < 60) return minutes + ' dk';
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return hours + 'sa ' + (minutes % 60) + 'dk';
-  const days = Math.floor(hours / 24);
-  return days + 'g ' + (hours % 24) + 'sa';
+  return shortMinutes((resetsAt * 1000 - now) / 60000);
 }
 
 // Kota bekçisi (v0.5.3): called once per provider and usage window when less than 10 % is left.

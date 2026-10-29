@@ -251,6 +251,8 @@ contextBridge.exposeInMainWorld('charles', {
   pluginsRead: (kind, id) => invoke('plugins-read', kind, id),
   pluginsStatus: () => invoke('plugins-status'),
   pluginsConfigure: (id, v) => invoke('plugins-configure', id, v),
+  // v0.9.10: the original name of an attached file Charles keeps as <id>.pdf (for citation chips)
+  attachmentName: (id) => invoke('attachment-name', id),
   pluginsLogin: (id) => invoke('plugins-login', id),
   pluginsDisconnect: (id) => invoke('plugins-disconnect', id),
   pluginsSettings: (v) => invoke('plugins-settings', v),

@@ -1413,6 +1413,9 @@ else {
       }
       safeHandler('plugins-status', () => plugins.status());
       safeHandler('plugins-configure', (id, v) => plugins.configure(id, v));
+      safeHandler('attachment-name', (id) =>
+        typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id) ? String(extras.attachments.get(id)?.name || '') : '',
+      );
       safeHandler('plugins-login', async (id) => {
         if (demo) throw Error('Önizlemede hesap bağlanmaz.');
         const result = await plugins.login(id);
@@ -3649,7 +3652,7 @@ else {
       // when another application has focus. Electron already returns DIP units.
       let lastCursor = null;
       function watchCursor() {
-        cursorTimer = setTimeout(watchCursor, petDrag ? 16 : hidden ? 150 : detached ? 33 : 16);
+        cursorTimer = setTimeout(watchCursor, petDrag ? 16 : hidden ? 150 : detached || workspace ? 33 : 16);
         if (!win || win.isDestroyed() || !win.isVisible() || win.isMinimized()) return;
         const point = screen.getCursorScreenPoint();
         if (petDrag && !pluginGuide) {

@@ -3,6 +3,7 @@
 // at first; dash-edit.ts places them. Notes and commands are kept in companion.json
 // (main: workspace-dash); the system values are read locally (app/core/system-info.cjs).
 import { el, icon, iconButton } from './icons';
+import { shortSeconds } from '../settings/time-units';
 
 export type ExtraDeps = {
   api: any;
@@ -21,11 +22,9 @@ function shell(cls: string, ic: string, title: string, ...extra: (Node | null)[]
 }
 
 const gb = (n: number) => (n / 1024 ** 3).toLocaleString(document.documentElement.lang === 'tr' ? 'tr-TR' : 'en-GB', { maximumFractionDigits: n >= 100 * 1024 **3 ? 0 : 1 }) + ' GB';
+// v0.9.10: in the UI language (settings/time-units.ts)
 function duration(sec: number) {
-  const d = Math.floor(sec / 86400),
-    h = Math.floor((sec % 86400) / 3600),
-    m = Math.floor((sec % 3600) / 60);
-  return d ? `${d} g ${h} sa` : h ? `${h} sa ${m} dk` : `${m} dk`;
+  return shortSeconds(sec);
 }
 
 // ── Hızlı komutlar ───────────────────────────────────────────────────────────

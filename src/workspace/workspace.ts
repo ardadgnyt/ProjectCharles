@@ -462,7 +462,9 @@ export function workspaceUI(d: WorkspaceDeps) {
       requestAnimationFrame(() => {
         document.body.classList.remove('ws-switching');
         const feed = $('feed');
-        feed.scrollTop = Math.max(0, feed.scrollHeight - feed.clientHeight - fromBottom);
+        if (feed.clientHeight) feed.scrollTop = Math.max(0, feed.scrollHeight - feed.clientHeight - fromBottom);
+        // v0.9.10: hidden right now (the island shows its shelf): chat/follow.ts puts it back
+        // in place when it is shown
       }),
     );
   }

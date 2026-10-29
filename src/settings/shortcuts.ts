@@ -1,3 +1,4 @@
+import { shortSeconds } from './time-units';
 export function shortcutsUI(api: any, notice: (s: string) => void) {
   const $ = (id: string) => document.getElementById(id)!;
   const page = document.querySelector('.settings-page[data-category=shortcuts]')!;
@@ -226,14 +227,8 @@ export function shortcutsUI(api: any, notice: (s: string) => void) {
   apps.className = 'weekly-apps';
   weekly.append(apps);
   // v0.7.4: hours and minutes ("72 sa 14 dk") instead of a long count of minutes
-  const duration = (seconds: number) =>
-    !seconds
-      ? '0 dk'
-      : seconds < 60
-        ? Math.round(seconds) + ' sn'
-        : seconds < 3600
-          ? Math.floor(seconds / 60) + ' dk'
-          : Math.floor(seconds / 3600) + ' sa ' + Math.floor((seconds % 3600) / 60) + ' dk';
+  // v0.9.10: in the UI language (settings/time-units.ts)
+  const duration = (seconds: number) => shortSeconds(seconds);
   function summary(v: any) {
     heading.textContent = period === 'current' ? 'Bu hafta · şu ana kadar' : 'Geçen hafta';
     periodButtons.forEach((b) =>

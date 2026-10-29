@@ -51,3 +51,26 @@ body.workspace.v10[data-view]:not(.desktop-pet) #workspace .ws-chat-body > .cont
 body.workspace #workspace .ws-chat-body > .content {
   display: flex !important;
 }
+
+/* v0.9.10: files Codex cites in an answer (were raw ":codex-file-citation{…}" text) */
+.markdown .file-cite {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  margin: 2px 4px 2px 0;
+  padding: 2px 9px;
+  overflow: hidden;
+  border: 1px solid #ffffff1a;
+  border-radius: 999px;
+  background: #ffffff0a;
+  color: #d9d2c8;
+  font-size: 0.82em;
+  line-height: 1.6;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.markdown p.cite-row {
+  margin-top: 2px;
+  margin-bottom: 8px;
+}

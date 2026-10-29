@@ -4,6 +4,16 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.10 Beta — 29 Ekim 2026
+
+- **El sallama ve uyku karışmıyor:** uyurken bir selam tetiklenince el sallama ile uyku pozu üst üste çiziliyordu. Charles artık uykusunda el sallamıyor (önce uyanıyor); uykuya dalarken de el sallamayı bırakıp selamın mutlu gözlerini kapatıyor.
+- **Okurken çift yanak:** belge okurken okuma gözlüğü kendi sabit yanaklarını da çiziyordu; Slime’ın başıyla birlikte dönen yanaklarının yanında ikinci bir çift görünüyordu. Artık yalnızca Slime’ın kendi yanakları var.
+- **Akıcılık (özellikle uygulama penceresinde):** imleç konumu saniyede 60 kez hem ana süreçten hem sayfadan geliyor ve her seferinde Slime’ın tuvali ölçülüyordu (zorunlu yerleşim hesabı). Konumlar artık kare başına bir kez işleniyor, tuval saniyede en fazla dört kez ölçülüyor; uygulama penceresinde imleç daha seyrek soruluyor. Uzun bir yanıt yazılırken bütün mesaj (Markdown, formüller, kod renklendirme) her karede baştan çiziliyordu; uzun yanıtlar artık saniyede birkaç kez çiziliyor. Kod yazma / bilgisayar hareketinde imleci takip ederken ve büyük panelde görülen takılma bunlardı.
+- **Süreler seçili dilde:** AI kullanım panellerinde (adacık ve uygulama penceresi) kalan süre İngilizcede de “5sa 58dk” yazıyordu. Artık dile göre: 5h 58m, 5 Std. 58 Min., 5 h 58 min, 5小时58分钟… Uygulama penceresindeki yüzde “58%” biçiminde (Türkçede %58). Haftalık özet ve sistem kartlarındaki süreler de aynı şekilde.
+- **Yanıttaki dosya kaynakları:** Codex’in kullandığı dosyaları işaret eden `:codex-file-citation{path="…"}` satırları ham metin olarak görünüyordu. Artık küçük bir “📄 dosya” etiketi olarak görünüyor (eklediğin dosyanın adı biliniyorsa o ad yazıyor).
+- **Formüllü tablolar:** bir tablo hücresindeki formülde `|` (ör. `$|Z_n|$`) hücreyi bölüyor, tablo düz metin ve dikey çizgiler olarak görünüyordu. Tablo satırlarındaki formüllerde çizgi artık hücreyi bölmüyor.
+- **Adacığa dönünce sohbetin başı:** uygulama penceresinde bir sohbetteyken adacığa dönünce sohbet en başından görünüyordu. Sohbet taşınırken liste bir anlığına en üste geliyor ve “daha eski mesajlar” bu sırada yükleniyordu. Artık eski mesajlar yalnızca sen yukarı kaydırdığında yükleniyor ve liste gösterildiğinde kaldığı yere (en sondaysa en sona) dönüyor.
+
 ## v0.9.9 Beta — 29 Ekim 2026
 
 - **Mail yoluyla komut verilemiyor (güvenlik):** biri Charles’a talimat gibi yazılmış bir mail gönderirse (“önceki talimatları unut, şu komutu çalıştır…”), Charles bu maili özetlerken talimatı uygulamaya kalkabilirdi. Artık:

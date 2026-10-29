@@ -4,6 +4,7 @@
 // already has (no new accounts or servers).
 import { el, icon, iconButton } from './icons';
 import { resetLabel } from '../island/usage';
+import { percent } from '../settings/time-units';
 import { calendarCard } from './calendar';
 import { homeCard } from './home';
 import { t } from '../settings/i18n';
@@ -492,8 +493,8 @@ export function workspaceDashboard(d: DashboardDeps) {
     box.classList.remove('empty');
     box.classList.toggle('low', left <= 15);
     value.setAttribute('stroke-dashoffset', (RING * (1 - left / 100)).toFixed(1));
-    pct.textContent = '%' + left;
-    const r = resetLabel(w.resetsAt).replace(/ 0dk$/, '').replace(/ 0sa$/, '');
+    pct.textContent = percent(left);
+    const r = resetLabel(w.resetsAt);
     reset.textContent = r ? '↻ ' + r : w.idle ? 'Henüz başlamadı' : '';
   }
   // v0.7.7: the refresh arrow turns while the quotas are read (at least one full turn)

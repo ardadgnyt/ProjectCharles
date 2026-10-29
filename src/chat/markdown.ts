@@ -4,10 +4,12 @@ import { splitQuestions, type AiQuestion } from './ai-questions';
 import { highlightInto, LANGUAGE_NAMES } from './highlight';
 import { t } from '../settings/i18n';
 import { stickToBottom } from './follow';
+import { prepareAnswer, placeCitations } from './answer-text';
 
 const markdown = new MarkdownIt({ html: false, linkify: true, breaks: true, typographer: false });
 markdown.use(mathPlugin);
-export const renderMarkdown = (text: string) => markdown.render(text);
+export const renderMarkdown = (text: string) =>
+  markdown.render(prepareAnswer(text).text.replace(/\u2063CITE\d+\u2063/g, ''));
 markdown.validateLink = (href: string) => {
   try {
     const u = new URL(href);
@@ -37,16 +39,29 @@ export function setQuestionHandler(
   questionHandler = fn;
 }
 const pending = new WeakSet<HTMLElement>();
+const renderedAt = new WeakMap<HTMLElement, number>();
 export function updateMarkdown(element: HTMLElement, text: string, replace = false) {
   sources.set(element, (replace ? text : (sources.get(element) || '') + text).slice(-300000));
   if (pending.has(element)) return;
   pending.add(element);
-  requestAnimationFrame(() => {
+  // v0.9.10: a long answer was rebuilt (Markdown, formulas, code colouring) on every frame while
+  // it streamed in, which made the panel and Slime stutter. Long answers are redrawn a few times
+  // a second instead; short ones still every frame.
+  const length = (sources.get(element) || '').length;
+  const gap = length > 4000 ? Math.min(400, 60 + length / 100) : 0;
+  const wait = Math.max(0, (renderedAt.get(element) || 0) + gap - performance.now());
+  const frame = (cb: FrameRequestCallback) =>
+    wait > 0 ? window.setTimeout(() => requestAnimationFrame(cb), wait) : requestAnimationFrame(cb);
+  frame(() => {
+    renderedAt.set(element, performance.now());
     pending.delete(element);
     if (!element.isConnected) return;
     element.classList.add('markdown');
     const { visible, questions } = splitQuestions(sources.get(element) || '');
-    element.innerHTML = markdown.render(visible);
+    // v0.9.10: file citations become chips; formulas with "|" no longer break tables
+    const prepared = prepareAnswer(visible);
+    element.innerHTML = markdown.render(prepared.text);
+    placeCitations(element, prepared.citations);
     const actions = document.createElement('div');
     actions.className = 'answer-tools';
     for (const [label, type] of [

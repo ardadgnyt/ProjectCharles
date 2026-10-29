@@ -550,6 +550,12 @@ export class BotEngine {
   setState(next: BotStateName, force = false) {
     if (this.state === next && !force) return;
     const prev = this.state;
+    // v0.9.10: falling asleep puts the waving hands down first
+    if (next === 'sleeping') {
+      this.interruptGreet();
+      this.eyeOverride = null; // the greeting's happy eyes would stay open in his sleep
+      this.eyeOverrideUntil = 0;
+    }
     this.state = next;
     this.cfg = BOT_STATES[next];
     this.colT = this.cfg.color;
@@ -677,6 +683,9 @@ export class BotEngine {
 
   /** Peek wave — the greeting. */
   greet() {
+    // v0.9.10: no waving in his sleep (the wave and the sleeping pose ran on top of each other);
+    // whoever wants a greeting from a sleeping Charles wakes him first (renderer: touchCharacter)
+    if (this.state === 'sleeping') return;
     const t = now();
     const tok = ++this.greetToken;
     this.waveStart = t + 0.45;
@@ -1316,7 +1325,7 @@ export class BotEngine {
         this.drawEyes(x, body, R, rx, ry);
         x.restore();
       }
-      drawReading(x, performance.now() / 1000, reading, ownEyes, !greeting);
+      drawReading(x, performance.now() / 1000, reading, ownEyes, !greeting, !(slime && this.morph < 0.6));
     } else this.drawEyes(x, body, R, rx, ry);
     // Mouth and moustache before the work props (laptop, drawing board…), so those stay in front.
     if (slime && this.morph < 0.5 && own > 0.01) {

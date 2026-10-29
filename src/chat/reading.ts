@@ -7,6 +7,7 @@ export function drawReading(
   amount: number,
   glasses = true,
   paws = true,
+  cheeks = true,
 ) {
   const eyes = glasses;
   x.save();
@@ -33,6 +34,9 @@ export function drawReading(
     const blink = Math.sin(t * 0.63) > 0.995;
     x.ellipse(side * 26 + Math.sin(t * 1.35) * 4, 20, 5.1, blink ? 1 : 6.8, 0, 0, Math.PI * 2);
     x.fill();
+    // v0.9.10: the Slime draws its own cheeks (they follow his head); a second, fixed pair
+    // here sat beside them and made the reading face look doubled
+    if (!cheeks) continue;
     x.fillStyle = '#ef9ba64a';
     x.beginPath();
     x.ellipse(side * 54, 28, 12, 6, 0, 0, Math.PI * 2);
