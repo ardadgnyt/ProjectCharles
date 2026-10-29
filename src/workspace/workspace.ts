@@ -18,6 +18,7 @@ import { dropSlime } from './drop-slime';
 import { slimeIcon } from '../island/app-icon';
 import { roomActions } from './bridge';
 import { parseLook } from '../vendor/slime/shape';
+import { stickToBottom } from '../chat/follow';
 
 export type WorkspaceDeps = {
   api: any;
@@ -81,7 +82,13 @@ export function workspaceUI(d: WorkspaceDeps) {
     if (view !== 'home') showHome();
     dashboard.setEditing(!dashboard.isEditing());
   }, 'ws-icon ws-edit-home');
-  const sidebarB = iconButton('sidebar', 'Kenar çubuğunu gizle veya göster', () => root.classList.toggle('no-side'));
+  // v0.9.8: on a narrow window the left column is hidden by default; the button shows it
+  const sidebarB = iconButton('sidebar', 'Kenar çubuğunu gizle veya göster', () => {
+    if (window.innerWidth <= 900) {
+      root.classList.remove('no-side');
+      root.classList.toggle('side-shown');
+    } else root.classList.toggle('no-side');
+  });
   const islandB = el('button', 'ws-island', icon('island'), el('span', '', 'Adacığa dön'));
   islandB.type = 'button';
   islandB.onclick = () => void leave();
@@ -178,6 +185,29 @@ export function workspaceUI(d: WorkspaceDeps) {
   const body = el('div', 'ws-body', side, main);
   root.append(titlebar, body);
 
+  // v0.9.8: moving the window. Windows drags it through the title bar's drag region; when it
+  // does not (the press then reaches the page), Charles moves it himself. The empty margins
+  // around the cards move it too.
+  const dragFrom = (e: PointerEvent) => {
+    if (e.button !== 0 || !on) return;
+    const t = e.target as HTMLElement;
+    const blank = t === titlebar || t === body || t === side || t === root || !!t.closest('.ws-brand');
+    if (!blank || t.closest('button, input, textarea, select, a')) return;
+    e.preventDefault();
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture?.(e.pointerId);
+    void api.workspaceWindow('drag-start');
+    const end = () => {
+      target.removeEventListener('pointerup', end);
+      target.removeEventListener('lostpointercapture', end);
+      void api.workspaceWindow('drag-end');
+    };
+    target.addEventListener('pointerup', end);
+    target.addEventListener('lostpointercapture', end);
+  };
+  titlebar.addEventListener('pointerdown', dragFrom);
+  body.addEventListener('pointerdown', dragFrom);
+
   // resize edges (the window is frameless and transparent, so Charles resizes it himself)
   for (const edge of ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']) {
     const h = el('div', 'ws-edge ws-edge-' + edge);
@@ -249,8 +279,7 @@ export function workspaceUI(d: WorkspaceDeps) {
     root.dataset.view = 'chat';
     dashboard.hide();
     chatInfo();
-    const feed = $('feed');
-    feed.scrollTop = feed.scrollHeight;
+    stickToBottom($('feed'), true);
     window.setTimeout(() => ($('prompt') as HTMLTextAreaElement).focus(), 30);
     work.shown();
   }

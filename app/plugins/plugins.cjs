@@ -213,8 +213,16 @@ class Plugins {
         await new Promise((resolve) => setTimeout(resolve, wait * 1000));
         continue;
       }
-      if (!r.ok)
-        throw Error(
+      if (!r.ok) {
+        // v0.9.9: OAuth token endpoints answer 400 with a reason ("invalid_grant": the sign-in
+        // expired or was revoked; "invalid_client": the client secret is wrong or was replaced).
+        // The reason is kept so the caller can say what to do instead of a bare "HTTP 400".
+        let reason = '';
+        try {
+          const body = await r.json();
+          reason = typeof body?.error === 'string' ? body.error : String(body?.error?.status || '');
+        } catch {}
+        const error = Error(
           r.status === 401
             ? 'Bağlantı reddedildi (401). Token veya hesap oturumunu yenile.'
             : r.status === 403
@@ -223,8 +231,13 @@ class Plugins {
                 ? 'E-posta sağlayıcısı şu an çok fazla istek aldığını söylüyor (429). Biraz sonra tekrar dene.'
                 : 'Bağlantı başarısız (HTTP ' +
                   r.status +
+                  (reason ? ' · ' + reason.slice(0, 60) : '') +
                   '). Sunucu adresini ve kurulumu kontrol et.',
         );
+        error.status = r.status;
+        error.reason = reason;
+        throw error;
+      }
       return r.json();
     }
   }
@@ -283,6 +296,8 @@ class Plugins {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams(params),
+          }).catch((e) => {
+            throw this.oauthFailure(id, e);
           });
           if (epoch !== (this.epoch[id] || 0)) throw Error('Login cancelled');
           if (typeof token.access_token !== 'string' || !token.access_token)
@@ -326,16 +341,21 @@ class Plugins {
     const c = this.oauthConfig(id),
       epoch = this.epoch[id] || 0;
     if (!t.refresh_token) throw Error('Reconnect account');
-    const next = await this.json(OAUTH[id].token, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: c.clientId,
-        grant_type: 'refresh_token',
-        refresh_token: t.refresh_token,
-        ...(c.secret ? { client_secret: c.secret } : {}),
-      }),
-    });
+    let next;
+    try {
+      next = await this.json(OAUTH[id].token, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: c.clientId,
+          grant_type: 'refresh_token',
+          refresh_token: t.refresh_token,
+          ...(c.secret ? { client_secret: c.secret } : {}),
+        }),
+      });
+    } catch (e) {
+      throw this.oauthFailure(id, e, epoch);
+    }
     if (epoch !== (this.epoch[id] || 0)) throw Error('Account disconnected');
     if (typeof next.access_token !== 'string' || !next.access_token)
       throw Error('Reconnect account');
@@ -346,6 +366,30 @@ class Plugins {
     };
     this.save();
     return t.access_token;
+  }
+  /**
+   * v0.9.9: what a failed token request means for the user. A Google project left in "Testing"
+   * gives sign-ins that end after 7 days ("invalid_grant"); Google also no longer shows a client
+   * secret again, so a lost or replaced one ends in "invalid_client". The dead sign-in is removed
+   * so the card no longer claims "✓ bağlı".
+   */
+  oauthFailure(id, e, epoch = this.epoch[id] || 0) {
+    const name = id === 'microsoft' ? 'Microsoft' : 'Google';
+    if (!['invalid_grant', 'invalid_client', 'unauthorized_client'].includes(e?.reason)) return e;
+    const message =
+      e.reason === 'invalid_grant'
+        ? name +
+          ' oturumunun süresi doldu ya da izin geri alındı. Ayarlar → Eklentiler → ' +
+          name +
+          ' ile giriş yap. (Google projesi “Testing / Test” durumundaysa oturum 7 günde bir sona erer; Charles ile kur’un son adımı bunu kalıcı yapmayı anlatıyor.)'
+        : name +
+          ' istemci kimliği veya gizli anahtarı artık geçerli değil. Charles ile kur’dan yeni bir gizli anahtar (Add secret) oluşturup kimlikle birlikte yapıştır.';
+    if (epoch === (this.epoch[id] || 0)) {
+      delete this.data.tokens[id];
+      this.errors[id] = message;
+      this.save();
+    }
+    return Error(message);
   }
   async get(id, url) {
     return this.json(url, { headers: { Authorization: 'Bearer ' + (await this.token(id)) } });

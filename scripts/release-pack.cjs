@@ -36,6 +36,10 @@ function pack({ outDir = path.join(ROOT, 'release'), extra = [] } = {}) {
   if (!fs.existsSync(path.join(ROOT, 'Charles.exe'))) throw Error('Charles.exe missing: build the release on Windows.');
   if (!fs.existsSync(path.join(ROOT, 'dist', 'renderer.js')))
     throw Error('dist/ is missing: run `npm run build` first. / dist/ yok: önce `npm run build` çalıştır.');
+  // v0.9.9: never ship a dist/ built before the version was raised (v0.9.8 showed "v0.9.7 Beta")
+  const label = 'v' + pkg.version.replace(/^(\d+\.\d+\.\d+)-([a-z]+).*$/i, (_, n, t) => n + ' ' + t[0].toUpperCase() + t.slice(1));
+  if (!fs.readFileSync(path.join(ROOT, 'dist', 'index.html'), 'utf8').includes('>' + label + '<'))
+    throw Error('dist/ is older than package.json (' + label + '): run `npm run build` again.');
   for (const e of extra)
     if (!/^[A-Za-z0-9_.-]+(\/[A-Za-z0-9_.-]+)*$/.test(e) || e.split('/').includes('..'))
       throw Error('Invalid --with path / Geçersiz --with yolu: ' + e);

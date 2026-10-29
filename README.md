@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.7%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.9%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -37,6 +37,18 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 > *Epic Minequest* serisindeki **Charles**’tan esinlenmiştir.
 
 ---
+
+## v0.9.9 Beta · Safer mail, steadier app window / Daha güvenli mail, daha sağlam uygulama penceresi
+
+Mail text that Charles reads for you is treated strictly as data: it is fenced off for the AI, cleaned of fake tags and invisible characters, and the turn that carries it runs without tools, so a mail written like a prompt cannot make Charles run commands, send messages or open pages. The app window keeps the chat and its message box at every size and when the island changes view, you can scroll up while an answer is being written, long chats can be read back to the first message, and the Download tools ship with Charles again.
+
+Charles’ın senin için okuduğu mailler yalnızca veri olarak ele alınıyor: AI’ya ayrı bir blok içinde gidiyor, sahte etiketler ve görünmez karakterler temizleniyor ve bu mesaj araçsız çalışıyor; komut gibi yazılmış bir mail Charles’a komut çalıştıramaz, mesaj gönderttiremez, sayfa açtıramaz. Uygulama penceresi her boyutta sohbeti ve mesaj kutusunu gösteriyor, yanıt yazılırken yukarı kaydırabiliyorsun, uzun sohbetler ilk mesaja kadar okunabiliyor ve İndirme araçları yeniden Charles’la geliyor.
+
+## v0.9.8 Beta · One pair of hands, a movable app window / Tek çift el, taşınabilen uygulama penceresi
+
+Charles no longer holds his flag while his paws are on the laptop, the keyboard or a sheet of paper, and a new work prop waits until the previous one has been put away. The app window moves from its title bar and the empty margins even when Windows does not take the drag, and on a narrow window the chat and the message box stay inside it. The EVREN card looks like the other accounts and has **Charles ile kur**; Claude's models are listed with their version (Opus 5.5, Opus 5…).
+
+Charles bilgisayar, klavye ya da kâğıt tutarken artık bir de bayrak tutmuyor (üçüncü el yok); yeni bir iş eşyası, öncekini bıraktıktan sonra geliyor. Uygulama penceresi başlık çubuğundan ve kartların arasındaki boşluktan sürüklenebiliyor; dar pencerede sohbet ve mesaj kutusu kesilmiyor. EVREN kartı diğer hesaplarla aynı düzende ve **Charles ile kur** ile geliyor; Claude modelleri sürümleriyle listeleniyor (Opus 5.5, Opus 5…).
 
 ## v0.9.7 Beta · Network permission & menu arrows / Ağ izni ve menü okları
 

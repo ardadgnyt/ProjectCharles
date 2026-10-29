@@ -156,7 +156,8 @@ test('app window: a real Windows window (Snap, caption buttons) sharing the page
   assert.doesNotMatch(main, /dialog\.show(Open|Save)Dialog\(win,/); // dialogs need the real window
   const css = read('public/styles/9-special.css');
   assert.match(css.match(/\.ws-titlebar \{[^}]*\}/)[0], /-webkit-app-region: drag;/);
-  assert.doesNotMatch(read('src/workspace/workspace.ts'), /drag-start/);
+  // v0.9.8: Windows drags through the title bar; when the press reaches the page, Charles moves it
+  assert.match(read('src/workspace/workspace.ts'), /api\.workspaceWindow\('drag-start'\)/);
   // push-to-talk was taken out again
   assert.ok(!fs.existsSync(path.join(root, 'app/system/push-to-talk.cjs')));
   assert.doesNotMatch(read('src/renderer.ts'), /pushToTalk/);

@@ -36,12 +36,12 @@ for name in ['Install.cmd', 'install.ps1']:
 
 Extract this entire folder, then run Install.cmd. Select your language and destination.
 The setup includes the runtime and voice tools; Node.js is not required separately.
-Download is optional and is distributed separately. It is not included here.
+The Download module is installed separately; its tools (yt-dlp, FFmpeg) are included.
 If an older in-app updater leaves files in _update, use this setup once.
 Chats and settings remain in %APPDATA%\\Charles.
 
 Klasorun tamamini cikartin, Install.cmd dosyasini calistirin. Dil ve kurulum yolunu secin.
-Node.js kurmaniz gerekmez. Download modulu bu pakete dahil degildir.
+Node.js kurmaniz gerekmez. Download modulu ayri kurulur; indirme araclari (yt-dlp, FFmpeg) pakete dahildir.
 Eski guncelleyici _update klasorunde takiliyorsa bir kez bu Setup paketini kullanin.
 Sohbetler ve ayarlar %APPDATA%\\Charles klasorunde korunur.
 ''', encoding='utf-8')

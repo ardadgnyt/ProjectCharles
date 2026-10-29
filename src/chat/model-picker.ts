@@ -94,11 +94,13 @@ export function modelPicker(select: HTMLSelectElement) {
     // v0.9.6: its height is limited to the panel too (it scrolls inside instead of spilling out).
     const parent = (sub.offsetParent as HTMLElement | null) || button.parentElement!;
     const base = parent.getBoundingClientRect();
-    const area = (
-      document.body.classList.contains('workspace')
-        ? document.documentElement
-        : document.querySelector('main.island') || document.documentElement
-    ).getBoundingClientRect();
+    // v0.9.8: in the app window the area is the window itself. The page element's own box can
+    // be much shorter than the window (the app window lays out in fixed panes), which put the
+    // model list far above the provider list.
+    const island = document.body.classList.contains('workspace') ? null : document.querySelector('main.island');
+    const area = island
+      ? island.getBoundingClientRect()
+      : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
     const box = menu.getBoundingClientRect();
     const r = row.getBoundingClientRect();
     // the panel's own header (Charles, the bar buttons) is drawn above the chat: stay below it

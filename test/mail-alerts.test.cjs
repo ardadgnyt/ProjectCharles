@@ -75,7 +75,9 @@ test('Important mail becomes a bubble; clicking it hands the full text to Charle
   assert.equal(explained.length, 1);
   assert.match(explained[0].items[0].text, /Tam metin gmail b/);
   assert.match(explained[0].items[0].text, /Kimden: hoca@okul.example/);
-  assert.match(explained[0].prompt, /Proje teslimi/);
+  // v0.9.9: the subject (the sender's text) stays in the attachment, not in the user's message
+  assert.match(explained[0].items[0].text, /Konu: Proje teslimi/);
+  assert.doesNotMatch(explained[0].prompt, /Proje teslimi/);
   plugins.notify({
     kind: 'calendar',
     id: 'e1',

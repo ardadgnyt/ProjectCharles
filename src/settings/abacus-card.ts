@@ -1,7 +1,7 @@
 // v0.8.0: Ayarlar → Hesap → Abacus AI. Abacus AI is reached through its official command line
 // tool (`abacusai`), which whoever has an Abacus AI account installs; Charles finds it, opens a
 // console for /login and tests the connection with one tiny message; the account's models are
-// then read from the CLI and listed as "Abacus AI · GPT-6.1-Sol".
+// then read from the CLI and listed under Abacus AI in the model menu.
 const DOCS = 'https://abacus.ai/help/abacusai-desktop/cli-installation';
 type Status = { id: string; installed: boolean; signedIn: boolean };
 
@@ -41,9 +41,8 @@ export function abacusCard(api: any, notice: (s: string) => void, changed: () =>
   result.setAttribute('role', 'status');
   result.textContent = 'Hesap kontrol ediliyor…';
 
-  // the account's models come from the CLI itself; in the model list they read "Abacus AI · …"
-  const modelsHint = el('p', 'hint', 'Bağlantı test edilince Abacus AI hesabındaki tüm modeller model listesine eklenir; GPT modelleriyle karışmasın diye adları “Abacus AI · …” diye başlar.');
-  section.append(title, note, actions, result, modelsHint);
+  // v0.9.8: no "Abacus AI · …" naming note any more: the model menu groups models by provider
+  section.append(title, note, actions, result);
   let busy = false;
 
   function update(s: Status) {

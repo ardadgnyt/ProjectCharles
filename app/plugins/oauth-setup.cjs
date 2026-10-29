@@ -22,6 +22,8 @@ const PAGES = {
   'cursor-login': [],
   // v0.8.0: Abacus AI (its setup page is opened from the guide's own button)
   'abacus-login': [],
+  // v0.9.8: EVREN — an API key from the user's EVREN account
+  'evren-login': ['https://evren.ssyz.org.tr/'],
 };
 function setupURL(id, step = 0) {
   const pages = PAGES[id];

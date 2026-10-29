@@ -23,6 +23,7 @@ import { workspaceUI } from './settings/workspace';
 import { noNativeTooltips } from './ui/no-native-tooltips';
 import { profileTransferUI } from './settings/profile-transfer';
 import { statusScroll } from './chat/status-scroll';
+import { stickToBottom } from './chat/follow';
 import { companionUI } from './island/companion';
 import { ActivityState } from './chat/activity';
 import { modelPicker } from './chat/model-picker';
@@ -132,7 +133,9 @@ function animate(now: number) {
   bot.reading +=
     ((busy &&
     (activityState.station === 'read' || (readingDocument && activityState.station === 'none')) &&
-    !requests.size
+    !requests.size &&
+    // v0.9.8: the sheet comes out once the previous prop (laptop, easel…) has been put away
+    bot.stationAlpha < 0.05
       ? 1
       : 0) -
       bot.reading) *
@@ -551,16 +554,13 @@ function row(text: string, className = '', attachments: any[] = []) {
     }
   }
   feed.append(el);
-  // Keep a bounded view. Codex maintains the actual conversation history.
-  while (feed.children.length > 250) {
-    const first = feed.firstElementChild!;
-    for (const [id, node] of messages) if (node === first) messages.delete(id);
-    for (const [id, a] of activities) if (a.summary.parentElement === first) activities.delete(id);
-    first.remove();
-  }
+  // v0.9.9: no upper limit any more. The list used to keep only its last 250 rows, so in a long
+  // chat the first messages could not be reached; opening a chat still draws only its last
+  // messages and the earlier ones come in as you scroll up (olderMessages).
   // v0.9.6: while a chat is being rebuilt the list is scrolled once at the end, not per row
-  // (each scroll forced a full layout of the growing list)
-  if (!replaying) feed.scrollTop = feed.scrollHeight;
+  // (each scroll forced a full layout of the growing list); v0.9.9: your own message always
+  // brings the list down, Charles' rows only while you are at the end (see chat/follow.ts)
+  if (!replaying) stickToBottom(feed, /\buser\b/.test(className));
   return el;
 }
 const streaming = new Set<string>();
@@ -762,7 +762,7 @@ function activity(item: any) {
     item.type === 'plan' ? String(item.steps || '') :
     item.type === 'webSearch' ? String(item.query || item.action?.query || '') :
     [item.command || item.tool, typeof item.result === 'string' ? item.result : item.result ? JSON.stringify(item.result, null, 2) : '', item.error?.message].filter(Boolean).join('\n\n').slice(-100000);
-  if (!replaying) feed.scrollTop = feed.scrollHeight;
+  if (!replaying) stickToBottom(feed);
   // v0.7.2: the app window's side panel shows written files and terminal output
   document.dispatchEvent(new CustomEvent('charles-activity', { detail: { item, replaying } }));
 }
@@ -935,7 +935,13 @@ async function populateModels() {
       }
     }
   }
-  model.value = [...model.options].some((o) => o.value === old) ? old : model.options[0].value;
+  // v0.9.8: the bare "claude:sonnet / opus / haiku" choices of earlier versions are now the
+  // listed models with their version ("Sonnet 5.5"): keep the newest one of the same family.
+  let wanted = old;
+  const alias = /^claude:(opus|sonnet|haiku)$/.exec(old || '');
+  if (alias && ![...model.options].some((o) => o.value === old))
+    wanted = [...model.options].find((o) => o.value.startsWith('claude:claude-' + alias[1] + '-'))?.value || old;
+  model.value = [...model.options].some((o) => o.value === wanted) ? wanted : model.options[0].value;
   model.dispatchEvent(new Event('change'));
   if (list.length) modelsAt = Date.now();
 }
@@ -1215,7 +1221,7 @@ async function switchRoom(r: any) {
   } finally {
     replaying = false;
   }
-  feed.scrollTop = feed.scrollHeight;
+  stickToBottom(feed, true);
   if (cut) olderMessages(events.slice(0, cut), token);
   for (const q of r.requests) requestCard(q);
   busy = r.busy;
@@ -1605,7 +1611,7 @@ const steer = steerUI({
   shown: (text) => {
     markSteer(row(text, 'user'));
     splitAfterSteer();
-    feed.scrollTop = feed.scrollHeight;
+    stickToBottom(feed, true);
   },
   notice,
   t,

@@ -17,33 +17,48 @@ function btn(text: string, cls = '') {
   return b;
 }
 
-export function evrenCard(api: any, notice: (s: string) => void, changed: () => Promise<void>) {
+export function evrenCard(
+  api: any,
+  notice: (s: string) => void,
+  changed: () => Promise<void>,
+  guide: (id: string) => unknown = () => {},
+) {
   const section = el('section', 'setting-section provider-card evren-card');
   section.dataset.provider = 'evren';
   const title = el('h3', '', 'EVREN hesabı');
   const note = el(
     'p',
     'hint',
-    'EVREN API anahtarınla bağlan. Anahtar Windows güvenli şifrelemesiyle %APPDATA%\\Charles klasöründe saklanır; proje klasöründe ve sürüm paketinde tutulmaz.',
+    'EVREN API anahtarınla bağlan. Nasıl yapılacağını bilmiyorsan Charles ile kur’a bas; Slime adım adım anlatır. Anahtar Windows güvenli şifrelemesiyle %APPDATA%\\Charles klasöründe saklanır; proje klasöründe ve sürüm paketinde tutulmaz.',
   );
+  // v0.9.8: the same order as the other accounts: Charles ile kur · state · test · page
+  const actions = el('div', 'row provider-actions');
+  const setup = btn('Charles ile kur', 'primary');
+  setup.onclick = () => void guide('evren-login');
+  const state = btn('Anahtar eklenmedi', 'evren-state');
+  state.disabled = true;
+  const test = btn('Bağlantıyı test et');
+  const login = btn('EVREN sayfası');
+  login.onclick = () => void api.openLink('https://evren.ssyz.org.tr/').catch((e: Error) => (result.textContent = e.message));
+  actions.append(setup, state, test, login);
+  const result = el('p', 'hint');
+  result.setAttribute('role', 'status');
+  result.textContent = 'Hesap kontrol ediliyor…';
+  // the key itself, folded like Gemini Live's "Anahtar ayarları"
+  const keyBox = document.createElement('details');
+  keyBox.className = 'evren-key';
+  const keySummary = document.createElement('summary');
+  keySummary.textContent = 'Anahtar ayarları';
   const key = document.createElement('input');
   key.type = 'password';
   key.autocomplete = 'off';
   key.placeholder = 'EVREN API anahtarı';
   key.setAttribute('aria-label', 'EVREN API anahtarı');
-  const save = btn('Anahtarı kaydet', 'primary');
-  const login = btn('Evren Giriş Sayfası');
-  login.onclick = () => void api.openLink('https://evren.ssyz.org.tr/').catch((e: Error) => (result.textContent = e.message));
-  const keyRow = el('div', 'row provider-actions');
-  keyRow.append(key, save, login);
-  // same order as the other accounts: state → test → remove
-  const actions = el('div', 'row provider-actions');
-  const test = btn('Bağlantıyı test et');
+  const save = btn('Anahtarı kaydet');
   const clear = btn('Anahtarı sil');
-  actions.append(test, clear);
-  const result = el('p', 'hint');
-  result.setAttribute('role', 'status');
-  result.textContent = 'Hesap kontrol ediliyor…';
+  const keyRow = el('div', 'button-row');
+  keyRow.append(save, clear);
+  keyBox.append(keySummary, key, keyRow);
   const terms = document.createElement('details');
   terms.className = 'evren-terms';
   const summary = document.createElement('summary');
@@ -51,16 +66,11 @@ export function evrenCard(api: any, notice: (s: string) => void, changed: () => 
   const termsHint = el('p', 'hint', 'EVREN kullanım şartlarını okuyup kabul etmeni isteyebilir.');
   const termsBody = el('p', 'hint');
   const accept = btn('Şartları kabul et', 'primary');
-  const termsActions = el('div', 'row provider-actions');
+  const termsActions = el('div', 'button-row');
   termsActions.append(accept);
   terms.append(summary, termsHint, termsBody, termsActions);
   terms.hidden = true;
-  const modelsHint = el(
-    'p',
-    'hint',
-    'Bağlantı test edilince EVREN hesabındaki modeller model listesine eklenir; adları "EVREN · " diye başlar.',
-  );
-  section.append(title, note, keyRow, actions, result, terms, modelsHint);
+  section.append(title, note, actions, result, keyBox, terms);
   let busy = false;
   let accepted: boolean | null = null;
 
@@ -77,6 +87,8 @@ export function evrenCard(api: any, notice: (s: string) => void, changed: () => 
     key.placeholder = has ? 'Kayıtlı anahtarı değiştirmek için yenisini gir' : 'EVREN API anahtarı';
     terms.hidden = !has;
     section.classList.toggle('connected', !!s.signedIn);
+    state.classList.toggle('connected', !!s.signedIn);
+    state.textContent = s.signedIn ? '✓ EVREN bağlı' : has ? 'Anahtar kayıtlı' : 'Anahtar eklenmedi';
     if (has && accepted === null && !terms.open) void loadTerms();
   }
 

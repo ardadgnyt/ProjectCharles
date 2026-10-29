@@ -102,7 +102,7 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
     status.setAttribute('role', 'status');
     const options: [string, string, string, string, string][] = [
       ['gpt', 'ChatGPT', 'ChatGPT hesabınla', '#e9e9ee', ''],
-      ['claude', 'Claude', 'Claude aboneliğinle', '#e8a27c', 'claude:sonnet'],
+      ['claude', 'Claude', 'Claude aboneliğinle', '#e8a27c', 'claude:claude-sonnet-5-5'],
       ['gemini', 'Antigravity', 'Google hesabınla', '#a8c7fa', 'gemini:auto'],
       ['cursor', 'Cursor', 'Cursor hesabınla', '#3fd8c8', 'cursor:auto'],
     ];

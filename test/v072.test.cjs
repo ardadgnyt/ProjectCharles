@@ -244,8 +244,8 @@ test('WhatsApp: contacts are validated and stored locally; automatic sending can
 
 test('WhatsApp: hooked into chat and voice, with a settings card', () => {
   const main = read('app/main.cjs');
-  assert.match(main, /parseWhatsApp\(args\.prompt\)/);
-  assert.match(main, /wa\.parseWhatsApp\(request\) \|\|/);
+  assert.match(main, /parseWhatsApp\(typedText\(\)\)/);
+  assert.match(main, /\(mailTainted \? null : wa\.parseWhatsApp\(request\)\) \|\|/);
   assert.match(main, /safeHandler\('whatsapp-save'/);
   assert.match(read('app/voice/gemini-live.cjs'), /name: 'whatsapp_message'/);
   assert.match(read('src/renderer.ts'), /whatsappCard\(api, notice\)/);

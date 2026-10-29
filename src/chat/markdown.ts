@@ -3,6 +3,7 @@ import { mathPlugin } from './math';
 import { splitQuestions, type AiQuestion } from './ai-questions';
 import { highlightInto, LANGUAGE_NAMES } from './highlight';
 import { t } from '../settings/i18n';
+import { stickToBottom } from './follow';
 
 const markdown = new MarkdownIt({ html: false, linkify: true, breaks: true, typographer: false });
 markdown.use(mathPlugin);
@@ -106,7 +107,7 @@ export function updateMarkdown(element: HTMLElement, text: string, replace = fal
       }
       element.append(card);
     }
-    element.parentElement?.scrollTo({ top: element.parentElement.scrollHeight });
+    stickToBottom(element.parentElement);
   });
 }
 

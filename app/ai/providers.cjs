@@ -48,6 +48,22 @@ const MODELS = [
   ['claude:opus', 'Claude · Opus'],
   ['claude:haiku', 'Claude · Haiku'],
 ];
+// v0.9.8: when Anthropic's model list cannot be read (the subscription's sign-in token does not
+// always open /v1/models), the Claude menu shows the current models by version instead of the
+// bare "Opus / Sonnet / Haiku" aliases, which did not say whether 5 or 5.5 answers.
+const CLAUDE_FALLBACK = [
+  ['claude-opus-5-5', 'Opus 5.5'],
+  ['claude-opus-5', 'Opus 5'],
+  ['claude-opus-4-8', 'Opus 4.8'],
+  ['claude-opus-4-7', 'Opus 4.7'],
+  ['claude-opus-4-6', 'Opus 4.6'],
+  ['claude-3-opus-20240229', 'Opus 3'],
+  ['claude-sonnet-5-5', 'Sonnet 5.5'],
+  ['claude-sonnet-5', 'Sonnet 5'],
+  ['claude-sonnet-4-6', 'Sonnet 4.6'],
+  ['claude-haiku-5-5', 'Haiku 5.5'],
+  ['claude-haiku-4-5', 'Haiku 4.5'],
+];
 // v0.7.3: Cursor's own models (Composer, Grok) next to Auto. The list comes from the signed-in
 // account (`cursor-agent models`); only the Composer and Grok families are offered.
 const CURSOR_FALLBACK = [['composer-2.5', 'Composer 2.5']];
@@ -171,6 +187,15 @@ function stripEffortName(name) {
 }
 /** [[id, name]] from Anthropic's model list ({ id, display_name }); ids only, newest first as
  *  listed; models that need extra usage credits (Fable) are left out. "Claude Opus 4.8" is shown as "Opus 4.8" (the provider is the menu's first step). */
+function claudeRank(id) {
+  const i = ['opus', 'sonnet', 'haiku'].findIndex((f) => id.includes(f));
+  return i < 0 ? 3 : i;
+}
+/** "claude-opus-4-7" → 4.7, "claude-opus-5" → 5, "claude-3-opus-20240229" → 3 */
+function claudeVersion(id) {
+  const m = /^claude-(?:opus|sonnet|haiku|fable)-(\d+)(?:-(\d)(?!\d))?/.exec(id) || /^claude-(\d+)(?:-(\d)(?!\d))?-/.exec(id);
+  return m ? Number(m[1]) + (m[2] ? Number(m[2]) / 10 : 0) : 0;
+}
 function cleanClaudeModels(list) {
   if (!Array.isArray(list)) return [];
   const out = [];
@@ -185,7 +210,8 @@ function cleanClaudeModels(list) {
     out.push([id, String(raw || id).replace(/^Claude\s+/i, '').slice(0, 80)]);
     if (out.length >= 60) break;
   }
-  return out;
+  // v0.9.8: Opus, Sonnet, Haiku, each newest first (as in the fallback list)
+  return out.sort((x, y) => claudeRank(x[0]) - claudeRank(y[0]) || claudeVersion(y[0]) - claudeVersion(x[0]));
 }
 function subscriptionEnv(env, dir) {
   const result = { ...env };
@@ -461,9 +487,10 @@ class Providers {
       ...cursor,
       ...staticGroup('gemini'),
       ...gemini,
-      ...(this.claudeModels.length
-        ? this.claudeModels.map(([id, name]) => ['claude:' + id, 'Claude · ' + name])
-        : staticGroup('claude')),
+      ...(this.claudeModels.length ? this.claudeModels : CLAUDE_FALLBACK).map(([id, name]) => [
+        'claude:' + id,
+        'Claude · ' + name,
+      ]),
       ...abacusModels,
       ...evrenModels,
     ];
@@ -1054,6 +1081,8 @@ class Providers {
         : 'Sen Charles, HzPederPan tarafından geliştirilmiş bir masaüstü sohbet asistanısın. Bu bağlantıda bilgisayar araçların yok. Yapmadığın işlemleri yaptığını söyleme.\n') +
       ASK_FORMAT.trim() +
       '\n' +
+      require('../core/untrusted.cjs').SECURITY_RULE.trim() +
+      '\n' +
       args.prompt +
       '\n' +
       texts.map((a) => a.text).join('\n') +
@@ -1304,6 +1333,7 @@ class Providers {
   }
 }
 module.exports = {
+  CLAUDE_FALLBACK,
   cleanClaudeModels,
   PROVIDERS,
   streamText,

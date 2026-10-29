@@ -68,8 +68,11 @@ test('Claude: Claude Code’s own --effort values; Haiku takes none', () => {
   const p = new Providers(dir, dir);
   p.auth.claude = true;
   const rows = p.models().filter((m) => m.id.startsWith('claude:'));
-  assert.deepEqual(rows.find((m) => m.id === 'claude:opus').efforts.map((e) => e.value), ['low', 'medium', 'high', 'xhigh', 'max']);
-  assert.equal(rows.find((m) => m.id === 'claude:haiku').efforts, undefined);
+  assert.deepEqual(rows.find((m) => m.id === 'claude:claude-opus-5-5').efforts.map((e) => e.value), ['low', 'medium', 'high', 'xhigh', 'max']);
+  assert.equal(rows.find((m) => m.id === 'claude:claude-haiku-5-5').efforts, undefined);
+  // v0.9.8: versions, not bare aliases (Opus 5.5 and Opus 5 apart); Fable needs credits
+  assert.ok(rows.some((m) => m.id === 'claude:claude-opus-5') && rows.some((m) => m.id === 'claude:claude-sonnet-5-5'));
+  assert.ok(!rows.some((m) => /fable|^claude:(opus|sonnet|haiku)$/.test(m.id)));
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
@@ -172,7 +175,7 @@ test('opening an old chat: no new Codex process, the latest messages first', () 
   assert.match(sessions, /pruneAgents\(\)/);
   const renderer = read('src/renderer.ts');
   assert.match(renderer, /const TAIL_MESSAGES = 20;/);
-  assert.match(renderer, /if \(!replaying\) feed\.scrollTop = feed\.scrollHeight;/);
+  assert.match(renderer, /if \(!replaying\) stickToBottom\(feed/);
 });
 
 test('Quick Share firewall: rules read without admin, block rules reported', async () => {
@@ -201,8 +204,9 @@ test('Quick Share: the announcement also goes straight to mDNS neighbours', () =
 test('waving puts away what Slime holds and brings it back', () => {
   const engine = read('src/vendor/slime/engine.ts');
   assert.match(engine, /const keep = Math\.max\(0, 1 - this\.hands\);/);
-  assert.match(engine, /presence: hand\.presence \* keep/);
-  assert.match(engine, /x\.globalAlpha \*= keep;\s*drawStation/);
+  assert.match(engine, /const held = hand\.presence \* this\.handFree\(\);/);
+  assert.match(engine, /return Math\.max\(0, 1 - this\.hands\) \* Math\.max\(0, 1 - this\.propHands \* 1\.5\);/);
+  assert.match(engine, /const prop = keep \* this\.stationAlpha;/);
 });
 
 test('the island stays on top unless another app is full screen', () => {

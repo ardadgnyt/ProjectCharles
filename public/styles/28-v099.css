@@ -1,0 +1,53 @@
+/* v0.9.9 — default model field, the app window at its smallest, reading without eyes. */
+
+/* Ayarlar → AI Modelleri → Varsayılan model: a long model name made the field as wide as the
+   name, so it ran out of its card and the arrow was cut off. */
+#settings-panel .setting-section > select {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+/* App window at its smallest: a long chat name in the title bar (padding-right keeps room for
+   Windows' caption buttons) made the title bar — and with it the whole window's single grid
+   column — wider than the window, so everything was cut off on the right. */
+#workspace {
+  grid-template-columns: minmax(0, 1fr);
+}
+#workspace .ws-titlebar {
+  min-width: 0;
+}
+#workspace .ws-brand {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+#workspace .ws-crumb {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+#workspace .ws-title-actions {
+  flex: none;
+}
+@media (max-width: 900px) {
+  #workspace .ws-island span {
+    display: none;
+  }
+}
+/* the chat head's long title gives way to its buttons */
+#workspace .ws-chat-head > * {
+  min-width: 0;
+}
+#workspace .ws-chat-tools {
+  flex: none;
+}
+
+/* The chat in the app window ignores the island's own view. If the island had switched to its
+   card shelf or its closed notch meanwhile (a notification, a timer), the island stylesheet hid
+   the chat that now lives in the app window: an opened chat or a new one showed an empty page
+   without the message box until you went back to the island and returned. */
+body.workspace.v10[data-view]:not(.desktop-pet) #workspace .ws-chat-body > .content,
+body.workspace #workspace .ws-chat-body > .content {
+  display: flex !important;
+}

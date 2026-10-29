@@ -1,7 +1,7 @@
 {
   "name": "project-charles",
   "productName": "Charles",
-  "version": "0.9.7-beta.1",
+  "version": "0.9.9-beta.1",
   "private": true,
   "description": "Charles — Windows desktop AI companion (Electron).",
   "author": "HzPederPan",

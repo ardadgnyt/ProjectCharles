@@ -104,12 +104,12 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
       explanation.className = 'hint';
       explanation.textContent =
         id === 'google'
-          ? 'OAuth istemci kimliği, Google Cloud → Google Auth Platform → Clients → Desktop app kaydında bulunur. E-posta adresi veya API anahtarı değildir. JSON dosyasından içe aktarabilirsin.'
+          ? 'İstemci kimliği ve gizli anahtar, Google Cloud → Google Auth Platform → Clients → Desktop app kaydını oluştururken gösterilir. Google artık JSON dosyası indirtmiyor ve gizli anahtarı sonradan göstermiyor: kaybettiysan istemcide Add secret ile yenisini oluştur. Eski bir JSON dosyan varsa içe aktarabilirsin.'
           : 'Application (client) ID, Microsoft Entra → App registrations → uygulaman → Overview bölümündeki değerdir. E-posta adresi değildir; client secret gerekmez.';
       config.append(explanation);
       if (id === 'google') {
         const load = document.createElement('button');
-        load.textContent = 'Google JSON dosyasını içe aktar';
+        load.textContent = 'Eski JSON dosyasını içe aktar';
         load.onclick = () =>
           void api
             .pluginsImportGoogle()

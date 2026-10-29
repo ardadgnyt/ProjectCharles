@@ -397,6 +397,30 @@ export class BotEngine {
     return shape !== 'pill' && shape !== 'wide' && shape !== 'flat';
   }
 
+  /** v0.9.8: how much of the held item (the flag) shows: none while he waves or his paws hold
+   *  a work prop / the reading sheet — otherwise he had a third hand. */
+  private handFree() {
+    return Math.max(0, 1 - this.hands) * Math.max(0, 1 - this.propHands * 1.5);
+  }
+
+  /** v0.9.8: how much his paws are taken by a work prop or the reading sheet (0..1). */
+  get propHands() {
+    return Math.max(this.reading, this.shownStation !== 'none' ? this.stationAlpha : 0);
+  }
+
+  private stepStation(dt: number) {
+    // 'read' has no prop of its own (the reading sheet is `reading`)
+    const target: Station = this.station === 'read' ? 'none' : this.station;
+    if (this.shownStation !== target) {
+      this.stationAlpha = Math.max(0, this.stationAlpha - dt * 6);
+      if (this.stationAlpha <= 0.001 || this.shownStation === 'none') {
+        this.shownStation = target;
+        this.stationAlpha = 0;
+      }
+    } else if (target !== 'none' && this.reading < 0.05) this.stationAlpha = Math.min(1, this.stationAlpha + dt * 5);
+    else if (target !== 'none') this.stationAlpha = Math.max(0, this.stationAlpha - dt * 6);
+  }
+
   private stepSlots(dt: number) {
     const shades = this.slots.eyes.shown === 'sunglasses' || this.slots.eyes.shown === 'bigShades';
     const liftTarget = shades && this.expressiveEyes ? 1 : 0;
@@ -436,6 +460,10 @@ export class BotEngine {
   /** Extra canvas height above the body so hearts can fly out without clipping. */
   particleOverhang = 0;
   station: Station = 'none';
+  /** v0.9.8: the work prop on screen and how much of it shows. A new prop waits until the old
+   *  one (and the reading sheet) has gone, instead of both being drawn over each other. */
+  shownStation: Station = 'none';
+  stationAlpha = 0;
   eureka = false;
   reading = 0;
   /** 0..1 – Charles is "sweating" (system watchdog: CPU / RAM / disk under pressure). */
@@ -934,6 +962,7 @@ export class BotEngine {
 
   update(dt: number) {
     this.stepSlots(dt);
+    this.stepStation(dt);
     const n = now();
     const nowMs = performance.now();
 
@@ -1222,8 +1251,9 @@ export class BotEngine {
     if (head) {
       this.outfitRenderer.draw(x, 'behind', this.outfit, head, outfitState);
       for (const s of [this.slots.other, this.slots.eyes, this.slots.hand]) {
-        // v0.9.6: a held item (the flag) is put away while he waves (see `keep` below)
-        const presence = s === this.slots.hand ? s.presence * Math.max(0, 1 - this.hands) : s.presence;
+        // v0.9.6: a held item (the flag) is put away while he waves (see `keep` below);
+        // v0.9.8: and while his paws hold a work prop or the reading sheet
+        const presence = s === this.slots.hand ? s.presence * this.handFree() : s.presence;
         if (presence > 0.01 || s !== this.slots.hand)
           s.r.draw(x, 'behind', s.shown, head, { presence, morph: this.morph });
       }
@@ -1273,17 +1303,34 @@ export class BotEngine {
     // three or four hands. `keep` follows the waving hands in and out.
     const keep = Math.max(0, 1 - this.hands);
     const reading = this.reading * keep;
-    if (reading > 0.01 && keep > 0.5) {
+    const readingOn = reading > 0.01 && keep > 0.5;
+    // v0.9.9: while the reading glasses come and go, his own eyes and mouth fade the other way.
+    // The glasses' eyes are drawn at the sheet's strength, so half-way through a fade (and for
+    // the whole slow fade-out) Charles had no eyes at all for a few seconds.
+    const own = readingOn ? Math.max(0, 1 - reading) : 1;
+    if (readingOn) {
       if (!ownEyes) this.drawEyes(x, body, R, rx, ry);
+      else if (own > 0.01) {
+        x.save();
+        x.globalAlpha *= own;
+        this.drawEyes(x, body, R, rx, ry);
+        x.restore();
+      }
       drawReading(x, performance.now() / 1000, reading, ownEyes, !greeting);
     } else this.drawEyes(x, body, R, rx, ry);
     // Mouth and moustache before the work props (laptop, drawing board…), so those stay in front.
-    if (slime && this.morph < 0.5 && !(reading > 0.01 && keep > 0.5)) this.drawSlimeMouth(x, body, R, rx, ry);
-    // the light bulb is drawn after the hat (below), so the hat never covers it
-    if (keep > 0.01) {
+    if (slime && this.morph < 0.5 && own > 0.01) {
       x.save();
-      x.globalAlpha *= keep;
-      drawStation(x, performance.now() / 1000, this.station, false, !greeting);
+      x.globalAlpha *= own;
+      this.drawSlimeMouth(x, body, R, rx, ry);
+      x.restore();
+    }
+    // the light bulb is drawn after the hat (below), so the hat never covers it
+    const prop = keep * this.stationAlpha;
+    if (prop > 0.01 && this.shownStation !== 'none') {
+      x.save();
+      x.globalAlpha *= prop;
+      drawStation(x, performance.now() / 1000, this.shownStation, false, !greeting);
       x.restore();
     }
     if (this.sweat > 0.01) this.drawSweat(x, rx, ry, R);
@@ -1299,8 +1346,8 @@ export class BotEngine {
       this.outfitRenderer.draw(x, 'front', this.outfit, head, outfitState);
       // v0.6.3: the flag is held in front of everything, the hat included
       const hand = this.slots.hand;
-      if (hand.presence * keep > 0.01)
-        hand.r.draw(x, 'front', hand.shown, head, { presence: hand.presence * keep, morph: this.morph });
+      const held = hand.presence * this.handFree();
+      if (held > 0.01) hand.r.draw(x, 'front', hand.shown, head, { presence: held, morph: this.morph });
     }
     if (this.eureka) drawEurekaBulb(x, performance.now() / 1000, this.outfit !== 'none');
 

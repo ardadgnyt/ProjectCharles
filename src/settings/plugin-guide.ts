@@ -37,17 +37,17 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
         },
         {
           title: '7 · Masaüstü istemcisi oluştur',
-          text: 'İstemci oluştur / Create client → Masaüstü uygulaması / Desktop app seç. Adını Charles yapıp oluştur.',
+          text: 'İstemci oluştur / Create client → Masaüstü uygulaması / Desktop app seç. Adını Charles yapıp Oluştur / Create’e bas. Açılan pencereyi kapatma; bir sonraki adımda içindeki iki değeri kopyalayacağız.',
           page: 5,
         },
         {
-          title: '8 · JSON dosyasını indir',
-          text: 'Charles istemcisini açıp JSON indir / Download JSON’a bas. İndirdiğin dosyayı sonraki adımda seçeceğiz.',
+          title: '8 · Kimliği ve gizli anahtarı kopyala',
+          text: 'Açılan pencerede İstemci kimliği / Client ID ve İstemci gizli anahtarı / Client secret görünür. Google artık JSON dosyası indirtmiyor ve gizli anahtarı yalnızca bu pencerede gösteriyor: ikisini de kopyala. Pencereyi kapattıysan Charles istemcisini aç → Gizli anahtar ekle / Add secret ile yeni bir anahtar oluştur ve onu kopyala.',
           page: 5,
         },
         {
-          title: '9 · Dosyayı seç ve hesabına giriş yap',
-          text: 'JSON dosyasını seç, ardından Google ile giriş yap. Test kullanıcısı olarak eklediğin hesabı kullan. Test kullanıcısı kaynaklı 403 hatasında 6. adıma dön.',
+          title: '9 · Yapıştır ve hesabına giriş yap',
+          text: 'İstemci kimliğini ve gizli anahtarı aşağıya yapıştır, sonra Kaydet ve Google ile giriş yap’a bas. Test kullanıcısı olarak eklediğin hesabı kullan; “doğrulanmamış uygulama” uyarısında Gelişmiş → Charles’a git. 403 hatasında 6. adıma dön. Projen “Test” durumundayken Google oturumu 7 günde bir sona erer; kalıcı olsun istersen Hedef kitle / Audience sayfasında Uygulamayı yayınla / Publish app’e bas.',
           finish: true,
         },
       ],
@@ -119,6 +119,24 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
         {
           title: '4 · Bağlantıyı test et',
           text: 'Bağlantıyı test et’e bas. Charles, Abacus AI’a kısa bir deneme mesajı gönderir; yanıt gelirse Abacus AI · Otomatik model listesine eklenir.',
+          finish: true,
+        },
+      ],
+      // v0.9.8: EVREN, an OpenAI-compatible API reached with the user's own API key
+      'evren-login': [
+        {
+          title: '1 · EVREN’e giriş yap',
+          text: 'Tarayıcında EVREN’in sayfası açıldı. Hesabınla giriş yap; hesabın yoksa sayfadaki adımlarla oluştur. Sayfa açılmadıysa aşağıdaki düğmeyle yeniden aç.',
+          page: 0,
+        },
+        {
+          title: '2 · API anahtarı oluştur',
+          text: 'EVREN hesabında API anahtarları bölümünü aç, yeni bir anahtar oluştur ve kopyala. Anahtar bir şifre gibidir; kimseyle paylaşma, ekran görüntüsünde gösterme.',
+          page: 0,
+        },
+        {
+          title: '3 · Anahtarı yapıştır ve test et',
+          text: 'Anahtarı aşağıya yapıştırıp Kaydet ve test et’e bas. Anahtar Windows şifrelemesiyle yalnızca bu bilgisayarda (%APPDATA%\\Charles) saklanır; bağlantı kurulunca EVREN modelleri model listesine eklenir.',
           finish: true,
         },
       ],
@@ -344,6 +362,57 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
         }
       };
       bubble.append(check);
+    } else if (current.finish && id === 'evren-login') {
+      const input = document.createElement('input');
+      input.type = 'password';
+      input.autocomplete = 'off';
+      input.placeholder = 'EVREN API anahtarı';
+      input.setAttribute('aria-label', 'EVREN API anahtarı');
+      const save = document.createElement('button');
+      save.className = 'primary';
+      save.textContent = 'Kaydet ve test et';
+      const terms = document.createElement('button');
+      terms.textContent = 'Kullanım şartlarını kabul et';
+      terms.hidden = true;
+      const test = async () => {
+        p.textContent = 'EVREN bağlantısı test ediliyor…';
+        const r = await api.providersEvrenTest();
+        terms.hidden = !r?.terms;
+        p.textContent = r?.ok
+          ? 'Bağlandı. EVREN modelleri model listesinde. Kurulumu bitir düğmesine basabilirsin.'
+          : r?.terms
+            ? 'EVREN kullanım şartlarının kabul edilmesini istiyor. Şartları Ayarlar → AI Modelleri → EVREN → Kullanım şartları’nda okuyabilirsin; kabul edersen aşağıdaki düğmeye bas.'
+            : String(r?.message || 'EVREN bağlantısı kurulamadı.');
+        await saved(null);
+      };
+      save.onclick = async () => {
+        save.disabled = true;
+        try {
+          const value = input.value.trim();
+          if (value) {
+            await api.evrenKeySave(value);
+            input.value = '';
+          } else if (!(await api.providersStatus())?.find?.((r: any) => r.id === 'evren')?.configured)
+            throw Error('Önce EVREN API anahtarını yapıştır.');
+          await test();
+        } catch (e) {
+          p.textContent = (e as Error).message;
+        } finally {
+          save.disabled = false;
+        }
+      };
+      terms.onclick = async () => {
+        terms.disabled = true;
+        try {
+          await api.evrenTermsAccept();
+          await test();
+        } catch (e) {
+          p.textContent = (e as Error).message;
+        } finally {
+          terms.disabled = false;
+        }
+      };
+      bubble.append(input, save, terms);
     } else if (current.finish && id === 'gemini') {
       const input = document.createElement('input');
       input.type = 'password';
@@ -387,8 +456,21 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
       bubble.append(input, label, save);
     } else if (current.finish) {
       if (id === 'google') {
+        // v0.9.9: Google no longer offers the client JSON for download: the ID and the secret
+        // are pasted (an old JSON file can still be picked).
+        const idInput = document.createElement('input');
+        idInput.id = 'guide-client-id';
+        idInput.placeholder = 'İstemci kimliği · …apps.googleusercontent.com';
+        idInput.setAttribute('aria-label', 'Google istemci kimliği');
+        idInput.autocomplete = 'off';
+        const secretInput = document.createElement('input');
+        secretInput.id = 'guide-client-secret';
+        secretInput.type = 'password';
+        secretInput.placeholder = 'İstemci gizli anahtarı · GOCSPX-…';
+        secretInput.setAttribute('aria-label', 'Google istemci gizli anahtarı');
+        secretInput.autocomplete = 'off';
         const load = document.createElement('button');
-        load.textContent = 'Google JSON dosyasını seç';
+        load.textContent = 'Eski JSON dosyasını seç';
         load.onclick = async () => {
           try {
             const v = await api.pluginsImportGoogle();
@@ -400,7 +482,7 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
             p.textContent = (e as Error).message;
           }
         };
-        bubble.append(load);
+        bubble.append(idInput, secretInput, load);
       } else {
         const input = document.createElement('input');
         input.id = 'guide-client-id';
@@ -409,10 +491,22 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
         bubble.append(input);
       }
       const login = document.createElement('button');
-      login.textContent = id === 'google' ? 'Google ile giriş yap' : 'Microsoft ile giriş yap';
+      login.textContent = id === 'google' ? 'Kaydet ve Google ile giriş yap' : 'Microsoft ile giriş yap';
+      login.className = 'primary';
       login.onclick = async () => {
         login.disabled = true;
         try {
+          if (id === 'google') {
+            const clientId = (document.getElementById('guide-client-id') as HTMLInputElement).value.trim();
+            const secret = (document.getElementById('guide-client-secret') as HTMLInputElement).value.trim();
+            if (clientId || secret) {
+              if (!/^[\w-]+\.apps\.googleusercontent\.com$/.test(clientId))
+                throw Error('İstemci kimliği “….apps.googleusercontent.com” ile biter. Client ID değerini kopyala (e-posta veya proje kimliği değil).');
+              if (!secret || /\s/.test(secret) || secret.length < 10)
+                throw Error('İstemci gizli anahtarını da yapıştır (genellikle GOCSPX- ile başlar). Kaybettiysan 8. adımdaki Add secret ile yenisini oluştur.');
+              saved(await api.pluginsConfigure(id, { clientId, secret }));
+            }
+          }
           if (id === 'microsoft')
             saved(
               await api.pluginsConfigure(id, {

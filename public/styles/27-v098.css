@@ -1,0 +1,119 @@
+/* v0.9.8 — app window on narrow sizes, window dragging fallback, EVREN card. */
+
+/* ── App window: the chat never runs out of the window ───────────────────────────
+   Without a column template the chat view's single column was sized to its widest content
+   (a wide table, a formula, a long code line): on a narrow window the messages and the
+   message box were cut off on the right. */
+.ws-chat-view:not(.with-panel) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.ws-chat-view.with-panel {
+  grid-template-columns: minmax(0, 1fr) min(var(--panel-w, 520px), 48%);
+}
+.ws-chat-view > *,
+body.workspace .ws-chat-body #feed,
+body.workspace .ws-chat-body .conversation,
+body.workspace .ws-chat-body > .content {
+  min-width: 0;
+}
+body.workspace .ws-chat-body #feed table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+body.workspace .ws-chat-body #feed .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+/* the message box keeps all its buttons; the model name gives way first */
+body.workspace .ws-chat-body #composer-bar {
+  min-width: 0;
+}
+body.workspace .ws-chat-body #composer-bar .model-picker,
+body.workspace .ws-chat-body #composer-bar .effort-picker {
+  min-width: 0;
+  flex-shrink: 1;
+}
+body.workspace .ws-chat-body #composer-bar #model-button {
+  min-width: 0;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* narrower windows: a slimmer left column, then none (the sidebar button brings it back) */
+@media (max-width: 1100px) {
+  .ws-body {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+  body.workspace .ws-chat-body #feed {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+  body.workspace .ws-chat-body #composer,
+  body.workspace .ws-chat-body #requests,
+  body.workspace .ws-chat-body #service-pills,
+  body.workspace .ws-chat-body #diff-box {
+    width: calc(100% - 28px);
+  }
+}
+@media (max-width: 900px) {
+  #workspace:not(.side-shown) .ws-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #workspace:not(.side-shown) .ws-side {
+    display: none;
+  }
+  #workspace.side-shown .ws-body {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+}
+
+/* ── Settings → AI Modelleri → EVREN: the same layout as the other accounts ────── */
+#settings-panel .evren-card details {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--sb-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.015);
+}
+#settings-panel .evren-card details[open] {
+  padding-bottom: 12px;
+}
+#settings-panel .evren-card summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--sb-muted);
+}
+#settings-panel .evren-card details input[type='password'] {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 6px 0 8px;
+}
+/* the EVREN step of "Charles ile kur": key box and buttons under the text */
+#plugin-guide-bubble input[type='password'] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Model menu: the model list wears the same surface as the provider list ─────────
+   (it was a flat grey #111113 next to the provider panel's own colour) */
+#model-submenu {
+  border: 1px solid #ffffff16;
+  border-radius: 15px;
+  background: var(--panel-surface, #1a1a1ef5);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 24px #0004;
+}
+#composer #model-submenu button:hover,
+#composer #model-submenu button:focus {
+  background: #ffffff0d;
+  color: #e6e7eb;
+}
+#composer #model-menu button[data-provider]:hover,
+#composer #model-menu button[data-provider]:focus {
+  background: #ffffff0d;
+  color: #e6e7eb;
+  outline: none;
+}

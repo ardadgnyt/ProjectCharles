@@ -233,6 +233,7 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
       last = '';
       await sync();
     },
+    (gid) => guide(gid),
   );
   cardTail.after(evren.section);
   cardTail = evren.section;
