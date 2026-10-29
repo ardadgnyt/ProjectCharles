@@ -38,31 +38,16 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 ---
 
-## v0.9.9 Beta · Safer mail, steadier app window / Daha güvenli mail, daha sağlam uygulama penceresi
+## What’s new · Yenilikler
 
-Mail text that Charles reads for you is treated strictly as data: it is fenced off for the AI, cleaned of fake tags and invisible characters, and the turn that carries it runs without tools, so a mail written like a prompt cannot make Charles run commands, send messages or open pages. The app window keeps the chat and its message box at every size and when the island changes view, you can scroll up while an answer is being written, long chats can be read back to the first message, and the Download tools ship with Charles again.
+| Version | What’s new | Yenilikler |
+| --- | --- | --- |
+| **v0.9.9** | Mail can’t steer Charles (prompt-injection guard) · app window fixes · Download tools included | Maille Charles yönlendirilemiyor (komut enjeksiyonu koruması) · uygulama penceresi düzeltmeleri · İndirme araçları pakette |
+| **v0.9.8** | No third hand · props change one at a time · movable app window · EVREN setup · Claude models by version | Üçüncü el yok · eşyalar sırayla değişiyor · taşınabilen pencere · EVREN kurulumu · sürümüyle Claude modelleri |
+| **v0.9.7** | Quick Share network permission fixed · menu arrows point the right way | Quick Share ağ izni düzeldi · menü okları doğru yöne bakıyor |
+| **v0.9.6** | Effort levels · EVREN account · Quick Share visible without opening the panel | Efor düzeyleri · EVREN hesabı · Quick Share panel açmadan görünür |
 
-Charles’ın senin için okuduğu mailler yalnızca veri olarak ele alınıyor: AI’ya ayrı bir blok içinde gidiyor, sahte etiketler ve görünmez karakterler temizleniyor ve bu mesaj araçsız çalışıyor; komut gibi yazılmış bir mail Charles’a komut çalıştıramaz, mesaj gönderttiremez, sayfa açtıramaz. Uygulama penceresi her boyutta sohbeti ve mesaj kutusunu gösteriyor, yanıt yazılırken yukarı kaydırabiliyorsun, uzun sohbetler ilk mesaja kadar okunabiliyor ve İndirme araçları yeniden Charles’la geliyor.
-
-## v0.9.8 Beta · One pair of hands, a movable app window / Tek çift el, taşınabilen uygulama penceresi
-
-Charles no longer holds his flag while his paws are on the laptop, the keyboard or a sheet of paper, and a new work prop waits until the previous one has been put away. The app window moves from its title bar and the empty margins even when Windows does not take the drag, and on a narrow window the chat and the message box stay inside it. The EVREN card looks like the other accounts and has **Charles ile kur**; Claude's models are listed with their version (Opus 5.5, Opus 5…).
-
-Charles bilgisayar, klavye ya da kâğıt tutarken artık bir de bayrak tutmuyor (üçüncü el yok); yeni bir iş eşyası, öncekini bıraktıktan sonra geliyor. Uygulama penceresi başlık çubuğundan ve kartların arasındaki boşluktan sürüklenebiliyor; dar pencerede sohbet ve mesaj kutusu kesilmiyor. EVREN kartı diğer hesaplarla aynı düzende ve **Charles ile kur** ile geliyor; Claude modelleri sürümleriyle listeleniyor (Opus 5.5, Opus 5…).
-
-## v0.9.7 Beta · Network permission & menu arrows / Ağ izni ve menü okları
-
-**Ağ izni ver** in the share panel works again when Charles is installed in a folder with spaces in its name; the hint goes away once Windows allows Quick Share, and it says what is still wrong otherwise (a blocking rule, or a Wi-Fi set to *Public*). The model and effort buttons' arrows point up, where their menus open, and the provider rows point to the side the model list opens on.
-
-Paylaşım panelindeki **Ağ izni ver**, Charles adında boşluk olan bir klasöre kuruluyken de çalışıyor; Windows Quick Share'e izin verince uyarı kayboluyor, vermezse neyin eksik olduğunu (engelleyen kural ya da *Ortak* ayarlı Wi-Fi) söylüyor. Model ve efor düğmelerinin okları menünün açıldığı yöne (yukarı), sağlayıcı satırlarının okları da model listesinin açıldığı tarafa bakıyor.
-
-## v0.9.6 Beta · Effort levels, EVREN & visible sharing / Efor düzeyleri, EVREN ve görünür paylaşım
-
-An **effort** picker sits next to the model picker and lists only the levels the chosen model really offers (Codex's own list for GPT; Claude, Antigravity, Cursor and EVREN in their own spelling); models without levels stay on **Otomatik**. **EVREN** joins the AI accounts with an encrypted API key and every chat model the account lists. Quick Share now announces the PC by itself every few seconds on real network adapters only, so the phone finds it without opening the share panel, and it announces again after sleep. Empty chats are no longer saved, and the attach (+) button reacts on its icon again.
-
-Model seçicinin yanında, seçili modelin gerçekten sunduğu düzeyleri gösteren bir **efor** seçici var (GPT'de Codex'in kendi listesi; Claude, Antigravity, Cursor ve EVREN kendi yazımıyla); düzeyi olmayan modeller **Otomatik**'te kalır. **EVREN**, şifreli API anahtarı ve hesabın listelediği tüm sohbet modelleriyle AI hesaplarına eklendi. Quick Share bilgisayarı birkaç saniyede bir kendiliğinden ve yalnızca gerçek ağ bağdaştırıcılarında duyurur; telefon, paylaşım paneli açılmadan bilgisayarı bulur, uykudan sonra duyuru yenilenir. Boş sohbetler artık kaydedilmez; ek ekleme (+) tuşu simgesine tıklanınca yeniden çalışır.
-
-[File sharing / Dosya paylaşımı](docs/SHARING.md)
+Details · Ayrıntılar: [CHANGELOG](CHANGELOG.md) · [File sharing / Dosya paylaşımı](docs/SHARING.md)
 
 ### Convert & share / Dönüştür ve paylaş
 
