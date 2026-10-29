@@ -106,8 +106,9 @@ test('abacus: every provider list and model check knows it', () => {
     assert.doesNotMatch(s, /\^\(gemini\|claude\|cursor\):/, f);
   }
   assert.equal(require('../app/ai/ask-once.cjs').backgroundModel('abacus'), 'abacus:auto');
-  assert.deepEqual(require('../app/ai/providers.cjs').PROVIDERS, ['gemini', 'claude', 'cursor', 'abacus']);
-  assert.match(read('app/main.cjs'), /'gpt', 'gemini', 'claude', 'cursor', 'abacus'/);
+  assert.equal(require('../app/ai/ask-once.cjs').backgroundModel('evren'), 'evren:auto');
+  assert.deepEqual(require('../app/ai/providers.cjs').PROVIDERS, ['gemini', 'claude', 'cursor', 'abacus', 'evren']);
+  assert.match(read('app/main.cjs'), /'gpt', 'gemini', 'claude', 'cursor', 'abacus', 'evren'/);
   assert.match(read('src/settings/abacus-card.ts'), /abacus\.ai\/help\/abacusai-desktop\/cli-installation/);
   // the same buttons, in the same order, as the other accounts (+ the setup page link)
   assert.match(read('src/settings/abacus-card.ts'), /actions\.append\(setup, login, test, docs\)/);
@@ -390,7 +391,7 @@ test('updater: swap script never names user data', () => {
 });
 
 // ── release:pack ─────────────────────────────────────────────────────────────
-test('release:pack makes charles-update-<version>.zip and a matching .sha256', { skip: !fs.existsSync(path.join(ROOT, 'dist', 'renderer.js')) && 'run npm run build first' }, () => {
+test('release:pack makes charles-update-<version>.zip and a matching .sha256', { skip: (!fs.existsSync(path.join(ROOT, 'dist', 'renderer.js')) && 'run npm run build first') || (!require('node:fs').existsSync(require('node:path').join(__dirname, '../tools/quickshare/python/python.exe')) && 'Quick Share Windows çalışma ortamı yok (python scripts/setup-quickshare.py)') }, () => {
   const { pack } = require('../scripts/release-pack.cjs');
   const out = tmp();
   const r = pack({ outDir: out });

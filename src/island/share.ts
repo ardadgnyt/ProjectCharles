@@ -27,6 +27,8 @@ export function shareSheet(d: any) {
   let isOpen = false;
   let selectedPeerId = "";
   let modeBusy = false;
+  let firewall: any = null;
+  let firewallBusy = false;
 
   const root = el("div", "share-sheet");
   root.dataset.kind = "share";
@@ -126,6 +128,27 @@ export function shareSheet(d: any) {
     const modeTitle = el("span", "share-mode-title", modeBusy || state.receiveStarting ? "Dosya alımı açılıyor…" : "Dosya alımı");
     const modeBox = el("div", "share-mode-box", modeTitle, modeSeg);
     filesCol.append(modeBox);
+    // v0.9.6: phones cannot see the PC while Windows Firewall keeps the Quick Share runtime out
+    if (firewall && firewall.ok === false && state.receiveMode !== "off") {
+      const why =
+        firewall.block > 0
+          ? "Windows güvenlik duvarı Quick Share'i engelliyor; telefonlar bu bilgisayarı göremeyebilir."
+          : "Telefonların bu bilgisayarı her zaman görebilmesi için Windows ağ izni gerekiyor.";
+      const allow = btn("share-firewall-allow", firewallBusy ? "Bekleniyor…" : "Ağ izni ver", () => {
+        if (firewallBusy) return;
+        firewallBusy = true;
+        paint();
+        void d
+          .attempt(async () => {
+            firewall = await api.shareFirewall("allow");
+          })
+          .finally(() => {
+            firewallBusy = false;
+            paint();
+          });
+      });
+      filesCol.append(el("div", "share-firewall", el("small", "", why), allow));
+    }
 
     // 2. Center Column: Offer / Active Transfer / Nearby Devices
     const centerCol = el("div", "share-col share-center");
@@ -312,6 +335,12 @@ export function shareSheet(d: any) {
     }
     paint();
     void Promise.resolve(api.shareDiscover?.()).then(applyState).catch(() => {});
+    void Promise.resolve(api.shareFirewall?.("check"))
+      .then((r: any) => {
+        firewall = r;
+        paint();
+      })
+      .catch(() => {});
   }
 
   api.onShareState?.((st: any) => applyState(st));

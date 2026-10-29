@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import errno
+import ipaddress
 import logging
+import re
 import socket
 import struct
 import time
@@ -24,8 +27,98 @@ def default_address() -> str:
         try:
             s.connect(("192.0.2.1", 9))  # TEST-NET-1, never actually contacted
             return s.getsockname()[0]
-        except OSError:
+        except OSError as e:
+            # Never fail silently: publishing on loopback makes the machine
+            # invisible to every phone, and the reason must reach the log.
+            log.warning("default route lookup failed (%s); treating as loopback", e)
             return "127.0.0.1"
+
+
+# Charles: adapters a phone on the home network can never reach. Announcing their
+# addresses gives the phone an A record it cannot connect to; it then hangs on
+# "Bağlanıyor…" until it happens to try the real one.
+VIRTUAL_ADAPTER = re.compile(
+    r"virtualbox|vmware|hyper-v|vethernet|\bwsl\b|docker|loopback|bluetooth|"
+    r"\btap\b|tap-windows|wintun|wireguard|tailscale|zerotier|hamachi|npcap|"
+    r"teredo|isatap|pseudo|vpn|virtual adapter|wi-fi direct", re.IGNORECASE)
+
+
+def interface_networks() -> list[tuple[str, int, str]]:
+    """(address, prefix length, adapter name) for every usable IPv4 address."""
+    found: list[tuple[str, int, str]] = []
+    try:
+        import ifaddr
+        for adapter in ifaddr.get_adapters():
+            name = str(adapter.nice_name or adapter.name or "")
+            for ip in adapter.ips:
+                if not isinstance(ip.ip, str):
+                    continue        # IPv6 entries are tuples
+                if ip.ip.startswith("127.") or ip.ip.startswith("169.254."):
+                    continue
+                found.append((ip.ip, int(ip.network_prefix or 24), name))
+    except Exception as e:      # ifaddr missing or the OS refused: fall back below
+        log.warning("adapter enumeration failed (%s)", type(e).__name__)
+    return found
+
+
+def local_addresses() -> list[str]:
+    """The IPv4 addresses to announce on, the default route's first.
+
+    A Windows box often has several interfaces up at once (real LAN, VirtualBox
+    host-only, Hyper-V, a VPN). Real adapters are all announced (a phone may be
+    on any of them); virtual ones are skipped unless nothing else exists.
+    """
+    networks = interface_networks()
+    real = [a for a, _, name in networks if not VIRTUAL_ADAPTER.search(name)]
+    found = list(dict.fromkeys(real or [a for a, _, _ in networks]))
+    if not networks:
+        try:
+            for info in socket.getaddrinfo(socket.gethostname(), None,
+                                           socket.AF_INET, socket.SOCK_DGRAM):
+                address = info[4][0]
+                if not address.startswith(("127.", "169.254.")) and address not in found:
+                    found.append(address)
+        except OSError as e:
+            log.warning("interface enumeration failed (%s)", e)
+    # The default route's address goes first: it is what phones are most likely
+    # to reach and it is used for the outgoing multicast interface.
+    # A virtual default route (a VPN) is not moved forward: phones are not on it.
+    primary = default_address()
+    if primary in found:
+        found.remove(primary)
+        found.insert(0, primary)
+    elif not found and not primary.startswith("127."):
+        found.append(primary)
+    return found
+
+
+_PREFIX_CACHE: dict = {"at": 0.0, "value": {}}
+
+
+def _prefixes() -> dict[str, int]:
+    """Adapter prefix lengths, read at most every 30 s (this runs for every mDNS packet)."""
+    now = time.monotonic()
+    if now - _PREFIX_CACHE["at"] > 30 or not _PREFIX_CACHE["value"]:
+        _PREFIX_CACHE["value"] = {a: p for a, p, _ in interface_networks()}
+        _PREFIX_CACHE["at"] = now
+    return _PREFIX_CACHE["value"]
+
+
+def same_subnet(addresses: list[str], peer: str) -> list[str]:
+    """The addresses on the peer's own subnet (prefix lengths from the adapters)."""
+    prefixes = _prefixes()
+    try:
+        target = ipaddress.IPv4Address(peer)
+    except ValueError:
+        return []
+    out = []
+    for a in addresses:
+        try:
+            if target in ipaddress.IPv4Network(f"{a}/{prefixes.get(a, 24)}", strict=False):
+                out.append(a)
+        except ValueError:
+            continue
+    return out
 
 
 def _zeroconf(addresses: list[str]) -> AsyncZeroconf:
@@ -39,6 +132,7 @@ class MdnsPublisher:
         self._info: AsyncServiceInfo | None = None
         self._unicast: UnicastResponder | None = None
         self._browser: AsyncServiceBrowser | None = None
+        self._announcer: asyncio.Task | None = None
         self.heard: dict[str, float] = {}       # service name -> last seen (monotonic)
 
     async def start(self, endpoint_id: str, port: int, info: frames.EndpointInfo) -> None:
@@ -51,9 +145,34 @@ class MdnsPublisher:
         self._zc = _zeroconf(self.addresses)
         await self._zc.async_register_service(self._info)
         try:
-            self._unicast = await UnicastResponder.start(self._info, self.addresses[0])
+            self._unicast = await UnicastResponder.start(self._info, self.addresses)
         except OSError as e:
             log.warning("unicast mDNS answers unavailable: %s", e)
+        if self._unicast is not None:
+            self._announcer = asyncio.ensure_future(self._announce_forever())
+
+    # Charles: Android's share sheet only lists a receiver whose answer it hears
+    # while the sheet is open. Its own queries back off quickly and on many
+    # Wi-Fi networks (power saving, IGMP snooping, a firewall on the Python
+    # runtime) never reach the PC at all, which is why the PC appeared only after
+    # Charles happened to send multicast itself (opening the share panel). A
+    # short unsolicited announcement every few seconds, one per interface with
+    # only that interface's address, makes the PC show up without any panel.
+    ANNOUNCE_INTERVAL = 4.0
+    REJOIN_EVERY = 15           # announcements (~1 min): refresh group membership
+
+    async def _announce_forever(self) -> None:
+        rounds = 0
+        while True:
+            try:
+                if self._unicast is not None:
+                    if rounds and rounds % self.REJOIN_EVERY == 0:
+                        self._unicast.rejoin()
+                    self._unicast.announce()
+            except Exception as e:      # never let one bad send stop announcing
+                log.warning("periodic mDNS announcement failed (%s)", type(e).__name__)
+            rounds += 1
+            await asyncio.sleep(self.ANNOUNCE_INTERVAL)
 
     def listen(self) -> None:
         """Keep a browser on the long-lived publisher socket. Phones on some
@@ -82,6 +201,10 @@ class MdnsPublisher:
         return [f for f in results if f is not None]
 
     async def stop(self) -> None:
+        if self._announcer is not None:
+            self._announcer.cancel()
+            await asyncio.gather(self._announcer, return_exceptions=True)
+            self._announcer = None
         if self._browser is not None:
             await self._browser.async_cancel()
             self._browser = None
@@ -110,33 +233,105 @@ class UnicastResponder(asyncio.DatagramProtocol):
 
     MIN_INTERVAL = 1.0      # per querier
 
-    def __init__(self, info: AsyncServiceInfo, address: str):
+    def __init__(self, info: AsyncServiceInfo, addresses: list[str]):
         self.info = info
-        self.address = address
+        self.addresses = list(addresses)
+        self.address = self.addresses[0]
         self.transport: asyncio.DatagramTransport | None = None
+        self.sock: socket.socket | None = None
         self._last: dict[str, float] = {}
         self._announced = 0.0
+        self.answered = 0           # Charles: phone queries answered (for the health log)
+        self.heard = 0              # Charles: any mDNS packet that reached this socket
+        # Charles: hosts on our own subnet that recently spoke mDNS (phones ask for Chromecast,
+        # AirPlay, … all the time). Many access points do not pass multicast between Wi-Fi
+        # clients reliably; a copy of the announcement sent straight to each of them (unicast
+        # to port 5353) still lands in the phone's mDNS cache.
+        self.neighbors: dict[str, float] = {}
+        self.unicast_sent = 0
+        self.question_types: dict[str, int] = {}
 
     @classmethod
-    async def start(cls, info: AsyncServiceInfo, address: str) -> "UnicastResponder":
+    async def start(cls, info: AsyncServiceInfo,
+                    addresses: "list[str] | str") -> "UnicastResponder":
+        if isinstance(addresses, str):
+            addresses = [addresses]
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if hasattr(socket, "SO_REUSEPORT"):
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         sock.bind(("", 5353))           # shared with zeroconf, both get the queries
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
-                        struct.pack("4s4s", socket.inet_aton("224.0.0.251"),
-                                    socket.inet_aton(address)))
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(address))
+        # Join the group on every interface we announce on. Windows only hands
+        # multicast to a socket that joined that interface's group, so joining a
+        # single one is why a machine with several adapters appears on some
+        # scans and not others.
+        joined: list[str] = []
+        for address in addresses:
+            try:
+                sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
+                                struct.pack("4s4s", socket.inet_aton("224.0.0.251"),
+                                            socket.inet_aton(address)))
+                joined.append(address)
+            except OSError as e:
+                log.warning("mDNS group join failed on %s: %s", address, e)
+        if not joined:
+            raise OSError(errno.EADDRNOTAVAIL, "no interface accepted the mDNS group")
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(joined[0]))
         # RFC 6762 §11: responses, unicast ones too, go out with IP TTL 255;
         # receivers may drop others as possibly off-link.
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, 255)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 255)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 0)
         sock.setblocking(False)
-        responder = cls(info, address)
+        responder = cls(info, joined)
+        responder.sock = sock
         await asyncio.get_running_loop().create_datagram_endpoint(lambda: responder, sock=sock)
         return responder
+
+    def _membership(self, option: int, address: str) -> None:
+        self.sock.setsockopt(socket.IPPROTO_IP, option,
+                             struct.pack("4s4s", socket.inet_aton("224.0.0.251"),
+                                         socket.inet_aton(address)))
+
+    def rejoin(self) -> None:
+        """Join the group again on every interface. Windows drops the membership
+        when Wi-Fi reconnects (sleep, roaming) and never restores it, so after a
+        while the PC stops hearing phones although nothing looks broken."""
+        if self.sock is None:
+            return
+        for address in self.addresses:
+            with _suppress_os():
+                self._membership(socket.IP_DROP_MEMBERSHIP, address)
+            with _suppress_os():
+                self._membership(socket.IP_ADD_MEMBERSHIP, address)
+
+    def announce(self) -> None:
+        """One unsolicited answer per interface, carrying only its own address."""
+        if self.transport is None or self.sock is None:
+            return
+        for address in self.addresses:
+            try:
+                self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF,
+                                     socket.inet_aton(address))
+                for chunk in self.response(only=[address]):
+                    self.transport.sendto(chunk, ("224.0.0.251", 5353))
+            except OSError as e:
+                log.debug("announcement on %s failed: %s", address, e)
+        with _suppress_os():
+            self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF,
+                                 socket.inet_aton(self.addresses[0]))
+        # the same answer, straight to every recent mDNS neighbour on our subnet
+        now = time.monotonic()
+        for ip, seen in list(self.neighbors.items()):
+            if now - seen > self.NEIGHBOR_TTL:
+                self.neighbors.pop(ip, None)
+                continue
+            try:
+                for chunk in self.response(only=same_subnet(self.addresses, ip) or None):
+                    self.transport.sendto(chunk, (ip, 5353))
+                self.unicast_sent += 1
+            except OSError as e:
+                log.debug("unicast announcement to a neighbour failed: %s", e)
 
     def connection_made(self, transport) -> None:
         self.transport = transport
@@ -156,54 +351,110 @@ class UnicastResponder(asyncio.DatagramProtocol):
         ours = {self.info.type.lower(), self.info.name.lower()}
         return msg if any(q.name.lower() in ours for q in msg.questions) else None
 
-    def response(self, legacy: DNSIncoming | None = None) -> bytes:
+    def response(self, legacy: DNSIncoming | None = None,
+                 only: list[str] | None = None) -> list[bytes]:
         """Our records. `legacy`: answer a one-shot query from a port other
         than 5353 (RFC 6762 §6.7: same id, question repeated, TTL <= 10 s).
         mDNS gateways in routers ask this way on behalf of a phone and drop
-        answers that don't match."""
+        answers that don't match. `only`: the A records to include (Charles: the
+        querier's own subnet, so a phone is never handed an unreachable address)."""
+        info = self.info
+        addresses = [a for a in info.addresses_by_version(IPVersion.V4Only)
+                     if only is None or socket.inet_ntoa(a) in only] or \
+            info.addresses_by_version(IPVersion.V4Only)
         if legacy is None:
             out = DNSOutgoing(const._FLAGS_QR_RESPONSE | const._FLAGS_AA)
-            records = [self.info.dns_pointer(), self.info.dns_service(), self.info.dns_text(),
-                       *self.info.dns_addresses(version=IPVersion.V4Only)]
+            records = [info.dns_pointer(), info.dns_service(), info.dns_text(),
+                       *(DNSAddress(info.server, const._TYPE_A, const._CLASS_IN | const._CLASS_UNIQUE,
+                                    const._DNS_HOST_TTL, a) for a in addresses)]
         else:
             out = DNSOutgoing(const._FLAGS_QR_RESPONSE | const._FLAGS_AA, False, legacy.id)
             for q in legacy.questions:
                 out.add_question(q)
             ttl = 10
-            info = self.info
             records = [DNSPointer(info.type, const._TYPE_PTR, const._CLASS_IN, ttl, info.name),
                        DNSService(info.name, const._TYPE_SRV, const._CLASS_IN, ttl, 0, 0,
                                   info.port, info.server),
                        DNSText(info.name, const._TYPE_TXT, const._CLASS_IN, ttl, info.text),
                        *(DNSAddress(info.server, const._TYPE_A, const._CLASS_IN, ttl, a)
-                         for a in info.addresses_by_version(IPVersion.V4Only))]
+                         for a in addresses)]
         for record in records:
             out.add_answer_at_time(record, 0)
-        return out.packets()[0]
+        # DNSOutgoing.packets() chunks at _MAX_MSG_TYPICAL. Returning only the
+        # first chunk silently drops SRV/TXT/A whenever the answer set is large,
+        # and the phone then resolves nothing: it shows the PC one scan and not
+        # the next. Hand every chunk to the caller.
+        return list(out.packets())
+
+    NEIGHBOR_TTL = 600.0
+    MAX_NEIGHBORS = 64
+
+    def neighbor(self, ip: str) -> None:
+        """Remember a host on our own subnet that speaks mDNS (see `neighbors`)."""
+        if ip in self.addresses or not same_subnet(self.addresses, ip):
+            return
+        self.neighbors[ip] = time.monotonic()
+        if len(self.neighbors) > self.MAX_NEIGHBORS:
+            oldest = min(self.neighbors, key=self.neighbors.get)
+            self.neighbors.pop(oldest, None)
+
+    def _tally(self, data: bytes) -> None:
+        """Service types asked about (diagnostics only: type names, never host names)."""
+        try:
+            msg = DNSIncoming(data)
+        except Exception:
+            return
+        if not msg.is_query():
+            return
+        for q in msg.questions:
+            name = q.name.lower()
+            if name.startswith("_") and len(self.question_types) < 40:
+                key = name[:48]
+                self.question_types[key] = self.question_types.get(key, 0) + 1
 
     def datagram_received(self, data: bytes, addr) -> None:
         ip, port = addr[0], addr[1]
-        if ip == self.address or self.transport is None:
+        self.heard += 1
+        if ip in self.addresses or self.transport is None:
             return
+        self.neighbor(ip)
+        self._tally(data)
         msg = self.query(data)
         if msg is None:
             return
+        only = same_subnet(self.addresses, ip)
+        # Charles (RFC 6762 §11): answer only queries that come from our own network. A spoofed
+        # query from elsewhere must not make this PC send packets to an arbitrary address.
+        if not only:
+            return
+        self.answered += 1
         if port != 5353:
             # One-shot ("legacy unicast") query, e.g. a router's mDNS gateway
             # asking for a phone: always answer, on the asking port.
-            self.transport.sendto(self.response(legacy=msg), (ip, port))
+            for chunk in self.response(legacy=msg, only=only):
+                self.transport.sendto(chunk, (ip, port))
         now = time.monotonic()
         if now - self._last.get(ip, 0) < self.MIN_INTERVAL:
             return
         self._last[ip] = now
-        packet = self.response()
-        self.transport.sendto(packet, (ip, 5353))
+        packets = self.response(only=only)
+        for chunk in packets:
+            self.transport.sendto(chunk, (ip, 5353))
         # Like rquickshare's register_resend: Android may miss a service that
         # was announced before its discovery started, so announce again now.
         if now - self._announced > self.MIN_INTERVAL:
             self._announced = now
-            self.transport.sendto(packet, ("224.0.0.251", 5353))
-        log.debug("unicast mDNS answer to %s", ip)
+            for chunk in packets:
+                self.transport.sendto(chunk, ("224.0.0.251", 5353))
+        log.debug("unicast mDNS answer to %s (%d packets)", ip, len(packets))
+
+
+class _suppress_os:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, kind, value, tb):
+        return kind is not None and issubclass(kind, OSError)
 
 
 @dataclass

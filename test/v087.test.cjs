@@ -72,8 +72,8 @@ test('ai.chat images: own data folder only, png/jpg/jpeg/webp, absolute paths to
   await assert.rejects(host.call('m', 'ai.chat', { messages: msg, images: Array(11).fill('b.JPEG') }), /en fazla 10/);
   // a Cursor / Abacus model: clear error, nothing is sent
   const before = calls.length;
-  await assert.rejects(host.call('m', 'ai.chat', { messages: msg, model: 'cursor:auto', images: ['b.JPEG'] }), /yalnızca GPT, Claude ve Gemini/);
-  await assert.rejects(host.call('m', 'ai.chat', { messages: msg, model: 'abacus:auto', images: ['b.JPEG'] }), /yalnızca GPT, Claude ve Gemini/);
+  await assert.rejects(host.call('m', 'ai.chat', { messages: msg, model: 'cursor:auto', images: ['b.JPEG'] }), /yalnızca GPT, Claude ve Antigravity/);
+  await assert.rejects(host.call('m', 'ai.chat', { messages: msg, model: 'abacus:auto', images: ['b.JPEG'] }), /yalnızca GPT, Claude ve Antigravity/);
   assert.equal(calls.length, before);
   // the existing "ai" permission is enough, and still required
   await assert.rejects(host.call('noai', 'ai.chat', { messages: msg, images: ['b.JPEG'] }), /“ai” izni yok/);
@@ -167,7 +167,7 @@ test('subscription attachments: Claude and Gemini take images, Cursor and Abacus
     assert.equal(r.texts.length, 1);
     assert.equal(r.images.length, 1);
   }
-  for (const p of ['cursor', 'abacus']) assert.throws(() => images.splitAttachments(p, att), /Görseller şu an yalnızca GPT, Claude ve Gemini ile çalışıyor\./);
+  for (const p of ['cursor', 'abacus']) assert.throws(() => images.splitAttachments(p, att), /Görseller şu an yalnızca GPT, Claude ve Antigravity ile çalışıyor\./);
   // text alone still works everywhere
   assert.deepEqual(images.splitAttachments('cursor', [att[0]]).images, []);
   assert.throws(() => images.splitAttachments('claude', [{ type: 'localImage', path: path.join(dir, 'a.gif') }]), /PNG, JPG ya da WebP/);

@@ -7,7 +7,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const ACCOUNT_FILES = ['plugins.enc.json', 'gemini-live.enc.json', 'services.enc.json'];
+const ACCOUNT_FILES = ['plugins.enc.json', 'gemini-live.enc.json', 'services.enc.json', 'evren.enc.json'];
 const ACCOUNT_DIRS = ['providers'];
 const DATA_FILES = [
   'personal.json',

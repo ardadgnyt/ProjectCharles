@@ -107,7 +107,9 @@ test('the island and the cards stay off the taskbar; only the app window has a b
   assert.match(main, /appWin\.hide\(\);\s*appWin\.setSkipTaskbar\(true\);/);
   assert.match(main, /clearInterval\(taskbarTimer\);/);
   const mb = read('app/plugins/mail-bubble.cjs');
-  assert.match(mb, /w\.setFocusable\(!!args\?\.on\);[\s\S]{0,160}w\.setSkipTaskbar\(true\);/);
+  // v0.9.2: the card window stays focusable (toggling it broke clicks on Windows); the focus
+  // action still keeps it off the taskbar
+  assert.match(mb, /if \(action === 'focus'\) \{[\s\S]{0,400}w\.setSkipTaskbar\(true\);/);
   assert.match(mb, /offTaskbar\(\) \{/);
 });
 

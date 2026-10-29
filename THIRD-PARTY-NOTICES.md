@@ -20,12 +20,10 @@ are documented in tools/quickshare/README.md and charles.patch.
 The private Python runtime and cryptography/cffi/protobuf/zeroconf/ifaddr/
 pycparser libraries retain their original license files in that folder.
 
-The Quick Share implementation in app/files/quickshare.cjs and
-app/files/quickshare-channel.cjs adapts protocol handling from
-https://github.com/digitaldanis/multidrop (reference revision 60119f5),
-licensed GPL-3.0-or-later. The JavaScript adaptation and Charles integration
-were modified in October 2026: a persistent encrypted reader, flow control,
-file integrity checks, Windows discovery, lifecycle and UI integration.
+The small mDNS packet helpers in app/files/mdns-wire.cjs come from Charles's
+earlier JavaScript adaptation of https://github.com/digitaldanis/multidrop
+(reference revision 60119f5, GPL-3.0-or-later); the JavaScript Quick Share
+engine itself was removed in v0.9.6 in favour of the vendored backend above.
 Project Charles source code is distributed under GPL-3.0-or-later; see LICENSE.
 The upstream notice is preserved in licenses/multidrop-NOTICES.md. Components
 mentioned there that are not shipped with Charles are not Charles dependencies.

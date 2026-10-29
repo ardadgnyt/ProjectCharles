@@ -21,8 +21,12 @@ function geminiModel(model) {
   if (model === 'auto') return [];
   if (model === 'pro') return ['--model', 'gemini-3.1-pro-high'];
   if (model === 'flash') return ['--model', 'gemini-3.8-flash-medium'];
-  if (/^gemini-[a-z0-9._-]+$/i.test(model || '')) return ['--model', model];
-  throw Error('Geçersiz Gemini modeli. Model listesini yenile.');
+  // v0.9.6: any model the account lists (send() only accepts listed ids); never a flag
+  if (/^[a-z0-9][a-z0-9._-]{1,80}$/i.test(model || '')) return ['--model', model];
+  // v0.9.6: a stored name that is not a Gemini id (an old choice, another provider's alias)
+  // falls back to the account's own default instead of failing the message. Nothing that is
+  // not a well-formed gemini-* id ever reaches the command line.
+  return [];
 }
 
 // Antigravity reads its permissions from <profile>/.gemini/antigravity-cli/settings.json.
@@ -73,13 +77,22 @@ function geminiSettings(access, tools, images = false) {
 // Returns how to launch a provider for one message.
 // v0.8.7: `images` → Claude reads the message as stream-json (with image blocks);
 // `imageDir` → the folder Gemini may read the message's images from.
-function launchPlan({ provider, model, mode, access, projectDir, workspace, images = false, imageDir = null }) {
+// v0.9.6: `effort` is the level the panel chose ('' = Otomatik). Only Claude takes it as a
+// flag — the id-level providers spell it inside the model id, and GPT rides on the Codex
+// thread instead. It is checked here again so no invalid value can become a CLI argument.
+const CLAUDE_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
+function launchPlan({ provider, model, mode, access, projectDir, workspace, images = false, imageDir = null, effort = '' }) {
   const tools = mode === 'project' && !!projectDir;
   const level = ['ask', 'auto', 'full'].includes(access) ? access : 'ask';
   const cwd = tools ? projectDir : workspace;
   const timeoutMs = tools ? 20 * 60 * 1000 : 180000;
   if (provider === 'claude') {
     const cli = ['-p', '--model', model, '--output-format', 'stream-json', '--verbose'];
+    const picked = String(effort || '').trim();
+    if (picked) {
+      if (!CLAUDE_EFFORTS.includes(picked)) throw Error('Bu model için geçerli bir efor seçimi değil.');
+      cli.push('--effort', picked);
+    }
     if (!tools) cli.push('--tools', '');
     else if (level === 'auto' || level === 'full')
       cli.push('--permission-mode', 'acceptEdits', '--allowedTools', EDIT_TOOLS.join(','));

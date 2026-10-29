@@ -37,6 +37,36 @@ function isLoginUrl(value) {
     return false;
   }
 }
+// v0.9.6: GPT's effort levels (Codex `ReasoningEffort`). Each model lists the levels it really
+// takes (model/list → supportedReasoningEfforts); this table only gives the known ones a
+// readable English label. A level Codex adds later keeps its own spelling.
+const GPT_EFFORT_LABELS = {
+  none: 'None',
+  minimal: 'Minimal',
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  xhigh: 'Extra High',
+  max: 'Max',
+  ultra: 'Ultra',
+};
+const GPT_EFFORTS = Object.entries(GPT_EFFORT_LABELS);
+const EFFORT_VALUE = /^[a-z][a-z0-9_-]{0,23}$/i;
+/** The label of one GPT level (its own spelling when it is not a known one). */
+function gptEffortLabel(value) {
+  return GPT_EFFORT_LABELS[String(value || '').toLowerCase()] || String(value || '');
+}
+/**
+ * The one valid spelling of a GPT level ('' = Otomatik), or null when it is not one.
+ * `allowed` is the model's own list (from model/list); without it only a well-formed value passes.
+ */
+function gptEffort(value, allowed = null) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  if (!EFFORT_VALUE.test(text)) return null;
+  if (Array.isArray(allowed) && allowed.length) return allowed.find((v) => v === text) || null;
+  return text;
+}
 function threadParams(cwd, model, mode = 'project', access = 'ask') {
   if (!['ask', 'auto', 'full'].includes(access)) throw Error('Geçersiz erişim modu.');
   const persona =
@@ -86,8 +116,11 @@ function threadParams(cwd, model, mode = 'project', access = 'ask') {
 module.exports = {
   APPROVALS,
   QUESTIONS,
+  GPT_EFFORTS,
   approvalReply,
   questionReply,
   isLoginUrl,
+  gptEffort,
+  gptEffortLabel,
   threadParams,
 };

@@ -68,13 +68,12 @@ class QuickShareBackend(Backend):
             self._watch = asyncio.ensure_future(self._watch_address())
 
     def _mdns_addresses(self) -> list[str] | None:
-        """Configured addresses, else the default route's; None while there is
-        only loopback (publishing there makes us invisible to every phone)."""
+        """Configured addresses, else every usable interface's; None while there
+        is only loopback (publishing there makes us invisible to every phone)."""
         if self.qs.mdns_addresses:
             return list(self.qs.mdns_addresses)
-        from .mdns import default_address
-        address = default_address()
-        return None if address.startswith("127.") else [address]
+        from .mdns import local_addresses
+        return local_addresses() or None
 
     async def _publish(self, addresses: list[str]) -> None:
         from .mdns import MdnsPublisher
@@ -88,12 +87,22 @@ class QuickShareBackend(Backend):
         log.info("Quick Share announced on %s", ", ".join(addresses))
 
     async def _watch_address(self, interval: float = 3.0) -> None:
+        missing = 0
         while True:
             await asyncio.sleep(interval)
             want = self._mdns_addresses()
             have = self._publisher.addresses if self._publisher is not None else None
             if want == have:
+                missing = 0
                 continue
+            if not want:
+                # Transient enumeration failure. Keep the current announcement
+                # instead of vanishing from every phone's list for a few
+                # seconds; only give up after it stays empty.
+                missing += 1
+                if missing < 5:
+                    continue
+            missing = 0
             try:
                 if self._publisher is not None:
                     await self._publisher.stop()
@@ -102,6 +111,19 @@ class QuickShareBackend(Backend):
                     await self._publish(want)
             except Exception as e:      # retried on the next round
                 log.warning("Quick Share announcement on %s failed: %s", want, e)
+
+    async def republish(self) -> bool:
+        """Charles: announce again from fresh sockets (after sleep or a Wi-Fi
+        reconnect Windows may have dropped the old sockets' group membership)."""
+        if not self.started or not self.qs.mdns:
+            return False
+        want = self._mdns_addresses()
+        if self._publisher is not None:
+            await self._publisher.stop()
+            self._publisher = None
+        if want:
+            await self._publish(want)
+        return self._publisher is not None
 
     async def stop(self) -> None:
         if self._watch is not None:

@@ -1221,8 +1221,12 @@ export class BotEngine {
     const outfitState = { presence: this.outfitPresence, morph: this.morph };
     if (head) {
       this.outfitRenderer.draw(x, 'behind', this.outfit, head, outfitState);
-      for (const s of [this.slots.other, this.slots.eyes, this.slots.hand])
-        s.r.draw(x, 'behind', s.shown, head, { presence: s.presence, morph: this.morph });
+      for (const s of [this.slots.other, this.slots.eyes, this.slots.hand]) {
+        // v0.9.6: a held item (the flag) is put away while he waves (see `keep` below)
+        const presence = s === this.slots.hand ? s.presence * Math.max(0, 1 - this.hands) : s.presence;
+        if (presence > 0.01 || s !== this.slots.hand)
+          s.r.draw(x, 'behind', s.shown, head, { presence, morph: this.morph });
+      }
     }
 
     const slime = SHAPE.kind === 'slime' && !this.bodyColor;
@@ -1264,14 +1268,24 @@ export class BotEngine {
     const ownEyes = this.eyewear === 'none';
     const greeting =
       this.hands > 0.01 || (now() >= this.waveStart && this.waveStart > 0 && now() < this.waveUntil);
-    if (this.reading > 0.01) {
+    // v0.9.6: while he waves, whatever he holds (the laptop, the book, the drawing board, a
+    // flag…) is put away and comes back afterwards; with the props in his paws as well he had
+    // three or four hands. `keep` follows the waving hands in and out.
+    const keep = Math.max(0, 1 - this.hands);
+    const reading = this.reading * keep;
+    if (reading > 0.01 && keep > 0.5) {
       if (!ownEyes) this.drawEyes(x, body, R, rx, ry);
-      drawReading(x, performance.now() / 1000, this.reading, ownEyes, !greeting);
+      drawReading(x, performance.now() / 1000, reading, ownEyes, !greeting);
     } else this.drawEyes(x, body, R, rx, ry);
     // Mouth and moustache before the work props (laptop, drawing board…), so those stay in front.
-    if (slime && this.morph < 0.5 && this.reading <= 0.01) this.drawSlimeMouth(x, body, R, rx, ry);
+    if (slime && this.morph < 0.5 && !(reading > 0.01 && keep > 0.5)) this.drawSlimeMouth(x, body, R, rx, ry);
     // the light bulb is drawn after the hat (below), so the hat never covers it
-    drawStation(x, performance.now() / 1000, this.station, false, !greeting);
+    if (keep > 0.01) {
+      x.save();
+      x.globalAlpha *= keep;
+      drawStation(x, performance.now() / 1000, this.station, false, !greeting);
+      x.restore();
+    }
     if (this.sweat > 0.01) this.drawSweat(x, rx, ry, R);
     if (this.morph > 0.05) this.drawMouth(x, body, R);
 
@@ -1285,7 +1299,8 @@ export class BotEngine {
       this.outfitRenderer.draw(x, 'front', this.outfit, head, outfitState);
       // v0.6.3: the flag is held in front of everything, the hat included
       const hand = this.slots.hand;
-      hand.r.draw(x, 'front', hand.shown, head, { presence: hand.presence, morph: this.morph });
+      if (hand.presence * keep > 0.01)
+        hand.r.draw(x, 'front', hand.shown, head, { presence: hand.presence * keep, morph: this.morph });
     }
     if (this.eureka) drawEurekaBulb(x, performance.now() / 1000, this.outfit !== 'none');
 

@@ -41,9 +41,10 @@ const SETTINGS_ICONS: Record<string, string> = {
 
 export function providerName(model: string) {
   if (/^claude:/.test(model)) return 'Claude';
-  if (/^gemini:/.test(model)) return 'Gemini';
+  if (/^gemini:/.test(model)) return 'Antigravity';
   if (/^cursor:/.test(model)) return 'Cursor';
   if (/^abacus:/.test(model)) return 'Abacus AI';
+  if (/^evren:/.test(model)) return 'EVREN';
   return 'Codex';
 }
 

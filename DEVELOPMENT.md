@@ -40,7 +40,7 @@ ProjectCharles v0.9.2 Beta/
 │
 ├── node_modules/             Çalışma bileşenleri (Electron, Codex, Claude Code, …)
 ├── models/                   Yerel Whisper ses modelleri (small + tiny)
-└── tools/                    Antigravity (Gemini), Cursor ve Whisper araçları
+└── tools/                    Antigravity, Cursor ve Whisper araçları
 ```
 
 **Kullanıcı verisi bu klasörde DEĞİLDİR.** Sohbetler, ayarlar, hafıza ve hesap bağlantıları
@@ -64,7 +64,7 @@ Windows'un uygulama veri klasöründe tutulur: `%APPDATA%\Charles`
 2. Arayüz Node.js'e doğrudan erişemez. Her işlem `preload.cjs` içindeki bir fonksiyonla
    `ipcMain.handle` ucuna gider. Uçlar `safeHandler` ile tanımlıdır ve gönderen pencereyi doğrular.
 3. Sohbet: GPT modelleri için `app/ai/agent.cjs` yerel Codex app-server'ı başlatır;
-   Gemini / Claude / Cursor için `app/ai/providers.cjs` ilgili aboneliğin CLI aracını çalıştırır.
+   Antigravity / Claude / Cursor için `app/ai/providers.cjs` ilgili aboneliğin CLI aracını çalıştırır.
 4. Mesaj göndermeden önce `main.cjs` → `safeHandler('send')` bazı istekleri **yerelde** yanıtlar
    (Spotify, uygulama açma, hava durumu, eklenti komutları, hafıza). Diğerleri yapay zekâya gider.
 
@@ -76,7 +76,7 @@ Windows'un uygulama veri klasöründe tutulur: `%APPDATA%\Charles`
 | --- | --- | --- |
 | `app/` (kök) | Giriş noktaları | `main.cjs` (pencereler: şeffaf adacık + Windows çerçeveli uygulama penceresi, ikisinin paylaştığı tek sayfa (WebContentsView); yerleşim, IPC uçları), `preload.cjs` (arayüz köprüsü) |
 | `app/core/` | Temel altyapı | `store.cjs` (güvenli JSON kaydı), `policy.cjs` (Codex izinleri), `layout.cjs` (panel ölçüleri), `preferences.cjs`, `shortcuts.cjs`, `startup.cjs`, `extras.cjs` (görünüm tercihleri + ekler), `desktop-pet.cjs`, `task-mode.cjs`, **`proposals.cjs`** (Charles’ın sohbette düğmeli soruları), **`ask-format.cjs`** (yapay zekâya soru sorma biçimi), **`reset.cjs`** (Ayarlar → Hesap sıfırlama: istek dosyası, açılışta yedeğe taşıma), **`file-preview.cjs`** (v0.7.2 yan panel: izinli klasörlerdeki dosyayı güvenle okuma), **`change-review.cjs`** (v0.7.7 değişiklik inceleme: dosyaların önceki/sonraki hali, güvenli geri al), **`dash-layout.cjs`** (v0.7.7 ana sayfa kart yerleşimi, notlar, hızlı komutlar), **`system-info.cjs`** (v0.7.7 sistem kullanımı ve bilgileri kartları) |
-| `app/ai/` | Yapay zekâ ve sohbetler | `agent.cjs` + `rpc.cjs` (Codex), `providers.cjs` (Gemini/Claude/Cursor), **`provider-tools.cjs`** (proje modunda erişim ayarına göre araç izinleri; izin atlatma modu yok), `sessions.cjs` (sohbet geçmişi), `chat-folders.cjs`, `chat-classifier.cjs`, `ask-once.cjs` (arka plan tek soru), `chat-actions.cjs`, `conversation-tools.cjs` |
+| `app/ai/` | Yapay zekâ ve sohbetler | `agent.cjs` + `rpc.cjs` (Codex), `providers.cjs` (Antigravity/Claude/Cursor), **`provider-tools.cjs`** (proje modunda erişim ayarına göre araç izinleri; izin atlatma modu yok), `sessions.cjs` (sohbet geçmişi), `chat-folders.cjs`, `chat-classifier.cjs`, `ask-once.cjs` (arka plan tek soru), `chat-actions.cjs`, `conversation-tools.cjs` |
 | `app/usage/` | Adacıktaki kalan kullanım | `codex-usage.cjs`, `gemini-usage.cjs`, `claude-usage.cjs`, **`cursor-usage.cjs`** (Cursor CLI oturumuyla plan kullanımı) |
 | `app/modules/` | v0.8.2 modüller | `manifest.cjs` (manifest doğrulama), `package.cjs` (zip/klasör denetimleri), `registry.cjs` (kurulum, güncelleme, kaldırma, `modules.json`), `storage.cjs` (modül verisi, kota), `protocol.cjs` (`charles-module://`, CSP), `host.cjs` (pencere, izinli API, geliştirici modu), `module-preload.cjs` (`window.charlesModule`), `ai-image.cjs` (görsel oluşturma); belge: `docs/MODULES.md`, örnek: `docs/examples/hello-module` |
 | `app/plugins/` | Hesaplar ve bildirimler | `plugins.cjs` (Gmail, Outlook, takvim, Drive, okul e-postası, Home Assistant), `pop3.cjs`, `plugin-commands.cjs`, **`home-climate.cjs`** (v0.7.4 ev içi sıcaklık/nem soruları), **`mail-search.cjs`** (kelime/tarihle mail arama), `oauth-setup.cjs`, **`mail-triage.cjs`** (önem değerlendirme), **`mail-alerts.cjs`** (akış), **`mail-bubble.cjs`** + `bubble-preload.cjs` (adacık baloncukları), **`deadlines.cjs`** (e-postadaki tarihler → hatırlatma + .ics) |
@@ -140,7 +140,7 @@ Stiller sırayla yüklenir; sonraki dosya öncekini ezer. **Yeni görsel değiş
 | `display.json` | Ekran, otomatik kapanma, varsayılan model |
 | `plugins.enc.json` | Eklenti hesapları — **Windows ile şifreli** (DPAPI; başka bilgisayarda açılmaz, yeniden bağlanmak gerekir) |
 | `gemini-live.enc.json` | Gemini Live API anahtarı — şifreli |
-| `providers/` | Gemini / Claude / Cursor oturumları, `enabled.json` (ana yapay zekâ) |
+| `providers/` | Antigravity / Claude / Cursor oturumları, `enabled.json` (ana yapay zekâ) |
 | `computer-time.json`, `weekly.json`, `resource-history.sqlite` | Kullanım istatistikleri |
 
 Uygulama adı `app.setName('Charles')` ile sabittir; bu yüzden **her Charles sürümü aynı veriyi
@@ -161,7 +161,7 @@ atılır. Ana süreç tarafı: `main.cjs` → `safeHandler('usage-read')`:
 - **Codex** → çalışan app-server'dan (`agent.usage()`), 60 sn'de bir
 - **Claude** → `app/usage/claude-usage.cjs`: Claude Code'un kendi oturumuyla
   `https://api.anthropic.com/api/oauth/usage` (5 saatlik + haftalık pencere), 5 dk'da bir
-- **Gemini** → Antigravity `/usage` (yalnızca açılışta, sağlayıcı değişince ve ↻ ile)
+- **Antigravity** → `/usage` (yalnızca açılışta, sağlayıcı değişince ve ↻ ile)
 
 ### Önemli e-posta baloncukları
 ```
@@ -208,7 +208,7 @@ Biçimlendirme (isteğe bağlı): `npx @biomejs/biome format --write app src tes
 - Arayüz penceresinde `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`.
 - Yapay zekâ yanıtları ve e-posta içerikleri HTML olarak değil, metin olarak işlenir.
 - Hesap anahtarları yalnızca `safeStorage` (Windows şifreleme) ile kaydedilir.
-- Gemini / Claude / Cursor sohbet bağlantıları araçsız (salt sohbet) modda çalışır. Gemini mesajında açıkça belirtilen mevcut klasör, Proje modunu seçer; erişim ayarı okuma/düzenleme sınırını belirler.
+- Antigravity / Claude / Cursor sohbet bağlantıları araçsız (salt sohbet) modda çalışır. Antigravity mesajında açıkça belirtilen mevcut klasör, Proje modunu seçer; erişim ayarı okuma/düzenleme sınırını belirler.
 
 ---
 
@@ -223,4 +223,4 @@ bunlar geliştirme içindir.
 
 İndirme motoru ve pano/adacık köprüsü `app/modules/download/` altında ayrıdır.
 `app/modules/host.cjs` çağrıları yönlendirir; `module-preload.cjs` sınırlı API verir.
-`main.cjs` değişmedi. Modül ve araç kurulumu için [DOWNLOAD-MODULE.md](docs/DOWNLOAD-MODULE.md).
+`main.cjs` değişmedi. Modülün kendi kurulum belgesi modülün ayrı deposunda ve Releases → Modules paketinde durur; ana depoda modül belgesi tutulmaz. Araçlar `npm run setup:download` ile kurulur.

@@ -28,7 +28,7 @@ export const english077: Record<string, string> = {
   'Mesaj kutusu': 'Message box',
   'Charles’a buradan hızlıca yaz': 'Write to Charles quickly from here',
   'Home Assistant cihazları': 'Home Assistant devices',
-  'Codex, Claude, Gemini ve Cursor kotaları': 'Codex, Claude, Gemini and Cursor quotas',
+  'Codex, Claude, Antigravity ve Cursor kotaları': 'Codex, Claude, Antigravity and Cursor quotas',
   'Hızlı komutlar': 'Quick commands',
   'Tek tıkla Charles’a gönderilen hazır mesajlar': 'Ready messages sent to Charles with one click',
   Notlar: 'Notes',

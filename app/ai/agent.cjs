@@ -8,6 +8,8 @@ const {
   QUESTIONS,
   approvalReply,
   questionReply,
+  gptEffort,
+  gptEffortLabel,
   threadParams,
 } = require('../core/policy.cjs');
 
@@ -150,11 +152,29 @@ class Agent extends EventEmitter {
       models.push(...r.data);
       cursor = r.nextCursor;
     } while (cursor && models.length < 500);
-    return models.map((m) => ({
-      id: m.model,
-      name: m.displayName || m.model,
-      isDefault: m.isDefault,
-    }));
+    // v0.9.6: each model offers exactly the levels Codex lists for it
+    // (supportedReasoningEfforts); the id never changes between levels — the level travels with
+    // the turn as `effort`. A model that lists none is locked on "Otomatik".
+    this.effortsByModel = new Map();
+    return models
+      .map((m) => {
+        const values = [
+          ...new Set(
+            (Array.isArray(m.supportedReasoningEfforts) ? m.supportedReasoningEfforts : [])
+              .map((o) => (typeof o === 'string' ? o : o?.reasoningEffort))
+              .filter((v) => typeof v === 'string' && gptEffort(v) === v),
+          ),
+        ];
+        this.effortsByModel.set(m.model, values);
+        return {
+          id: m.model,
+          name: m.displayName || m.model,
+          isDefault: m.isDefault,
+          ...(values.length
+            ? { effort: '', efforts: values.map((value) => ({ value, label: gptEffortLabel(value), id: m.model })) }
+            : {}),
+        };
+      });
   }
   reset() {
     if (this.busy || this.requests.size)
@@ -171,6 +191,7 @@ class Agent extends EventEmitter {
     attachments = [],
     access = 'ask',
     task = '',
+    effort = '',
   }) {
     this.requireReady();
     const selectedTask = require('../core/task-mode.cjs').taskMode(task);
@@ -180,6 +201,10 @@ class Agent extends EventEmitter {
       throw new Error('İstek boş veya çok uzun.');
     if (model !== null && model !== undefined && typeof model !== 'string')
       throw new Error('Geçersiz model.');
+    // v0.9.6: the level the panel chose ('' = Otomatik, the account's own default). It is
+    // checked against the model's own list (model/list) before it can reach Codex.
+    let level = gptEffort(effort);
+    if (level === null) throw new Error('Bu model için geçerli bir efor seçimi değil.');
     if (!path.isAbsolute(cwd) || !fs.statSync(cwd).isDirectory())
       throw new Error('Geçerli bir proje klasörü seçin.');
     this.busy = true;
@@ -191,6 +216,11 @@ class Agent extends EventEmitter {
           'ChatGPT hesabıyla giriş gerekli. API anahtarı modu bu uygulamada kullanılmaz.',
         );
       if (!model) model = (await this.models()).find((m) => m.isDefault)?.id || null;
+      if (level) {
+        if (!this.effortsByModel?.has(model)) await this.models().catch(() => []);
+        if (!(this.effortsByModel?.get(model) || []).includes(level))
+          throw new Error('Bu model için geçerli bir efor seçimi değil.');
+      }
       if (
         !this.threadId ||
         this.cwd !== cwd ||
@@ -221,6 +251,9 @@ class Agent extends EventEmitter {
         {
           threadId: this.threadId,
           ...(model ? { model } : {}),
+          // v0.9.6: Codex takes the level per turn (TurnStartParams.effort); "Otomatik" sends
+          // none and the model's own default applies.
+          ...(level ? { effort: level } : {}),
           input: [
             {
               type: 'text',

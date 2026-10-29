@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.4%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.6%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -38,13 +38,13 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 ---
 
-## v0.9.4 Beta · Reliable sharing & file checks / Paylaşım ve dosya doğrulama
+## v0.9.6 Beta · Effort levels, EVREN & visible sharing / Efor düzeyleri, EVREN ve görünür paylaşım
 
-Sharing recovers failed Bluetooth advertisements and reconnects discovery after network changes or resume, without opening the island. ZIP/ZIP64 updates, module packages and extraction verify CRC and sizes. Case-conflicting archive paths, duplicate CSV headers, excess columns and invalid subtitle times now produce an error. Pre-cancelled media jobs do not start FFmpeg.
+An **effort** picker sits next to the model picker and lists only the levels the chosen model really offers (Codex's own list for GPT; Claude, Antigravity, Cursor and EVREN in their own spelling); models without levels stay on **Otomatik**. **EVREN** joins the AI accounts with an encrypted API key and every chat model the account lists. Quick Share now announces the PC by itself every few seconds on real network adapters only, so the phone finds it without opening the share panel, and it announces again after sleep. Empty chats are no longer saved, and the attach (+) button reacts on its icon again.
 
-Paylaşım, durmuş Bluetooth duyurusunu yeniden başlatır; ağ değişimi ve uyku dönüşünde adacığı açmaya gerek kalmadan keşfi yeniler. ZIP/ZIP64 güncellemeleri, modüller ve arşiv çıkarımı CRC ve boyut doğrulamasından geçer. Çakışan arşiv yolları, tekrarlanan CSV başlıkları, fazla kolonlar ve geçersiz altyazı zamanları hata verir. Önceden iptal edilen medya işleri FFmpeg'i başlatmaz.
+Model seçicinin yanında, seçili modelin gerçekten sunduğu düzeyleri gösteren bir **efor** seçici var (GPT'de Codex'in kendi listesi; Claude, Antigravity, Cursor ve EVREN kendi yazımıyla); düzeyi olmayan modeller **Otomatik**'te kalır. **EVREN**, şifreli API anahtarı ve hesabın listelediği tüm sohbet modelleriyle AI hesaplarına eklendi. Quick Share bilgisayarı birkaç saniyede bir kendiliğinden ve yalnızca gerçek ağ bağdaştırıcılarında duyurur; telefon, paylaşım paneli açılmadan bilgisayarı bulur, uykudan sonra duyuru yenilenir. Boş sohbetler artık kaydedilmez; ek ekleme (+) tuşu simgesine tıklanınca yeniden çalışır.
 
-[Validation and device-test checklist / Doğrulama ve cihaz testi](docs/VERIFICATION-v0.9.4.md)
+[File sharing / Dosya paylaşımı](docs/SHARING.md)
 
 ### Convert & share / Dönüştür ve paylaş
 
@@ -116,9 +116,9 @@ ve durum bilgileri tanıtım için örnektir.* [Sharing guide / Paylaşım rehbe
   down into the chat.
 - **Converter:** drop files on the island to turn them into other formats: pictures, audio,
   video, Word/Markdown/PDF text, CSV/JSON, subtitles, ZIP. Offline, saved next to the original.
-- **Your own AI accounts:** chat with **ChatGPT (Codex)**, **Claude**, **Gemini**, **Cursor** or
+- **Your own AI accounts:** chat with **ChatGPT (Codex)**, **Claude**, **Antigravity**, **Cursor** or
   **Abacus AI** and switch models from the message box. Pictures work with GPT, Claude and
-  Gemini. Long chats keep their whole history, even on models without a thread of their own.
+  Antigravity. Long chats keep their whole history, even on models without a thread of their own.
 - **Projects:** chats in a project know each other. Charles sees the project’s instructions
   and what was said and decided in its other chats. Folders keep everything else tidy.
 - **Project mode:** pick a folder and let the AI write code in it, with your approval first.
@@ -154,9 +154,9 @@ ve durum bilgileri tanıtım için örnektir.* [Sharing guide / Paylaşım rehbe
   (AI kullanımı, hava, Dönüştürücü, dosya paylaşımı, Charles, müzik) açılır ve aşağı uzayıp sohbete dönüşür.
 - **Dönüştürücü:** dosyaları adaya bırak, başka biçime çevir: görsel, ses, video, Word/Markdown/PDF
   metni, CSV/JSON, altyazı, ZIP. İnternetsiz, sonuç orijinalin yanına kaydedilir.
-- **Kendi yapay zekâ hesapların:** **ChatGPT (Codex)**, **Claude**, **Gemini**, **Cursor** ya da
+- **Kendi yapay zekâ hesapların:** **ChatGPT (Codex)**, **Claude**, **Antigravity**, **Cursor** ya da
   **Abacus AI** ile sohbet et, modeli mesaj kutusundan değiştir. Görseller GPT, Claude ve
-  Gemini ile çalışır. Uzun sohbetler geçmişin tamamını korur.
+  Antigravity ile çalışır. Uzun sohbetler geçmişin tamamını korur.
 - **Projeler:** bir projedeki sohbetler birbirini bilir; Charles projenin talimatlarını ve diğer
   sohbetlerde konuşulup kararlaştırılanları görür. Klasörler de geri kalanını düzenli tutar.
 - **Proje modu:** bir klasör seç, yapay zekâ önce onayını alarak orada kod yazsın.
@@ -401,9 +401,9 @@ npm start
 | `python scripts/package.py <folder> <out.zip>` | `Charles.zip` for the installer · Kurulum için `Charles.zip` |
 | `npm run release:pack` | `charles-update-<version>.zip` + `.sha256` for in-place updates · Uygulama içi güncelleme paketi |
 
-The Gemini (Antigravity) and Cursor sign-in helpers come with the release package. Abacus AI
+The Antigravity and Cursor sign-in helpers come with the release package. Abacus AI
 uses its own `abacusai` command line tool
-([setup page](https://abacus.ai/help/abacusai-desktop/cli-installation)). · Gemini ve Cursor
+([setup page](https://abacus.ai/help/abacusai-desktop/cli-installation)). · Antigravity ve Cursor
 giriş araçları kurulum paketiyle gelir; Abacus AI kendi `abacusai` aracını kullanır.
 
 ## Your data and privacy · Verilerin ve gizlilik

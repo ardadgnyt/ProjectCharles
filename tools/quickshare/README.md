@@ -1,23 +1,32 @@
 # Charles Quick Share — Windows backend
 
-Charles 0.9.5 uses MultiDrop's Python QuickShareBackend directly, pinned to
+Charles 0.9.6 uses MultiDrop's Python QuickShareBackend directly, pinned to
 `60119f5d32ae2c68ca755c04776e0d62b6a43489`:
 https://github.com/digitaldanis/multidrop/tree/60119f5d32ae2c68ca755c04776e0d62b6a43489
 
 `vendor/` includes the corresponding source, protocol definitions, license and
 upstream notices. `UPSTREAM.json` records original and shipped SHA-256 hashes.
-`charles.patch` records the only two changes to upstream protocol files:
+`charles.patch` records every change to upstream protocol files:
 
 * inbound: send CANCEL before closing a user-cancelled, accepted transfer;
-* outbound: propagate receipt timeouts instead of reporting success.
+* outbound: propagate receipt timeouts instead of reporting success;
+* mdns (0.9.6): announce on every real adapter (virtual ones such as VirtualBox,
+  Hyper-V, WSL and VPNs are skipped), answer each phone with the address on its
+  own subnet only, send all answer chunks, repeat a short unsolicited
+  announcement every 4 s (also unicast to recent mDNS neighbours on the same subnet,
+  for access points that do not pass multicast between Wi-Fi clients) and rejoin the
+  mDNS group every minute;
+* backend (0.9.6): keep the announcement across transient enumeration gaps and
+  `republish()` from fresh sockets after sleep/resume.
 
-The DNS-SD publisher, UnicastResponder, zeroconf resolver, UKEY2/crypto,
-framing, file writer and receive/send protocol are upstream code. Windows
+The UKEY2/crypto, framing, file writer and receive/send protocol are upstream code. Windows
 does not run a BLE advertiser. Each worker preserves its endpoint throughout
 transfers; Charles additionally stores the endpoint id across launches.
 
-`bridge.py` adapts UI consent/events, coalesces discovery, retains found peers
-for 90 seconds, and serializes receiving transitions. It is controlled only
+`bridge.py` adapts UI consent/events, coalesces discovery (a background scan
+every 30 s, plus one whenever the share panel opens), retains found peers for
+90 seconds, serializes receiving transitions and offers `refresh` (publish
+again, same endpoint id) for resume. It is controlled only
 through inherited stdin/stdout pipes; no network control API is opened.
 Parent EOF shuts down the worker. The Electron main process owns its lifetime,
 independent of the renderer, panel visibility and Slime animations.
@@ -32,9 +41,9 @@ Its license is `python/LICENSE.txt`. Dependencies are pinned in
 directory in `python/packages/`. No pip/test runner is shipped.
 
 Charles integration: `app/files/quickshare-multidrop.cjs` and `share.cjs`.
-The old JS protocol module remains for independent regression/interoperability
-tests and LocalSend's DNS helpers; its QuickShareEngine is not instantiated
-by the production ShareService. LocalSend retains its existing implementation.
+The former JavaScript Quick Share engine was removed from the app in 0.9.6; it
+survives only as an independent test peer in `test/support/`. LocalSend keeps
+its own implementation and uses `app/files/mdns-wire.cjs` for DNS packets.
 Relevant queries received by its shared UDP/5353 socket are forwarded to the
 same upstream UnicastResponder; this does not create another receiver.
 

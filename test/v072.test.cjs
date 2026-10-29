@@ -80,7 +80,7 @@ test('weather city: one bad field no longer throws the whole preferences file aw
   const p = new Preferences(dir);
   assert.equal(p.data.city.name, 'Kadıköy, İstanbul');
   assert.equal(p.data.language, 'de');
-  assert.match(read('src/island/companion.ts'), /!value\.preferences\.setup && !value\.preferences\.city/);
+  assert.match(read('src/island/companion.ts'), /value\.preferences\.setup \|\| value\.preferences\.city\) return/);
 });
 
 test('model list: a failing sign-in refresh keeps the other models; an empty answer keeps the old list', () => {

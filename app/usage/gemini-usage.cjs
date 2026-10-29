@@ -32,7 +32,7 @@ function geminiUsage(text) {
   const windows = [result.fiveHour, result.weekly].filter(Boolean);
   if (windows.length) result.blocked = windows.some(w => w.remaining === 0);
   result.missingWindows = !result.fiveHour && result.weekly ? ['fiveHour'] : [];
-  if (result.missingWindows.length) result.note = 'Gemini bu hesap için 5 saatlik kota verisi paylaşmıyor.';
+  if (result.missingWindows.length) result.note = 'Antigravity bu hesap için 5 saatlik kota verisi paylaşmıyor.';
   if (!result.fiveHour && !result.weekly) result.unavailable = 'Kota bilgisi okunamadı';
   return result;
 }

@@ -15,7 +15,7 @@ const {
   parseMdnsPacket,
   computePin,
   renderQrSvg,
-} = require('../app/files/quickshare.cjs');
+} = require('./support/quickshare-js-peer.cjs');
 const {
   AirDropEngine,
   encodeBplist,
@@ -254,7 +254,7 @@ test('v0.9.2 · AirDrop uçtan uca (/Discover -> /Ask -> /Upload) dosya gönderm
   }
 });
 
-test('v0.9.2 · ShareService dosya hazırlama ve görünürlük modu yönetimi', async () => {
+test('v0.9.2 · ShareService dosya hazırlama ve görünürlük modu yönetimi', { skip: !require('node:fs').existsSync(require('node:path').join(__dirname, '../tools/quickshare/python/python.exe')) && 'Quick Share Windows çalışma ortamı yok (python scripts/setup-quickshare.py)' }, async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'charles-share-svc-'));
   const f1 = path.join(tmp, 'test.txt');
   fs.writeFileSync(f1, 'merhaba', 'utf8');

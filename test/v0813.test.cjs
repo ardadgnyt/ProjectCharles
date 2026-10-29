@@ -77,7 +77,7 @@ test('the cards sit above the island and the island lets the pointer through to 
   assert.match(mb, /setAlwaysOnTop\(true, 'screen-saver'\)/);
   assert.match(mb, /contains\(point\) \{/);
   const main = read('app/main.cjs');
-  assert.match(main, /point\.y < visible\.y \+ visible\.height &&\s*!mailBubble\?\.contains\(point\);/);
+  assert.match(main, /point\.y < visible\.y \+ visible\.height &&\s*!(?:mailBubble\?\.contains\(point\)|onBubble);/);
   assert.match(main, /win\.moveTop\(\);\s*mailBubble\?\.raise\(\);/);
   const js = read('public/bubble.js');
   assert.match(js, /forget\(item\);\s*card\.remove\(\);/);
@@ -97,7 +97,7 @@ test('closed with no music: the hidden strip (no Slime-only notch)', () => {
   assert.match(main, /expand\(true, false, false\);\s*win\.webContents\.send\('character-peek'\);/);
   assert.match(read('src/island/shelf.ts'), /api\.notchMusic\?\.\(state\)/);
   // music is still looked for while the island is the strip
-  assert.match(read('src/settings/personal.ts'), /const idle = document\.visibilityState !== 'visible' \|\| document\.body\.classList\.contains\('desktop-pet'\);/);
+  assert.match(read('src/settings/personal.ts'), /const idle =\s*document\.visibilityState !== 'visible' \|\| document\.body\.classList\.contains\('desktop-pet'\);/);
 });
 
 test('a bigger Charles above the chat', () => {

@@ -48,6 +48,7 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
     try {
       await api.personalEdit('onboarded', { value: true });
     } catch {}
+    document.dispatchEvent(new Event('charles-onboarding-done'));
   }
 
   function colorPicker() {
@@ -102,7 +103,7 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
     const options: [string, string, string, string, string][] = [
       ['gpt', 'ChatGPT', 'ChatGPT hesabınla', '#e9e9ee', ''],
       ['claude', 'Claude', 'Claude aboneliğinle', '#e8a27c', 'claude:sonnet'],
-      ['gemini', 'Gemini', 'Google hesabınla', '#a8c7fa', 'gemini:auto'],
+      ['gemini', 'Antigravity', 'Google hesabınla', '#a8c7fa', 'gemini:auto'],
       ['cursor', 'Cursor', 'Cursor hesabınla', '#3fd8c8', 'cursor:auto'],
     ];
     const grid = el('div', 'tour-ai-grid');

@@ -63,7 +63,7 @@ test('updater launch failures reject instead of reporting success', { skip: proc
   fs.mkdirSync(path.join(dir,'_update'));
   await assert.rejects(updater.launchSwap({ script:path.join(dir,'_update/missing.ps1'), params:{App:dir} }), /başlatılamadı/);
 });
-test('release excludes the optional Download payload', () => {
+test('release excludes the optional Download payload', { skip: !require('node:fs').existsSync(require('node:path').join(__dirname, '../tools/quickshare/python/python.exe')) && 'Quick Share Windows çalışma ortamı yok (python scripts/setup-quickshare.py)' }, () => {
   const out=fs.mkdtempSync(path.join(os.tmpdir(),'charles-pack082-'));
   const result=require('../scripts/release-pack.cjs').pack({outDir:out});
   const pkg=updater.readUpdateZip(fs.readFileSync(result.zipPath),{name:'project-charles',expectVersion:require('../package.json').version});

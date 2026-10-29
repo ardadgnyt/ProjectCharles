@@ -5,9 +5,10 @@ import { t } from './i18n';
 const PROVIDERS: [string, string][] = [
   ['gpt', 'ChatGPT'],
   ['claude', 'Claude'],
-  ['gemini', 'Gemini'],
+  ['gemini', 'Antigravity'],
   ['cursor', 'Cursor'],
   ['abacus', 'Abacus AI'],
+  ['evren', 'EVREN'],
 ];
 
 export function accountTab(api: any, notice: (s: string) => void) {
@@ -64,7 +65,7 @@ export function accountTab(api: any, notice: (s: string) => void) {
     [
       'accounts',
       'Hesap bağlantılarını kaldır',
-      'ChatGPT, Claude ve Gemini girişlerini, Google/Microsoft/okul e-postası/Home Assistant bağlantılarını ve Gemini Live anahtarını kaldırır. Sohbetlerin, hafızan ve ayarların kalır.',
+      'ChatGPT, Claude ve Antigravity girişlerini, Google/Microsoft/okul e-postası/Home Assistant bağlantılarını ve Gemini Live anahtarını kaldırır. Sohbetlerin, hafızan ve ayarların kalır.',
     ],
     [
       'all',

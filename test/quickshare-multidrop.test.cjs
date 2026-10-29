@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { once } = require('node:events');
 const { MultiDropEngine } = require('../app/files/quickshare-multidrop.cjs');
-const { QuickShareEngine } = require('../app/files/quickshare.cjs');
+const { QuickShareEngine } = require('./support/quickshare-js-peer.cjs');
 const { ShareService } = require('../app/files/share.cjs');
 
 function fixture() {
@@ -25,7 +25,7 @@ function event(emitter, name, ms = 15000) {
   });
 }
 
-test('bundled MultiDrop receives four consecutive transfers with fresh consent and one listener', { timeout: 60000 }, async () => {
+test('bundled MultiDrop receives four consecutive transfers with fresh consent and one listener', { skip: !require('node:fs').existsSync(require('node:path').join(__dirname, '../tools/quickshare/python/python.exe')) && 'Quick Share Windows çalışma ortamı yok (python scripts/setup-quickshare.py)', timeout: 60000 }, async () => {
   const { dir, engine } = fixture();
   const service = new ShareService({ userData: path.join(dir, 'settings'), quickShareEngine: engine });
   const sender = new QuickShareEngine({ deviceName: 'Independent JS sender', discovery: false });
@@ -78,7 +78,7 @@ test('bundled MultiDrop receives four consecutive transfers with fresh consent a
   }
 });
 
-test('bundled MultiDrop sends back-to-back files and propagates rejection', { timeout: 60000 }, async () => {
+test('bundled MultiDrop sends back-to-back files and propagates rejection', { skip: !require('node:fs').existsSync(require('node:path').join(__dirname, '../tools/quickshare/python/python.exe')) && 'Quick Share Windows çalışma ortamı yok (python scripts/setup-quickshare.py)', timeout: 60000 }, async () => {
   const { dir, engine } = fixture();
   const receiver = new QuickShareEngine({ downloadDir: path.join(dir, 'other'), discovery: false });
   let accept = true;
@@ -107,7 +107,7 @@ test('bundled MultiDrop sends back-to-back files and propagates rejection', { ti
   }
 });
 
-test('receive Off remains Off across startup/resume and identity persists across restart', { timeout: 30000 }, async () => {
+test('receive Off remains Off across startup/resume and identity persists across restart', { skip: !require('node:fs').existsSync(require('node:path').join(__dirname, '../tools/quickshare/python/python.exe')) && 'Quick Share Windows çalışma ortamı yok (python scripts/setup-quickshare.py)', timeout: 30000 }, async () => {
   const { dir, engine } = fixture();
   try {
     engine.setReceiveMode('off');
@@ -132,7 +132,7 @@ test('receive Off remains Off across startup/resume and identity persists across
   }
 });
 
-test('cancelled consent is cleared and a subsequent transfer succeeds', { timeout: 30000 }, async () => {
+test('cancelled consent is cleared and a subsequent transfer succeeds', { skip: !require('node:fs').existsSync(require('node:path').join(__dirname, '../tools/quickshare/python/python.exe')) && 'Quick Share Windows çalışma ortamı yok (python scripts/setup-quickshare.py)', timeout: 30000 }, async () => {
   const { dir, engine } = fixture();
   const sender = new QuickShareEngine({ discovery: false });
   try {
@@ -160,7 +160,7 @@ test('cancelled consent is cleared and a subsequent transfer succeeds', { timeou
   }
 });
 
-test('worker exit and parent EOF close the listener; restart retains Off', { timeout: 30000 }, async () => {
+test('worker exit and parent EOF close the listener; restart retains Off', { skip: !require('node:fs').existsSync(require('node:path').join(__dirname, '../tools/quickshare/python/python.exe')) && 'Quick Share Windows çalışma ortamı yok (python scripts/setup-quickshare.py)', timeout: 30000 }, async () => {
   const { dir, engine } = fixture();
   const errors = [];
   engine.on('transfer-error', value => errors.push(value));

@@ -26,6 +26,7 @@ import { statusScroll } from './chat/status-scroll';
 import { companionUI } from './island/companion';
 import { ActivityState } from './chat/activity';
 import { modelPicker } from './chat/model-picker';
+import { effortPicker, setModelEfforts, modelEfforts } from './chat/effort-picker';
 import { personalUI } from './settings/personal';
 import { voiceUI } from './voice/voice';
 import { BotEngine } from './vendor/slime/engine';
@@ -75,6 +76,7 @@ const feed = $('feed');
 const prompt = $<HTMLTextAreaElement>('prompt');
 const model = $<HTMLSelectElement>('model');
 modelPicker(model);
+effortPicker(model);
 const mode = $<HTMLSelectElement>('mode');
 const bot = new BotEngine();
 // v0.6.2: jelly physics of the desktop Slime (squash, stick, hop, wobble).
@@ -121,7 +123,8 @@ function animate(now: number) {
     bot.eyeOverrideUntil = 0;
   }
   const calm = Date.now() < focusUntil && !busy;
-  bot.setDancing(!quotaBlocked && musicPlaying && !busy && !calm && bot.reading < 0.01);
+  // v0.9.6: never dancing and sleeping at once
+  bot.setDancing(!quotaBlocked && musicPlaying && !busy && !calm && !sleeping && bot.reading < 0.01);
   const frameDt = Math.min((now - last) / 1000, 0.05);
   bot.update(frameDt * (calm ? 0.55 : 1));
   jelly.step(frameDt);
@@ -352,6 +355,13 @@ function reactToText(text: string) {
   }
 }
 window.setInterval(() => {
+  // v0.9.6: while music plays Charles dances: he neither yawns nor falls asleep, and music that
+  // starts while he sleeps wakes him up
+  if (musicPlaying && !quotaBlocked) {
+    if (sleeping || idlePhase > 0) touchCharacter();
+    else lastInteraction = Date.now();
+    return;
+  }
   if (
     busy ||
     requests.size ||
@@ -378,12 +388,12 @@ window.setInterval(() => {
     state('idle', 'Hazırım.');
     return;
   }
-  if (elapsed >= 180000 && idlePhase < 2) {
+  if (elapsed >= 180000 && idlePhase < 2 && !musicPlaying) {
     idlePhase = 2;
     sleeping = true;
     bot.setState('sleeping');
     $('status').textContent = 'Dinleniyorum…';
-  } else if (elapsed >= 60000 && idlePhase < 1) {
+  } else if (elapsed >= 60000 && idlePhase < 1 && !musicPlaying) {
     idlePhase = 1;
     bot.triggerEmote('yawn', 2.5);
     Sound.play('yawn');
@@ -548,7 +558,9 @@ function row(text: string, className = '', attachments: any[] = []) {
     for (const [id, a] of activities) if (a.summary.parentElement === first) activities.delete(id);
     first.remove();
   }
-  feed.scrollTop = feed.scrollHeight;
+  // v0.9.6: while a chat is being rebuilt the list is scrolled once at the end, not per row
+  // (each scroll forced a full layout of the growing list)
+  if (!replaying) feed.scrollTop = feed.scrollHeight;
   return el;
 }
 const streaming = new Set<string>();
@@ -750,7 +762,7 @@ function activity(item: any) {
     item.type === 'plan' ? String(item.steps || '') :
     item.type === 'webSearch' ? String(item.query || item.action?.query || '') :
     [item.command || item.tool, typeof item.result === 'string' ? item.result : item.result ? JSON.stringify(item.result, null, 2) : '', item.error?.message].filter(Boolean).join('\n\n').slice(-100000);
-  feed.scrollTop = feed.scrollHeight;
+  if (!replaying) feed.scrollTop = feed.scrollHeight;
   // v0.7.2: the app window's side panel shows written files and terminal output
   document.dispatchEvent(new CustomEvent('charles-activity', { detail: { item, replaying } }));
 }
@@ -889,6 +901,7 @@ function removeRequest(id: string | number) {
   if (!requests.size) state(busy ? 'working' : 'idle', busy ? 'Çalışıyorum…' : 'Hazırım.');
 }
 let modelRefresh = 0;
+let modelsAt = 0;
 async function populateModels() {
   const generation = ++modelRefresh;
   const list = await api.models();
@@ -898,14 +911,33 @@ async function populateModels() {
   const old = model.value || defaultModel;
   model.replaceChildren();
   const gpt = list.filter(
-    (m: any) => !/^(gemini|claude|cursor|abacus):/.test(m.id),
+    (m: any) => !/^(gemini|claude|cursor|abacus|evren):/.test(m.id),
   );
   if (gpt.length)
     model.add(new Option('Otomatik · ' + (gpt.find((m: any) => m.isDefault)?.name || 'GPT'), ''));
-  for (const m of list) model.add(new Option(m.name, m.id));
+  for (const m of list) {
+    const option = new Option(m.name, m.id);
+    model.add(option);
+    // v0.9.6: one row per model; its effort levels live in the panel beside the picker.
+    setModelEfforts(option, m);
+  }
   if (!list.length) model.add(new Option('Önce hesap bağla', ''));
+  // v0.9.6: a stored default can be one effort level of a model that is now listed once
+  // ("gemini-4-argon-high" is the "high" of "Gemini · 4 Argon"). Adopt that level instead of
+  // silently falling back to the first model in the list.
+  if (![...model.options].some((o) => o.value === old)) {
+    for (const option of [...model.options] as HTMLOptionElement[]) {
+      const hit = modelEfforts(option)?.efforts?.find((e) => e.id === old);
+      if (hit) {
+        option.value = hit.id;
+        option.dataset.effort = hit.value;
+        break;
+      }
+    }
+  }
   model.value = [...model.options].some((o) => o.value === old) ? old : model.options[0].value;
   model.dispatchEvent(new Event('change'));
+  if (list.length) modelsAt = Date.now();
 }
 function account(a: any) {
   if (ready) void attempt(populateModels);
@@ -1095,6 +1127,46 @@ function event(e: any) {
   }
 }
 api.onEvent(event);
+const TAIL_MESSAGES = 20;
+let roomToken = 0;
+/** The "older messages" row at the top of a long chat; they are drawn when it comes into view. */
+function olderMessages(head: any[], token: number) {
+  const more = document.createElement('button');
+  more.type = 'button';
+  more.className = 'older-messages';
+  more.textContent = 'Daha eski mesajlar';
+  feed.prepend(more);
+  const draw = () => {
+    observer.disconnect();
+    if (token !== roomToken || !more.isConnected) return;
+    more.remove();
+    // the drawn messages step aside while the older ones are added in front of them
+    const keep = document.createDocumentFragment();
+    keep.append(...Array.from(feed.childNodes));
+    const height = feed.scrollHeight;
+    const top = feed.scrollTop;
+    const ordinal = userOrdinal;
+    const group = activityGroup;
+    activityGroup = null;
+    userOrdinal = 0;
+    replaying = true;
+    try {
+      for (const e of head) event(e);
+    } finally {
+      replaying = false;
+      activityGroup = group;
+      userOrdinal = ordinal;
+      feed.append(keep);
+    }
+    feed.scrollTop = feed.scrollHeight - height + top;
+  };
+  more.onclick = draw;
+  const observer = new IntersectionObserver((entries) => {
+    if (entries.some((e) => e.isIntersecting)) window.setTimeout(draw, 60);
+  }, { root: feed });
+  // only once the latest messages are on screen (the list opens scrolled to the bottom)
+  window.setTimeout(() => token === roomToken && more.isConnected && observer.observe(more), 600);
+}
 async function switchRoom(r: any) {
   document.dispatchEvent(new CustomEvent('charles-conversation-reset', { detail: { busy: !!r.busy } }));
   await voice.stop();
@@ -1122,12 +1194,29 @@ async function switchRoom(r: any) {
   ready = false;
   signedIn = false;
   busy = r.busy;
+  // v0.9.6: a long chat used to be rebuilt in one go (markdown, code highlighting and formulas
+  // for every message), which froze the panel for a second or more. Only the latest messages
+  // are drawn at once; older ones come when the list is scrolled to the top.
+  const token = ++roomToken;
+  const events: any[] = r.events || [];
+  let cut = 0;
+  if (!r.busy) {
+    let users = 0;
+    for (let i = events.length - 1; i >= 0; i--)
+      if (events[i].type === 'history-user' && ++users === TAIL_MESSAGES) {
+        cut = i;
+        break;
+      }
+  }
+  userOrdinal = events.slice(0, cut).filter((e) => e.type === 'history-user').length;
   replaying = true;
   try {
-    for (const e of r.events) event(e);
+    for (const e of cut ? events.slice(cut) : events) event(e);
   } finally {
     replaying = false;
   }
+  feed.scrollTop = feed.scrollHeight;
+  if (cut) olderMessages(events.slice(0, cut), token);
   for (const q of r.requests) requestCard(q);
   busy = r.busy;
   features.sessions(r.sessions);
@@ -1136,7 +1225,8 @@ async function switchRoom(r: any) {
     const a = await api.connect();
     ready = true;
     account(a);
-    await populateModels();
+    // v0.9.6: the model list belongs to the account; re-read it at most once a minute
+    if (Date.now() - modelsAt > 60000 || ![...model.options].some((o) => o.value)) await populateModels();
     const requested = r.model || startupModel || defaultModel;
     if ([...model.options].some((o) => o.value === requested)) {
       model.value = requested;
@@ -1157,6 +1247,8 @@ api.onPersonal((p: any) => {
 });
 document.addEventListener('charles-music', (e: any) => {
   musicPlaying = e.detail;
+  // v0.9.6: music wakes him at once (a dance never runs on top of the sleeping pose)
+  if (musicPlaying && !quotaBlocked && (sleeping || idlePhase > 0)) touchCharacter();
 });
 const voice = voiceUI(api, notice, () => busy);
 geminiLiveUI(api, notice, () => busy || voice.active());
@@ -1426,6 +1518,9 @@ $('composer').addEventListener('submit', (e) => {
         prompt: text,
         task: $('composer').dataset.task || '',
         model: model.value || null,
+        // v0.9.6: the level the effort panel picked ('' = Otomatik). It rides beside the model
+        // id — a provider that spells the level in the id sends both consistently.
+        effort: model.selectedOptions[0]?.dataset.effort || '',
         mode: mode.value,
         attachments: features.ids(),
         hasDocument: features.hasDocument(),
@@ -1506,7 +1601,7 @@ const steer = steerUI({
   composer: $('composer'),
   bar: $('composer-bar'),
   prompt,
-  external: () => /^(gemini|claude|cursor|abacus):/.test(model.value || ''),
+  external: () => /^(gemini|claude|cursor|abacus|evren):/.test(model.value || ''),
   shown: (text) => {
     markSteer(row(text, 'user'));
     splitAfterSteer();
@@ -1610,7 +1705,7 @@ const proposals = proposalsUI({
   },
 });
 // Kota bekçisi: under 10 % left → suggest another connected provider's model.
-const quotaProvider = (v: string) => (/^(gemini|claude|cursor|abacus):/.test(v) ? v.split(':')[0] : 'gpt');
+const quotaProvider = (v: string) => (/^(gemini|claude|cursor|abacus|evren):/.test(v) ? v.split(':')[0] : 'gpt');
 function onLowQuota(q: LowQuota) {
   void confirmLowQuota(q).then((low) => {
     if (!low) return;

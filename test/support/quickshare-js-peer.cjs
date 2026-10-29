@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// TEST SUPPORT ONLY (v0.9.6): Charles' former JavaScript Quick Share engine, kept as an
+// independent peer for the MultiDrop integration tests. It is not part of the app or releases.
 // MultiDrop protocol adaptation; see THIRD-PARTY-NOTICES.md.
 // v0.9.2: Quick Share / Nearby Share (Google & Samsung) implementation for Windows.
 // Modeled 1-to-1 after digitaldanis/multidrop:

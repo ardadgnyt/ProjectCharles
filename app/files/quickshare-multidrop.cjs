@@ -9,7 +9,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { parseMdnsPacket } = require('./quickshare.cjs');
+const { parseMdnsPacket } = require('./mdns-wire.cjs');
 const { QuickShareNames } = require('./quickshare-names.cjs');
 const { migrateQuickShareRuntime } = require('./quickshare-runtime.cjs');
 
@@ -195,10 +195,12 @@ class MultiDropEngine extends EventEmitter {
     return this.health;
   }
 
-  refreshNetwork() {
-    // MultiDrop owns address changes. Neither an idle UI nor a maintenance tick
-    // unregisters/recreates a working DNS-SD publisher.
-    return this.child ? this.request('health') : this.start();
+  refreshNetwork({ force = false } = {}) {
+    // MultiDrop owns address changes. An idle UI or a healthy maintenance tick
+    // never recreates a working DNS-SD publisher; `force` (resume from sleep, a
+    // receiver found unhealthy) publishes again from fresh sockets, same identity.
+    if (!this.child) return this.start();
+    return this.request(force ? 'refresh' : 'health', {}, 30000);
   }
 
   scan() {
@@ -215,7 +217,17 @@ class MultiDropEngine extends EventEmitter {
   handleMdnsPacket(packet, rinfo) {
     if (!this.ready || packet.length > 9000 || this.receiveMode === 'off') return;
     const parsed = parseMdnsPacket(packet);
-    if (!parsed || parsed.isResponse || !parsed.questions.some(q => /_FC9F5ED42C8A\._tcp/i.test(q.name))) return;
+    if (!parsed) return;
+    // v0.9.6: any host that speaks mDNS (a phone asking for Chromecast, AirPlay…) also gets the
+    // announcement sent to it directly; at most once a minute per address
+    const ip = rinfo?.address;
+    this.neighborSeen ||= new Map();
+    if (ip && Date.now() - (this.neighborSeen.get(ip) || 0) > 60000) {
+      this.neighborSeen.set(ip, Date.now());
+      if (this.neighborSeen.size > 256) this.neighborSeen.clear();
+      this.request('mdns-neighbor', { address: ip }).catch(() => {});
+    }
+    if (parsed.isResponse || !parsed.questions.some(q => /_FC9F5ED42C8A\._tcp/i.test(q.name))) return;
     // Windows may give a unicast query to LocalSend's shared UDP/5353 socket.
     // Forward it to MultiDrop's unmodified UnicastResponder, not a second engine.
     this.request('mdns-query', { packet: packet.toString('base64'), address: rinfo.address, port: rinfo.port })

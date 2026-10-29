@@ -171,7 +171,7 @@ test('module Slime kit: served read-only from Charles at /_charles/', () => {
   assert.match(kitSrc, /CharlesSlime/);
   assert.match(kitSrc, /Sound\.base = '\/_charles\/sounds\/'/);
   // the reading pose no longer draws its glasses over worn eyewear
-  assert.match(read('src/vendor/slime/engine.ts'), /drawReading\(x, performance\.now\(\) \/ 1000, this\.reading, ownEyes[,)]/);
+  assert.match(read('src/vendor/slime/engine.ts'), /drawReading\(x, performance\.now\(\) \/ 1000, (?:this\.)?reading, ownEyes[,)]/);
   fs.rmSync(files, { recursive: true, force: true });
   fs.rmSync(kit, { recursive: true, force: true });
 });

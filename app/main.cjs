@@ -696,11 +696,13 @@ function detachPet(value) {
   return detached;
 }
 // Desktop Slime and a pinned panel must stay above every other window, also after other
-// apps (some of them always-on-top themselves) are activated. The normal island keeps the
-// regular always-on-top level so menus and dialogs of other apps can still cover it.
+// apps (some of them always-on-top themselves) are activated.
+// v0.9.6: the island too stays above every window — unless another app covers its whole
+// screen (a game, a video, a presentation); then it steps back until that app is left.
+let fullscreenOther = false;
 function applyTopmost() {
   if (!win || win.isDestroyed()) return;
-  if (workspace) {
+  if (workspace || fullscreenOther) {
     clearInterval(petTopTimer);
     win.setAlwaysOnTop(false);
     return;
@@ -708,16 +710,44 @@ function applyTopmost() {
   const strong = detached || panelPinned;
   win.setAlwaysOnTop(true, strong ? 'screen-saver' : 'floating');
   clearInterval(petTopTimer);
+  win.moveTop();
+  mailBubble?.raise();
   if (strong) {
-    win.moveTop();
-    mailBubble?.raise();
     petTopTimer = setInterval(() => {
-      if ((detached || panelPinned) && !win.isDestroyed()) {
+      if ((detached || panelPinned) && !fullscreenOther && !win.isDestroyed()) {
         win.moveTop();
         mailBubble?.raise();
       }
     }, 2500);
   }
+}
+// v0.9.6: watches the foreground window (Windows). A newly activated app may put itself above
+// the island (or Windows may drop the island's topmost flag): the island is raised again; a
+// full-screen app makes it step back.
+let topGuard = null,
+  topForeground = null,
+  lastForegroundWindow = 0;
+function startTopGuard() {
+  if (process.platform !== 'win32' || topGuard || demo) return;
+  topForeground = new (require('./system/foreground.cjs').Foreground)();
+  topGuard = setInterval(async () => {
+    if (!win || win.isDestroyed() || workspace) return;
+    const fg = await topForeground.read().catch(() => null);
+    if (!fg || !win || win.isDestroyed() || workspace) return;
+    const ours = Number(fg.pid) === process.pid;
+    const full = !!fg.full && !ours;
+    if (full !== fullscreenOther) {
+      fullscreenOther = full;
+      applyTopmost();
+      return;
+    }
+    if (full) return;
+    // another app came forward: assert the topmost flag again (Windows may have dropped it)
+    // and put the island back on top
+    if ((Number(fg.window) !== lastForegroundWindow && !ours) || !win.isAlwaysOnTop()) applyTopmost();
+    lastForegroundWindow = Number(fg.window) || 0;
+  }, 1500);
+  topGuard.unref?.();
 }
 function finishLayout(id) {
   if (id !== layoutId || !layoutTarget || win?.isDestroyed()) return;
@@ -1322,8 +1352,12 @@ else {
       performanceHistory.onSample = (sample) => watchdog.check(sample);
       // New mail is checked 20 s after start and then every 2 minutes.
       if (!demo) {
-        pluginTimer = setInterval(() => void plugins.poll(), 120000);
-        setTimeout(() => void plugins.poll(), 20000);
+        // v0.9.6: a failed poll (e.g. the encrypted store cannot be written) is logged, never an
+        // unhandled rejection
+        const pollPlugins = () =>
+          void plugins.poll().catch((e) => perfLog?.('plugins poll failed', String(e?.message || e).slice(0, 120)));
+        pluginTimer = setInterval(pollPlugins, 120000);
+        setTimeout(pollPlugins, 20000);
       }
       safeHandler('plugins-status', () => plugins.status());
       safeHandler('plugins-configure', (id, v) => plugins.configure(id, v));
@@ -1440,6 +1474,7 @@ else {
       for (const event of ['show', 'focus', 'restore'])
         islandWin.on(event, () => setImmediate(offTaskbar));
       taskbarTimer = setInterval(offTaskbar, 4000);
+      startTopGuard();
       // a window with a separate page does not pass the keyboard focus on by itself
       islandWin.on('focus', () => {
         if (activeWindow() === islandWin && !view.webContents.isDestroyed()) view.webContents.focus();
@@ -1600,7 +1635,7 @@ else {
         demo,
         model: () => extras.prefs.defaultModel,
         eligible: () =>
-          !!agent.current.agent.ready &&
+          !!agent.readyAgent() &&
           !agent.list().some((r) => r.busy || r.pending) &&
           Date.now() - lastInside > 15000,
         send: (value) => {
@@ -1774,7 +1809,7 @@ else {
       // The island shows the quota of the provider behind the selected model. The renderer
       // names that provider; without one the main AI chosen in settings is used.
       safeHandler('usage-read', async (force = false, requested = null) => {
-        const known = ['gpt', 'gemini', 'claude', 'cursor', 'abacus'];
+        const known = ['gpt', 'gemini', 'claude', 'cursor', 'abacus', 'evren'];
         const provider = known.includes(requested)
           ? requested
           : agent.providers?.enabled.primary || 'gpt';
@@ -1784,6 +1819,8 @@ else {
           return { provider, fiveHour: null, weekly: null, credits: null, updatedAt: Date.now(), unavailable: 'Bilgi yok' };
         if (provider === 'gemini') return agent.providers.usage(force === true);
         if (provider === 'claude') return agent.providers.claudeUsage.read(force === true);
+        // v0.9.6: EVREN reports its daily token quota (60 s cache in the provider)
+        if (provider === 'evren') return agent.providers.evrenUsage(force === true);
         if (provider === 'cursor') {
           // v0.7.0: read from Cursor's usage service with the CLI's own session (60 s cache)
           if (force !== true && cursorQuota && Date.now() - cursorQuota.updatedAt < 60000)
@@ -1791,9 +1828,10 @@ else {
           cursorQuota = await require('./usage/cursor-usage.cjs').cursorUsage();
           return cursorQuota;
         }
-        if (!agent.current.agent.ready)
-          return { provider, fiveHour: null, weekly: null, credits: null, updatedAt: null };
-        return { provider, ...(await agent.current.agent.usage()) };
+        // v0.9.6: any connected Codex reads the account's quota (a chat's own may not be up yet)
+        const codex = agent.readyAgent();
+        if (!codex) return { provider, fiveHour: null, weekly: null, credits: null, updatedAt: null };
+        return { provider, ...(await codex.usage()) };
       });
       safeHandler('performance-read', () => performanceHistory.read());
       safeHandler('performance-set', (v) => performanceHistory.set(v));
@@ -1931,7 +1969,7 @@ else {
       // chat folders) and the quota panel follow its provider.
       safeHandler('default-model', (value) => {
         const result = extras.setDefaultModel(value);
-        const provider = /^(gemini|claude|cursor|abacus):/.test(value || '')
+        const provider = /^(gemini|claude|cursor|abacus|evren):/.test(value || '')
           ? String(value).split(':')[0]
           : 'gpt';
         if (agent.providers && agent.providers.enabled.primary !== provider) {
@@ -2420,9 +2458,31 @@ else {
         }
         return shareService;
       };
+      // v0.9.6: Windows Firewall rules for the Quick Share runtime (read; allow via UAC once)
+      let shareFirewall = null;
+      const getFirewall = () =>
+        (shareFirewall ||= new (require('./files/firewall.cjs').QuickShareFirewall)({
+          runtimeRoot: () => getShare().qs.root,
+        }));
       // Discovery belongs to the application lifetime, never to the share sheet.
       if (!demo) {
         void getShare().start().catch(() => {});
+        // v0.9.6: tell once per launch when Windows Firewall keeps phones from seeing the PC
+        setTimeout(() => {
+          void getFirewall()
+            .check()
+            .then((fw) => {
+              if (fw.ok || getShare().receiveMode === 'off') return;
+              mailBubble?.add({
+                id: 'charles|quickshare-firewall',
+                kind: 'charles',
+                title: 'Quick Share için ağ izni gerekiyor',
+                reason: 'Telefonlar bu bilgisayarı her zaman görsün diye Gönder kartında “Ağ izni ver”e bas.',
+                ttl: 5 * 60000,
+              });
+            })
+            .catch(() => {});
+        }, 20000).unref?.();
         powerMonitor.on('resume', () => void getShare().resume().catch(() => {}));
         powerMonitor.on('unlock-screen', () => void getShare().resume().catch(() => {}));
         app.once('before-quit', () => shareService?.stop());
@@ -2484,6 +2544,21 @@ else {
           shelfHeld = false;
           lastInside = Date.now();
         }
+      });
+      safeHandler('share-firewall', async (action) => {
+        if (action === 'allow') {
+          dialogOpen = true;
+          try {
+            const result = await getFirewall().allow();
+            // the receiver announces again from fresh sockets once the rules exist
+            void getShare().resume().catch(() => {});
+            return result;
+          } finally {
+            dialogOpen = false;
+            lastInside = Date.now();
+          }
+        }
+        return getFirewall().check(action === 'refresh');
       });
       safeHandler('share-cancel', () => getShare().cancel());
       safeHandler('share-respond', (id, accept) => getShare().respondOffer(String(id || ''), Boolean(accept)));
@@ -2568,10 +2643,29 @@ else {
         if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
         return agent.providers.testAbacus();
       });
+      // v0.9.6 EVREN: an API key account. The key goes to %APPDATA%\Charles\evren.enc.json
+      // (Windows safeStorage), never to the project folder or the release package.
+      safeHandler('evren-key-save', (key) => {
+        if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
+        return agent.providers.evrenKeySave(key);
+      });
+      safeHandler('evren-key-clear', () => agent.providers.evrenKeyClear());
+      safeHandler('providers-evren-test', () => {
+        if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
+        return agent.providers.testEvren();
+      });
+      safeHandler('evren-terms', () => {
+        if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
+        return agent.providers.evrenTerms();
+      });
+      safeHandler('evren-terms-accept', () => {
+        if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
+        return agent.providers.evrenTermsAccept();
+      });
       safeHandler('providers-enable', ({ id, value }) => agent.providers.enable(id, value));
       safeHandler('provider-primary-read', () => agent.providers.enabled.primary || 'gpt');
       safeHandler('provider-primary-save', async (id) => {
-        if (!['gpt', 'gemini', 'claude', 'cursor', 'abacus'].includes(id)) throw Error('Geçersiz sağlayıcı.');
+        if (!['gpt', 'gemini', 'claude', 'cursor', 'abacus', 'evren'].includes(id)) throw Error('Geçersiz sağlayıcı.');
         // Only check sign-in when we do not already know the account is connected; the
         // check starts three CLIs and made switching the main AI feel stuck.
         if (id !== 'gpt' && !agent.providers.auth[id]) await agent.providers.refreshAuth(true);
@@ -2588,7 +2682,9 @@ else {
                 ? 'cursor:auto'
                 : id === 'abacus'
                   ? 'abacus:auto'
-                  : 'claude:sonnet';
+                  : id === 'evren'
+                    ? 'evren:auto'
+                    : 'claude:sonnet';
         extras.setDefaultModel(model);
         win.webContents.send('provider-primary-changed', { id, model });
         return id;
@@ -2877,8 +2973,8 @@ else {
                   explicit +
                   '\n\n' +
                   (en
-                    ? 'Gemini will work in this folder with your Access setting (Ask first: read only; Automatic / Full: it may edit files). Commands stay disabled.'
-                    : 'Gemini bu klasörde Erişim ayarına göre çalışır (Onay iste: yalnızca okur; Otomatik / Tam: dosya düzenleyebilir). Komut çalıştırma kapalı kalır.'),
+                    ? 'Antigravity will work in this folder with your Access setting (Ask first: read only; Automatic / Full: it may edit files). Commands stay disabled.'
+                    : 'Antigravity bu klasörde Erişim ayarına göre çalışır (Onay iste: yalnızca okur; Otomatik / Tam: dosya düzenleyebilir). Komut çalıştırma kapalı kalır.'),
               });
             } finally {
               dialogOpen = false;
@@ -2903,9 +2999,11 @@ else {
           displayPrompt: args.displayPrompt,
           task: args.task || '',
           model: args.model,
+          // v0.9.6: the effort panel's level ('' = Otomatik); each provider checks it again
+          effort: typeof args.effort === 'string' ? args.effort.slice(0, 24) : '',
           cwd: mode === 'chat' ? chatDir : chosenCwd,
           mode,
-          attachments: await extras.inputs(args.attachments || [], { textOnly: /^(gemini|claude|cursor|abacus):/.test(args.model || '') }),
+          attachments: await extras.inputs(args.attachments || [], { textOnly: /^(gemini|claude|cursor|abacus|evren):/.test(args.model || '') }),
           displayAttachments: (args.attachments || []).map((id) => {
             const a = extras.attachments.get(id);
             if (!a) throw Error('Ek bulunamadı.');
@@ -2998,8 +3096,8 @@ else {
             // v0.8.7: images (absolute paths checked by the module host) go in the same shape
             // as the main chat's image attachments
             const attachments = (images || []).map((p) => ({ type: 'localImage', path: p }));
-            if (attachments.length && /^(cursor|abacus):/i.test(chosen || ''))
-              throw Error('Görseller şu an yalnızca GPT, Claude ve Gemini ile çalışıyor.');
+            if (attachments.length && /^(cursor|abacus|evren):/i.test(chosen || ''))
+              throw Error('Görseller şu an yalnızca GPT, Claude ve Antigravity ile çalışıyor.');
             return require('./ai/ask-once.cjs').askOnce({
               root,
               providers: agent.providers,
@@ -3649,6 +3747,8 @@ else {
     clearInterval(computerTimer);
     computerTime?.pause();
     usageForeground?.stop();
+    clearInterval(topGuard);
+    topForeground?.stop();
     clearInterval(pluginTimer);
     plugins?.stop();
     clearInterval(reminderTimer);

@@ -102,8 +102,9 @@ test('converter: TXT → PDF has text, PDF → Word is offered', async () => {
 
 test('converter card: no dashed frame left after a drop; a finished sheet closes with the island', () => {
   const shelf = read('src/island/shelf.ts');
-  assert.match(shelf, /api\.onConvertDrop\?\.\(\(\) => \{\s*depth = 0;\s*convertCard\.classList\.remove\('over'\)/);
-  assert.match(shelf, /!converter\.running\(\)\)\) closeSheet\(\)/);
+  // v0.9.2: one tracker clears every drop card (convert and share)
+  assert.match(shelf, /api\.onConvertDrop\?\.\(\(\) => \{\s*clearDropTargets\(\);/);
+  assert.match(shelf, /!converter\.running\(\) && !share\.busy\(\)\)\)\)\s*closeSheet\(\)/);
 });
 
 test('bubble ×: works on press, the next card is not opened by the same click', () => {
@@ -111,7 +112,7 @@ test('bubble ×: works on press, the next card is not opened by the same click',
   assert.match(js, /function dismissOnPress\(button, fn\)/);
   assert.match(js, /button\.addEventListener\('pointerdown'/);
   assert.match(js, /dismissOnPress\(close,/);
-  assert.match(js, /dismissOnPress\(b, \(\) => \{[\s\S]{0,80}waUpdate\(\[\]\);/);
+  assert.match(js, /dismissOnPress\(b, \(\) => \{[\s\S]{0,700}waUpdate\(\[\]\);/);
   assert.match(js, /if \(quiet\(\)\) return;\s*window\.bubble\.open\(item\.id\)/);
 });
 

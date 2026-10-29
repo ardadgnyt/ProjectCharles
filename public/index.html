@@ -29,6 +29,7 @@
     <link rel="stylesheet" href="styles/23-v0815.css" />
     <link rel="stylesheet" href="styles/24-v091.css" />
     <link rel="stylesheet" href="styles/25-v092.css" />
+    <link rel="stylesheet" href="styles/26-v096.css" />
   </head>
   <body>
     <main class="island">
@@ -64,7 +65,7 @@
         </button>
         <button id="toggle" class="identity" >
           <strong>Charles</strong
-          ><small class="version-label">v0.9.5 Beta</small><small id="status">Senin küçük kod arkadaşın.</small>
+          ><small class="version-label">v0.9.6 Beta</small><small id="status">Senin küçük kod arkadaşın.</small>
         </button>
         <aside id="mini-music" aria-label="Spotify">
           <strong id="music-title">Spotify</strong
@@ -453,6 +454,21 @@
                 aria-label="Model seçimi"
                 hidden
               ></div>
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="m5 6 3 3 3-3" />
+              </svg>
+            </div>
+            <div class="effort-picker" id="effort-picker">
+              <button
+                id="effort-button"
+                type="button"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                aria-controls="effort-menu"
+              >
+                Otomatik
+              </button>
+              <div id="effort-menu" role="listbox" aria-label="Efor düzeyi" hidden></div>
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <path d="m5 6 3 3 3-3" />
               </svg>

@@ -16,7 +16,7 @@ const {
   parseMdnsPacket,
   getLocalIPv4,
   getRoutedIPv4,
-} = require('./quickshare.cjs');
+} = require('./mdns-wire.cjs');
 
 const MDNS_ADDR = '224.0.0.251';
 const MDNS_PORT = 5353;
@@ -268,6 +268,21 @@ function decodeBplist(buf) {
   const numObjects = Number(trailer.readBigUInt64BE(8));
   const topObject = Number(trailer.readBigUInt64BE(16));
   const offsetTableOffset = Number(trailer.readBigUInt64BE(24));
+  // v0.9.6: the plist comes from any device on the network. A crafted trailer (millions of
+  // objects, offsets past the end, self-references) must fail quickly instead of hanging or
+  // exhausting memory.
+  if (
+    ![1, 2, 4, 8].includes(offsetIntSize) ||
+    ![1, 2, 4, 8].includes(objectRefSize) ||
+    !Number.isSafeInteger(numObjects) ||
+    numObjects < 1 ||
+    numObjects > 4096 ||
+    topObject >= numObjects ||
+    !Number.isSafeInteger(offsetTableOffset) ||
+    offsetTableOffset + numObjects * offsetIntSize > buf.length - 32
+  )
+    return {};
+  let budget = 20000; // objects parsed in total (shared references are re-read)
 
   const readUIntBE = (pos, bytes) => {
     let v = 0n;
@@ -283,10 +298,14 @@ function decodeBplist(buf) {
     if (lowNibble !== 0x0f) return { len: lowNibble, next: pos };
     const intMarker = buf[pos];
     const byteCount = 1 << (intMarker & 0x0f);
-    return { len: readUIntBE(pos + 1, byteCount), next: pos + 1 + byteCount };
+    if (byteCount > 8) return { len: 0, next: pos + 1 };
+    const len = readUIntBE(pos + 1, byteCount);
+    // never longer than what is left of the buffer
+    return { len: Math.min(len, buf.length), next: pos + 1 + byteCount };
   }
-  function parseAt(objIdx) {
+  function parseAt(objIdx, depth = 0) {
     if (visited.has(objIdx)) return visited.get(objIdx);
+    if (depth > 32 || --budget < 0 || objIdx >= numObjects) return null;
     const pos = offsets[objIdx];
     if (pos === undefined || pos >= buf.length) return null;
     const marker = buf[pos];
@@ -325,22 +344,22 @@ function decodeBplist(buf) {
       const { len, next } = readLen(pos + 1, lo);
       const arr = [];
       visited.set(objIdx, arr);
-      for (let i = 0; i < len; i++) {
+      for (let i = 0; i < Math.min(len, numObjects); i++) {
         const ref = readUIntBE(next + i * objectRefSize, objectRefSize);
-        arr.push(parseAt(ref));
+        arr.push(parseAt(ref, depth + 1));
       }
       return arr;
     }
     if (hi === 0xd) {
       const { len, next } = readLen(pos + 1, lo);
-      const dict = {};
+      const dict = Object.create(null);
       visited.set(objIdx, dict);
       const vStart = next + len * objectRefSize;
-      for (let i = 0; i < len; i++) {
+      for (let i = 0; i < Math.min(len, numObjects); i++) {
         const kRef = readUIntBE(next + i * objectRefSize, objectRefSize);
         const vRef = readUIntBE(vStart + i * objectRefSize, objectRefSize);
-        const k = parseAt(kRef);
-        if (k !== null && k !== undefined) dict[String(k)] = parseAt(vRef);
+        const k = parseAt(kRef, depth + 1);
+        if (k !== null && k !== undefined && typeof k !== 'object') dict[String(k)] = parseAt(vRef, depth + 1);
       }
       return dict;
     }
@@ -410,7 +429,8 @@ function safeRelPath(rawName) {
 function extractCpioGzip(rawBuf, destDir) {
   let buf = rawBuf;
   if (buf.length >= 2 && buf[0] === 0x1f && buf[1] === 0x8b) {
-    buf = zlib.gunzipSync(buf);
+    // v0.9.6: a small gzip can expand to gigabytes (a "zip bomb"); stop at 1 GB
+    buf = zlib.gunzipSync(buf, { maxOutputLength: 1024 * 1024 * 1024 });
   }
   const saved = [];
   let pos = 0;
@@ -478,8 +498,23 @@ function extractCpioGzip(rawBuf, destDir) {
   return saved;
 }
 
+/** v0.9.6: loopback, private (RFC 1918), link-local, CGNAT and IPv6 local addresses only. */
+function isLocalAddress(ip) {
+  const v = String(ip || '').toLowerCase();
+  if (v === '::1' || v.startsWith('fe80:') || v.startsWith('fc') || v.startsWith('fd')) return true;
+  const m = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(v);
+  if (!m) return false;
+  const [a, b] = [Number(m[1]), Number(m[2])];
+  return a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) ||
+    (a === 169 && b === 254) || (a === 100 && b >= 64 && b <= 127);
+}
+// v0.9.6: names Windows treats as devices (CON, NUL, COM1…) or silently changes (a trailing dot
+// or space) never become a file name
+const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\.|$)/i;
 function uniqueFile(dir, rawName) {
-  const safe = path.basename(String(rawName || 'dosya')).replace(/[<>:"/\\|?*\x00-\x1f]/g, '_') || 'dosya';
+  let safe = path.basename(String(rawName || 'dosya')).replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').replace(/[. ]+$/, '');
+  if (!safe || WINDOWS_RESERVED.test(safe)) safe = '_' + (safe || 'dosya');
+  safe = safe.slice(0, 200);
   const ext = path.extname(safe);
   const stem = path.basename(safe, ext);
   let out = path.join(dir, safe);
@@ -605,9 +640,11 @@ class AirDropEngine extends EventEmitter {
     try { this.lsSocket.send(msg, LOCALSEND_PORT, LOCALSEND_MCAST); } catch {}
   }
 
-  async refreshNetwork() {
+  async refreshNetwork({ force = false } = {}) {
     const ip = await getRoutedIPv4();
-    if (ip !== this.networkIp) {
+    // `force` (resume from sleep): Windows may have dropped the group membership
+    // while Wi-Fi reconnected, so join again even when the address is the same.
+    if (ip !== this.networkIp || force) {
       for (const [socket, group] of [[this.mdns, MDNS_ADDR], [this.lsSocket, LOCALSEND_MCAST]]) {
         if (!socket) continue;
         try { socket.dropMembership(group, this.networkIp); } catch {}
@@ -809,6 +846,31 @@ class AirDropEngine extends EventEmitter {
   async #handleRequest(req, res) {
     const urlObj = new URL(req.url || '/', 'https://localhost');
     const pathname = urlObj.pathname;
+    const remote = String(req.socket.remoteAddress || '').replace(/^::ffff:/, '');
+    // v0.9.6: sharing is a local-network feature; a request from a public address is refused
+    if (!isLocalAddress(remote)) {
+      res.writeHead(403);
+      res.end();
+      return;
+    }
+    // v0.9.6: one question to the user at a time. A device that asks while another request is
+    // still waiting for an answer is told "busy" (409, as LocalSend expects) instead of
+    // replacing it — the network cannot flood the screen with prompts.
+    const ask = async (offer) => {
+      if (this.offerPending) return 'busy';
+      if (!this.visible) return false;
+      if (this.listenerCount('offer') === 0) return false; // nobody to ask: never auto-accept
+      this.offerPending = true;
+      try {
+        return await new Promise((resolve) => this.emit('offer', { ...offer, respond: (ok) => resolve(Boolean(ok)) }));
+      } finally {
+        this.offerPending = false;
+      }
+    };
+    const refuse = (code) => {
+      res.writeHead(code);
+      res.end();
+    };
 
     // --- Apple AirDrop HTTP Endpoints (/Discover, /Ask, /Upload) ---
     if (req.method === 'POST' && pathname === '/Discover') {
@@ -837,24 +899,16 @@ class AirDropEngine extends EventEmitter {
         size: Number(f?.FileSize || 0),
       }));
       const sessionId = 'ad-in-' + crypto.randomBytes(4).toString('hex');
-      let allow = this.visible;
-      if (allow && this.listenerCount('offer') > 0) {
-        allow = await new Promise((resolve) => {
-          this.emit('offer', {
-            id: sessionId,
-            protocol: 'airdrop',
-            peerName,
-            files: summaryFiles.length ? summaryFiles : [{ name: 'AirDrop Dosyası', size: 0 }],
-            respond: (ok) => resolve(Boolean(ok)),
-          });
-        });
-      }
-      if (!allow) {
-        res.writeHead(403);
-        res.end();
-        return;
-      }
-      this.lastAirDropPeer = { id: sessionId, peerName };
+      const allow = await ask({
+        id: sessionId,
+        protocol: 'airdrop',
+        peerName,
+        files: summaryFiles.length ? summaryFiles.slice(0, 1000) : [{ name: 'AirDrop Dosyası', size: 0 }],
+      });
+      if (allow !== true) return refuse(allow === 'busy' ? 409 : 403);
+      // v0.9.6: the upload that follows must come from the device the user just accepted, once,
+      // within 10 minutes (before, any device on the network could upload without asking)
+      this.airDropGrant = { id: sessionId, peerName, address: remote, until: Date.now() + 10 * 60000 };
       const reply = encodeBplist({
         ReceiverModelName: 'Windows PC',
         ReceiverComputerName: this.deviceName,
@@ -868,10 +922,10 @@ class AirDropEngine extends EventEmitter {
     }
 
     if (req.method === 'POST' && pathname === '/Upload') {
-      const peerInfo = this.lastAirDropPeer || {
-        id: 'ad-in-' + crypto.randomBytes(4).toString('hex'),
-        peerName: 'AirDrop Cihazı',
-      };
+      const grant = this.airDropGrant;
+      if (!grant || grant.address !== remote || Date.now() > grant.until || !this.visible) return refuse(403);
+      this.airDropGrant = null;
+      const peerInfo = { id: grant.id, peerName: grant.peerName };
       const raw = await this.#readBody(req, 1024 * 1024 * 1024, (transferred, total) => {
         this.emit('progress', {
           id: peerInfo.id,
@@ -928,30 +982,15 @@ class AirDropEngine extends EventEmitter {
       const body = JSON.parse(raw.toString('utf8'));
       const peerName = body?.info?.alias || 'Cihaz';
       const filesObj = body?.files || {};
-      const entries = Object.values(filesObj);
+      const entries = Object.values(filesObj).slice(0, 1000);
       const summaryFiles = entries.map((f) => ({
         id: String(f.id),
         name: path.basename(String(f.fileName || 'dosya')),
         size: Number(f.size || 0),
       }));
       const sessionId = 'ad-ls-' + crypto.randomBytes(4).toString('hex');
-      let allow = this.visible;
-      if (allow && this.listenerCount('offer') > 0) {
-        allow = await new Promise((resolve) => {
-          this.emit('offer', {
-            id: sessionId,
-            protocol: 'localsend',
-            peerName,
-            files: summaryFiles,
-            respond: (ok) => resolve(Boolean(ok)),
-          });
-        });
-      }
-      if (!allow) {
-        res.writeHead(403);
-        res.end();
-        return;
-      }
+      const allow = await ask({ id: sessionId, protocol: 'localsend', peerName: String(peerName).slice(0, 120), files: summaryFiles });
+      if (allow !== true) return refuse(allow === 'busy' ? 409 : 403);
       const tokens = {};
       const fileMap = new Map();
       for (const f of summaryFiles) {
@@ -959,7 +998,16 @@ class AirDropEngine extends EventEmitter {
         tokens[f.id] = tok;
         fileMap.set(f.id, { ...f, token: tok });
       }
-      this.pendingSessions.set(sessionId, { id: sessionId, peerName, files: fileMap, saved: [] });
+      // v0.9.6: an accepted session is bound to the sender's address and expires after 30 min
+      for (const [id, old] of this.pendingSessions) if (Date.now() > old.until) this.pendingSessions.delete(id);
+      this.pendingSessions.set(sessionId, {
+        id: sessionId,
+        peerName,
+        files: fileMap,
+        saved: [],
+        address: remote,
+        until: Date.now() + 30 * 60000,
+      });
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ sessionId, files: tokens }));
       return;
@@ -971,7 +1019,15 @@ class AirDropEngine extends EventEmitter {
       const token = urlObj.searchParams.get('token') || '';
       const session = this.pendingSessions.get(sessionId);
       const fMeta = session?.files?.get(fileId);
-      if (!session || !fMeta || fMeta.token !== token) {
+      if (
+        !session ||
+        !fMeta ||
+        !token ||
+        fMeta.token.length !== token.length ||
+        !crypto.timingSafeEqual(Buffer.from(fMeta.token), Buffer.from(token)) ||
+        session.address !== remote ||
+        Date.now() > session.until
+      ) {
         res.writeHead(403);
         res.end();
         return;
@@ -1187,6 +1243,7 @@ class AirDropEngine extends EventEmitter {
 }
 
 module.exports = {
+  isLocalAddress,
   AirDropEngine,
   encodeBplist,
   decodeBplist,

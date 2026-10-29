@@ -4,7 +4,7 @@ const test = require('node:test'),
   os = require('node:os'),
   path = require('node:path');
 const { Providers } = require('../app/ai/providers.cjs');
-test('Gemini uses Antigravity and passes conversation through the supported NDJSON protocol', async () => {
+test('Gemini models run through Antigravity and pass conversation through the supported NDJSON protocol', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'charles-agy-'));
   try {
     const p = new Providers(path.resolve(__dirname, '..'), dir);

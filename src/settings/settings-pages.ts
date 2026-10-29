@@ -194,6 +194,7 @@ export function settingsPages(api: any) {
     plus,
     $('prompt'),
     document.querySelector('.model-picker')!,
+    document.querySelector('.effort-picker')!,
     $('voice-mic'),
     call,
     $('stop'),
@@ -247,7 +248,9 @@ export function settingsPages(api: any) {
     plus.setAttribute('aria-expanded', String(!menu.hidden));
   };
   document.addEventListener('click', (e) => {
-    if (!menu.contains(e.target as Node) && e.target !== plus) {
+    // v0.9.6: the + icon is an <svg> inside the button; a click on it has the svg (or its path)
+    // as target, and comparing with the button closed the menu it had just opened.
+    if (!menu.contains(e.target as Node) && !plus.contains(e.target as Node)) {
       menu.hidden = true;
       plus.setAttribute('aria-expanded', 'false');
     }

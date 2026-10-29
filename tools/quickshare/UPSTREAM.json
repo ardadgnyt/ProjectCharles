@@ -35,8 +35,8 @@
     },
     "multidrop/backends/quickshare/mdns.py": {
       "originalSha256": "fde3f89e3cc5c3575266911e69bda2e050f12b27d0c4a207ee823210e0dbec05",
-      "sha256": "fde3f89e3cc5c3575266911e69bda2e050f12b27d0c4a207ee823210e0dbec05",
-      "modified": false
+      "sha256": "9fd6d593e106f67ad94932f282d62abe6fe8973c65f91a58d411289d6e7e415e",
+      "modified": true
     },
     "multidrop/backends/quickshare/outbound.py": {
       "originalSha256": "676e0b16484b664edbef6480f10d7a2b6470c64d72add4f05ca536c59ce1b57e",
@@ -165,8 +165,8 @@
     },
     "multidrop/backends/quickshare/__init__.py": {
       "originalSha256": "3b1776af1c0846c371148f5bf03510ec3f3dcd82340d773056ac88e94f48763e",
-      "sha256": "3b1776af1c0846c371148f5bf03510ec3f3dcd82340d773056ac88e94f48763e",
-      "modified": false
+      "sha256": "f6fe4c15957d2617357629f67fa4119610d47fa7f26bbbf8c89a8e13f1fb8629",
+      "modified": true
     },
     "multidrop/backends/__init__.py": {
       "originalSha256": "cc321604ea09e1ed233adb2382f9b77a0f162f54fb9f4228f04fd5c3de64ba99",

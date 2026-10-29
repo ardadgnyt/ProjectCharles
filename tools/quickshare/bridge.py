@@ -36,9 +36,15 @@ class JsonLog(logging.Handler):
         self.file.parent.mkdir(parents=True, exist_ok=True)
 
     def emit(self, record):
-        # Upstream messages can include peer/file names: record only levels and
-        # subsystem. Detailed exceptions are returned to the local UI, not disk.
-        self.note("backend-log", f"{record.name} {record.levelname}")
+        # Upstream messages can include peer/file names, so formatted arguments
+        # stay off disk. The message *template* and exception class do not carry
+        # names, and without them every warning collapses into an identical
+        # "WARNING" line that cannot be told apart while diagnosing discovery.
+        # Detailed exceptions are returned to the local UI, not disk.
+        detail = f"{record.name} {record.levelname} {record.msg}"
+        if record.exc_info and record.exc_info[0] is not None:
+            detail += f" [{record.exc_info[0].__name__}]"
+        self.note("backend-log", detail)
 
     def note(self, stage, detail=""):
         try:
@@ -67,6 +73,7 @@ class Bridge:
         self.closed = asyncio.Event()
         self.log = None
         self.ticker = None
+        self.forwarded = 0
 
     def note(self, stage, detail=""):
         if self.log:
@@ -78,6 +85,18 @@ class Bridge:
         return {"mode": "everyone" if self.mode else "off",
                 "listening": bool(backend and backend.started),
                 "mdns": bool(publisher and publisher._zc),
+                # counts only (no addresses or names): how many adapters announce
+                # and how many phone queries were answered, for diagnosing visibility
+                "adapters": len(publisher.addresses) if publisher else 0,
+                "answered": publisher._unicast.answered if publisher and publisher._unicast else 0,
+                # packets the Python socket heard itself vs. those Electron handed over: few of
+                # either while a phone is searching means Windows Firewall keeps them out
+                "heard": publisher._unicast.heard if publisher and publisher._unicast else 0,
+                "forwarded": self.forwarded,
+                "neighbors": len(publisher._unicast.neighbors) if publisher and publisher._unicast else 0,
+                "unicastSent": publisher._unicast.unicast_sent if publisher and publisher._unicast else 0,
+                "asked": dict(sorted((publisher._unicast.question_types if publisher and publisher._unicast else {}).items(),
+                                     key=lambda kv: -kv[1])[:6]),
                 "port": backend.port if backend and backend.started else 0,
                 "endpointId": backend.endpoint_id if backend else None,
                 "pendingOffers": len(self.offers), "peers": len(self.devices),
@@ -222,6 +241,11 @@ class Bridge:
         async def run():
             found = await self.backend.discover(3)
             now = time.monotonic()
+            publisher = self.backend._publisher
+            if publisher and publisher._unicast:
+                for device in found:
+                    with contextlib.suppress(Exception):
+                        publisher._unicast.neighbor(str(device.address))
             for device in found:
                 self.devices[device.id] = (device, now)
             self.devices = {key: item for key, item in self.devices.items() if now - item[1] <= 90}
@@ -235,11 +259,16 @@ class Bridge:
         return await asyncio.shield(self.discovery)
 
     async def background(self):
+        # Charles: a scan opens and closes its own zeroconf sockets on UDP/5353.
+        # Doing that every 5 s churned the port the receiver listens on; the
+        # share panel asks for a scan itself when it opens, so the background
+        # keeps the device list fresh only every 30 s.
         tick = 0
         try:
             while True:
-                with contextlib.suppress(Exception):
-                    await self.discover()
+                if tick % 6 == 0:
+                    with contextlib.suppress(Exception):
+                        await self.discover()
                 tick += 1
                 if tick % 12 == 0:
                     self.note("health", json.dumps(self.health()))
@@ -313,6 +342,15 @@ class Bridge:
             return await self.discover()
         if method == "health":
             return self.status()
+        if method == "refresh":
+            # Charles: after sleep/resume or a network change, publish again from
+            # fresh sockets. Same endpoint id, so the phone sees the same device.
+            async with self.lock:
+                if self.mode and self.backend.started:
+                    with contextlib.suppress(Exception):
+                        await self.backend.republish()
+                        self.note("mdns-refresh")
+            return self.status()
         if method == "answer":
             future = self.offers.get(data["id"])
             if future and not future.done():
@@ -328,6 +366,11 @@ class Bridge:
                 return await self.send(data)
             finally:
                 self.jobs.pop(job, None)
+        if method == "mdns-neighbor":
+            publisher = self.backend._publisher
+            if publisher and publisher._unicast:
+                publisher._unicast.neighbor(str(ipaddress.IPv4Address(data["address"])))
+            return True
         if method == "mdns-query":
             publisher = self.backend._publisher
             responder = publisher._unicast if publisher else None
@@ -337,6 +380,8 @@ class Bridge:
                 packet = base64.b64decode(data["packet"], validate=True)
                 port = int(data["port"])
                 if len(packet) <= 9000 and 0 < port < 65536:
+                    self.forwarded += 1
+                    responder.heard -= 1   # counted under "forwarded", not as heard directly
                     responder.datagram_received(packet, (address, port))
             return True
         raise ValueError("Bilinmeyen paylaşım işlemi.")
@@ -348,7 +393,7 @@ class Bridge:
         except asyncio.CancelledError:
             emit("response", id=command.get("id"), ok=False, error="Aktarım iptal edildi.")
         except Exception as error:
-            self.note("command-error", str(command.get("method")))
+            self.note("command-error", f"{command.get('method')} [{type(error).__name__}]")
             emit("response", id=command.get("id"), ok=False, error=str(error))
 
     async def close(self):

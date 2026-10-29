@@ -119,7 +119,8 @@ test('WhatsApp groups: shown as the group, only when turned on', async () => {
 test('WhatsApp card: centred send, × inside the window, no Windows tooltips', () => {
   const css = read('public/bubble.css');
   assert.match(css, /\.wa-compose \{\s*display: flex;\s*align-items: center;/);
-  assert.match(css, /#stack \{[^}]*padding: 9px 9px 6px;/);
+  // v0.9.2: a little more room for the larger ×
+  assert.match(css, /#stack \{[^}]*padding: 11px 11px 8px;/);
   const js = read('public/bubble.js');
   assert.doesNotMatch(js, /\.title = /, 'no native tooltips');
   assert.match(js, /waUpdate\(\[\]\);\s*resize\(\);\s*void window\.bubble\.wa\('dismiss-all'\)/);

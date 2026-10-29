@@ -170,10 +170,12 @@ function contextText(events, { budget = CONTEXT_BUDGET } = {}) {
 }
 // v0.8.8: a chat nobody wrote in is neither listed nor saved (empty chats used to pile up in
 // "Son sohbetler" and could not be sorted into folders).
+// v0.9.6: only what the user typed counts. Charles writes into the current chat on his own
+// (a calendar question is local('', …) with no user message), and that note used to make the
+// chat look real: every launch kept it and started another one, so the list grew forever.
+// history-user is exactly "the user wrote" here — see the same check in send() and search().
 function hasContent(r) {
-  return r.events.some(
-    (e) => e.type === 'history-user' || e.type === 'history-local' || (e.type === 'agent' && e.data?.method === 'item/completed'),
-  );
+  return r.events.some((e) => e.type === 'history-user');
 }
 class Sessions extends EventEmitter {
   constructor(root, directory = null) {
@@ -226,7 +228,7 @@ class Sessions extends EventEmitter {
     const previous = this.current;
     for (const r of [...this.rooms.values()]) {
       r.agent.stop();
-      if (!r.events.length) this.rooms.delete(r.id);
+      if (!hasContent(r)) this.rooms.delete(r.id);
       else r.closed = true;
     }
     const r = this.create({
@@ -453,9 +455,12 @@ class Sessions extends EventEmitter {
       ...r,
       events: savedEvents(r.events, { imageDir: this.imageDir }),
     }));
+    // v0.9.6: an empty current chat is not written to disk. Pointing "active" at it anyway
+    // left an id that no longer exists, so every launch fell back to creating another chat.
+    const active = rooms.some((r) => r.id === this.active) ? this.active : rooms[0]?.id ?? null;
     return {
       version: 1,
-      active: this.active,
+      active,
       rooms,
       folders: this.folders,
       projects: this.projects,
@@ -542,8 +547,11 @@ class Sessions extends EventEmitter {
       previous.agent.stop();
       this.rooms.delete(previous.id);
     }
+    if (previous) previous.seenAt = Date.now();
     this.active = id;
     this.current.closed = false;
+    this.current.seenAt = Date.now();
+    this.pruneAgents();
     this.scheduleSave();
     return this.snapshot();
   }
@@ -551,7 +559,7 @@ class Sessions extends EventEmitter {
     if (this.busy) throw Error('Önce çalışan işi durdurun.');
     const r = this.current;
     r.agent.stop();
-    if (!r.events.length) this.rooms.delete(r.id);
+    if (!hasContent(r)) this.rooms.delete(r.id);
     else r.closed = true;
     const next = [...this.rooms.values()].find((x) => x.id !== r.id && !x.closed);
     if (next) this.active = next.id;
@@ -559,17 +567,45 @@ class Sessions extends EventEmitter {
     this.scheduleSave();
     return this.snapshot();
   }
+  // v0.9.6: every chat has its own Codex connection, and opening an old chat used to start a
+  // new Codex process before the chat could be used (seconds on Windows, and one more process
+  // for every chat visited). Opening a chat now only needs *a* connected Codex for the account
+  // and the model list; the chat's own connection starts with its first message (send()).
+  readyAgent() {
+    if (this.current.agent.ready) return this.current.agent;
+    for (const r of this.rooms.values()) if (r.agent.ready && r.agent.rpc) return r.agent;
+    return null;
+  }
   connect() {
+    const donor = this.readyAgent();
+    if (donor && donor !== this.current.agent) return donor.account();
     return this.current.agent.connect();
   }
   account() {
-    return this.current.agent.account();
+    return (this.readyAgent() || this.current.agent).account();
   }
   login() {
     return this.current.agent.login();
   }
-  models() {
-    return this.current.agent.models();
+  async models() {
+    // the model list belongs to the account, not to a chat: one read serves every chat for 2 min
+    if (this.modelCache && Date.now() - this.modelCache.at < 120000) return this.modelCache.list;
+    let agent = this.readyAgent();
+    if (!agent) {
+      await this.current.agent.connect();
+      agent = this.current.agent;
+    }
+    const list = await agent.models();
+    if (list.length) this.modelCache = { at: Date.now(), list };
+    return list;
+  }
+  /** Idle Codex connections of chats in the background are closed; at most one is kept besides
+   *  the open chat's, so switching back and forth stays quick. */
+  pruneAgents() {
+    const idle = [...this.rooms.values()]
+      .filter((r) => r.id !== this.active && r.agent.ready && !r.agent.busy && !r.agent.requests.size)
+      .sort((a, b) => (b.seenAt || 0) - (a.seenAt || 0));
+    for (const r of idle.slice(this.current.agent.ready ? 1 : 2)) r.agent.stop();
   }
   reset(options = {}) {
     if (this.busy || this.current.agent.requests.size) throw Error('Önce çalışan işi durdurun.');
@@ -578,7 +614,7 @@ class Sessions extends EventEmitter {
       model = options.model === undefined ? previous.model : options.model,
       cwd = previous.cwd;
     previous.agent.stop();
-    if (!previous.events.length) this.rooms.delete(previous.id);
+    if (!hasContent(previous)) this.rooms.delete(previous.id);
     else previous.closed = true;
     this.add();
     Object.assign(this.current, { mode, model, cwd });
@@ -587,7 +623,7 @@ class Sessions extends EventEmitter {
   }
   async send(args) {
     const r = this.current;
-    const external = /^(gemini|claude|cursor|abacus):/.test(args.model || '');
+    const external = /^(gemini|claude|cursor|abacus|evren):/.test(args.model || '');
     if (r.agent.providerModel !== external) {
       r.agent.threadId = null;
       r.agent.providerModel = external;

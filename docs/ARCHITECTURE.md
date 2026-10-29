@@ -8,7 +8,7 @@ Charles is an Electron app with three parts: the **main process** (Node.js, `app
 ```text
  ┌──────────────────────────── Electron main process (app/) ───────────────────────────┐
  │ main.cjs        windows, island layout, tray, shortcuts, IPC handlers (safeHandler)  │
- │ ai/             Codex app-server (JSON-RPC), Claude Code, Gemini, Cursor; chat rooms │
+ │ ai/             Codex app-server (JSON-RPC), Claude Code, Antigravity, Cursor; chat rooms │
  │ plugins/        Gmail/Calendar/Drive, Outlook, POP3/IMAP, Home Assistant, services   │
  │ voice/          Hey Charles wake word, Whisper dictation, Gemini Live                │
  │ system/         foreground app, media, performance, capture (PowerShell workers)     │
@@ -33,7 +33,7 @@ Charles is an Electron app with three parts: the **main process** (Node.js, `app
 - **Strict IPC.** Every request from the interface goes through `safeHandler`. It accepts calls
   only from the app's own page (`charles://app/`) and returns `{ ok, value | error }`.
 - **AI providers as local CLIs.** GPT runs through the Codex app-server over line-delimited
-  JSON-RPC (`ai/rpc.cjs`, `ai/agent.cjs`). Claude Code, Gemini (Antigravity) and Cursor run as
+  JSON-RPC (`ai/rpc.cjs`, `ai/agent.cjs`). Claude Code, Antigravity and Cursor run as
   child processes (`ai/providers.cjs`). Sign-ins belong to those tools. Charles never sees
   passwords.
 - **Permissions.** `core/policy.cjs` turns the Access setting into Codex thread parameters and

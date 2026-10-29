@@ -26,9 +26,10 @@ export type DashboardDeps = {
 const PROVIDERS: [string, string, string][] = [
   ['gpt', 'Codex', '#f2f2f5'],
   ['claude', 'Claude', '#e8a27c'],
-  ['gemini', 'Gemini', '#a8c7fa'],
+  ['gemini', 'Antigravity', '#a8c7fa'],
   ['cursor', 'Cursor', '#3fd8c8'],
   ['abacus', 'Abacus AI', '#b9a6ff'],
+  ['evren', 'EVREN', '#E30A17'],
 ];
 const SOURCES: Record<string, string> = {
   gmail: 'Gmail',
@@ -553,6 +554,8 @@ export function workspaceDashboard(d: DashboardDeps) {
           c.col.dataset.loaded = '1';
           c.col.classList.toggle('off', !u.fiveHour && !u.weekly);
           c.five.hidden = !!u.missingWindows?.includes('fiveHour');
+          // EVREN has one window (daily tokens): its weekly ring is never shown.
+          c.week.hidden = !!u.missingWindows?.includes('weekly');
           setRing(c.five, u.fiveHour, u.labels?.fiveHour || '5 saatlik');
           setRing(c.week, u.weekly, u.labels?.weekly || 'Haftalık');
           c.note.textContent =

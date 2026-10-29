@@ -1,12 +1,46 @@
-## v0.9.5 Beta
+# ProjectCharles — Yama notları
+
+Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
+
+**Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+
+## v0.9.6 Beta (Argon) — 28 Ekim 2026
+
+- **Boş sohbetler birikmiyor:** yalnızca senin yazdığın bir mesaj sohbeti “dolu” sayar. Charles’ın kendi yazdığı notlar (ör. takvim önerisi) boş bir sohbeti kaydettirmiyordu ama her açılışta yenisi eklenip liste büyüyordu; artık boş sohbet diske yazılmıyor ve listede görünmüyor.
+- **Efor düzeyi:** model seçicinin yanında efor seçici var. Her model yalnızca gerçekten sunduğu düzeyleri, sağlayıcının kendi yazımıyla gösterir (Low / Medium / High / Extra High…; EVREN’de **xLow** gibi adlar birebir). “Otomatik” her listenin ilk satırıdır; düzeyi olmayan modellerde (Otomatik satırlar, Cursor Composer, Claude Haiku, Abacus AI) seçim kilitlidir.
+  - **GPT:** düzeyler artık Codex’in o model için verdiği listeden gelir (`supportedReasoningEfforts`) ve her mesajla `turn/start` içinde `effort` olarak gider. Önceki taslakta düzey `thread/start`’a yazılıyordu (Codex orada bu alanı tanımaz) ve tüm modellere “Max/Ultra” gibi var olmayan düzeyler sunuluyordu.
+  - **Claude:** Claude Code’un kendi değerleri (`low`, `medium`, `high`, `xhigh`, `max`); taslaktaki `extra-high` CLI tarafından reddediliyordu.
+  - **Seçim iletilmiyordu:** arayüzde seçilen düzey ana sürece hiç ulaşmıyordu; artık her sağlayıcıya gider ve orada yeniden doğrulanır. GPT, Claude ve EVREN’de seçilen düzey model başına hatırlanır.
+  - **Antigravity ve Cursor:** düzey model kimliğinin içinde gider (ör. `gemini-4-argon-high`).
+- **EVREN:** OpenAI uyumlu HTTP API hesabı. API anahtarı Windows güvenli şifrelemesiyle `%APPDATA%\Charles` altında saklanır; proje klasöründe ve sürüm paketinde tutulmaz. Hesabın listelediği **tüm sohbet modelleri** çekilir (gömme, ses ve görsel üretim modelleri hariç); her modelin efor düzeyleri listeden okunur. Kullanım panelinde **günlük token** kotası gösterilir.
+- AI model ayarlarındaki “Gemini” adı **Antigravity** olarak güncellendi; Gemini Live ses ve API anahtarı adları korundu.
+- **Quick Share telefonda görünür kalıyor:** Charles duyurusunu birkaç saniyede bir kendiliğinden tekrarlıyor; telefonda bilgisayarın görünmesi için paylaşım panelini açmak gerekmiyor. Duyuru yalnızca gerçek ağ bağdaştırıcılarında yapılıyor (VirtualBox, Hyper-V, WSL, VPN atlanır) ve her telefona kendi ağındaki adres veriliyor; telefonun ulaşamayacağı adrese bağlanmaya çalışıp “Bağlanıyor…”da kalması bundandı. Uykudan dönüşte duyuru yeni soketlerle baştan yapılıyor, çok noktaya yayın üyeliği dakikada bir tazeleniyor. Arka plan cihaz taraması 5 yerine 30 saniyede bir (panel açılınca hemen).
+- **Paylaşım dosyaları temizlendi:** kullanılmayan eski JavaScript Quick Share motoru (`quickshare.cjs`, `quickshare-channel.cjs`) uygulamadan çıkarıldı; LocalSend’in ihtiyaç duyduğu mDNS yardımcıları `mdns-wire.cjs`’e taşındı. Eski doğrulama belgeleri (`VERIFICATION-v0.9.2…5`, `CHANGE-RECORD-v0.9.5`) `docs/SHARING.md` içinde tek belgede toplandı.
+- **Model menüsü iki adımlı:** önce sağlayıcılar (OpenAI, AntiGravity, Claude, Cursor, Abacus AI, Evren), birinin üzerine gelince yanında o sağlayıcının modelleri açılır. Satırlar artık sağlayıcı adını tekrarlamıyor. Alt panel adanın kenarından taşmıyor.
+- **Model menüsü sığıyor:** paneller küçüldü; uzun bir model listesi adanın dışına taşmak ya da başlığın arkasında kalmak yerine kendi içinde ince bir çubukla kayıyor.
+- **El sallarken üç el yok:** Charles elinde bayrak gibi bir eşya tutarken ya da kod yazma, belge okuma, komut çalıştırma hareketindeyken el sallayacaksa, elindekini bırakıp el sallıyor; selam bitince eşyası ve hareketi geri geliyor.
+- **Müzik çalarken uyku yok:** arkada müzik çalarken Charles dans ediyor; artık esnemiyor ve uykuya geçmiyor. Uyurken müzik başlarsa uyanıp dansa başlıyor.
+- **Ada hep üstte:** başka bir uygulama öne gelse de ada üstte kalıyor (Windows'un düşürdüğü “üstte” ayarı yeniden uygulanıyor). Yalnızca başka bir uygulama tam ekranken (oyun, video, sunum) ada geri çekiliyor ve o uygulamadan çıkınca yeniden üste geliyor.
+- **Bütün modeller:** Claude'da aboneliğin sunduğu tüm modeller (Opus, Sonnet, Haiku sürümleri) Anthropic'in model listesinden okunur; kullanım kredisi gerektiren Fable modelleri listelenmez. Liste okunamazsa Opus/Sonnet/Haiku kısayolları kalır. Antigravity'nin listelediği Claude ve GPT-OSS modelleri ile Cursor'ın tüm modelleri (yalnızca Composer/Grok değil, `-fast` sürümleri dahil) gösterilir. Efor, Claude'da yalnızca destekleyen modellerde (Opus/Sonnet 4.5 ve sonrası) açıktır.
+- **Eski sohbetler hızlı açılıyor:** uzun bir sohbet açılırken tüm mesajlar tek seferde çiziliyor ve her satırda liste yeniden kaydırılıyordu; ayrıca her açılan sohbet için yeni bir Codex işlemi başlatılıp beklenirdi. Artık son 20 mesaj hemen görünür, eskileri yukarı kaydırınca gelir; Codex bağlantısı sohbetin ilk mesajında kurulur, model listesi ise dakikada bir okunur. Arka plandaki boşta Codex bağlantıları kapatılır.
+- **Quick Share, multicast geçirmeyen ağlarda:** bazı modem/erişim noktaları Wi-Fi cihazları arasında çok noktaya yayını güvenilir iletmiyor; telefonun Quick Share sorusu bilgisayara hiç ulaşmıyordu. Charles artık ağda mDNS konuşan cihazları (telefonlar sürekli Chromecast/AirPlay sorar) öğrenip duyurusunun bir kopyasını onlara doğrudan gönderiyor. Kayıt dosyası komşu sayısını ve hangi hizmet türlerinin sorulduğunu (yalnızca tür adları) gösteriyor.
+- **Quick Share ağ izni:** Windows güvenlik duvarı Quick Share'e izin vermiyorsa (ya da engelliyorsa) paylaşım panelinde **Ağ izni ver** düğmesi çıkar ve Charles açılışta bir kez hatırlatır. Kayıt dosyası, telefon sorularının bilgisayara ulaşıp ulaşmadığını gösteren sayaçlar tutar.
+- `docs/CHATGPT-INTRO-QUESTIONS.md` kaldırıldı (uygulama `app/personal/intro-questions.md` dosyasını kullanır).
+- **Ek ekleme (+) tuşu:** yalnızca simgenin sağında çalışıyordu; simgeye tıklamak menüyü açıp aynı anda kapatıyordu. Düzeltildi. Efor seçicinin etiketi oka binmiyor.
+- **v0.9.5’ten kalanlar:** v0.9.2’de derlenmiş paketten geri üretilen kaynak dosyaları (kart rafı, dönüştürücü, modül Slime kiti, modüller kartı, çeviri tabloları) yorumları ve tipleriyle geri getirildi; Türkçe karakterler artık kaynakta `\u0131` gibi kodlar olarak durmuyor. `docs/MODULES.md` eksiksiz hâline döndü; `docs/DOWNLOAD-MODULE.md` ana depodan çıkarıldı. Masaüstü kısayolu, kurulum ve README sürüm adları güncellendi. Antigravity’de tanınmayan eski bir model adı hata yerine Otomatik’e düşüyor.
+- **Güvenlik ve kararlılık taraması:**
+  - **AirDrop / LocalSend alma:** dosya alımı artık yalnızca yerel ağdan (özel IPv4/IPv6 adresleri) gelen isteklere açık. AirDrop’ta dosya yükleme, yalnızca senin kabul ettiğin teklifin geldiği adresten ve 10 dakika içinde, tek sefer yapılabiliyor; önceden kabul edilmemiş bir yükleme reddediliyor. Aynı anda tek teklif sorulur; panel kapalıyken teklif kendiliğinden kabul edilmez. LocalSend oturumları gönderen adrese bağlı, 30 dakikada sona eriyor ve belirteç sabit-zamanlı karşılaştırılıyor; tek gönderimde en fazla 1000 dosya.
+  - **Bozuk paket koruması:** AirDrop’un ikili plist çözücüsü taşan/döngüsel başvurulara, sıkıştırma bombasına (1 GB sınırı) ve aşırı derin yapılara karşı sınırlandı. Gelen dosya adlarında Windows’un ayrılmış adları (`CON`, `NUL`, `COM1`…) ve sondaki nokta/boşluk temizleniyor.
+  - **Quick Share mDNS:** başka bir alt ağdan gelen sorular yanıtlanmıyor (yansıtma/yükseltme kötüye kullanımına karşı).
+  - **İlk açılış:** hava durumu şehri sorusu, tanışma turunun üstünde açılıyordu; artık tur bittikten sonra soruluyor.
+
+## v0.9.5 Beta — 26 Ekim 2026
 
 - Windows Quick Share: cihaz keşfi ve dosya aktarımı için yenilenen paylaşım motoru.
 - Sürekli alım, sıralı açma/kapatma, aktarım başına durum yönetimi ve açık kabul isteği.
 - Telefonda gizli yayımlanan cihaz adları bağlantıda öğrenilince hatırlanır; bilinmeyen telefonlar sade bir adla gösterilir.
 - WhatsApp fotoğraf yüklemesi GOWA 9.x yerel dosya bağlantılarıyla uyumlu hale getirildi. Geçici indirme hataları yeniden denenir; bildirim güncellemeleri kapatılan kartları geri açmaz.
 - Güncelleme paketi yeni paylaşım çalışma ortamını mevcut AI ve ses araçlarını koruyarak kurar.
-
-# ProjectCharles — Yama notları
 
 ## v0.9.4 Beta — 25 Ekim 2026
 
@@ -24,18 +58,13 @@
 - Önceden iptal edilmiş FFmpeg işi alt süreç başlatmaz.
 - SHA-256 güncelleme doğrulaması korunur; CRC düzeltmesi bir SHA-256 aşımı iddiası değildir.
 
-
 ## v0.9.3 Beta — 25 Ekim 2026
 
-- LocalSend: outgoing TLS client certificate, register handshake and periodic discovery replies.
-- Route multicast through the active network; refresh after network changes.
-- Label LocalSend devices separately from native AirDrop.
-- Non-Samsung Android Quick Share confirmed by the maintainer.
-- LocalSend real-device test passed; black sharing panel and cream discovery icon.
-
-Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özellikler, değişen davranışlar ve giderilen sorunlar bu dosyada yer alıyor. En yeni sürüm en üstte.
-
-**Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
+- LocalSend: giden TLS istemci sertifikası, kayıt el sıkışması ve düzenli keşif yanıtları.
+- Çok noktaya yayın etkin ağ üzerinden gönderilir; ağ değişince yenilenir.
+- LocalSend cihazları AirDrop protokolündeki cihazlardan ayrı etiketlenir.
+- Samsung dışı Android cihazlarla Quick Share doğrulandı.
+- LocalSend gerçek cihaz testi geçti; siyah paylaşım paneli ve krem keşif simgesi.
 
 ## v0.9.2 Beta — 25 Ekim 2026
 
@@ -43,16 +72,14 @@ Charles’ın ilk masaüstü sürümünden v0.8.3 Beta’ya kadar eklenen özell
 - Alım servisi uygulamayla başlar; panel kapalıyken keşif sürer ve uyku/ağ değişiminden sonra yenilenir.
 - Quick Share şifreli aktarım, gecikmeli kabul, iptal ve dosya bütünlüğü testleri; S24+ ile iki yönlü doğrulama.
 - Kaynak kod GPL-3.0-or-later; üçüncü taraf lisans bildirimleri ve dağıtımlarda karşılık gelen kaynak kod eklendi.
-
-
 - **WhatsApp bildirim balonu düzeltmesi:** Adacığın altında açılan WhatsApp bildirim balonunda bazen tıklamaların algılanmaması, ne yanıt yazılabilmesi ne de kapatma (`×`) tuşunun çalışması sorunu giderildi.
   - Ada penceresinin (`panel-pointer-enter`, `expand`, `blur`) bildirim balonunun üzerindeyken fare tıklamalarını yutması engellendi.
   - Bildirim güncellemelerinde (`bubble-items`) WhatsApp kartının DOM’dan sökülüp yeniden eklenmesi nedeniyle oluşan metin kutusu odak kaybı ve tıklama iptali düzeltildi.
   - Windows’ta pencere odağı ve en-üstte (topmost) sıralamasını bozan `setFocusable(false)` geçişi kaldırıldı; her görünüm moduna (`×`) kapatma düğmesi ve 15 saniyelik gönderim zaman aşımı koruması eklendi.
 - **Küçük adada yarı boy Dönüştürücü ve yeni Gönder kartı:** Küçük adacığın kart rafındaki (`#shelf`) **Dönüştürücü** kutucuğu yarı boyuta indirildi; alt yarısına **Gönder** kartı eklendi.
-- **Quick Share / Nearby Share ve AirDrop dosya gönderme & alma:**
+- **Quick Share / Nearby Share ve AirDrop protokolleriyle yerel ağ üzerinden dosya gönderme & alma:**
   - **Quick Share / Nearby Share:** mDNS (`_FC9F5ED42C8A._tcp.local.`), EndpointInfo, QR kod ile eşleşme (`https://quickshare.google/qrcode#key=...`), UKEY2 (`P-256 ECDH` + `SHA-512` + `HKDF-SHA256`), `AES-256-CBC` + `HMAC-SHA256` şifreli D2D çerçeveleri ve PIN doğrulaması ile Android, Samsung ve Windows cihazlara kablosuz dosya gönderme ve alma.
-  - **AirDrop:** mDNS (`_airdrop._tcp.local.`), HTTPS (`/Discover`, `/Ask`, `/Upload`), ikili `bplist00` ve `CPIO` + `gzip` arşiv akışı (ve Wi-Fi üzerinden LocalSend v2 uyumluluğu) ile iPhone, iPad ve Mac cihazlara kablosuz dosya gönderme ve alma.
+  - **AirDrop:** mDNS (`_airdrop._tcp.local.`), HTTPS (`/Discover`, `/Ask`, `/Upload`), ikili `bplist00` ve `CPIO` + `gzip` arşiv akışı ile AirDrop protokolü desteği. Windows'ta Apple cihazlarla doğrulanmış yerel AirDrop aktarımı yoktur (Windows Wi-Fi sürücülerinde Apple AWDL desteği olmadığından); iPhone, iPad ve Mac için LocalSend uygulaması (Wi-Fi üzerinden LocalSend v2 uyumluluğu) gerekir.
 
 ## v0.9.1 Beta — 24 Ekim 2026
 

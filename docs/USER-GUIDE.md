@@ -1,6 +1,6 @@
 # Charles — User Guide
 
-This guide covers Charles **v0.8.0 Beta** on Windows 10/11. For installation, see the
+This guide covers Charles **v0.9.6 Beta** on Windows 10/11. For installation, see the
 [README](../README.md#installation). For the full history of changes, see
 [CHANGELOG.md](../CHANGELOG.md) (Turkish).
 
@@ -17,21 +17,34 @@ This guide covers Charles **v0.8.0 Beta** on Windows 10/11. For installation, se
 
 ## The island
 
-When Charles starts, a small island sits at the top of the screen.
+Charles lives in an island at the top of the screen. It has four sizes:
 
-- **Left:** how much quota your current AI has left (5-hour and weekly windows for Codex,
-  similar meters for Claude and Gemini).
-- **Middle:** Slime and the Charles name. Click Slime to open the large panel.
-- **Right:** the weather for your city and your Spotify controls.
-- **Below the island:** bubbles for important new emails and calendar reminders. Click a bubble
-  and Charles explains the email.
+- **The thin strip (closed):** when nothing plays, the closed island is a thin strip at the top
+  edge. Rest the pointer on it for a moment and the card shelf opens.
+- **The music notch (closed, while music plays):** Slime, the name and the Spotify controls with
+  the song's progress line. It shows by itself when a song starts and goes back into the strip a
+  moment after you pause and move the pointer away.
+- **The card shelf (small island):** AI usage, the weather, the converter, Charles and the music
+  card. A click on an empty part opens the chat; the cream bar below closes the island.
+  - **AI usage** shows what is left of the current AI's 5-hour and weekly limits.
+  - **Weather** opens the next five days (temperature, feels like, humidity, wind, chance of
+    rain); the pencil button changes the city.
+  - **Converter:** drop files on it (or click it to pick them) to turn them into other formats.
+    Everything runs on your computer; the result is saved next to the original.
+  - **Music:** a click on the card opens Spotify; its buttons control playback.
+- **The chat (big island):** the island grows down into the chat panel. A click on an empty part
+  goes back to the card shelf; a click on the cream bar closes the island, dragging it changes
+  the panel's height.
 
-The **×** on the large panel closes it back to the island; Charles keeps running. To quit,
-Shift-click the × or use the tray icon → Çıkış (Quit).
+Bubbles below the island show important new emails, calendar reminders, WhatsApp messages and
+module notices. The × closes a bubble (a closed one does not come back unless something new
+arrives); a click on an email asks Charles to explain it, a click on a module notice opens that
+module. Module notices also close by themselves after a minute.
 
-Use the **‹ ›** arrows to dock the island to the left or right corner. The pin button keeps the
-large panel open. When the pointer moves away, the panel collapses on its own. You can change
-this in Settings → General.
+The **×** in the island's top bar closes it; Charles keeps running. To quit, Shift-click the ×
+or use the tray icon → Çıkış (Quit). Use the **‹ ›** arrows to dock the island to the left or
+right corner. The pin button keeps it open. The island never has a taskbar button of its own;
+only the app window does.
 
 ## The app window
 
@@ -62,7 +75,7 @@ own **Copy** button, on the island and in the app window.
 ## Chatting
 
 Open the panel and type in the message box at the bottom. The **model menu** next to the box
-lists every AI you have connected: GPT (through Codex), Claude, Gemini and Cursor. The **+**
+lists every AI you have connected: GPT (through Codex), Claude, Antigravity, Cursor, Abacus AI and EVREN. Beside it the **effort** menu lists only the levels the chosen model offers; models without levels stay on *Otomatik*. The **+**
 menu has more tools:
 
 | Tool | What it does |
@@ -87,7 +100,7 @@ interrupted.
 
 **Extra instructions while it works.** You do not have to wait for an answer to finish. Type
 in the message box and press **Ctrl + Enter** (or Enter). GPT receives the instruction inside
-the running task. Claude, Gemini and Cursor answer in one go, so the message waits in a small
+the running task. Claude, Antigravity, Cursor and EVREN answer in one go, so the message waits in a small
 *Queued* row above the box and is sent as soon as the answer is done; click it to edit, or ×
 to remove it.
 
@@ -162,9 +175,9 @@ In the Turkish interface, Slime holds a Turkish flag on 19 May, 30 August, 29 Oc
 | Page | What you will find |
 | --- | --- |
 | **General** | Language (Türkçe, English, Deutsch, Français, Español, 中文), start with Windows, sounds and volume, auto-hide and collapse, read aloud, Hey Charles, weather location (search a city or district and pick it from the list), welcome tour |
-| **AI models** | Sign in to ChatGPT/Codex, Claude, Gemini and Cursor. Every card has the same buttons: **Set up with Charles** · sign in (“✓ connected” once signed in) · **Check connection**. Default model; Gemini Live with its own connected state, voice and key settings |
+| **AI models** | Sign in to ChatGPT/Codex, Claude, Antigravity and Cursor; add an EVREN API key. Every card has the same buttons: **Set up with Charles** · sign in (“✓ connected” once signed in) · **Check connection**. Default model; Gemini Live with its own connected state, voice and key settings |
 | **Appearance** | Text size, panel size, character size, screen choice, chat colours, Slime studio, try expressions |
-| **Memory** | Things Charles should remember; **Get to know me from the AI I use**: pick ChatGPT, Claude or Gemini, paste its answer and choose what to keep |
+| **Memory** | Things Charles should remember; **Get to know me from the AI I use**: pick ChatGPT, Claude or Antigravity, paste its answer and choose what to keep |
 | **Access** | How much the AI may do without asking (see [Project mode](#project-mode)) |
 | **Plugins** | Google (Gmail, Calendar, Drive), Microsoft (Outlook, Calendar), POP3/IMAP mail, Home Assistant, Google Calendar (add events), WhatsApp contacts (a connected account shows “✓ … connected”; after **Remove** you can sign in again); important-mail notifications and keywords. GitHub is listed as coming in a later version |
 | **Shortcuts** | Change any global shortcut |
@@ -223,7 +236,7 @@ Anything else, in any language, goes to the AI you selected.
 - Plugin accounts are encrypted for this Windows user. On another computer, connect them
   again.
 - **Settings → Account** can remove only the account connections (plugins, Gemini Live key,
-  Claude/Gemini sign-ins, the ChatGPT sign-in) or reset everything. It asks first, restarts
+  Claude/Antigravity sign-ins, the ChatGPT sign-in) or reset everything. It asks first, restarts
   Charles and moves the old files into `%APPDATA%\Charles\reset-backup-<time>`; nothing is
   deleted. Cursor keeps its own sign-in; sign out in Cursor if you want to remove it too.
 - **`setup\Reset-Charles.cmd`** backs up your data inside `%APPDATA%\Charles` and starts
@@ -237,5 +250,6 @@ Anything else, in any language, goes to the AI you selected.
 | “Sign-in required” | Settings → AI models → sign in again. Finish the sign-in in the browser window that opens. |
 | No sound | Check the speaker button at the top right and Settings → General → Sounds. |
 | Hey Charles does not react | Check the microphone button at the top right (red means off). Check that the microphone is allowed in Windows privacy settings, then redo the training in Settings → General. |
+| Spotify is not shown or its buttons do nothing | Charles reads Spotify through Windows' media controls. If Windows' own media controls (the volume flyout) do not show Spotify either, quit Spotify from its tray icon and start it again; if that does not help, restart the computer once. |
 | Mail is not shown | Settings → Plugins → *Test connection*. Mail is checked every five minutes while Charles is open. |
 | Something looks broken after an update | Use `setup\Reset-Charles.cmd`. Your old data is backed up first. |

@@ -14,6 +14,7 @@ import { english0811 } from './i18n-0811';
 import { english0814 } from './i18n-0814';
 import { english0815 } from './i18n-0815';
 import { english092, patterns092 } from './i18n-092';
+import { english096, patterns096 } from './i18n-096';
 import { german } from './lang/de';
 import { french } from './lang/fr';
 import { spanish } from './lang/es';
@@ -80,13 +81,13 @@ const english: Record<string, string> = {
   'Şimdilik geç': 'Skip for now',
   'Ana yapay zekâ sistemi': 'Primary AI provider',
   'GPT hesabı': 'GPT account',
-  'Gemini hesabı': 'Gemini account',
+  'Antigravity hesabı': 'Antigravity account',
   'Claude hesabı': 'Claude account',
   'Cursor hesabı': 'Cursor account',
   'ChatGPT ile giriş': 'Sign in with ChatGPT',
   'Codex’e bağlan': 'Connect to Codex',
   "Codex'e bağlan": 'Connect to Codex',
-  'Gemini ile giriş': 'Sign in with Gemini',
+  'Antigravity ile giriş': 'Sign in with Antigravity',
   'Claude ile giriş': 'Sign in with Claude',
   'Cursor ile giriş': 'Sign in with Cursor',
   'Hesap kontrol ediliyor…': 'Checking account…',
@@ -354,7 +355,7 @@ Object.assign(english, {
   'Kaydet düğmesine tıkla, ardından kısayol tuşlarına birlikte bas. Esc ile vazgeç.':
     'Click Record keys, then press the shortcut together. Press Esc to cancel.',
 });
-Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089, english0810, english0811, english0814, english0815, english092);
+Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089, english0810, english0811, english0814, english0815, english092, english096);
 
 // v0.6.3: look-up that ignores line breaks/indentation from the HTML, then the patterns
 // (texts with numbers or names inside).
@@ -365,7 +366,7 @@ function toEnglish(source: string): string | undefined {
   if (!key) return undefined;
   const hit = english[source.trim()] ?? collapsed.get(key);
   if (hit !== undefined) return hit;
-  for (const [re, fn] of [...englishPatterns, ...specialPatterns, ...patterns072, ...patterns077, ...patterns080, ...patterns085, ...patterns087, ...patterns088, ...patterns0810, ...patterns092]) {
+  for (const [re, fn] of [...englishPatterns, ...specialPatterns, ...patterns072, ...patterns077, ...patterns080, ...patterns085, ...patterns087, ...patterns088, ...patterns0810, ...patterns092, ...patterns096]) {
     const m = key.match(re);
     if (m) return fn(...(m as unknown as string[]));
   }

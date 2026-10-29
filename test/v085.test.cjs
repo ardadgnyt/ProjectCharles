@@ -134,7 +134,7 @@ test('formulas keep their LaTeX for copying (click, button, selection)', () => {
   const renderer = read('src/renderer.ts');
   assert.match(renderer, /answerAction === 'math'/);
   assert.match(renderer, /feed\.addEventListener\('copy'/);
-  assert.match(read('src/chat/math-copy.ts'), /'\$\$' \+ tex \+ '\$\$'/);
+  assert.match(read('src/chat/math-copy.ts'), /["']\$\$["'] \+ tex \+ ["']\$\$["']/);
   assert.match(read('app/main.cjs'), /clipboard\.write\(\{ text, html \}\)/);
   assert.match(read('public/index.html'), /styles\/15-v085\.css/);
 });

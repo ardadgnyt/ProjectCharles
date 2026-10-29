@@ -251,6 +251,12 @@ export function companionUI(
   void attempt(async () => {
     const value = await api.companionRead();
     paint(value);
-    if (!value.preferences.setup && !value.preferences.city) await showSetup();
+    if (value.preferences.setup || value.preferences.city) return;
+    // v0.9.6: on the very first start the welcome tour comes first; the city question used to
+    // open on top of it. It waits until the tour has ended.
+    await new Promise((r) => window.setTimeout(r, 1500));
+    if (document.body.classList.contains('onboarding'))
+      await new Promise((r) => document.addEventListener('charles-onboarding-done', r, { once: true }));
+    await showSetup();
   });
 }

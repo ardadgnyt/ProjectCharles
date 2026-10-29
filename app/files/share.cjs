@@ -7,7 +7,7 @@ const EventEmitter = require('node:events');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { getLocalIPv4 } = require('./quickshare.cjs');
+const { getLocalIPv4 } = require('./mdns-wire.cjs');
 const { MultiDropEngine } = require('./quickshare-multidrop.cjs');
 const { AirDropEngine } = require('./airdrop.cjs');
 
@@ -261,7 +261,7 @@ class ShareService extends EventEmitter {
   async resume() {
     await this.start();
     await this.qs.refreshNetwork({ force: true });
-    await this.ad.refreshNetwork().catch(() => {});
+    await this.ad.refreshNetwork({ force: true }).catch(() => {});
     this.qs.setReceiveMode(this.receiveMode);
     this.ad.setVisible(this.receiveMode !== 'off');
     this.discover();
@@ -362,6 +362,14 @@ class ShareService extends EventEmitter {
       adPort: this.ad.port,
       receiveMode: this.receiveMode,
       receiveStarting: this.receiveStarting,
+      // Ground truth for the UI: "Açık" must mean the backend is really
+      // listening and announcing, not merely that the switch was set.
+      health: {
+        listening: !!(this.qs.health || {}).listening,
+        mdns: !!(this.qs.health || {}).mdns,
+        engine: (this.qs.health || {}).engine || null,
+        port: (this.qs.health || {}).port ?? this.qs.port,
+      },
       peers: this.peers(),
       stagedFiles: this.stagedFiles,
       transfer: this.transfer,

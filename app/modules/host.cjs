@@ -53,7 +53,7 @@ const str = (v, name, max) => {
 const IMAGE_EXT = /\.(png|jpe?g|webp)$/i;
 const MAX_CHAT_IMAGES = 10;
 const MAX_CHAT_IMAGE_BYTES = 20 * 1024 * 1024;
-const NO_IMAGE_MODEL = /^(cursor|abacus):/i;
+const NO_IMAGE_MODEL = /^(cursor|abacus|evren):/i;
 const FEATURES = ['ai.images', 'slime.look', 'slime.react', 'slime.wear', 'slime.kit'];
 // v0.8.8: what the desktop Slime can do for a module (src/renderer.ts → onModuleReact)
 const REACTIONS = ['greet', 'blink', 'squash', 'slap', 'dizzy', 'gulp'];
@@ -347,7 +347,7 @@ function createModuleHost(o) {
         const model = args?.model === undefined || args?.model === null ? null : String(args.model);
         if (model !== null && !MODEL.test(model)) throw Error('Geçersiz model adı.');
         const images = chatImages(args?.images, s());
-        if (images.length && model !== null && NO_IMAGE_MODEL.test(model)) throw Error('Görseller şu an yalnızca GPT, Claude ve Gemini ile çalışıyor.');
+        if (images.length && model !== null && NO_IMAGE_MODEL.test(model)) throw Error('Görseller şu an yalnızca GPT, Claude ve Antigravity ile çalışıyor.');
         const key = id + ' ai.chat';
         if (busy.has(key)) throw Error('Önceki ai.chat isteği hâlâ sürüyor.');
         busy.add(key);

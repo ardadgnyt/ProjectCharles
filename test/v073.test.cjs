@@ -8,15 +8,17 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
 
-test('Cursor: Composer and Grok models are read from the account and passed with --model', () => {
+test('Cursor: every model of the account is read (v0.9.6) and passed with --model', () => {
   const { parseCursorModels } = require('../app/ai/providers.cjs');
   const out =
     'Available models\n\n\x1b[1mauto\x1b[0m - Auto\ncomposer-2.5 - Composer 2.5 (current, default)\n' +
     'gpt-5.5-medium - GPT-5.5\ngrok-4.20 - Grok 4.20\n  grok-code-fast-1\nclaude-opus-4-6 - Opus\ncomposer-2.5 - again';
   assert.deepEqual(parseCursorModels(out), [
     ['composer-2.5', 'Composer 2.5'],
+    ['gpt-5.5-medium', 'GPT-5.5'],
     ['grok-4.20', 'Grok 4.20'],
     ['grok-code-fast-1', 'Grok Code Fast 1'],
+    ['claude-opus-4-6', 'Opus'],
   ]);
   assert.deepEqual(parseCursorModels('rm -rf / - x\n'), []);
   const { launchPlan } = require('../app/ai/provider-tools.cjs');

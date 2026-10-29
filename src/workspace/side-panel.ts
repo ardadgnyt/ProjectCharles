@@ -69,7 +69,7 @@ export function sidePanel(d: SidePanelDeps) {
     openMenu.hidden = !openMenu.hidden;
   };
   document.addEventListener('pointerdown', (e) => {
-    if (!openMenu.hidden && !openMenu.contains(e.target as Node) && e.target !== openB) openMenu.hidden = true;
+    if (!openMenu.hidden && !openMenu.contains(e.target as Node) && !openB.contains(e.target as Node)) openMenu.hidden = true;
   });
   const openWrap = el('span', 'ws-open-wrap', openB, openMenu);
   const findB = iconButton('searchFile', 'Dosyada ara', () => toggleFind());

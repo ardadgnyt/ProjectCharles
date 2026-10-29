@@ -13,8 +13,8 @@ export const english071: Record<string, string> = {
     'Everything that is reset is first backed up to %APPDATA%\\Charles\\reset-backup-…. Charles closes and opens again.',
   'Hesap bağlantılarını kaldır': 'Remove account connections',
   'Tüm verileri sıfırla': 'Reset all data',
-  'ChatGPT, Claude ve Gemini girişlerini, Google/Microsoft/okul e-postası/Home Assistant bağlantılarını ve Gemini Live anahtarını kaldırır. Sohbetlerin, hafızan ve ayarların kalır.':
-    'Removes the ChatGPT, Claude and Gemini sign-ins, the Google/Microsoft/school mail/Home Assistant connections and the Gemini Live key. Your chats, memory and settings stay.',
+  'ChatGPT, Claude ve Antigravity girişlerini, Google/Microsoft/okul e-postası/Home Assistant bağlantılarını ve Gemini Live anahtarını kaldırır. Sohbetlerin, hafızan ve ayarların kalır.':
+    'Removes the ChatGPT, Claude and Antigravity sign-ins, the Google/Microsoft/school mail/Home Assistant connections and the Gemini Live key. Your chats, memory and settings stay.',
   'Sohbetler, hafıza, hatırlatıcılar, ayarlar, Slime görünümü ve bütün hesap bağlantıları sıfırlanır. Charles ilk kurulumdaki gibi açılır.':
     'Chats, memory, reminders, settings, Slime’s look and every account connection are reset. Charles opens as on the first install.',
   'Emin misin?': 'Are you sure?',

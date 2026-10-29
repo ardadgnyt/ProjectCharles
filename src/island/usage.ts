@@ -5,19 +5,20 @@ import { t } from '../settings/i18n';
 // composer (which follows the "main AI" setting when that changes). Every request carries
 // that provider explicitly, and a sequence number drops answers that arrive after the
 // user has already switched, so a slow Codex read can never overwrite a Gemini/Claude view.
-type Provider = 'gpt' | 'gemini' | 'claude' | 'cursor' | 'abacus';
+type Provider = 'gpt' | 'gemini' | 'claude' | 'cursor' | 'abacus' | 'evren';
 
 const NAMES: Record<Provider, string> = {
   gpt: 'Codex',
-  gemini: 'Gemini',
+  gemini: 'Antigravity',
   claude: 'Claude',
   cursor: 'Cursor',
   abacus: 'Abacus AI',
+  evren: 'EVREN',
 };
 // Codex quota is cheap to read from the running app-server; Claude is one HTTPS call.
 // Gemini starts the Antigravity CLI, so it is refreshed only on demand.
-const PERIODIC: Partial<Record<Provider, number>> = { gpt: 60000, claude: 300000, cursor: 300000 };
-const MANUAL_REFRESH: Provider[] = ['gemini', 'claude', 'cursor'];
+const PERIODIC: Partial<Record<Provider, number>> = { gpt: 60000, claude: 300000, cursor: 300000, evren: 300000 };
+const MANUAL_REFRESH: Provider[] = ['gemini', 'claude', 'cursor', 'evren'];
 
 const COLORS: Record<Provider, string> = {
   gpt: '#f2f2f5',
@@ -25,6 +26,7 @@ const COLORS: Record<Provider, string> = {
   claude: '#e8a27c',
   cursor: '#3fd8c8', // v0.7.0: turquoise
   abacus: '#b9a6ff', // v0.8.0
+  evren: '#E30A17', // v0.9.6: red
 };
 const REFRESH_ICON =
   '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 6.4A5.3 5.3 0 1 0 13 10"/><path d="M13.4 2.8v3.8H9.6"/></svg>';
@@ -122,7 +124,7 @@ export function usageUI(
   const lastValue = new Map<Provider, any>();
   const warned = new Set<string>();
   const providerOf = (value: string): Provider =>
-    /^(gemini|claude|cursor|abacus):/.test(value) ? (value.split(':')[0] as Provider) : 'gpt';
+    /^(gemini|claude|cursor|abacus|evren):/.test(value) ? (value.split(':')[0] as Provider) : 'gpt';
   let provider: Provider = providerOf(selected.value);
   let sequence = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -259,6 +261,7 @@ export function usageUI(
     } else if (e.type === 'agent' && e.data?.method === 'turn/completed') {
       // A finished answer used quota: re-read the provider that answered.
       if (provider === 'gpt') void refresh(true);
+      else if (provider === 'evren') void refresh(true); // one cheap HTTP read: daily tokens moved
       else if (provider === 'claude' || provider === 'cursor') void refresh(false, true); // main process caches 60 s
     } else if (e.type === 'disconnected' && provider === 'gpt') paint(null);
   });

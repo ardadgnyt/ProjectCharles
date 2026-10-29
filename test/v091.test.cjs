@@ -10,8 +10,9 @@ const { usageSnapshot } = require('../app/usage/codex-usage.cjs');
 
 test('greeting while typing or reading: the work props lose their paws (two hands, not four)', () => {
   const engine = read('src/vendor/slime/engine.ts');
-  assert.match(engine, /const greeting = this\.hands > 0\.01 \|\| \(now\(\) >= this\.waveStart && this\.waveStart > 0 && now\(\) < this\.waveUntil\);/);
-  assert.match(engine, /drawReading\(x, performance\.now\(\) \/ 1000, this\.reading, ownEyes, !greeting\);/);
+  assert.match(engine, /const greeting =\s*this\.hands > 0\.01 \|\| \(now\(\) >= this\.waveStart && this\.waveStart > 0 && now\(\) < this\.waveUntil\);/);
+  // v0.9.6: the props are also put away while he waves (`reading` is this.reading * keep)
+  assert.match(engine, /drawReading\(x, performance\.now\(\) \/ 1000, reading, ownEyes, !greeting\);/);
   assert.match(engine, /drawStation\(x, performance\.now\(\) \/ 1000, this\.station, false, !greeting\);/);
   assert.match(read('src/chat/activity.ts'), /for \(const side of paws \? \[-1, 1\] : \[\]\) \{\s*x\.fillStyle = PAW\.dark;/);
   assert.match(read('src/chat/reading.ts'), /for \(const side of paws \? \[-1, 1\] : \[\]\) \{\s*const hand = x\.createRadialGradient/);
@@ -39,7 +40,7 @@ test('low quota: no warning when Codex has credits, for an old window, or before
   assert.match(usage, /if \(w\.resetsAt && w\.resetsAt \* 1000 <= now\) continue;/);
   const renderer = read('src/renderer.ts');
   assert.match(renderer, /const v = await api\.usageRead\(true, q\.provider\);/);
-  assert.match(renderer, /if \(v\?\.paid \|\| v\?\.unavailable \|\| typeof w\?\.remaining !== 'number' \|\| w\.remaining >= LOW_QUOTA\) return false;/);
+  assert.match(renderer, /if \(v\?\.paid \|\| v\?\.unavailable \|\| typeof w\?\.remaining !== 'number' \|\| w\.remaining >= LOW_QUOTA\)\s*return false;/);
 });
 
 test('pictures sent in the chat open large on a click', () => {
@@ -50,7 +51,7 @@ test('pictures sent in the chat open large on a click', () => {
   const renderer = read('src/renderer.ts');
   assert.match(renderer, /img\.classList\.add\('zoomable'\);/);
   assert.match(renderer, /\.historyImage\(name\)\s*\.then\(\(src: string\) => lightbox\(src, file\.name\)\)/);
-  assert.match(read('src/chat/image-card.ts'), /export function lightbox\(src: string, alt = /);
+  assert.match(read('src/chat/image-card.ts'), /export function lightbox\(\s*src: string,\s*alt = /);
   const { storeImage } = require('../app/ai/sessions.cjs');
   const os = require('node:os');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'charles-091-'));
@@ -60,9 +61,9 @@ test('pictures sent in the chat open large on a click', () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('version 0.9.1', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.9.1-beta.1');
-  assert.match(read('public/index.html'), /v0\.9\.1 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.9\.1 Beta'/);
-  assert.match(read('CHANGELOG.md'), /## v0\.9\.1 Beta/);
+test('version 0.9.6', () => {
+  assert.equal(JSON.parse(read('package.json')).version, '0.9.6-beta.1');
+  assert.match(read('public/index.html'), /v0\.9\.6 Beta/);
+  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.9\.6 Beta'/);
+  assert.match(read('CHANGELOG.md'), /## v0\.9\.6 Beta/);
 });

@@ -8,8 +8,10 @@ const { launchPlan, claudeItems } = require('./provider-tools.cjs');
 const { ASK_FORMAT } = require('../core/ask-format.cjs');
 const abacus = require('./abacus.cjs');
 const imagesKit = require('./provider-images.cjs');
+const { Evren } = require('./evren.cjs');
 // v0.8.0: every provider Charles can sign in to besides GPT
-const PROVIDERS = ['gemini', 'claude', 'cursor', 'abacus'];
+// v0.9.6: EVREN - an OpenAI-compatible HTTP API reached with the user's own API key.
+const PROVIDERS = ['gemini', 'claude', 'cursor', 'abacus', 'evren'];
 // Runs a CLI in a worker thread; resolves { error, out, err } like execFile's callback.
 function runOffThread(exe, args, options) {
   return new Promise((resolve) => {
@@ -39,9 +41,9 @@ function runOffThread(exe, args, options) {
 const AUTH_TTL = 10 * 60 * 1000;
 const MODELS = [
   ['cursor:auto', 'Cursor · Auto'],
-  ['gemini:auto', 'Gemini · Otomatik'],
-  ['gemini:pro', 'Gemini · Pro'],
-  ['gemini:flash', 'Gemini · Flash'],
+  ['gemini:auto', 'Antigravity · Otomatik'],
+  ['gemini:pro', 'Antigravity · Pro'],
+  ['gemini:flash', 'Antigravity · Flash'],
   ['claude:sonnet', 'Claude · Sonnet'],
   ['claude:opus', 'Claude · Opus'],
   ['claude:haiku', 'Claude · Haiku'],
@@ -53,7 +55,9 @@ const stripAnsi = (s) => String(s || '').replace(/\x1b\[[0-9;?]*[ -\/]*[@-~]/g, 
 function parseGeminiModels(text) {
   const seen = new Set(), models = [];
   for (const line of stripAnsi(text).split(/\r?\n/)) {
-    const match = line.trim().match(/^(gemini-[a-z0-9._-]+)\s+([^\x00-\x1f]{1,120})$/i);
+    // v0.9.6: every model the Antigravity account lists (its Claude and GPT-OSS models too)
+    // (an id always has a hyphen: "Fetching available models..." is not a model)
+    const match = line.trim().match(/^([a-z0-9][a-z0-9._]*-[a-z0-9._-]{1,80})\s+([^\x00-\x1f]{1,120})$/i);
     if (!match || seen.has(match[1])) continue;
     seen.add(match[1]);
     models.push([match[1], match[2].trim()]);
@@ -77,13 +81,109 @@ function parseCursorModels(text) {
     const m = line.match(/^([a-z0-9][a-z0-9._-]*)(?:\s+[-–—:|]\s+(.+?))?\s*$/i);
     if (!m) continue;
     const id = m[1].toLowerCase();
-    if (!/^(composer|grok)(?:[-.]|$)/.test(id) || seen.has(id)) continue;
+    // v0.9.6: every model the Cursor account lists, not only Composer and Grok
+    if (seen.has(id) || /^(auto|available|models?|loading|tip|usage)$/.test(id)) continue;
     seen.add(id);
     const name = String(m[2] || '')
       .replace(/\s*\((?:current|default|selected)[^)]*\)\s*/gi, ' ')
       .trim();
     out.push([id, name || prettyCursorName(id)]);
-    if (out.length >= 12) break;
+    if (out.length >= 120) break;
+  }
+  return out;
+}
+// v0.9.6: the effort levels each provider side offers (the panel next to the model picker).
+// Every side keeps its own vocabulary and the rows print it as-is in every UI language —
+// a level called "xLow" reads "xLow", not a translation of it. A model with no levels (the
+// "Auto" rows, Cursor's Composer, Abacus AI) keeps "Otomatik" and the panel is locked.
+// GPT is not here: Codex lists each model's own levels (app/ai/agent.cjs → models()).
+const EFFORT_LEVELS = {
+  gemini: [
+    ['low', 'Low'],
+    ['medium', 'Medium'],
+    ['high', 'High'],
+  ],
+  // Claude Code's own --effort values (claude --help: low, medium, high, xhigh, max)
+  claude: [
+    ['low', 'Low'],
+    ['medium', 'Medium'],
+    ['high', 'High'],
+    ['xhigh', 'Extra High'],
+    ['max', 'Max'],
+  ],
+  cursor: [
+    ['low', 'Low'],
+    ['medium', 'Medium'],
+    ['high', 'High'],
+    ['xhigh', 'Extra High'],
+  ],
+  evren: [
+    ['low', 'Low'],
+    ['medium', 'Medium'],
+    ['high', 'High'],
+  ],
+};
+// Providers that take the level as a request parameter (the model id stays as it is). The
+// others carry the level inside the model id itself ("gemini-4-argon-high", "grok-4.7-xhigh").
+const EFFORT_BY_PARAM = new Set(['claude', 'evren']);
+// Models that take no level even though their provider does: Claude Haiku and the Claude
+// models before Opus/Sonnet 4.5 have no effort setting.
+const NO_EFFORT = new Set(['claude:haiku']);
+function noEffort(key) {
+  if (NO_EFFORT.has(key)) return true;
+  if (/^claude:claude-\d/.test(key)) return true; // Claude 3.x ids ("claude-3-opus-…")
+  const m = /^claude:claude-(opus|sonnet|haiku|fable)-(\d+)(?:-(\d))?(?:-|$)/.exec(key);
+  if (!m) return false;
+  if (m[1] === 'haiku') return true;
+  if (m[1] === 'fable') return false;
+  const version = Number(m[2]) + (m[3] ? Number(m[3]) / 10 : 0);
+  return version < 4.5;
+}
+const EFFORT_RE = /-(low|medium|high|extra[-_]?high|xhigh|max|ultra|minimal)(-fast)?$/i;
+const EFFORT_WORDS =
+  '(?:low|medium|high|extra\\s*high|xhigh|max|ultra|minimal|d[uü]ş[uü]k|orta|y[uü]ksek|çok\\s*y[uü]ksek|maksimum)';
+/** Splits "gemini-4-argon-high" into its model and its effort; a model without one is all model. */
+function splitEffort(id) {
+  const text = String(id || '');
+  const m = EFFORT_RE.exec(text);
+  if (!m) return { base: text, effort: null };
+  // v0.9.6: Cursor's "-fast" variants are their own model ("grok-4.7-fast") with the same levels
+  return { base: text.slice(0, m.index) + (m[2] || '').toLowerCase(), effort: m[1].toLowerCase().replace(/_/g, '-') };
+}
+/** The row label of one level: the provider's own spelling ("xLow" stays "xLow"). */
+function effortLabel(provider, value) {
+  const hit = (EFFORT_LEVELS[provider] || []).find(([key]) => key === value);
+  return hit ? hit[1] : String(value || '');
+}
+/** Where one level sits in its provider's set (an unknown value sorts last). */
+function effortOrder(provider, value) {
+  const i = (EFFORT_LEVELS[provider] || []).findIndex(([key]) => key === value);
+  return i < 0 ? 99 : i;
+}
+/** "Gemini 4 Argon (High)" -> "Gemini 4 Argon": the level lives in the effort panel now. */
+function stripEffortName(name) {
+  return String(name || '')
+    .replace(new RegExp(`\\s*[([]\\s*${EFFORT_WORDS}\\s*[)\\]]\\s*$`, 'i'), '')
+    .replace(new RegExp(`\\s*[-–—:]?\\s*${EFFORT_WORDS}\\s*$`, 'i'), '')
+    // "Grok 4.7 High Fast" -> "Grok 4.7 Fast"
+    .replace(new RegExp(`\\s*[-–—:]?\\s*${EFFORT_WORDS}(\\s+fast)\\s*$`, 'i'), '$1')
+    .trim();
+}
+/** [[id, name]] from Anthropic's model list ({ id, display_name }); ids only, newest first as
+ *  listed; models that need extra usage credits (Fable) are left out. "Claude Opus 4.8" is shown as "Opus 4.8" (the provider is the menu's first step). */
+function cleanClaudeModels(list) {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const m of list) {
+    const id = Array.isArray(m) ? m[0] : m?.id;
+    const raw = Array.isArray(m) ? m[1] : m?.display_name || m?.id;
+    if (typeof id !== 'string' || !/^claude-[a-z0-9._-]{1,80}$/i.test(id) || seen.has(id)) continue;
+    // Fable models need extra usage credits on a subscription; the subscription's own models only
+    if (/fable/i.test(id)) continue;
+    seen.add(id);
+    out.push([id, String(raw || id).replace(/^Claude\s+/i, '').slice(0, 80)]);
+    if (out.length >= 60) break;
   }
   return out;
 }
@@ -135,7 +235,7 @@ class Providers {
       const saved = JSON.parse(fs.readFileSync(path.join(this.dir, 'cursor-models.json'), 'utf8'));
       if (Array.isArray(saved))
         this.cursorModels = saved.filter(
-          (x) => Array.isArray(x) && /^(composer|grok)[a-z0-9._-]*$/.test(x[0]) && typeof x[1] === 'string',
+          (x) => Array.isArray(x) && /^[a-z0-9][a-z0-9._-]*$/.test(x[0]) && typeof x[1] === 'string',
         );
     } catch {}
     this.enabledFile = path.join(this.dir, 'enabled.json');
@@ -199,6 +299,12 @@ class Providers {
       cacheFile: path.join(this.dir, 'claude-usage.json'),
       log: require('../core/log.cjs').createLog(dir, 'usage'),
     });
+    // v0.9.6: the Claude models the account offers (Anthropic's model list, read with the same
+    // claude.ai session Claude Code uses); cached in providers/claude-models.json
+    this.claudeModels = [];
+    try {
+      this.claudeModels = cleanClaudeModels(JSON.parse(fs.readFileSync(path.join(this.dir, 'claude-models.json'), 'utf8')));
+    } catch {}
     // v0.8.0 Abacus AI: the user's own `abacusai` install; the connection test result and the
     // account's model list (read from the CLI) are kept in providers/abacus.json (no keys)
     this.abacusFile = path.join(this.dir, 'abacus.json');
@@ -207,11 +313,18 @@ class Providers {
       const saved = JSON.parse(fs.readFileSync(this.abacusFile, 'utf8'));
       this.abacus = { verified: saved?.verified === true, models: abacus.cleanModels(saved?.models) };
     } catch {}
+    // v0.9.6 EVREN: the API key lives encrypted in %APPDATA%\Charles\evren.enc.json and the
+    // connection test result / model cache in providers/ (no keys anywhere in the project).
+    this.evren = new Evren(dir);
+    this.evrenQuotaCache = null;
+    this.evrenQuotaPending = null;
     this.auth = {};
     this.authChecked = 0;
     this.authPending = null;
   }
   spec(provider) {
+    // v0.9.6: EVREN is a plain HTTP API - no executable to find or launch.
+    if (provider === 'evren') return { http: true };
     if (provider === 'cursor')
       return {
         exe: path.join(this.root, 'tools/cursor/node.exe'),
@@ -255,6 +368,14 @@ class Providers {
 
   status() {
     return PROVIDERS.map((id) => {
+      if (id === 'evren')
+        return {
+          id,
+          enabled: !!this.auth[id],
+          signedIn: !!this.auth[id],
+          configured: this.evren.hasKey(),
+          installed: true, // nothing to install: an API key is all EVREN needs
+        };
       const exe = this.spec(id).exe;
       return {
         id,
@@ -303,16 +424,49 @@ class Providers {
   }
   /** Every selectable model, with Cursor's Composer/Grok models from the account. */
   allModels() {
-    const cursor = (this.cursorModels && this.cursorModels.length ? this.cursorModels : CURSOR_FALLBACK).map(
-      ([id, name]) => ['cursor:' + id, 'Cursor · ' + name],
-    );
+    // v0.9.6: the "-fast" variants are their own rows for now (they come back as a separate
+    // option later); they are not folded into the level picker.
+    const cursor = (this.cursorModels && this.cursorModels.length ? this.cursorModels : CURSOR_FALLBACK)
+      .map(([id, name]) => ['cursor:' + id, 'Cursor · ' + name]);
     // v0.8.0: Abacus AI models start with "Abacus AI · " so they never mix with the others
     const abacusModels = [
       ['abacus:auto', 'Abacus AI · Otomatik'],
       ...this.abacus.models.map(([id, name]) => ['abacus:' + id, 'Abacus AI · ' + name]),
     ];
-    const gemini = this.geminiModels.map(([id, name]) => ['gemini:' + id, 'Gemini · ' + name.replace(/^Gemini\s+/i, '')]);
-    return [MODELS[0], ...cursor, ...MODELS.slice(1), ...gemini, ...abacusModels];
+    // v0.9.6: the provider is Antigravity (its CLI serves these models). The listing still
+    // prints "Gemini …" for the model names, so that prefix is stripped either way.
+    const gemini = this.geminiModels.map(
+      ([id, name]) => ['gemini:' + id, 'Antigravity · ' + name.replace(/^Antigravity\s+/i, '')],
+    );
+    // v0.9.6: one provider's models stay together. The account's models (Argon and friends)
+    // used to be appended after the Claude rows, so "Gemini · 4 Argon" ended up underneath
+    // "Claude · Haiku" while the other Gemini models sat above it.
+    const staticGroup = (prefix) => MODELS.filter(([id]) => id.startsWith(prefix + ':'));
+    // v0.9.6: EVREN's own models from the account's cached list next to its "Otomatik" row.
+    // The API may also list a model literally called "auto"; that would be the same row twice.
+    // Each model carries its own level names ("xLow" is one of them) — the id stays the same
+    // across levels, so they ride along as an explicit list on the row.
+    const evrenModels = [
+      ['evren:auto', 'EVREN · Otomatik'],
+      ...this.evren.models
+        .filter(([id]) => id !== 'auto')
+        .map(([id, name]) => {
+          const values = this.evren.effortValues(id);
+          // Even an empty list is a statement: the model takes no level at all.
+          return [`evren:${id}`, 'EVREN · ' + name, { efforts: values.map((v) => [v, `evren:${id}`]) }];
+        }),
+    ];
+    return [
+      MODELS[0],
+      ...cursor,
+      ...staticGroup('gemini'),
+      ...gemini,
+      ...(this.claudeModels.length
+        ? this.claudeModels.map(([id, name]) => ['claude:' + id, 'Claude · ' + name])
+        : staticGroup('claude')),
+      ...abacusModels,
+      ...evrenModels,
+    ];
   }
   saveAbacus() {
     try {
@@ -406,12 +560,199 @@ class Providers {
     }
     return this.cursorModels;
   }
-  models() {
-    return this.allModels().filter(([id]) => this.auth[id.split(':')[0]]).map(([id, name]) => ({
-      id,
-      name,
-      isDefault: false,
+  /** v0.9.6: every Claude model of the account (GET /v1/models with the claude.ai session). */
+  async refreshClaudeModels(fetcher = fetch) {
+    if (this.claudeListing) return this.claudeListing;
+    this.claudeListing = (async () => {
+      const { readCredentials } = require('../usage/claude-usage.cjs');
+      const cred = readCredentials(path.join(this.dir, 'claude'));
+      if (!cred) return this.claudeModels;
+      const res = await fetcher('https://api.anthropic.com/v1/models?limit=100', {
+        headers: {
+          authorization: 'Bearer ' + cred.accessToken,
+          'anthropic-version': '2023-06-01',
+          'anthropic-beta': 'oauth-2025-04-20',
+        },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) return this.claudeModels;
+      const list = cleanClaudeModels((await res.json())?.data);
+      if (list.length) {
+        this.claudeModels = list;
+        try {
+          fs.writeFileSync(path.join(this.dir, 'claude-models.json'), JSON.stringify(list));
+        } catch {}
+      }
+      return this.claudeModels;
+    })();
+    try {
+      return await this.claudeListing.catch(() => this.claudeModels);
+    } finally {
+      this.claudeListing = null;
+    }
+  }
+  // ── v0.9.6 EVREN ──────────────────────────────────────────────────────────────────────────
+  /** EVREN's model list from the account (cached in providers/evren-models.json). */
+  async refreshEvrenModels() {
+    if (this.evrenListing) return this.evrenListing;
+    this.evrenListing = this.evren.refreshModels();
+    try {
+      return await this.evrenListing;
+    } finally {
+      this.evrenListing = null;
+    }
+  }
+  /**
+   * The real connection test the button performs: GET /v1/models with the saved key. The
+   * background probe never touches the network (it reports this result instead).
+   */
+  async testEvren() {
+    if (!this.evren.hasKey())
+      return { ok: false, message: 'EVREN API anahtarı eklenmemiş. Önce anahtarını kaydet.' };
+    try {
+      const list = await this.evren.refreshModels();
+      if (!list.length) throw Error('EVREN model listesi boş geldi.');
+      this.evren.verified = true;
+      this.evren.saveState();
+      this.auth.evren = true;
+      this.authChecked = 0;
+      return { ok: true, message: 'Bağlı · Modeller kullanıma hazır' };
+    } catch (e) {
+      this.evren.verified = false;
+      this.evren.saveState();
+      this.auth.evren = false;
+      this.authChecked = 0;
+      return {
+        ok: false,
+        message: e?.message || 'EVREN bağlantısı kurulamadı.',
+        terms: e?.code === 'terms_not_accepted',
+      };
+    }
+  }
+  evrenKeySave(key) {
+    const value = this.evren.setKey(key);
+    this.auth.evren = false;
+    this.authChecked = 0;
+    return value;
+  }
+  evrenKeyClear() {
+    const value = this.evren.clearKey();
+    this.auth.evren = false;
+    this.authChecked = 0;
+    this.evrenQuotaCache = null;
+    return value;
+  }
+  /** Usage terms: { accepted, version, text } (the service asks for acceptance once). */
+  evrenTerms() {
+    return Promise.all([this.evren.termsStatus(), this.evren.termsText()]).then(([status, text]) => ({
+      accepted: status.accepted,
+      version: text.version || status.version,
+      text: text.text,
     }));
+  }
+  evrenTermsAccept() {
+    return this.evren.acceptTerms();
+  }
+  /** Daily token quota for the island gauges (60 s cache; a failed read keeps the last one). */
+  async evrenUsage(force = false) {
+    const shape = () => ({
+      provider: 'evren',
+      fiveHour: null,
+      weekly: null,
+      credits: null,
+      blocked: null,
+      updatedAt: Date.now(),
+      labels: { fiveHour: 'Günlük token' },
+      missingWindows: ['weekly'],
+    });
+    if (this.evrenQuotaPending) return this.evrenQuotaPending;
+    if (!force && this.evrenQuotaCache && Date.now() - this.evrenQuotaCache.updatedAt < 60000)
+      return this.evrenQuotaCache;
+    if (!this.evren.hasKey()) return { ...shape(), unavailable: 'EVREN anahtarı eklenmemiş' };
+    this.evrenQuotaPending = (async () => {
+      try {
+        const value = await this.evren.quota();
+        if (value.unavailable && this.evrenQuotaCache?.fiveHour)
+          return { ...this.evrenQuotaCache, stale: true, updatedAt: Date.now() };
+        this.evrenQuotaCache = value;
+        return value;
+      } catch (e) {
+        if (this.evrenQuotaCache?.fiveHour)
+          return { ...this.evrenQuotaCache, stale: true, updatedAt: Date.now() };
+        return { ...shape(), unavailable: e?.message || 'Kota bilgisi okunamadı' };
+      }
+    })();
+    try {
+      return await this.evrenQuotaPending;
+    } finally {
+      this.evrenQuotaPending = null;
+    }
+  }
+  /**
+   * v0.9.6: one entry per model, with the effort levels it offers. Antigravity lists every
+   * level as its own model id ("gemini-4-argon-low/medium/high"), which is one model to the
+   * user: the panel next to the picker chooses the level and the id that goes with it.
+   * A row may also declare its levels itself (`[id, name, { efforts: [[value, id], …] }]`),
+   * which is how an HTTP provider offers levels that are not part of the model id.
+   */
+  models() {
+    const rows = this.allModels().filter(([id]) => this.auth[id.split(':')[0]]);
+    const groups = new Map();
+    for (const [id, name, extra] of rows) {
+      // A row may declare its levels itself (`extra.efforts`), even when the list is empty —
+      // that means "this model takes no level at all", not "fall back to the provider set".
+      const explicit = extra && Array.isArray(extra.efforts)
+        ? extra.efforts.map(([value, effortId]) => ({ value, id: effortId || id, label: String(value) }))
+        : null;
+      const { base, effort } = splitEffort(id);
+      const key = explicit || effort ? base : id;
+      const group = groups.get(key) || { key, name, variants: [], explicit: null };
+      group.name = group.name || name;
+      if (explicit !== null) group.explicit = explicit;
+      else if (effort) group.variants.push({ id, name, effort });
+      groups.set(key, group);
+    }
+    const models = [];
+    for (const [key, group] of groups) {
+      const provider = key.split(':')[0];
+      const byParam = EFFORT_BY_PARAM.has(provider);
+      // Abacus AI is offered with no levels at all ("Otomatik" only) — its transport has no
+      // effort parameter, and it is not tested yet.
+      // Abacus AI is offered with no levels at all ("Otomatik" only) — its transport has no
+      // effort parameter, and it is not tested yet. A row's own list wins over everything,
+      // including an empty one ("this model takes no level").
+      const offered =
+        provider === 'abacus'
+          ? []
+          : group.explicit !== null
+            ? group.explicit
+            : group.variants.length
+              ? [...group.variants]
+                  .sort((a, b) => effortOrder(provider, a.effort) - effortOrder(provider, b.effort))
+                  .map((v) => ({ value: v.effort, id: v.id, label: effortLabel(provider, v.effort) }))
+              : byParam && !key.endsWith(':auto') && !noEffort(key)
+                // gpt / claude / evren carry the level as a request parameter: one row per
+                // model, the whole provider set behind it (the id never changes). An
+                // "Otomatik" row is the provider's own default and offers nothing.
+                ? (EFFORT_LEVELS[provider] || []).map(([value, label]) => ({ value, id: key, label }))
+                : [];
+      if (!offered.length) {
+        // No levels of its own ("Otomatik" rows, Composer, Abacus AI): locked on Otomatik.
+        models.push({ id: key, name: group.name, isDefault: false });
+        continue;
+      }
+      // An id-level provider's row points at its default variant (Medium); a parameter
+      // provider's row points at the plain id — the level travels beside it, not inside it.
+      const chosen = offered.find((v) => v.value === 'medium') || offered.find((v) => v.value === 'low') || offered[0];
+      models.push({
+        id: byParam ? key : chosen.id,
+        name: stripEffortName(group.name) || key,
+        isDefault: false,
+        effort: byParam ? '' : chosen.value,
+        efforts: offered.map((v) => ({ value: v.value, label: v.label || effortLabel(provider, v.value), id: v.id })),
+      });
+    }
+    return models;
   }
   async refreshGeminiModels() {
     if (this.geminiListing) return this.geminiListing;
@@ -441,6 +782,10 @@ class Providers {
     return this.status();
   }
   probe(id) {
+    // v0.9.6: EVREN has no CLI to ask. The probe only reports what the user's last connection
+    // test proved (key saved + verified), so it never needs the network. "Bağlantıyı test et"
+    // does the real GET /v1/models check (testEvren).
+    if (id === 'evren') return Promise.resolve(this.evren.hasKey() && this.evren.verified === true);
     const spec = this.spec(id);
     if (!spec.exe || !fs.existsSync(spec.exe)) return Promise.resolve(false);
     // Abacus AI: the result of the user's last connection test (no status command to ask)
@@ -521,8 +866,12 @@ class Providers {
       this.authChecked = Date.now();
       // v0.7.3: Cursor's Composer and Grok models (in the background, the list is cached)
       if (this.auth.cursor) void this.refreshCursorModels().catch(() => {});
+      if (this.auth.claude) void this.refreshClaudeModels().catch(() => {});
       if (this.auth.gemini) await this.refreshGeminiModels().catch(() => {});
       if (this.auth.abacus) void this.refreshAbacusModels().catch(() => {});
+      // v0.9.6: EVREN's model list (cached in providers/evren-models.json; a failed refresh
+      // keeps the cached list, so going offline never empties the model picker)
+      if (this.auth.evren) void this.refreshEvrenModels().catch(() => {});
       return this.status();
     })();
     try {
@@ -619,15 +968,23 @@ class Providers {
         'Web arama, derin araştırma ve görsel oluşturma GPT ile çalışır. Bu istek için GPT seç.',
       );
     if (args.mode === 'project' && !args.cwd) throw Error('Proje modu için klasör seç.');
+    // v0.9.6: the level the panel chose. It is checked against the model's own set right here,
+    // so nothing invented upstream can reach a CLI flag or a request body. An id-level
+    // provider ("gemini-4-argon-high") carries the level inside the id and gets no parameter.
+    const effort = String(args.effort || '').trim();
+    const row = this.models().find((m) => m.id === args.model || (m.efforts || []).some((e) => e.id === args.model));
+    if (effort && !(row?.efforts || []).some((e) => e.value === effort))
+      throw Error('Bu model için geçerli bir efor seçimi değil.');
     // v0.8.7: Claude and Gemini take images too (app/ai/provider-images.cjs)
     const { texts, images } = imagesKit.splitAttachments(provider, args.attachments);
     const claudeImages = provider === 'claude' && images.length ? imagesKit.loadImages(images, this.shrinkImage) : null;
     if (agent.busy) throw Error('Önce etkin yanıtı durdur.');
     const spec = this.spec(provider);
-    if (!spec.exe || !fs.existsSync(spec.exe))
+    const isHttp = !!spec.http;
+    if (!isHttp && (!spec.exe || !fs.existsSync(spec.exe)))
       throw Error(
         provider === 'abacus'
-          ? 'Abacus AI komut satırı aracı bulunamadı. Kurup Ayarlar → Hesap’tan bağlantıyı yeniden test et.'
+          ? 'Abacus AI komut satırı aracı bulunamadı. Kurup Ayarlar → Hesap\'tan bağlantıyı yeniden test et.'
           : 'Sağlayıcının resmi aracı bulunamadı. Kurulum paketini yeniden çıkar.',
       );
     const isAbacus = provider === 'abacus';
@@ -639,6 +996,7 @@ class Providers {
     const planArgs = {
       provider,
       model,
+      effort: EFFORT_BY_PARAM.has(provider) ? effort : '',
       mode: args.mode,
       access: args.access,
       projectDir: args.mode === 'project' ? args.cwd : null,
@@ -647,8 +1005,13 @@ class Providers {
       imageDir: staged?.dir || null,
     };
     // Abacus AI takes the message on its command line (-p), so its plan is made once the full
-    // message is known (below); this first plan only says where it runs.
-    let plan = isAbacus ? abacus.abacusPlan({ ...planArgs, prompt: '.' }) : launchPlan(planArgs);
+    // message is known (below); this first plan only says where it runs. EVREN has no CLI: the
+    // plan only carries the same fields the answer flow below reads.
+    let plan = isHttp
+      ? { cli: [], cwd: workspace, timeoutMs: 600000, tools: false }
+      : isAbacus
+        ? abacus.abacusPlan({ ...planArgs, prompt: '.' })
+        : launchPlan(planArgs);
     if (plan.geminiSettings)
       fs.writeFileSync(
         path.join(this.dir, 'gemini/.gemini/antigravity-cli/settings.json'),
@@ -708,6 +1071,64 @@ class Providers {
         emit('turn/completed', { turn: { id, status: 'failed', error: { message: e.message } } });
         return { turnId: id };
       }
+    }
+    // v0.9.6: EVREN answers over its HTTP API, so there is no CLI to spawn. Its deltas are
+    // real: the answer streams into the chat while it arrives, and the interrupt button
+    // aborts the request (the job in this.jobs carries the same kill/cancelled surface as a
+    // child process).
+    if (isHttp) {
+      const controller = new AbortController();
+      const job = {
+        cancelled: false,
+        finished: false,
+        kill() {
+          this.cancelled = true;
+          controller.abort();
+        },
+      };
+      this.jobs.set(agent, job);
+      let answer = '';
+      let startedItem = false;
+      const done = (error) => {
+        if (job.finished) return;
+        job.finished = true;
+        this.jobs.delete(agent);
+        if (!error && !answer.trim()) error = 'EVREN yanıtı boş geldi.';
+        if (reading) emit('item/completed', { item: readItem(error ? 'failed' : 'completed') });
+        agent.busy = false;
+        if (answer) {
+          if (!startedItem) emit('item/started', { item: { id, type: 'agentMessage', text: '' } });
+          emit('item/completed', { item: { id, type: 'agentMessage', text: answer } });
+        }
+        emit('turn/completed', {
+          turn: {
+            id,
+            status: error ? (job.cancelled ? 'interrupted' : 'failed') : 'completed',
+            ...(error ? { error: { message: error } } : {}),
+          },
+        });
+      };
+      this.evren
+        .chat({
+          model,
+          prompt,
+          effort,
+          signal: controller.signal,
+          onDelta: (piece) => {
+            if (!startedItem) {
+              startedItem = true;
+              emit('item/started', { item: { id, type: 'agentMessage', text: '' } });
+            }
+            answer += piece;
+            emit('item/agentMessage/delta', { itemId: id, delta: piece });
+          },
+        })
+        .then((text) => {
+          answer = text || answer;
+          done(null);
+        })
+        .catch((e) => done(job.cancelled ? 'Yanıt durduruldu.' : e?.message || 'EVREN yanıtı alınamadı.'));
+      return { turnId: id };
     }
     const cli = plan.cli;
     const started = new Map();
@@ -883,6 +1304,7 @@ class Providers {
   }
 }
 module.exports = {
+  cleanClaudeModels,
   PROVIDERS,
   streamText,
   Providers,
@@ -890,4 +1312,9 @@ module.exports = {
   MODELS,
   parseCursorModels,
   parseGeminiModels,
+  EFFORT_LEVELS,
+  EFFORT_BY_PARAM,
+  splitEffort,
+  effortLabel,
+  stripEffortName,
 };

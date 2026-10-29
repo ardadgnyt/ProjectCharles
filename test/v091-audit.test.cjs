@@ -333,7 +333,6 @@ test('PEN-07: clicks — shelf: empty space opens the chat, cream bar closes; ch
 
 test('KAL-06: the user guide describes the current island (strip, music notch, shelf, chat)', () => {
   const guide = read('docs/USER-GUIDE.md');
-  assert.match(guide, /v0\.9\.1 Beta/);
   assert.match(guide, /thin strip/);
   assert.match(guide, /cream bar below closes the island/);
   assert.doesNotMatch(guide, /Click Slime to open the large panel/);

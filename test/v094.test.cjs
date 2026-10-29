@@ -7,7 +7,7 @@ const cv = require('../app/files/convert.cjs');
 const { readZip } = require('../app/modules/package.cjs');
 const { readUpdateZip } = require('../app/core/updater.cjs');
 const { zipChecksums } = require('../app/core/zip-check.cjs');
-const { QuickShareEngine, parseMdnsPacket, buildMdnsAnnouncement, buildMdnsQuery } = require('../app/files/quickshare.cjs');
+const { QuickShareEngine, parseMdnsPacket, buildMdnsAnnouncement, buildMdnsQuery } = require('./support/quickshare-js-peer.cjs');
 const { ShareService } = require('../app/files/share.cjs');
 const zip = files => Buffer.from(zipSync(Object.fromEntries(Object.entries(files).map(([k,v]) => [k,strToU8(v)])), { level:0 }));
 const pkg = JSON.stringify({ name:'project-charles', version:'0.9.4-beta.1' });
@@ -184,7 +184,7 @@ test('receiver registration repeats safely, throttles phone queries and never le
 });
 test('Windows BLE helper actually reaches Started using WinRT', {skip:process.platform!=='win32'||process.env.CHARLES_TEST_BLE!=='1'}, async () => {
   const vm=require('node:vm'),{createRequire}=require('node:module');
-  const file=path.join(__dirname,'../app/files/quickshare.cjs');
+  const file=path.join(__dirname,'support/quickshare-js-peer.cjs');
   const box={require:createRequire(file),module:{exports:{}},Buffer,process,setTimeout,clearTimeout,setInterval,clearInterval};
   vm.runInNewContext(fs.readFileSync(file,'utf8')+'\nmodule.exports=startWindowsBleWakeAdvertiser;',box);
   let child,timer;

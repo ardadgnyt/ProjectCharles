@@ -14,7 +14,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const IMAGE_PROVIDERS = ['claude', 'gemini'];
-const IMAGE_ONLY_MESSAGE = 'Görseller şu an yalnızca GPT, Claude ve Gemini ile çalışıyor.';
+const IMAGE_ONLY_MESSAGE = 'Görseller şu an yalnızca GPT, Claude ve Antigravity ile çalışıyor.';
 const MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
 const MAX_IMAGES = 10;
 // The Claude API takes images up to 5 MB each; larger ones are shrunk first when the app can

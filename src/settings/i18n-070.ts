@@ -23,14 +23,14 @@ export const english070: Record<string, string> = {
   'İleriki sürümlerde gelecek': 'Coming in a later version',
   Yakında: 'Soon',
   '✓ ChatGPT bağlı': '✓ ChatGPT connected',
-  '✓ Gemini bağlı': '✓ Gemini connected',
+  '✓ Antigravity bağlı': '✓ Antigravity connected',
   '✓ Claude bağlı': '✓ Claude connected',
   '✓ Cursor bağlı': '✓ Cursor connected',
   // memory
   'Kayıtlı bilgiler': 'Saved notes',
   'Kullandığım AI ile beni tanı': 'Get to know me from the AI I use',
-  'ChatGPT, Claude veya Gemini seni zaten tanıyorsa bildiklerini Charles’a aktar. Otomatik eşitleme yapılmaz; neyin kaydedileceğini sen seçersin.':
-    'If ChatGPT, Claude or Gemini already knows you, bring what it knows into Charles. Nothing syncs automatically; you choose what is saved.',
+  'ChatGPT, Claude veya Antigravity seni zaten tanıyorsa bildiklerini Charles’a aktar. Otomatik eşitleme yapılmaz; neyin kaydedileceğini sen seçersin.':
+    'If ChatGPT, Claude or Antigravity already knows you, bring what it knows into Charles. Nothing syncs automatically; you choose what is saved.',
   'Aktarmaya başla': 'Start',
   'Dosyadan içe aktar': 'Import from a file',
   '1 · Yapay zekânı seç': '1 · Pick your AI',

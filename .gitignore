@@ -56,3 +56,9 @@ docs/VERIFICATION-v0.4.4.md
 # Agent scratch files and local rollback copies
 .mimocode/
 alpha-backups/
+
+# Installation leftovers that only exist in an installed copy
+charles-manifest.json
+_claude/
+/sel.png
+/find.png

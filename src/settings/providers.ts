@@ -1,5 +1,6 @@
 import { pluginGuideUI } from './plugin-guide';
 import { abacusCard } from './abacus-card';
+import { evrenCard } from './evren-card';
 export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: string) => void) {
   const page = document.querySelector('.settings-page[data-category=account]')!;
   // v0.5.1: no separate "main AI" setting. The model chosen in the chat decides; the main
@@ -20,7 +21,7 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
   async function fillDefaults() {
     const [list, saved] = await Promise.all([api.models(), api.startupModel()]);
     choice.replaceChildren(new Option('Son kullandığım model', '__last__'));
-    const gpt = list.filter((m: any) => !/^(gemini|claude|cursor|abacus):/.test(m.id));
+    const gpt = list.filter((m: any) => !/^(gemini|claude|cursor|abacus|evren):/.test(m.id));
     if (gpt.length)
       choice.add(
         new Option(
@@ -109,6 +110,10 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
           abacus.update(s);
           continue;
         }
+        if (s.id === 'evren') {
+          evren.update(s);
+          continue;
+        }
         const result = results.get(s.id),
           button = buttons.get(s.id);
         if (result)
@@ -137,7 +142,7 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
     }
   }
   for (const [id, name] of [
-    ['gemini', 'Gemini'],
+    ['gemini', 'Antigravity'],
     ['claude', 'Claude'],
     ['cursor', 'Cursor'],
   ]) {
@@ -219,6 +224,18 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
   );
   cardTail.after(abacus.section);
   cardTail = abacus.section;
+  // v0.9.6: EVREN - no sign-in window; a pasted API key, its connection test and the usage
+  // terms the service may ask to accept once.
+  const evren = evrenCard(
+    api,
+    notice,
+    async () => {
+      last = '';
+      await sync();
+    },
+  );
+  cardTail.after(evren.section);
+  cardTail = evren.section;
   window.addEventListener('focus', () => void sync());
   document.getElementById('model-button')!.addEventListener('click', () => void sync());
   window.setInterval(() => {

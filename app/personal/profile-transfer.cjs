@@ -1,9 +1,10 @@
 // "Get to know me" import from ChatGPT answers.
+// v0.9.6: the question pack lives beside this file (it is app content, not documentation).
 const { randomUUID } = require('node:crypto');
 const fs = require('node:fs'),
   path = require('node:path');
 function guide() {
-  return fs.readFileSync(path.join(__dirname, '../../docs/CHATGPT-INTRO-QUESTIONS.md'), 'utf8');
+  return fs.readFileSync(path.join(__dirname, 'intro-questions.md'), 'utf8');
 }
 function validate(items) {
   if (!Array.isArray(items) || !items.length || items.length > 16)

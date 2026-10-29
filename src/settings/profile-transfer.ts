@@ -5,7 +5,7 @@
 const AIS: [string, string, string][] = [
   ['ChatGPT', 'https://chatgpt.com/', '#e9e9ee'],
   ['Claude', 'https://claude.ai/new', '#e8a27c'],
-  ['Gemini', 'https://gemini.google.com/app', '#a8c7fa'],
+  ['Antigravity', 'https://gemini.google.com/app', '#a8c7fa'],
 ];
 export function profileTransferUI(api: any) {
   const section = document.getElementById('memory-section')!;
@@ -22,7 +22,7 @@ export function profileTransferUI(api: any) {
   card.className = 'setting-section settings-card';
   card.id = 'profile-transfer-card';
   card.innerHTML =
-    '<h3>Kullandığım AI ile beni tanı</h3><p class="hint">ChatGPT, Claude veya Gemini seni zaten tanıyorsa bildiklerini Charles’a aktar. Otomatik eşitleme yapılmaz; neyin kaydedileceğini sen seçersin.</p>';
+    '<h3>Kullandığım AI ile beni tanı</h3><p class="hint">ChatGPT, Claude veya Antigravity seni zaten tanıyorsa bildiklerini Charles’a aktar. Otomatik eşitleme yapılmaz; neyin kaydedileceğini sen seçersin.</p>';
   const launch = document.createElement('button');
   launch.id = 'profile-transfer-open';
   launch.className = 'primary';

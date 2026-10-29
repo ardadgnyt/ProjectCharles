@@ -125,7 +125,7 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
       'gemini-login': [
         {
           title: '1 · Giriş penceresini aç',
-          text: 'Aşağıdaki düğmeye bas. Charles, Gemini girişi için küçük bir siyah komut penceresi (Antigravity) açacak. Bu pencere Charles’ın kendi giriş aracıdır; güvenle kullanabilirsin.',
+          text: 'Aşağıdaki düğmeye bas. Charles, Antigravity girişi için küçük bir siyah komut penceresi (Antigravity) açacak. Bu pencere Charles’ın kendi giriş aracıdır; güvenle kullanabilirsin.',
         },
         {
           title: '2 · Google ile girişi seç',
@@ -133,7 +133,7 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
         },
         {
           title: '3 · Tarayıcıda hesabını seç',
-          text: 'Tarayıcıda Google sayfası açılır. Gemini için kullanacağın hesabı seçip İzin ver / Allow’a bas. Başarılı yazısını görünce tarayıcı sekmesini kapatabilirsin. Tarayıcı açılmazsa siyah penceredeki bağlantıya Ctrl tuşuyla tıkla.',
+          text: 'Tarayıcıda Google sayfası açılır. Antigravity için kullanacağın hesabı seçip İzin ver / Allow’a bas. Başarılı yazısını görünce tarayıcı sekmesini kapatabilirsin. Tarayıcı açılmazsa siyah penceredeki bağlantıya Ctrl tuşuyla tıkla.',
         },
         {
           title: '4 · Pencerenin onayını bekle',
@@ -141,7 +141,7 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
         },
         {
           title: '5 · Bağlantıyı kontrol et',
-          text: 'Bağlantıyı kontrol et’e bas. Bağlıysa Gemini modelleri mesaj kutusundaki model listesine eklenir.',
+          text: 'Bağlantıyı kontrol et’e bas. Bağlıysa Antigravity modelleri mesaj kutusundaki model listesine eklenir.',
           finish: true,
         },
       ],
@@ -266,7 +266,7 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
       bubble.append(reopen);
     }
     const loginOf = /^(gpt|claude|gemini|cursor|abacus)-login$/.exec(id)?.[1];
-    const NAMES: Record<string, string> = { gpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', cursor: 'Cursor', abacus: 'Abacus AI' };
+    const NAMES: Record<string, string> = { gpt: 'ChatGPT', claude: 'Claude', gemini: 'Antigravity', cursor: 'Cursor', abacus: 'Abacus AI', evren: 'EVREN' };
     // v0.8.0: Abacus AI first needs its own tool installed (step 1), then signs in (step 2)
     if (loginOf === 'abacus' && step === 0) {
       const docs = document.createElement('button');

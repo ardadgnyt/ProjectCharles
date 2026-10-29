@@ -42,7 +42,17 @@ function migrateTools(appRoot) {
       else { fs.rmSync(b, { force: true }); fs.renameSync(a, b); }
     } else fs.renameSync(a, b);
   }
-  try { fs.rmdirSync(from); } catch {}
+  try {
+    fs.rmdirSync(from);
+  } catch {
+    // Windows may hold the empty folder a moment (indexer, antivirus): wait, then retry.
+    for (let i = 0; i < 20 && fs.existsSync(from); i++) {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+      try {
+        fs.rmdirSync(from);
+      } catch {}
+    }
+  }
   return true;
 }
 
