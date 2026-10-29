@@ -2477,7 +2477,9 @@ else {
                 id: 'charles|quickshare-firewall',
                 kind: 'charles',
                 title: 'Quick Share için ağ izni gerekiyor',
-                reason: 'Telefonlar bu bilgisayarı her zaman görsün diye Gönder kartında “Ağ izni ver”e bas.',
+                reason: fw.publicNet
+                  ? 'Bu Wi-Fi Windows’ta “Ortak ağ”; telefonların bilgisayarı görmesi için ağı “Özel” yap.'
+                  : 'Telefonlar bu bilgisayarı her zaman görsün diye Gönder kartında “Ağ izni ver”e bas.',
                 ttl: 5 * 60000,
               });
             })
@@ -2550,6 +2552,7 @@ else {
           dialogOpen = true;
           try {
             const result = await getFirewall().allow();
+            perfLog('quickshare-firewall allow', JSON.stringify(result));
             // the receiver announces again from fresh sockets once the rules exist
             void getShare().resume().catch(() => {});
             return result;
@@ -2558,7 +2561,9 @@ else {
             lastInside = Date.now();
           }
         }
-        return getFirewall().check(action === 'refresh');
+        const result = await getFirewall().check(action === 'refresh');
+        if (action === 'refresh' || !result.ok) perfLog('quickshare-firewall check', JSON.stringify(result));
+        return result;
       });
       safeHandler('share-cancel', () => getShare().cancel());
       safeHandler('share-respond', (id, accept) => getShare().respondOffer(String(id || ''), Boolean(accept)));

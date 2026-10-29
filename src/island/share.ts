@@ -29,6 +29,7 @@ export function shareSheet(d: any) {
   let modeBusy = false;
   let firewall: any = null;
   let firewallBusy = false;
+  let firewallError = "";
 
   const root = el("div", "share-sheet");
   root.dataset.kind = "share";
@@ -130,24 +131,36 @@ export function shareSheet(d: any) {
     filesCol.append(modeBox);
     // v0.9.6: phones cannot see the PC while Windows Firewall keeps the Quick Share runtime out
     if (firewall && firewall.ok === false && state.receiveMode !== "off") {
-      const why =
-        firewall.block > 0
-          ? "Windows güvenlik duvarı Quick Share'i engelliyor; telefonlar bu bilgisayarı göremeyebilir."
+      // v0.9.7: the banner says what is still wrong after "Ağ izni ver" instead of staying silent
+      const why = firewall.publicNet
+        ? "Bu Wi-Fi Windows'ta “Ortak ağ” olarak ayarlı; telefonların bilgisayarı görmesi için Ayarlar → Ağ ve İnternet'ten “Özel ağ” seç."
+        : firewall.block > 0
+          ? "Windows güvenlik duvarı Quick Share'i engelliyor" +
+            (firewall.blockNames?.length ? ` (${firewall.blockNames.join(", ")})` : "") +
+            "; telefonlar bu bilgisayarı göremeyebilir."
           : "Telefonların bu bilgisayarı her zaman görebilmesi için Windows ağ izni gerekiyor.";
-      const allow = btn("share-firewall-allow", firewallBusy ? "Bekleniyor…" : "Ağ izni ver", () => {
+      const label = firewallBusy ? "Bekleniyor…" : firewall.publicNet ? "Yeniden denetle" : "Ağ izni ver";
+      const allow = btn("share-firewall-allow", label, () => {
         if (firewallBusy) return;
         firewallBusy = true;
+        firewallError = "";
         paint();
-        void d
-          .attempt(async () => {
-            firewall = await api.shareFirewall("allow");
+        void Promise.resolve(api.shareFirewall(firewall.publicNet ? "refresh" : "allow"))
+          .then((r: any) => {
+            firewall = r;
+            if (r && r.ok === false && !r.publicNet) firewallError = "Kurallar yazıldı ama Windows hâlâ izin vermiyor; bilgisayarı yeniden başlatıp tekrar dene.";
+          })
+          .catch((e: any) => {
+            firewallError = String(e?.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, "");
           })
           .finally(() => {
             firewallBusy = false;
             paint();
           });
       });
-      filesCol.append(el("div", "share-firewall", el("small", "", why), allow));
+      const box = el("div", "share-firewall", el("small", "", why), allow);
+      if (firewallError) box.append(el("small", "share-firewall-error", firewallError));
+      filesCol.append(box);
     }
 
     // 2. Center Column: Offer / Active Transfer / Nearby Devices

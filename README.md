@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.6%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.7%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -37,6 +37,12 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 > *Epic Minequest* serisindeki **Charles**’tan esinlenmiştir.
 
 ---
+
+## v0.9.7 Beta · Network permission & menu arrows / Ağ izni ve menü okları
+
+**Ağ izni ver** in the share panel works again when Charles is installed in a folder with spaces in its name; the hint goes away once Windows allows Quick Share, and it says what is still wrong otherwise (a blocking rule, or a Wi-Fi set to *Public*). The model and effort buttons' arrows point up, where their menus open, and the provider rows point to the side the model list opens on.
+
+Paylaşım panelindeki **Ağ izni ver**, Charles adında boşluk olan bir klasöre kuruluyken de çalışıyor; Windows Quick Share'e izin verince uyarı kayboluyor, vermezse neyin eksik olduğunu (engelleyen kural ya da *Ortak* ayarlı Wi-Fi) söylüyor. Model ve efor düğmelerinin okları menünün açıldığı yöne (yukarı), sağlayıcı satırlarının okları da model listesinin açıldığı tarafa bakıyor.
 
 ## v0.9.6 Beta · Effort levels, EVREN & visible sharing / Efor düzeyleri, EVREN ve görünür paylaşım
 

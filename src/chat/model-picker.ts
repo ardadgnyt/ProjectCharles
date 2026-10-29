@@ -117,6 +117,7 @@ export function modelPicker(select: HTMLSelectElement) {
       width = Math.max(140, box.width);
       left = box.left;
     }
+    pointArrows(left < box.left ? 'left' : 'right');
     sub.style.width = width + 'px';
     // never taller than the space between the panel's top and the message box
     const bottom = Math.min(area.bottom - margin, box.bottom);
@@ -126,6 +127,12 @@ export function modelPicker(select: HTMLSelectElement) {
     const top = Math.max(ceiling + 8, Math.min(r.top - 4, bottom - height));
     sub.style.left = left - base.left + 'px';
     sub.style.top = top - base.top + 'px';
+  }
+  // v0.9.7: the provider rows' arrows point to the side the model panel actually opens on
+  // (it opens on the left when the island has no room on the right).
+  function pointArrows(side: 'left' | 'right') {
+    menu.classList.toggle('opens-left', side === 'left');
+    for (const i of menu.querySelectorAll<HTMLElement>('[data-provider] > i')) i.textContent = side === 'left' ? '‹' : '›';
   }
   function showModels(provider: string, row: HTMLElement, focus = false) {
     openProvider = provider;

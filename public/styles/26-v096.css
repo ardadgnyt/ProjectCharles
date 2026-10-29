@@ -303,3 +303,8 @@ body.workspace .ws-chat-body #model-menu button {
   display: none;
   height: 0;
 }
+
+/* v0.9.7: why "Ağ izni ver" did not help, under the button */
+.share-firewall .share-firewall-error {
+  color: #f0a39a;
+}

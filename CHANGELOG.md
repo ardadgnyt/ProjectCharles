@@ -4,7 +4,13 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
-## v0.9.6 Beta (Argon) — 28 Ekim 2026
+## v0.9.7 Beta — 29 Ekim 2026
+
+- **Quick Share “Ağ izni ver” çalışıyor:** düğme Windows onayını açıyor ama kurallar hiç yazılmıyordu; uyarı da yerinde kalıyordu. Neden: izin betiği yönetici PowerShell’e tırnaksız iletiliyordu ve yolunda boşluk olan klasörlerde (`C:\Project Charles\…`, `C:\ProjectCharles v0.9.x Beta`) betik bulunamıyordu. Artık yol tırnak içinde gidiyor; betik başarısız olursa ya da Windows hâlâ izin vermiyorsa bunun nedeni panelde yazıyor.
+- **Ağ izni denetimi daha doğru:** yalnızca bilgisayarın şu an bağlı olduğu ağ türüne (Özel/Etki alanı) uygulanan kurallar sayılıyor; başka bir ağ türü için yazılmış engelleme kuralı uyarıyı artık gereksiz yere açık tutmuyor. Wi-Fi Windows’ta **Ortak ağ** olarak ayarlıysa panel bunu söylüyor ve “Özel ağ”a geçmeyi öneriyor. Denetim sonuçları `perf` kaydına yazılıyor.
+- **Menü okları:** model ve efor düğmelerindeki ok artık menünün açıldığı yöne (yukarı) bakıyor. Sağlayıcı satırlarındaki ok da model listesinin açıldığı tarafı gösteriyor (liste solda açılınca ‹).
+
+## v0.9.6 Beta — 28 Ekim 2026
 
 - **Boş sohbetler birikmiyor:** yalnızca senin yazdığın bir mesaj sohbeti “dolu” sayar. Charles’ın kendi yazdığı notlar (ör. takvim önerisi) boş bir sohbeti kaydettirmiyordu ama her açılışta yenisi eklenip liste büyüyordu; artık boş sohbet diske yazılmıyor ve listede görünmüyor.
 - **Efor düzeyi:** model seçicinin yanında efor seçici var. Her model yalnızca gerçekten sunduğu düzeyleri, sağlayıcının kendi yazımıyla gösterir (Low / Medium / High / Extra High…; EVREN’de **xLow** gibi adlar birebir). “Otomatik” her listenin ilk satırıdır; düzeyi olmayan modellerde (Otomatik satırlar, Cursor Composer, Claude Haiku, Abacus AI) seçim kilitlidir.

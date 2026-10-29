@@ -61,9 +61,9 @@ test('pictures sent in the chat open large on a click', () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('version 0.9.6', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.9.6-beta.1');
-  assert.match(read('public/index.html'), /v0\.9\.6 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.9\.6 Beta'/);
-  assert.match(read('CHANGELOG.md'), /## v0\.9\.6 Beta/);
+test('version 0.9.7', () => {
+  assert.equal(JSON.parse(read('package.json')).version, '0.9.7-beta.1');
+  assert.match(read('public/index.html'), /v0\.9\.7 Beta/);
+  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.9\.7 Beta'/);
+  assert.match(read('CHANGELOG.md'), /## v0\.9\.7 Beta/);
 });
