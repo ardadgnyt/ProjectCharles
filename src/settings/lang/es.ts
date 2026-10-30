@@ -1626,4 +1626,5 @@ export const spanish: Record<string, string> = {
   "Could not read the quota": "No se pudo leer la cuota",
   "Daily tokens left: {n}": "Tokens diarios restantes: {n}",
   "EVREN login page": "Página de inicio de sesión de EVREN",
+  "Can save files to your computer through the Save window and read files you pick in the Open window. You choose what is saved and where, and which file is opened, every time; the module cannot reach any other file of yours.": "Puede guardar archivos en tu ordenador con la ventana Guardar y leer los archivos que elijas en la ventana Abrir. Cada vez eliges qué se guarda y dónde, y qué archivo se abre; el módulo no puede acceder a ningún otro archivo tuyo.",
 };

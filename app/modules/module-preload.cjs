@@ -70,6 +70,21 @@ contextBridge.exposeInMainWorld('charlesModule', {
     // { hat, eyes, other } while the module is open ("appearance" permission); null takes it off
     wear: (accessories) => call('slime.wear', { accessories: accessories === undefined ? null : accessories }),
   },
+  // v0.9.12 ("files" permission): Windows' own Save / Open window, only right after a click or
+  // a key press in the module. files.save → { saved, name, size } (never the full path);
+  // files.pick → { picked, files: [{ name, size, data }] }.
+  files: {
+    save: (options = {}) => {
+      if (!navigator.userActivation?.isActive)
+        return Promise.reject(new Error('Kaydetme yalnızca bir düğmeye basınca yapılabilir.'));
+      return call('files.save', options || {});
+    },
+    pick: (options = {}) => {
+      if (!navigator.userActivation?.isActive)
+        return Promise.reject(new Error('Dosya seçme yalnızca bir düğmeye basınca yapılabilir.'));
+      return call('files.pick', options || {});
+    },
+  },
   notify: (text) => call('notify', { text }),
   on: (event, cb) => {
     if (!listeners[event] || typeof cb !== 'function') throw new Error('Desteklenen olaylar: language, slime-look');

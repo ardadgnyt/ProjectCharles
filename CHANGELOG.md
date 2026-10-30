@@ -4,6 +4,14 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.12 Beta — 30 Ekim 2026
+
+- **Modüller için dosya kaydetme ve açma (`files` izni):** modül penceresi korumalı çalıştığı için (indirmeler engelli, dosya sistemine erişim yok) bir modül şimdiye kadar hiçbir şeyi bilgisayara veremiyordu. İki yeni çağrı var:
+  - **`charlesModule.files.save({ name, data | from | zip, zipRoot, filters, title })`:** Windows’un kendi Farklı kaydet penceresi açılır (başlıkta “… modülü bir dosya kaydetmek istiyor”, varsayılan klasör İndirilenler). İçerik modülün kendisinden (metin / bayt / base64), kendi veri klasöründeki bir dosyadan ya da Charles’ın veri klasöründen yaptığı bir zip’ten gelir. Kayıttan sonra bildirim balonunda “Kaydedildi: … · Klasörde göstermek için tıkla” görünür. Modüle yalnızca ad ve boyut döner, tam yol dönmez; vazgeçilirse `{ saved: false }` döner.
+  - **`charlesModule.files.pick({ filters, multiple, encoding })`:** Windows’un Aç penceresi açılır; seçilen dosyaların yalnızca adı ve içeriği döner.
+  - Güvenlik: pencere yalnızca modülde bir düğmeye/tuşa basıldıktan hemen sonra açılır; aynı anda tek pencere, dakikada en fazla 6 çağrı. Önerilen ad temizlenir (klasör, `..`, yasak karakterler, Windows’un ayrılmış adları); çalıştırılabilir dosya türleri, pencerede elle yazılsa bile reddedilir. `from` ve `zip` yalnızca modülün kendi veri klasöründen okur (bağlantılar izlenmez). Kayıt başına en fazla 200 MB, zip’te 5000 dosya; açmada en fazla 20 dosya / 200 MB. Yazma atomiktir.
+  - Kurulum ekranında yeni izin şöyle açıklanır: “Kaydet penceresiyle bilgisayarına dosya kaydedebilir, Aç penceresiyle seçtiğin dosyaları okuyabilir. Neyin ve nereye kaydedileceğini, hangi dosyanın açılacağını her seferinde sen seçersin; modül başka hiçbir dosyana erişemez.” Ayrıntılar `docs/MODULES.md`’de.
+
 ## v0.9.11 Beta — 30 Ekim 2026
 
 - **Uzun sohbette “Bir adım gerekiyor”:** kullanım hakkı olduğu hâlde uzun bir sohbete yazılan her mesaj yanıtsız kalıyor, Charles hata durumunda takılıyordu; model değiştirmek ya da Charles’ı kapatıp açmak çözmüyordu. Neden: yeniden başlatmadan (ya da model değişikliğinden) sonra Charles sohbetin geçmişini mesajla birlikte yeniden gönderir; geçmiş tırnaklı (JSON) biçimde gittiği için formüllerdeki ters eğik çizgiler ikiye katlanıyor ve toplam 100 000 karakterlik iç sınırı aşıyordu. Sınır, Codex’in kendi sınırının altında kalacak şekilde 900 000 karaktere çıkarıldı ve geçmiş, tırnaklı hâliyle bütçesine sığacak şekilde kısaltılıyor. Sınır yine aşılırsa “yeni bir sohbet aç” diye açıkça yazıyor.

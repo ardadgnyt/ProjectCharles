@@ -57,7 +57,7 @@ npm run module:pack <folder> <out.zip>
 | `entry` | An `.html` file inside the package. |
 | `icon` | Optional `.png`, `.jpg`, `.svg` or `.webp` inside the package (shown in Settings). |
 | `window` | Optional. `width`/`height` (default 1100 × 760), `minWidth`/`minHeight` (default 480 × 360). |
-| `permissions` | Optional list of `ai`, `image`, `voice`, `download`, `appearance`. |
+| `permissions` | Optional list of `ai`, `image`, `voice`, `download`, `appearance`, `files`. |
 
 Unknown fields, unknown permissions, missing fields or a bad id are refused with a clear message.
 
@@ -70,6 +70,7 @@ Unknown fields, unknown permissions, missing fields or a bad id are refused with
 | `voice` | `voice.speak` / `voice.stop` — read text aloud. |
 | `download` | `download.*` — Charles' download engine (yt-dlp, FFmpeg, the download queue). |
 | `appearance` | `slime.wear` — accessories on the desktop Slime while the module is open (Charles 0.8.8+). |
+| `files` | `files.save` / `files.pick` — save a file to the user's computer and read files the user picks, always through Windows' own Save / Open window (Charles 0.9.12+). Shown to the user as: “Kaydet penceresiyle bilgisayarına dosya kaydedebilir, Aç penceresiyle seçtiğin dosyaları okuyabilir. Neyin ve nereye kaydedileceğini, hangi dosyanın açılacağını her seferinde sen seçersin; modül başka hiçbir dosyana erişemez.” |
 | `storage` *(always)* | Files in the module's own data folder only. |
 | `slime` *(always)* | `slime.emote`, `slime.react`, `slime.look` — Slime's expressions and reactions, and reading his look. |
 | `notify` *(always)* | `notify` — a short message in Charles' notification bubble. |
@@ -126,6 +127,26 @@ await C.slime.wear({ eyes: 'roundGlasses' });  // "appearance" permission; taken
 await C.slime.wear(null);                      // take it off now
 C.on('slime-look', (look) => { /* the user changed colour or accessories */ });
 await C.notify('Done!');        // at most 300 characters
+
+// Charles 0.9.12+ (features: files.save, files.pick; "files" permission). Only right after a
+// click or a key press in the module; one Save / Open window at a time, 6 calls / min.
+const r = await C.files.save({
+  name: 'Eldoria.zip',                    // suggested name only (no folders)
+  // the content, one of:
+  // data: 'text' | Uint8Array | base64 (with encoding: 'base64')
+  // from: 'images/p1.png'               // one file from the module's own data folder
+  zip: ['universes/u_abc/'],              // files/folders from the data folder → Charles zips them
+  zipRoot: 'universes/u_abc/',            // this prefix is taken off the paths inside the zip
+  filters: [{ name: 'Evren paketi', extensions: ['zip'] }],
+  title: 'Evreni dışa aktar',             // optional window title
+});
+// → { saved: true, name: 'Eldoria.zip', size: 482113 }   — never the full path
+// → { saved: false }                                    — the user cancelled (not an error)
+// Charles shows “Kaydedildi: Eldoria.zip” in its bubble; a click shows the file in its folder.
+
+const p = await C.files.pick({ filters: [{ name: 'Evren paketi', extensions: ['zip'] }], multiple: false, encoding: 'binary' });
+// → { picked: true, files: [{ name, size, data }] }  data: Uint8Array ('binary'), text ('utf8') or base64
+// → { picked: false, files: [] }                    — cancelled
 
 const off = C.on('language', (lang) => { /* 'tr', 'en', 'de', … */ });
 ```
@@ -186,6 +207,14 @@ Files in the data folder can be shown directly in the page with
   No inline scripts and no external scripts.
 * **Navigation**: leaving the module's pages and `window.open` are blocked; an `http(s)` link
   opens in the default browser only after the user agrees.
+* **Files** (`files.save` / `files.pick`, Charles 0.9.12+): the window opens only right after a
+  click or key press in the module (`navigator.userActivation`), one window at a time and at most 6
+  calls a minute. The suggested name is cleaned (no folders, `..`, `<>:"/|?*`, Windows' reserved
+  names); executable types (the package list above) are refused, also when the user types such
+  an extension in the window. `from` and `zip` read only the module's own data folder (the same
+  checks as `storage`, no links). At most 200 MB per save, 5000 files in a zip, 20 files / 200 MB
+  per pick. Files are written atomically (temporary file, then rename). The module never learns a
+  full path: it gets only the name and the size (or the picked files' names and contents).
 * **API**: each call is matched to the window's module (webContents → module id) and its
   permissions; a turned-off module can't be opened or call anything.
 

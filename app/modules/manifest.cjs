@@ -10,6 +10,9 @@ const PERMISSIONS = {
   // v0.8.8: accessories on the desktop Slime while the module is open
   appearance:
     'Modül açıkken masaüstündeki Slime’a geçici aksesuar takabilir (ör. yuvarlak gözlük). Senin seçimin değişmez; modül kapanınca Slime eski hâline döner.',
+  // v0.9.12: files.save / files.pick
+  files:
+    'Kaydet penceresiyle bilgisayarına dosya kaydedebilir, Aç penceresiyle seçtiğin dosyaları okuyabilir. Neyin ve nereye kaydedileceğini, hangi dosyanın açılacağını her seferinde sen seçersin; modül başka hiçbir dosyana erişemez.',
 };
 // every module has these
 const DEFAULT_PERMISSIONS = {

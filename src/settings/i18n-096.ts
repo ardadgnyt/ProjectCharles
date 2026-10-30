@@ -38,6 +38,9 @@ export const english096: Record<string, string> = {
   // EVREN daily token quota
   'Günlük token': 'Daily tokens',
   'Kota bilgisi okunamadı': 'Could not read the quota',
+  // v0.9.12: the "files" module permission
+  'Kaydet penceresiyle bilgisayarına dosya kaydedebilir, Aç penceresiyle seçtiğin dosyaları okuyabilir. Neyin ve nereye kaydedileceğini, hangi dosyanın açılacağını her seferinde sen seçersin; modül başka hiçbir dosyana erişemez.':
+    'Can save files to your computer through the Save window and read files you pick in the Open window. You choose what is saved and where, and which file is opened, every time; the module cannot reach any other file of yours.',
 };
 
 export const patterns096: [RegExp, (...m: string[]) => string][] = [

@@ -13,7 +13,7 @@ const { DEFAULT_PERMISSIONS } = require('./manifest.cjs');
 const EMOTES = ['love', 'surprised', 'proud', 'wink', 'yawn', 'happy', 'annoyed'];
 const MODEL = /^[a-z0-9][a-z0-9:._/-]{0,80}$/i;
 // calls per window of time, per module
-const RATES = { default: [60, 10000], 'ai.chat': [12, 60000], 'ai.image': [4, 60000], 'voice.speak': [20, 60000], notify: [10, 60000] };
+const RATES = { default: [60, 10000], 'ai.chat': [12, 60000], 'ai.image': [4, 60000], 'voice.speak': [20, 60000], notify: [10, 60000], 'files.save': [6, 60000], 'files.pick': [6, 60000] };
 
 /** A simple sliding-window limit: true when the call may run. */
 function rateLimiter(rates = RATES, now = () => Date.now()) {
@@ -40,6 +40,7 @@ function needs(method) {
   if (method === 'voice.speak' || method === 'voice.stop') return 'voice';
   if (method.startsWith('download.')) return 'download';
   if (method === 'slime.wear') return 'appearance';
+  if (method === 'files.save' || method === 'files.pick') return 'files'; // v0.9.12
   return null;
 }
 
@@ -54,7 +55,7 @@ const IMAGE_EXT = /\.(png|jpe?g|webp)$/i;
 const MAX_CHAT_IMAGES = 10;
 const MAX_CHAT_IMAGE_BYTES = 20 * 1024 * 1024;
 const NO_IMAGE_MODEL = /^(cursor|abacus|evren):/i;
-const FEATURES = ['ai.images', 'slime.look', 'slime.react', 'slime.wear', 'slime.kit'];
+const FEATURES = ['ai.images', 'slime.look', 'slime.react', 'slime.wear', 'slime.kit', 'files.save', 'files.pick'];
 // v0.8.8: what the desktop Slime can do for a module (src/renderer.ts → onModuleReact)
 const REACTIONS = ['greet', 'blink', 'squash', 'slap', 'dizzy', 'gulp'];
 // the accessories a module may put on the desktop Slime (src/vendor/slime/wardrobe.ts SLOT_ITEMS)
@@ -418,6 +419,29 @@ function createModuleHost(o) {
           deps.wear?.(null);
         }
         return true;
+      }
+      // v0.9.12: a file to the user's computer / files from it, always through Windows' own
+      // Save / Open window (app/modules/files.cjs); one window at a time per module
+      case 'files.save':
+      case 'files.pick': {
+        const key = id + ' files';
+        if (busy.has(key)) throw Error('Kaydet / Aç penceresi zaten açık.');
+        busy.add(key);
+        try {
+          let moduleName = id;
+          try {
+            moduleName = registry.manifest(id).name;
+          } catch {}
+          const win = windows.get(id);
+          const files = require('./files.cjs');
+          if (method === 'files.pick') return await files.pickFiles({ args: args || {}, dialog, win, moduleName });
+          const r = await files.saveFile({ storage: s(), args: args || {}, dialog, win, moduleName, downloads: deps.downloadsDir?.() || registry.dataDir(id) });
+          if (!r.saved) return { saved: false };
+          deps.notifySaved?.(id, moduleName, r.name, r.file);
+          return { saved: true, name: r.name, size: r.size }; // never the full path
+        } finally {
+          busy.delete(key);
+        }
       }
       case 'notify': {
         let name = id;

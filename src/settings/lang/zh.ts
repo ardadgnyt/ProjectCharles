@@ -1626,4 +1626,5 @@ export const chinese: Record<string, string> = {
   "Could not read the quota": "无法读取配额",
   "Daily tokens left: {n}": "每日剩余令牌：{n}",
   "EVREN login page": "EVREN 登录页面",
+  "Can save files to your computer through the Save window and read files you pick in the Open window. You choose what is saved and where, and which file is opened, every time; the module cannot reach any other file of yours.": "可以通过“保存”窗口把文件保存到你的电脑，并读取你在“打开”窗口中选择的文件。每次都由你决定保存什么、保存到哪里以及打开哪个文件；模块无法访问你的其他任何文件。",
 };

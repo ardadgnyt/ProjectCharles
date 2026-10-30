@@ -1626,4 +1626,5 @@ export const german: Record<string, string> = {
   "Could not read the quota": "Kontingent konnte nicht gelesen werden",
   "Daily tokens left: {n}": "Tägliche Tokens übrig: {n}",
   "EVREN login page": "EVREN-Anmeldeseite",
+  "Can save files to your computer through the Save window and read files you pick in the Open window. You choose what is saved and where, and which file is opened, every time; the module cannot reach any other file of yours.": "Kann über das Speichern-Fenster Dateien auf deinem Computer speichern und Dateien lesen, die du im Öffnen-Fenster auswählst. Was wohin gespeichert und welche Datei geöffnet wird, entscheidest du jedes Mal selbst; das Modul erreicht keine anderen Dateien.",
 };

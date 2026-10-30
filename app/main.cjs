@@ -1337,6 +1337,11 @@ else {
         },
         // v0.8.14: a module's notice opens that module; Charles' own ones open the panel
         focus: (item) => {
+          // v0.9.12: a module's "Kaydedildi" notice shows the saved file in its folder
+          if (item?.reveal && typeof item.reveal === 'string') {
+            if (fs.existsSync(item.reveal)) shell.showItemInFolder(item.reveal);
+            return;
+          }
           if (item?.module && moduleHost)
             try {
               moduleHost.open(String(item.module));
@@ -3216,6 +3221,20 @@ else {
               module: moduleId || null,
               title: String(title).slice(0, 60),
               reason: text,
+              ttl: 60000,
+            });
+          },
+          // v0.9.12: files.save — where the Save window starts, and the "saved" notice whose click
+          // shows the file in its folder (Charles does that, the module never gets the path)
+          downloadsDir: () => app.getPath('downloads'),
+          notifySaved: (moduleId, moduleName, name, file) => {
+            mailBubble?.add({
+              id: 'module-saved|' + Date.now() + '|' + Math.random().toString(36).slice(2, 6),
+              kind: 'charles',
+              icon: '💾',
+              reveal: file,
+              title: String(moduleName).slice(0, 60),
+              reason: 'Kaydedildi: ' + String(name).slice(0, 80) + ' · Klasörde göstermek için tıkla',
               ttl: 60000,
             });
           },
