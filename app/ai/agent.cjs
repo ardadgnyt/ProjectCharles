@@ -1,5 +1,7 @@
 // Codex app-server process: start, JSON-RPC session, threads, turns and quota reads.
 const { EventEmitter } = require('node:events');
+// Codex takes up to 1 048 576 characters of input text per turn; Charles stays below it.
+const MAX_TURN_TEXT = 900000;
 const fs = require('node:fs');
 const path = require('node:path');
 const { Rpc } = require('./rpc.cjs');
@@ -197,8 +199,13 @@ class Agent extends EventEmitter {
     const selectedTask = require('../core/task-mode.cjs').taskMode(task);
     if (this.busy) throw new Error('Bir iş zaten çalışıyor.');
     if (!['chat', 'project'].includes(mode)) throw new Error('Geçersiz çalışma modu.');
-    if (typeof prompt !== 'string' || !prompt.trim() || prompt.length > 100000)
-      throw new Error('İstek boş veya çok uzun.');
+    // v0.9.11: the limit is for the whole turn Charles builds (the chat so far, the project, the
+    // memory and the new message), not for what the user typed (main.cjs checks that). At 100 000
+    // characters a long chat — its history JSON-quoted, formulas' backslashes doubled — could no
+    // longer be sent after a restart: every message failed with "Bir adım gerekiyor".
+    if (typeof prompt !== 'string' || !prompt.trim()) throw new Error('İstek boş.');
+    if (prompt.length > MAX_TURN_TEXT)
+      throw new Error('Bu mesaj sohbet geçmişiyle birlikte çok uzun. Yeni bir sohbet açıp devam et.');
     if (model !== null && model !== undefined && typeof model !== 'string')
       throw new Error('Geçersiz model.');
     // v0.9.6: the level the panel chose ('' = Otomatik, the account's own default). It is

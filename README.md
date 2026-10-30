@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.10%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.11%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -42,6 +42,7 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 | Version | What’s new | Yenilikler |
 | --- | --- | --- |
+| **v0.9.11** | Long chats can be continued after a restart · Charles sleeps when you are away | Uzun sohbetler yeniden başlattıktan sonra sürdürülebiliyor · Charles sen yokken uyuyor |
 | **v0.9.10** | Smoother Slime (no waving in his sleep, no doubled cheeks) · durations in your language · tables with formulas and file citations render properly · the chat keeps its place | Daha akıcı Slime (uykuda el sallama yok, çift yanak yok) · süreler seçili dilde · formüllü tablolar ve dosya kaynakları düzgün görünüyor · sohbet yerini koruyor |
 | **v0.9.9** | Mail can’t steer Charles (prompt-injection guard) · app window fixes · Download tools included | Maille Charles yönlendirilemiyor (komut enjeksiyonu koruması) · uygulama penceresi düzeltmeleri · İndirme araçları pakette |
 | **v0.9.8** | No third hand · props change one at a time · movable app window · EVREN setup · Claude models by version | Üçüncü el yok · eşyalar sırayla değişiyor · taşınabilen pencere · EVREN kurulumu · sürümüyle Claude modelleri |

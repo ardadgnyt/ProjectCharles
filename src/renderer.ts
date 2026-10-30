@@ -353,11 +353,16 @@ function state(name: BotStateName, label: string) {
     name = 'ratelimit';
     label = 'Kullanım limitine ulaşıldı';
   }
-  touchCharacter();
+  // v0.9.11: a routine "ready" again (an account or connection check, a finished background
+  // job) no longer wakes a sleeping Charles: he fell asleep and was awake again two seconds later.
+  // Only a real change (work starts, a question, an error) wakes him.
+  const quiet =
+    sleeping && (name === 'idle' || name === 'finished') && ['idle', 'finished'].includes(desiredState);
+  if (!quiet) touchCharacter();
   document.body.dataset.characterState = name;
   desiredState = name;
   desiredLabel = label;
-  if (!dizzy) {
+  if (!dizzy && !quiet) {
     bot.setState(name);
     $('status').textContent = label;
   }

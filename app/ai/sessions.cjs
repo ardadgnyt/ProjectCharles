@@ -638,7 +638,13 @@ class Sessions extends EventEmitter {
     // Abacus AI takes the message on its command line (at most ~28 000 characters)
     const abacus = /^abacus:/.test(args.model || '');
     const budget = abacus ? 14000 : CONTEXT_BUDGET;
-    const past = !r.agent.threadId || changing ? contextText(r.events, { budget }) : '';
+    let past = !r.agent.threadId || changing ? contextText(r.events, { budget }) : '';
+    // v0.9.11: the history goes out JSON-quoted (newlines, quotes and every backslash of a
+    // formula doubled), so it can be much longer than its budget; keep the quoted form in it.
+    for (let b = budget; past && JSON.stringify(past).length > budget * 1.25 && b > 20000; ) {
+      b = Math.floor(b * 0.8);
+      past = contextText(r.events, { budget: b });
+    }
     // v0.8.8: chats in a project know the project's instructions and its other chats
     const project = require('./chat-projects.cjs').projectContext(this, r, {
       full: !!past || !r.events.some((e) => e.type === 'history-user'),

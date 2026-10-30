@@ -4,6 +4,11 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.11 Beta — 30 Ekim 2026
+
+- **Uzun sohbette “Bir adım gerekiyor”:** kullanım hakkı olduğu hâlde uzun bir sohbete yazılan her mesaj yanıtsız kalıyor, Charles hata durumunda takılıyordu; model değiştirmek ya da Charles’ı kapatıp açmak çözmüyordu. Neden: yeniden başlatmadan (ya da model değişikliğinden) sonra Charles sohbetin geçmişini mesajla birlikte yeniden gönderir; geçmiş tırnaklı (JSON) biçimde gittiği için formüllerdeki ters eğik çizgiler ikiye katlanıyor ve toplam 100 000 karakterlik iç sınırı aşıyordu. Sınır, Codex’in kendi sınırının altında kalacak şekilde 900 000 karaktere çıkarıldı ve geçmiş, tırnaklı hâliyle bütçesine sığacak şekilde kısaltılıyor. Sınır yine aşılırsa “yeni bir sohbet aç” diye açıkça yazıyor.
+- **Uyku:** Charles uykuya dalıyor, iki saniye sonra kendi kendine uyanıyordu. Hesap ya da bağlantı denetimi gibi arka plandaki rutin “hazırım” güncellemeleri onu uyandırıyordu. Artık yalnızca gerçek bir değişiklik (iş başlaması, soru, hata) ya da sen uyandırıyorsun.
+
 ## v0.9.10 Beta — 29 Ekim 2026
 
 - **El sallama ve uyku karışmıyor:** uyurken bir selam tetiklenince el sallama ile uyku pozu üst üste çiziliyordu. Charles artık uykusunda el sallamıyor (önce uyanıyor); uykuya dalarken de el sallamayı bırakıp selamın mutlu gözlerini kapatıyor.
