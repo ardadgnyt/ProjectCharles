@@ -1313,11 +1313,15 @@ modulesPage(api, notice);
 api.onModuleEmote?.((name: string) => {
   if (['love', 'surprised', 'proud', 'wink', 'yawn', 'happy', 'annoyed'].includes(name)) bot.triggerEmote(name as any, 2.5);
 });
+// v0.9.13: a burst of messages (a group, a reconnect) makes one sound, not a long beeping
+let lastWhatsappSound = 0;
 api.onWhatsappMessage?.(() => {
   if (quotaBlocked || dizzy || busy) return;
   touchCharacter();
   bot.blink();
   bot.triggerEmote('happy', 1.2);
+  if (Date.now() - lastWhatsappSound < 4000) return;
+  lastWhatsappSound = Date.now();
   Sound.play('pop');
 });
 api.onModuleReact?.((name: string) => {

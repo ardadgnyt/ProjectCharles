@@ -71,6 +71,9 @@ window.addEventListener(
     event.preventDefault();
     event.stopImmediatePropagation();
     dropActive(false);
+    // v0.9.13: the Dosyalar card only opens its Dönüştür / Gönder tiles; a drop on the card
+    // itself does nothing (the file is dropped again on one of the tiles)
+    if (event.target && event.target.closest && event.target.closest('[data-drop="files"]')) return;
     // v0.8.10: files dropped on the converter card go to the converter, not to the chat
     const target = event.target && event.target.closest ? event.target.closest('[data-drop="convert"]') : null;
     if (target && files.length) {
@@ -128,6 +131,7 @@ contextBridge.exposeInMainWorld('charles', {
   islandViewRead: () => invoke('island-view-read'),
   onView: (cb) => ipcRenderer.on('ui-view', (_e, view) => cb(view)),
   shelfHold: (value) => invoke('shelf-hold', value),
+  shelfHeight: (value) => invoke('shelf-height', value),
   notchMusic: (value) => invoke('notch-music', value),
   spotifyOpen: () => invoke('spotify-open'),
   spotifyIcon: () => invoke('spotify-icon'),

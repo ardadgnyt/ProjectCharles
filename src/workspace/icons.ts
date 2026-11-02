@@ -59,6 +59,8 @@ export const ICONS: Record<string, string> = {
   music: 'M9 18V6l10-2v12M9 18a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0zM19 16a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z',
   trash: 'M5 7h14M10 4h4M7 7l1 13h8l1-13M10 11v6M14 11v6',
   pin: 'M9 4h6l-1 6 3 3H7l3-3zM12 13v7',
+  // v0.9.13: a map location marker (the weather city)
+  location: 'M12 20.5s-6-5.3-6-10.3a6 6 0 0 1 12 0c0 5-6 10.3-6 10.3zM12 12.4a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4z',
   move: 'M5 12h14M15 8l4 4-4 4M3.5 6v12',
   user: 'M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM4.5 20a7.5 7.5 0 0 1 15 0',
   sliders: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4',

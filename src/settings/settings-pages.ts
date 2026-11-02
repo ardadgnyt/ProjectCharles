@@ -265,11 +265,16 @@ export function settingsPages(api: any) {
   const text = $('prompt') as HTMLTextAreaElement;
   text.rows = 1;
   const size = () => {
+    // v0.9.13: measuring with height 'auto' resets the box's scroll to the top; keep where the
+    // text was (or follow the caret at the end) so a long message does not jump while typing
+    const top = text.scrollTop;
+    const atEnd = text.selectionEnd >= text.value.length;
     bar.classList.remove('multiline');
     text.style.height = 'auto';
     const multiline = text.scrollHeight > 40;
     bar.classList.toggle('multiline', multiline);
     text.style.height = Math.min(120, Math.max(36, text.scrollHeight)) + 'px';
+    if (text.scrollHeight > text.clientHeight) text.scrollTop = atEnd ? text.scrollHeight : top;
   };
   text.addEventListener('input', size);
   composer.addEventListener('submit', () => setTimeout(size, 0));

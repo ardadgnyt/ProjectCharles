@@ -4,6 +4,28 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.13 Beta — 2 Kasım 2026
+
+- **Adacığın ana sayfası yenilendi:**
+  - **Üstte Charles:** kart içinde değil; Slime, ad ve sürüm, altında satır içi **“Charles’a bir şey sor…”** kutusu. Kutuda mikrofon, **sesli görüşme** ve gönder tuşları var; yazıp Enter’a basınca sohbet açılır ve mesaj gönderilir.
+  - **Spotify kartı:** kapak, “Spotify · Şimdi çalıyor”, parça ve sanatçı, karıştır / önceki / büyük oynat-duraklat / sonraki / tekrar tuşları ve süreli ilerleme çubuğu. Bir şey çalmıyorsa “Şu an bir şey çalmıyor”, son çalınan parça ve **Çalmaya başla** düğmesi görünür.
+  - **Üç açılır kart:** Dosyalar, AI kullanımı ve Hava durumu. Karta basınca paneli kartların altında tam genişlikte açılır; panelin çentiği karta bakar, kartın kenarı vurgulanır. Kartlar ve paneller siyah zeminde. Adacık eskisinden daha küçük (640 piksel) ve yüksekliği açılan panele göre büyüyüp küçülür. Panel açıkken dışarı tıklamak adacığı her zamanki gibi kapatır; yalnızca süren bir dönüştürme ya da dosya aktarımı açık tutar.
+  - **Dosyalar:** iki büyük kutucuk var: **Dönüştür** (görsel, belge ve arşivleri başka biçime çevirir) ve **Gönder** (yakındaki cihaza Quick Share ile gönderir).
+    - Kutucuktan açılan görünümün üstünde geri oku ve Dönüştür | Gönder seçicisi bulunur.
+    - Dönüştür görünümünde solda dosya kartı ve “Dosya seç veya bırak” alanı, sağda gruplu biçimler (Görsel, Belge, Arşiv…), Kalite ve Boyut seçimleri ve Dönüştür düğmesi yer alır.
+    - Gönder görünümünde sağ üstte **Dosya alımı** anahtarı vardır. Yakındaki cihazlar Tara düğmesiyle aranır; her cihazın kendi Gönder düğmesi bulunur.
+    - Bir dosyayı **Dosyalar kartının üstüne sürükleyince** Dönüştür / Gönder kutucukları kendiliğinden açılır; dosyayı istediğine bırakırsın. Başka bir yere bırakılan dosya eskisi gibi sohbete eklenir.
+  - **AI kullanımı:** bağlı bütün yapay zekâlar (Codex, Claude, Antigravity, Cursor, Abacus AI, EVREN) iki halkayla ve sıfırlanma süreleriyle birlikte görünür. Kartın alt satırında bağlı sağlayıcı sayısı yazar. Tek halkalı EVREN’in kalan token bilgisi halkanın yanında durur. Hangilerinin gösterileceği uygulama penceresindeki seçimle aynıdır ve buradan da değiştirilebilir.
+  - **Hava durumu:** anlık durum (hissedilen, nem, rüzgâr), **bugün için saatlik tahmin** ve 5 günlük kartlar (yağış olasılığı, en yüksek / en düşük) aynı panelde. Sağ üstteki konum simgesiyle şehir değiştirilir.
+- **Bütün diller:** yeni ana sayfanın yazıları (kart alt satırları, başlıklar, Quick Share notları, AI kullanımındaki “Kredi” gibi etiketler) İngilizce, Almanca, Fransızca, İspanyolca ve Çince’ye çevrildi.
+- **Sohbet modu seçici:** artık açılır liste değil, iki parçalı bir seçici: Sohbet | Proje (“Kod yaz” ifadesi kaldırıldı).
+- **Mesaj kutusu kaymıyor:** çok satırlı bir mesaj yazarken kutu her tuşta en üste kayıyor, aşağı inmiyordu. Artık yazdığın yer görünür kalıyor.
+- **Büyüteç Charles’la dönüyor:** araştırma yaparken (web istasyonu) Charles sağa sola bakınca büyüteç yerinde kalıyordu; artık yüzüyle birlikte dönüyor.
+- **WhatsApp:**
+  - Bilgisayar açılınca, Charles kapalıyken gelen mesajlar uzun bir bip dizisiyle değil **sessizce** gösterilir. Art arda gelen mesajlar tek bir ses çıkarır.
+  - Telefonda **sessize alınmış** ya da **arşivlenmiş** sohbet ve gruplar bildirim göstermez.
+  - WhatsApp kartının × düğmesi, mail ve hatırlatıcı kartlarındaki × ile aynı görünümde.
+
 ## v0.9.12 Beta — 30 Ekim 2026
 
 - **Modüller için dosya kaydetme ve açma (`files` izni):** modül penceresi korumalı çalıştığı için (indirmeler engelli, dosya sistemine erişim yok) bir modül şimdiye kadar hiçbir şeyi bilgisayara veremiyordu. İki yeni çağrı var:

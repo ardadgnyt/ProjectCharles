@@ -43,6 +43,31 @@ export function shareSheet(d: any) {
     return b;
   }
 
+  // v0.9.13: "Dosya alımı" is a switch (the panel shows it at the top right)
+  const receive = el("button", "share-switch");
+  receive.type = "button";
+  receive.setAttribute("role", "switch");
+  const receiveLabel = el("span", "share-switch-label", "Dosya alımı");
+  receive.append(receiveLabel, el("span", "share-switch-track", el("i")));
+  receive.onclick = () => {
+    if (modeBusy || state.receiveStarting) return;
+    const next = (state.receiveMode || "everyone") === "off" ? "everyone" : "off";
+    void d.attempt(async () => {
+      modeBusy = true;
+      paintSwitch();
+      try { applyState(await api.shareReceiveMode(next)); }
+      finally { modeBusy = false; paint(); }
+    });
+  };
+  function paintSwitch() {
+    const on = (state.receiveMode || "everyone") !== "off";
+    receive.setAttribute("aria-checked", String(on));
+    receive.classList.toggle("on", on);
+    receive.disabled = modeBusy || Boolean(state.receiveStarting);
+    receiveLabel.textContent = modeBusy || state.receiveStarting ? "Dosya alımı açılıyor…" : "Dosya alımı";
+    receive.title = on ? "Dosya alımı açık; gelen dosya için kabul sorulur" : "Dosya alımı kapalı; göndermeye devam edebilirsin";
+  }
+
   function updateCardHint() {
     d.card?.classList.toggle("has-offer", Boolean(state.offer));
     const hint = d.card?.querySelector(".send-hint") as HTMLElement | null;
@@ -58,15 +83,13 @@ export function shareSheet(d: any) {
       hint.textContent = pct;
       return;
     }
-    if (state.peers?.length > 0) {
-      hint.textContent = `${state.peers.length} cihaz yakınında`;
-      return;
-    }
-    hint.textContent = state.receiveMode === "off" ? "Alım kapalı" : "Paylaşıma açık";
+    // v0.9.13: otherwise the card keeps its own text (Dosyalar · "Dönüştür veya gönder")
+    hint.textContent = hint.dataset.idle || (state.receiveMode === "off" ? "Alım kapalı" : "Paylaşıma açık");
   }
 
   function paint() {
     updateCardHint();
+    paintSwitch();
     if (!isOpen) return;
     const listScroll = root.querySelector(".share-peers-list")?.scrollTop || 0;
     const focusedLabel = root.contains(document.activeElement)
@@ -76,7 +99,7 @@ export function shareSheet(d: any) {
     const filesCol = el("div", "share-col share-files");
     const staged = Array.isArray(state.stagedFiles) ? state.stagedFiles : [];
     if (staged.length === 0) {
-      const pickBtn = btn("share-pick-empty", "Dosya seç veya bırak", () => chooseFiles(), "plus");
+      const pickBtn = btn("share-pick-empty share-drop-area", "Dosya seç veya bırak", () => chooseFiles(), "plus");
       filesCol.append(pickBtn);
     } else {
       const totalSize = staged.reduce((s: number, f: any) => s + (f.size || 0), 0);
@@ -101,34 +124,7 @@ export function shareSheet(d: any) {
       filesCol.append(head, actions);
     }
 
-    const modeSeg = el("div", "share-mode-seg");
-    modeSeg.setAttribute("role", "radiogroup");
-    modeSeg.setAttribute("aria-label", "Dosya alımı");
-    for (const [val, label, tip] of [
-      ["everyone", "Açık", "Dosya alımını aç; gelen dosya için kabul sorulur"],
-      ["off", "Kapalı", "Dosya alımını kapat; bilgisayardan dosya göndermeye devam edebilirsin"],
-    ] as const) {
-      const active = (state.receiveMode || "everyone") === val;
-      const b = el("button", "share-mode-pill" + (active ? " active " + val : ""), el("span", "", label));
-      b.type = "button";
-      b.title = tip;
-      b.setAttribute("role", "radio");
-      b.setAttribute("aria-checked", String(active));
-      b.disabled = modeBusy || Boolean(state.receiveStarting);
-      b.onclick = () => {
-        if (active || modeBusy) return;
-        void d.attempt(async () => {
-          modeBusy = true;
-          paint();
-          try { applyState(await api.shareReceiveMode(val)); }
-          finally { modeBusy = false; paint(); }
-        });
-      };
-      modeSeg.append(b);
-    }
-    const modeTitle = el("span", "share-mode-title", modeBusy || state.receiveStarting ? "Dosya alımı açılıyor…" : "Dosya alımı");
-    const modeBox = el("div", "share-mode-box", modeTitle, modeSeg);
-    filesCol.append(modeBox);
+    paintSwitch();
     // v0.9.6: phones cannot see the PC while Windows Firewall keeps the Quick Share runtime out
     if (firewall && firewall.ok === false && state.receiveMode !== "off") {
       // v0.9.7: the banner says what is still wrong after "Ağ izni ver" instead of staying silent
@@ -253,7 +249,7 @@ export function shareSheet(d: any) {
       const head = el(
         "div",
         "share-peers-head",
-        el("small", "", "Yakındaki cihazlar"),
+        el("small", "", "YAKINDAKİ CİHAZLAR"),
         btn(
           "share-scan-btn",
           "Tara",
@@ -268,37 +264,36 @@ export function shareSheet(d: any) {
             "div",
             "share-peers-empty",
             icon("radar"),
-            el("span", "", "Aynı ağdaki cihazlar burada görünür. Telefonunda Quick Share’i aç.")
+            el("span", "", "Aynı ağdaki cihazlar burada görünür.")
           )
         );
       } else {
         for (const p of peers) {
           const label = p.protocol === "localsend" || p.subProtocol === "localsend" ? "LocalSend" : p.protocol === "airdrop" ? "AirDrop" : "Quick Share";
-          const row = el(
-            "button",
-            "share-peer" + (selectedPeerId === p.id ? " selected" : ""),
-            el("span", "share-peer-icon", icon(p.deviceType === "laptop" ? "window" : "phone")),
-            el(
-              "span",
-              "share-peer-text",
-              el("strong", "", p.name || "Cihaz"),
-              el("small", "", label)
-            ),
-            el("span", "share-badge " + p.protocol, label),
-            el("span", "share-peer-go", icon("send"))
-          );
-          row.type = "button";
-          row.onclick = () => {
+          // v0.9.13: one row per device with its own Gönder button
+          const send = btn("share-peer-send", "Gönder", () => {
             selectedPeerId = p.id;
             void sendToPeer(p);
-          };
+          });
+          send.setAttribute("aria-label", `${p.name || "Cihaz"} cihazına gönder`);
+          const name = el("strong", "", p.name || "Cihaz");
+          name.translate = false;
+          const row = el(
+            "div",
+            "share-peer" + (selectedPeerId === p.id ? " selected" : ""),
+            el("span", "share-peer-icon", icon(p.deviceType === "laptop" ? "window" : "phone")),
+            el("span", "share-peer-text", name, el("small", "", `${label} · aynı ağ`)),
+            send
+          );
           list.append(row);
         }
       }
-      centerCol.append(head, list);
+      const hint = el("small", "share-peers-hint", "Göremediğin cihazda Quick Share’i aç");
+      centerCol.append(head, list, hint);
     }
 
     root.replaceChildren(filesCol, centerCol);
+    root.dispatchEvent(new Event("h13-resize", { bubbles: true }));
     const list = root.querySelector('.share-peers-list');
     if (list) list.scrollTop = listScroll;
     if (focusedLabel) {
@@ -377,6 +372,8 @@ export function shareSheet(d: any) {
   void Promise.resolve(api.shareState?.()).then(applyState).catch(() => {});
 
   return {
+    root,
+    receive,
     open,
     choose: chooseFiles,
     busy: () => Boolean(state.offer || (state.transfer && ["connecting", "sending", "receiving"].includes(state.transfer.status))),

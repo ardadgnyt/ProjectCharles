@@ -26,6 +26,7 @@ class Weather {
     const r = await this.json(
       `https://api.open-meteo.com/v1/forecast?latitude=${+city.latitude}&longitude=${+city.longitude}` +
         '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code' +
+        '&hourly=temperature_2m,weather_code,precipitation_probability' +
         '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max' +
         '&forecast_days=5&timezone=auto',
     );
@@ -40,8 +41,21 @@ class Weather {
     const c = r.current || {};
     const [text, emoji] = split(describe(Number(c.weather_code)));
     const round = (v) => (Number.isFinite(v) ? Math.round(v) : null);
+    // v0.9.13: the next hours of today (the island's weather panel shows a short hourly row)
+    const h = r.hourly || {};
+    const now = String(c.time || '').slice(0, 13);
+    const times = Array.isArray(h.time) ? h.time : [];
+    let start = times.findIndex((t) => String(t).slice(0, 13) >= now);
+    if (start < 0) start = 0;
+    const hours = times.slice(start, start + 8).map((t, k) => {
+      const i = start + k;
+      const code = Number(h.weather_code?.[i]);
+      const [htext, hemoji] = split(describe(code));
+      return { time: String(t).slice(11, 16), code, text: htext, emoji: hemoji, temp: round(h.temperature_2m?.[i]), rain: round(h.precipitation_probability?.[i]) };
+    });
     const value = {
       city: String(city.name || '').split(',')[0],
+      hours,
       current: { temp: round(c.temperature_2m), feels: round(c.apparent_temperature), humidity: round(c.relative_humidity_2m), wind: round(c.wind_speed_10m), code: Number(c.weather_code), text, emoji },
       days,
       updatedAt: Date.now(),

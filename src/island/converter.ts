@@ -43,8 +43,9 @@ export function converterSheet(d: Deps) {
   let running = false;
   let rows: HTMLElement[] = [];
 
-  const root = el('div', 'conv');
+  const root = el('div', 'conv conv13');
   root.dataset.kind = 'convert';
+  root.dataset.drop = 'convert';
 
   function button(cls: string, text: string, onclick: () => void, iconName = '') {
     const b = el('button', cls, ...(iconName ? [icon(iconName)] : []), el('span', '', text));
@@ -93,8 +94,36 @@ export function converterSheet(d: Deps) {
     return out;
   }
 
+  // v0.9.13: the panel shows the converter before any file too: a drop area on the left, the
+  // formats on the right (they appear once a file is chosen)
+  function dropArea(big: boolean) {
+    const area = el('button', 'conv-drop' + (big ? ' big' : ''), icon('plus'), el('span', '', 'Dosya seç veya bırak'));
+    area.type = 'button';
+    area.dataset.drop = 'convert';
+    area.onclick = () => choose();
+    return area;
+  }
+  function paintEmpty() {
+    batch = null;
+    running = false;
+    rows = [];
+    const left = el('div', 'conv-left', dropArea(true));
+    const right = el(
+      'div',
+      'conv-right',
+      el('div', 'conv-formats conv-formats-empty', el('p', 'conv-empty', 'Bir dosya seç; dönüştürülebileceği biçimler burada görünür.')),
+    );
+    const go = button('conv-go', 'Dönüştür', () => choose(), 'refresh');
+    go.disabled = true;
+    right.append(el('div', 'conv-bottom', el('div', 'conv-opts'), el('div', 'conv-action', go)));
+    root.replaceChildren(left, right);
+    root.classList.remove('done', 'running');
+    root.classList.add('empty');
+  }
+
   function paint() {
-    if (!batch) return;
+    if (!batch) return paintEmpty();
+    root.classList.remove('empty');
     const b = batch;
     const total = b.files.reduce((s, f) => s + f.size, 0);
     const single = b.files.length === 1;
@@ -113,10 +142,10 @@ export function converterSheet(d: Deps) {
     });
     const list = el('div', 'conv-list', ...rows);
     list.hidden = single;
-    // v0.8.12: quality / size under the file (they no longer get cut off below many formats)
-    const files = el('div', 'conv-files', head, el('div', 'conv-opts', ...options()), list);
+    const files = el('div', 'conv-left conv-files', head, list);
     if (single) files.append(rows[0]);
     rows[0] && single && rows[0].classList.add('conv-row-single');
+    files.append(dropArea(false));
 
     const groups = new Map<string, Target[]>();
     for (const t of b.targets) groups.set(t.group, [...(groups.get(t.group) || []), t]);
@@ -125,6 +154,7 @@ export function converterSheet(d: Deps) {
     chips.setAttribute('aria-label', 'Hedef biçim');
     for (const [group, list] of groups) {
       const line = el('div', 'conv-group', el('small', 'conv-group-name', GROUP_NAME[group] || group));
+      const set = el('div', 'conv-group-chips');
       for (const t of list) {
         const chip = button('conv-chip' + (t.id === target ? ' on' : ''), t.label, () => {
           if (running) return;
@@ -135,21 +165,24 @@ export function converterSheet(d: Deps) {
         chip.setAttribute('aria-checked', String(t.id === target));
         chip.disabled = running;
         chip.translate = t.id === 'extract';
-        line.append(chip);
+        set.append(chip);
       }
+      line.append(set);
       chips.append(line);
     }
     if (!b.targets.length) chips.append(el('p', 'conv-empty', 'Bu dosyalar için ortak bir biçim yok. Aynı türden dosyaları birlikte bırak.'));
     const formats = el('div', 'conv-formats', chips);
     if (!b.ffmpeg && ['image', 'audio', 'video'].includes(b.kind)) formats.append(el('small', 'conv-note', 'FFmpeg bulunamadı; yalnızca temel biçimler gösteriliyor.'));
 
+    // quality / size and the button under the formats
     const action = el('div', 'conv-action');
     const go = button('conv-go', 'Dönüştür', () => void run(), 'refresh');
     go.disabled = !target || running;
-    const another = button('conv-ghost', 'Başka dosya', () => choose(), 'plus');
-    action.append(go, another);
-    root.replaceChildren(files, formats, action);
+    action.append(go);
+    const right = el('div', 'conv-right', formats, el('div', 'conv-bottom', el('div', 'conv-opts', ...options()), action));
+    root.replaceChildren(files, right);
     root.classList.remove('done', 'running');
+    root.dispatchEvent(new Event('h13-resize', { bubbles: true }));
   }
 
   function setRow(i: number, p: number, text = '', cls = '') {
@@ -199,7 +232,7 @@ export function converterSheet(d: Deps) {
     const reveal = button('conv-go', 'Klasörde göster', () => void d.attempt(() => api.convertReveal(batch!.id)), 'folder');
     reveal.disabled = !ok;
     const another = button('conv-ghost', 'Başka dosya', () => choose(), 'plus');
-    action.replaceChildren(label, reveal, another);
+    action.replaceChildren(label, another, reveal);
     if (ok === 1 && rows.length === 1) rows[0].querySelector('.conv-row-state')!.textContent = r.outputs[0];
   }
 
@@ -229,5 +262,6 @@ export function converterSheet(d: Deps) {
       if (b) open(b);
     });
   }
-  return { choose, open, running: () => running };
+  paintEmpty();
+  return { root, choose, open, reset: () => !running && paintEmpty(), running: () => running, hasBatch: () => !!batch };
 }

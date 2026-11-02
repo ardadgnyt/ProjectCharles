@@ -12,6 +12,8 @@ import { el, icon } from '../workspace/icons';
 import { converterSheet } from './converter';
 import { bindFileDropTargets } from './drop-target';
 import { shareSheet } from './share';
+import { usageAll } from './usage-all';
+import { modeSegment } from './mode-seg';
 
 type View = 'notch' | 'shelf' | 'chat';
 type Deps = {
@@ -85,6 +87,7 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     newChat.prepend(svg('plus'));
     modeRow.append(newChat);
   }
+  modeSegment();
 
   // In the shelf the chat button opens the chat; settings open over the chat panel (dialogs
   // need its height).
@@ -151,12 +154,11 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   });
 
   // ── shelf ──────────────────────────────────────────────────────────────────
-  const shelf = el('section', 'shelf');
+  // v0.9.13: the home page — Charles with a message box and Spotify on top; three cards below
+  // (Dosyalar, AI kullanımı, Hava durumu) that open a panel under them.
+  const shelf = el('section', 'shelf shelf13');
   shelf.id = 'shelf';
-  shelf.setAttribute('aria-label', 'Kartlar');
-  const viewport = el('div', 'shelf-viewport');
-  const track = el('div', 'shelf-track');
-  viewport.append(track);
+  shelf.setAttribute('aria-label', 'Ana sayfa');
   const pagePrev = button('shelf-nav shelf-prev', 'Sola yasla', svg('chevronLeft'));
   const pageNext = button('shelf-nav shelf-next', 'Sağa yasla', svg('chevronRight'));
   pagePrev.onclick = dockLeft;
@@ -175,91 +177,59 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     if (old) new MutationObserver(syncDock).observe(old, { attributes: true, attributeFilter: ['hidden', 'aria-label'] });
   }
   syncDock();
-  shelf.append(pagePrev, viewport, pageNext);
+  const inner = el('div', 'h13');
+  shelf.append(pagePrev, inner, pageNext);
   header.after(shelf);
 
-  const page1 = el('div', 'shelf-page');
-  track.append(page1);
-
-  // AI usage (the quota gauges move into its sheet)
-  const usageName = el('small', 'card-sub');
-  const usageCard = button(
-    'card card-usage',
-    'AI kullanımı',
-    el('span', 'card-icon', svg('chart')),
-    el('span', 'card-text', el('strong', '', 'AI kullanımı'), usageName),
-    el('span', 'card-go', svg('chevronRight')),
-  );
-  const usagePanel = document.getElementById('usage-weather');
-  function paintUsage() {
-    if (!usagePanel) return;
-    const name = usagePanel.querySelector('.usage-name')?.textContent || 'AI';
-    const parts = [...usagePanel.querySelectorAll<HTMLElement>('.usage-gauge')]
-      .filter((g) => !g.hidden)
-      .map((g) => `${g.querySelector('.usage-label')?.textContent || ''} ${g.querySelector('strong')?.textContent || '—'}`);
-    const credit = (usagePanel.querySelector('#usage-credits') as HTMLElement | null)?.textContent?.trim();
-    usageName.textContent = credit && usagePanel.querySelector<HTMLElement>('.usage-gauges')?.hidden ? `${name} · ${credit}` : [name, ...parts].join(' · ');
-    usageCard.style.setProperty('--provider', usagePanel.style.getPropertyValue('--provider') || 'var(--accent)');
-    const low = usagePanel.querySelector('.usage-gauge.low, .usage-gauge.empty');
-    usageCard.classList.toggle('low', !!low);
-  }
-  if (usagePanel) {
-    new MutationObserver(paintUsage).observe(usagePanel, { subtree: true, childList: true, characterData: true, attributes: true });
-    paintUsage();
-  }
-
-  // weather
-  const weatherIcon = el('span', 'card-icon weather-icon', '☁️');
-  const weatherTitle = el('strong', '', 'Hava durumu');
-  const weatherSub = el('small', 'card-sub', 'Konum seç');
-  const weatherCard = button('card card-weather', 'Hava durumu', weatherIcon, el('span', 'card-text', weatherTitle, weatherSub));
-  // v0.8.14: the card opens the next five days (city choice is inside that sheet)
-  weatherCard.onclick = () => openWeather();
-  // "Ankara · 16° · Parçalı bulutlu 🌤️" from the companion state (the same text as the old line)
-  function paintWeather(value: any) {
-    const full = String(value?.weather?.text || '');
-    const city = value?.preferences?.city?.name;
-    const parts = full.split(' · ');
-    if (parts.length >= 3) {
-      const emoji = parts[2].match(/\p{Extended_Pictographic}[️]?/u)?.[0] || '🌤️';
-      weatherIcon.textContent = emoji;
-      weatherTitle.textContent = `${parts[1]} · ${parts[0]}`;
-      weatherSub.textContent = parts[2].replace(/\p{Extended_Pictographic}[️]?/gu, '').trim();
-      notchWeather.textContent = `${emoji} ${parts[1]}`;
-    } else {
-      weatherIcon.textContent = city ? '🌤️' : '📍';
-      weatherTitle.textContent = city || 'Hava durumu';
-      weatherSub.textContent = city ? 'Yükleniyor…' : 'Şehrini seç';
-      notchWeather.textContent = '';
-    }
-  }
-  api.onCompanion?.(paintWeather);
-  void Promise.resolve(api.companionRead?.()).then(paintWeather).catch(() => paintWeather(null));
-
-  // converter
-  const convertCard = el('div', 'card card-convert');
-  convertCard.dataset.drop = 'convert';
-  convertCard.tabIndex = 0;
-  convertCard.setAttribute('role', 'button');
-  convertCard.setAttribute('aria-label', 'Dönüştürücü · dosya bırak veya seç');
-  // v0.9.3: icon-only cards; the half-size converter shares its column with Gönder (v0.9.2)
-  convertCard.append(el('span', 'convert-icon', svg('refresh')));
-  const sendCard = el('div', 'card card-send');
-  sendCard.dataset.drop = 'share';
-  sendCard.tabIndex = 0;
-  sendCard.setAttribute('role', 'button');
-  sendCard.setAttribute('aria-label', 'Dosya gönder · dosya bırak veya seç');
-  sendCard.append(el('span', 'send-icon', svg('send')));
-  // v0.9.2: one drag tracker for both drop cards (the "over" frame never stays behind)
-  const clearDropTargets = bindFileDropTargets();
-
-  // Charles
-  const charlesSlot = el('span', 'charles-pet');
-  const charlesName = button('charles-name', 'Sohbeti aç', el('strong', '', 'Charles'), el('small', '', version));
+  // Charles: Slime, his name and an inline message box (mic, voice call, send)
+  const charlesSlot = el('span', 'charles-pet h13-pet');
+  const charlesName = button('h13-name', 'Sohbeti aç', el('strong', '', 'Charles'), el('small', '', version));
+  // v0.9.13: no card around Charles (as in the design): Slime, name, version, message box
   charlesName.onclick = () => void attempt(() => api.islandView('chat'));
-  const charlesCard = el('div', 'card-charles', charlesSlot, charlesName);
-  charlesCard.addEventListener('click', (e) => {
-    if (e.target === charlesCard) void attempt(() => api.islandView('chat'));
+  const ask = el('form', 'h13-ask');
+  const askInput = el('input') as HTMLInputElement;
+  askInput.type = 'text';
+  askInput.placeholder = 'Charles’a bir şey sor…';
+  askInput.setAttribute('aria-label', 'Charles’a bir şey sor');
+  askInput.maxLength = 100000;
+  const viaComposer = (id: string) => () =>
+    void attempt(async () => {
+      await api.islandView('chat');
+      window.setTimeout(() => document.getElementById(id)?.click(), 260);
+    });
+  const askMic = button('h13-ask-btn', 'Konuş', svg('mic'));
+  askMic.title = 'Konuş';
+  askMic.onclick = viaComposer('voice-mic');
+  const askCall = button('h13-ask-btn', 'Sesli görüşme', svg('wave'));
+  askCall.title = 'Sesli görüşme';
+  askCall.onclick = viaComposer('voice-call');
+  const askSend = button('h13-ask-btn h13-ask-send', 'Gönder', svg('arrowUp'));
+  askSend.type = 'submit';
+  ask.append(askInput, askMic, askCall, askSend);
+  const syncAsk = () => (askSend.disabled = !askInput.value.trim());
+  askInput.addEventListener('input', syncAsk);
+  syncAsk();
+  ask.onsubmit = (e) => {
+    e.preventDefault();
+    const text = askInput.value.trim();
+    if (!text) return;
+    void attempt(async () => {
+      await api.islandView('chat');
+      window.setTimeout(() => {
+        const prompt = document.getElementById('prompt') as HTMLTextAreaElement | null;
+        const form = document.getElementById('composer') as HTMLFormElement | null;
+        if (!prompt || !form) return;
+        prompt.value = text;
+        prompt.dispatchEvent(new Event('input'));
+        form.requestSubmit();
+        askInput.value = '';
+        syncAsk();
+      }, 260);
+    });
+  };
+  const hero = el('div', 'h13-hero', charlesSlot, el('div', 'h13-hero-main', charlesName, ask));
+  hero.addEventListener('click', (e) => {
+    if (e.target === hero) void attempt(() => api.islandView('chat'));
   });
 
   // music
@@ -270,14 +240,343 @@ export function islandShelf({ api, notice, attempt }: Deps) {
       if (typeof src === 'string' && /^data:image\/png;base64,/.test(src)) music.brand(src);
     })
     .catch(() => {});
-  const midCol = el('div', 'shelf-col shelf-col-mid', convertCard, sendCard);
-  page1.append(el('div', 'shelf-left', el('div', 'shelf-col', usageCard, weatherCard), midCol), charlesCard, music.card);
+  inner.append(el('div', 'h13-top', hero, music.card));
+
+  // the three cards
+  type Kind = 'files' | 'usage' | 'weather';
+  const acc = (kind: Kind, iconNode: Node, title: string, sub: string) => {
+    const subEl = el('small', 'h13-acc-sub send-hint', sub);
+    subEl.dataset.idle = sub;
+    const titleEl = el('strong', 'h13-acc-title', title);
+    const b = button('h13-acc', title, el('span', 'h13-acc-icon', iconNode), el('span', 'h13-acc-text', titleEl, subEl), el('span', 'h13-acc-chev', svg('chevronDown')));
+    b.dataset.kind = kind;
+    b.setAttribute('aria-expanded', 'false');
+    b.onclick = () => togglePanel(kind);
+    return { b, sub: subEl, title: titleEl, icon: b.querySelector('.h13-acc-icon') as HTMLElement };
+  };
+  const filesAcc = acc('files', svg('folder'), 'Dosyalar', 'Dönüştür veya gönder');
+  // v0.9.13: a file dragged onto Dosyalar opens its two drop tiles
+  filesAcc.b.dataset.drop = 'files';
+  const usageAcc = acc('usage', svg('chart'), 'AI kullanımı', 'Okunuyor…');
+  const weatherAcc = acc('weather', el('span', 'h13-emoji', '☁️'), 'Hava durumu', 'Konum seç');
+  const accs = el('div', 'h13-accs', filesAcc.b, usageAcc.b, weatherAcc.b);
+  const panel = el('div', 'h13-panel');
+  panel.hidden = true;
+  const panelBody = el('div', 'h13-panel-body');
+  panel.append(panelBody);
+  inner.append(accs, panel);
+  const accByKind: Record<Kind, HTMLButtonElement> = { files: filesAcc.b, usage: usageAcc.b, weather: weatherAcc.b };
+
+  // the page's height follows its content (main clamps it, app/core/layout.cjs)
+  let sentHeight = 0;
+  let heightFrame = 0;
+  const sendHeight = () => {
+    cancelAnimationFrame(heightFrame);
+    heightFrame = requestAnimationFrame(() => {
+      if (view !== 'shelf') return;
+      const bar = document.getElementById('island-bar');
+      // the shelf's own height (its content is drawn smaller with CSS zoom: see 29-v0913.css)
+      const h = Math.ceil((bar?.offsetHeight || 40) + shelf.offsetHeight + 17);
+      if (Math.abs(h - sentHeight) < 2) return;
+      sentHeight = h;
+      void Promise.resolve(api.shelfHeight?.(h)).catch(() => {});
+    });
+  };
+  new ResizeObserver(sendHeight).observe(inner);
+  shelf.addEventListener('h13-resize', sendHeight);
+
+  let openKind: Kind | null = null;
+  let panelClose: (() => void) | null = null;
+  function openPanel(kind: Kind, content: HTMLElement, onClose?: () => void) {
+    if (openKind !== kind) closePanel();
+    else {
+      const old = panelClose;
+      panelClose = null;
+      old?.();
+    }
+    openKind = kind;
+    panelBody.replaceChildren(content);
+    panel.hidden = false;
+    panel.dataset.kind = kind;
+    shelf.dataset.sheet = kind;
+    shelf.classList.add('panel-open');
+    for (const [k, b] of Object.entries(accByKind)) {
+      b.classList.toggle('on', k === kind);
+      b.setAttribute('aria-expanded', String(k === kind));
+    }
+    const card = accByKind[kind];
+    panel.style.setProperty('--notch-x', card.offsetLeft + card.offsetWidth / 2 + 'px');
+    panelClose = onClose || null;
+    // v0.9.13: an open panel no longer pins the island: a click elsewhere folds it as usual.
+    // Only a file transfer or an incoming offer keeps it open (a conversion holds it in main).
+    void Promise.resolve(api.shelfHold?.(kind === 'files' && share.busy())).catch(() => {});
+    sendHeight();
+  }
+  function closePanel() {
+    if (!openKind) return;
+    openKind = null;
+    panel.hidden = true;
+    delete panel.dataset.kind;
+    delete shelf.dataset.sheet;
+    shelf.classList.remove('panel-open');
+    for (const b of Object.values(accByKind)) {
+      b.classList.remove('on');
+      b.setAttribute('aria-expanded', 'false');
+    }
+    const done = panelClose;
+    panelClose = null;
+    void Promise.resolve(api.shelfHold?.(false)).catch(() => {});
+    done?.();
+    sendHeight();
+  }
+  const closeSheet = closePanel;
+  function togglePanel(kind: Kind) {
+    if (openKind === kind) return closePanel();
+    if (kind === 'files') openFiles('home');
+    else if (kind === 'usage') openUsage();
+    else openWeather();
+  }
+
+  // ── Dosyalar: two tiles, then Dönüştür | Gönder ────────────────────────────
+  const tile = (kind: 'convert' | 'share', name: string, title: string, text: string) => {
+    const t = el('button', 'h13-tile', el('span', 'h13-tile-icon', svg(name)), el('span', 'h13-tile-text', el('strong', '', title), el('small', '', text)), el('span', 'h13-tile-go', svg('chevronRight')));
+    t.type = 'button';
+    t.dataset.drop = kind;
+    t.setAttribute('aria-label', title + ' · dosya bırak veya seç');
+    return t;
+  };
+  const convertTile = tile('convert', 'refresh', 'Dönüştür', 'Görsel, belge ve arşivleri başka formata çevir');
+  const shareTile = tile('share', 'send', 'Gönder', 'Yakındaki cihaza Quick Share ile gönder');
+  const tiles = el('div', 'h13-tiles', convertTile, shareTile);
+  tiles.dataset.kind = 'files';
+  const filesBack = button('h13-back', 'Geri', svg('chevronLeft'));
+  const seg = el('div', 'h13-seg');
+  seg.setAttribute('role', 'tablist');
+  const segBtn = (sub: 'convert' | 'share', text: string) => {
+    const b = el('button', 'h13-seg-btn', text);
+    b.type = 'button';
+    b.setAttribute('role', 'tab');
+    b.onclick = () => openFiles(sub);
+    return b;
+  };
+  const segConvert = segBtn('convert', 'Dönüştür');
+  const segShare = segBtn('share', 'Gönder');
+  seg.append(segConvert, segShare);
+  const filesTools = el('span', 'h13-files-tools');
+  const filesHead = el('div', 'h13-files-head', filesBack, seg, filesTools);
+  const filesBody = el('div', 'h13-files-body');
+  const filesView = el('div', 'h13-files', filesHead, filesBody);
+  filesView.dataset.kind = 'files';
+  let filesSub: 'home' | 'convert' | 'share' = 'home';
+  let subClose: (() => void) | null = null;
+  filesBack.onclick = () => openFiles('home');
+  function openFiles(sub: 'home' | 'convert' | 'share', onSubClose?: () => void) {
+    const leaving = subClose;
+    subClose = null;
+    if (filesSub !== sub || openKind !== 'files') leaving?.();
+    else subClose = leaving;
+    filesSub = sub;
+    if (onSubClose) subClose = onSubClose;
+    if (sub === 'home') {
+      openPanel('files', tiles, () => {
+        subClose?.();
+        subClose = null;
+      });
+      return;
+    }
+    segConvert.classList.toggle('on', sub === 'convert');
+    segShare.classList.toggle('on', sub === 'share');
+    segConvert.setAttribute('aria-selected', String(sub === 'convert'));
+    segShare.setAttribute('aria-selected', String(sub === 'share'));
+    filesTools.replaceChildren(...(sub === 'share' ? [share.receive] : []));
+    filesBody.replaceChildren(sub === 'convert' ? converter.root : share.root);
+    filesView.dataset.sub = sub;
+    if (openKind !== 'files' || panelBody.firstElementChild !== filesView)
+      openPanel('files', filesView, () => {
+        subClose?.();
+        subClose = null;
+      });
+    else sendHeight();
+  }
+  const showFiles = () => {
+    if (view !== 'shelf') void api.islandView('shelf').catch(() => {});
+  };
+  const converter = converterSheet({
+    api,
+    notice,
+    attempt,
+    show: () => {
+      showFiles();
+      openFiles('convert');
+    },
+    hide: () => closePanel(),
+    card: filesAcc.b,
+  });
+  const share = shareSheet({
+    api,
+    notice,
+    attempt,
+    show: (_content: HTMLElement, onClose?: () => void) => {
+      showFiles();
+      openFiles('share', onClose);
+    },
+    hide: () => closePanel(),
+    card: filesAcc.b,
+  });
+  convertTile.onclick = () => openFiles('convert');
+  shareTile.onclick = () => share.open();
+  segShare.onclick = () => share.open();
+  // a file dragged over the Dosyalar card opens the two tiles (dropped elsewhere it goes to the chat)
+  filesAcc.b.addEventListener('dragenter', (e) => {
+    if (!e.dataTransfer?.types.includes('Files')) return;
+    if (openKind === 'files' && filesSub === 'home') return;
+    openFiles('home');
+  });
+  filesAcc.b.addEventListener('dragover', (e) => {
+    if (e.dataTransfer?.types.includes('Files')) e.preventDefault();
+  });
+  // v0.9.2: one drag tracker for every drop target (the "over" frame never stays behind)
+  const clearDropTargets = bindFileDropTargets();
+  // a drop on the converter never leaves the dashed frame behind
+  api.onConvertDrop?.(() => {
+    clearDropTargets();
+    document.dispatchEvent(new Event('dragend'));
+    document.body.classList.remove('dropping');
+  });
+  api.onShareDrop?.(() => {
+    clearDropTargets();
+    document.dispatchEvent(new Event('dragend'));
+    document.body.classList.remove('dropping');
+  });
+
+  // ── AI kullanımı: every connected AI ───────────────────────────────────────
+  const usage = usageAll(api, (text, low) => {
+    usageAcc.sub.textContent = text;
+    usageAcc.b.classList.toggle('low', low);
+  });
+  function openUsage() {
+    openPanel('usage', usage.root);
+    void usage.load(false);
+  }
+  window.setTimeout(() => void usage.load(false), 4000);
+  window.setInterval(() => {
+    if (view === 'shelf' && !document.hidden) void usage.load(false);
+  }, 10 * 60000);
+
+  // ── Hava durumu: now, the next hours and five days ─────────────────────────
+  // "Ankara · 16° · Parçalı bulutlu 🌤️" from the companion state (the same text as the old line)
+  function paintWeather(value: any) {
+    const full = String(value?.weather?.text || '');
+    const city = value?.preferences?.city?.name;
+    const parts = full.split(' · ');
+    const emojiEl = weatherAcc.icon.firstElementChild as HTMLElement;
+    if (parts.length >= 3) {
+      const emoji = parts[2].match(/\p{Extended_Pictographic}[️]?/u)?.[0] || '🌤️';
+      emojiEl.textContent = emoji;
+      weatherAcc.sub.textContent = `${parts[1]} · ${parts[0]} · ${parts[2].replace(/\p{Extended_Pictographic}[️]?/gu, '').trim()}`;
+      notchWeather.textContent = `${emoji} ${parts[1]}`;
+    } else {
+      emojiEl.textContent = city ? '🌤️' : '📍';
+      weatherAcc.sub.textContent = city ? `${String(city).split(',')[0]} · Yükleniyor…` : 'Şehrini seç';
+      notchWeather.textContent = '';
+    }
+  }
+  api.onCompanion?.(paintWeather);
+  void Promise.resolve(api.companionRead?.()).then(paintWeather).catch(() => paintWeather(null));
+
+  const DAYS = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+  const pickCity = () => {
+    closePanel();
+    document.getElementById('weather-idle')?.click();
+  };
+  const weatherView = el('div', 'weather-sheet h13-weather');
+  weatherView.dataset.kind = 'weather';
+  function openWeather() {
+    const wrap = weatherView;
+    const change = button('weather-change', 'Şehri değiştir', svg('location'));
+    change.title = 'Şehri değiştir';
+    change.onclick = pickCity;
+    if (!wrap.childElementCount) wrap.append(el('p', 'weather-note', 'Tahmin yükleniyor…'));
+    openPanel('weather', wrap);
+    void Promise.resolve(api.weatherForecast?.())
+      .then((f: any) => {
+        if (!f?.city) {
+          const choose = button('weather-choose', 'Şehrini seç', svg('location'), el('span', '', 'Şehrini seç'));
+          choose.onclick = pickCity;
+          wrap.replaceChildren(el('p', 'weather-note', 'Hava durumunu görmek için şehrini seç.'), choose);
+          sendHeight();
+          return;
+        }
+        const c = f.current || {};
+        const deg = (v: any) => (Number.isFinite(v) ? v + '°' : '—');
+        const city = el('strong', 'weather-city', f.city);
+        city.translate = false;
+        const details = el('div', 'weather-details');
+        if (Number.isFinite(c.feels)) details.append(el('span', '', el('small', '', 'Hissedilen'), el('b', '', deg(c.feels))));
+        if (Number.isFinite(c.humidity)) details.append(el('span', '', el('small', '', 'Nem'), el('b', '', '%' + c.humidity)));
+        if (Number.isFinite(c.wind)) details.append(el('span', '', el('small', '', 'Rüzgâr'), el('b', '', c.wind + ' km/sa')));
+        const now = el(
+          'div',
+          'weather-now',
+          el('span', 'weather-now-emoji', c.emoji || '🌤️'),
+          el('span', 'weather-now-temp', deg(c.temp)),
+          el('span', 'weather-now-text', city, el('small', '', c.text || '')),
+          details,
+        );
+        // the next hours of today
+        const hours = el('div', 'weather-hours');
+        (Array.isArray(f.hours) ? f.hours : []).slice(0, 7).forEach((h: any, i: number) => {
+          // "Şimdi" is the current reading (the same numbers as the box beside it)
+          const temp = i === 0 && Number.isFinite(c.temp) ? c.temp : h.temp;
+          const cell = el(
+            'div',
+            'weather-hour' + (i === 0 ? ' now' : ''),
+            el('small', 'weather-hour-time', i === 0 ? 'Şimdi' : String(h.time || '')),
+            el('span', 'weather-hour-emoji', (i === 0 && c.emoji) || h.emoji || '🌤️'),
+            el('b', 'weather-hour-temp', deg(temp)),
+          );
+          cell.setAttribute('aria-label', `${i === 0 ? 'Şimdi' : h.time}: ${h.text || ''}, ${deg(h.temp)}`);
+          hours.append(cell);
+        });
+        // the city button sits at the top right, next to the hourly title
+        const hourly = el('div', 'weather-block weather-block-hours', el('div', 'h13-sec-head', el('small', 'h13-sec-title', 'BUGÜN · SAATLİK'), change), hours);
+        if (!hours.childElementCount) hours.hidden = true;
+        const days = el('div', 'weather-days');
+        (f.days || []).slice(0, 5).forEach((d: any, i: number) => {
+          const date = new Date(String(d.date) + 'T12:00:00');
+          const name = i === 0 ? 'Bugün' : i === 1 ? 'Yarın' : DAYS[date.getDay()] || '';
+          const day = el(
+            'div',
+            'weather-day' + (i === 0 ? ' today' : ''),
+            el('small', 'weather-day-name', name),
+            el(
+              'span',
+              'weather-day-sky',
+              el('span', 'weather-day-emoji', d.emoji || '🌤️'),
+              el('small', 'weather-day-rain' + (Number(d.rain) >= 40 ? ' wet' : ''), Number.isFinite(d.rain) && d.rain > 0 ? '%' + d.rain : ''),
+            ),
+            el('span', 'weather-day-temps', el('b', '', deg(d.max)), el('small', '', deg(d.min))),
+          );
+          day.setAttribute('aria-label', `${name}: ${d.text || ''}, ${deg(d.max)} / ${deg(d.min)}`);
+          days.append(day);
+        });
+        const daily = el('div', 'weather-block weather-block-days', el('div', 'h13-sec-head', el('small', 'h13-sec-title', '5 GÜNLÜK')), days);
+        wrap.replaceChildren(el('div', 'weather-top', now, hourly), daily);
+        sendHeight();
+      })
+      .catch(() => {
+        const retry = button('weather-choose', 'Şehri değiştir', svg('location'), el('span', '', 'Şehri değiştir'));
+        retry.onclick = pickCity;
+        wrap.replaceChildren(el('p', 'weather-note', 'Hava durumuna şu anda ulaşılamıyor.'), retry);
+        sendHeight();
+      });
+  }
 
   // v0.8.15: a click on an empty part of the shelf (or of its top bar) opens the chat (the cream
   // bar below closes the island); in the chat it goes back to the shelf (the cream bar closes)
-  const empty = (t: HTMLElement) => !t.closest('button, a, input, select, textarea, .card, .shelf-sheet, #pet, [role="button"]');
+  const empty = (t: HTMLElement) => !t.closest('button, a, input, select, textarea, form, .card, .h13-music, .h13-accs, .h13-panel, .shelf-sheet, #pet, [role="button"]');
   shelf.addEventListener('click', (e) => {
-    if (view === 'shelf' && !onPath(e, 'button, a, input, select, textarea, .card, .shelf-sheet, #pet, [role="button"], dialog'))
+    if (view === 'shelf' && !onPath(e, 'button, a, input, select, textarea, form, label, .card, .h13-music, .h13-accs, .h13-panel, .shelf-sheet, #pet, [role="button"], dialog'))
       void attempt(() => api.islandView('chat'));
   });
   header.addEventListener(
@@ -297,159 +596,6 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     },
     true,
   );
-  // a drop on the converter never leaves the dashed frame behind
-  api.onConvertDrop?.(() => {
-    clearDropTargets();
-    document.dispatchEvent(new Event('dragend'));
-    document.body.classList.remove('dropping');
-  });
-  api.onShareDrop?.(() => {
-    clearDropTargets();
-    document.dispatchEvent(new Event('dragend'));
-    document.body.classList.remove('dropping');
-  });
-
-  // sheets: the converter and the usage gauges open over the cards
-  const sheet = el('div', 'shelf-sheet');
-  sheet.hidden = true;
-  const sheetTitle = el('strong', 'sheet-title');
-  const sheetBack = button('sheet-back', 'Kartlara dön', svg('chevronLeft'));
-  const sheetBody = el('div', 'sheet-body');
-  sheet.append(el('div', 'sheet-head', sheetBack, sheetTitle), sheetBody);
-  shelf.append(sheet);
-  let closeSheet: (() => void) | null = null;
-  function openSheet(title: string, content: HTMLElement, onClose?: () => void) {
-    closeSheet?.();
-    sheetTitle.textContent = title;
-    sheetBody.replaceChildren(content);
-    sheet.hidden = false;
-    shelf.classList.add('sheet-open');
-    sheet.dataset.kind = content.dataset.kind || '';
-    shelf.dataset.sheet = sheet.dataset.kind;
-    // v0.9.2: an open sheet keeps the shelf from folding away under the pointer
-    void Promise.resolve(api.shelfHold?.(true)).catch(() => {});
-    closeSheet = () => {
-      sheet.hidden = true;
-      shelf.classList.remove('sheet-open');
-      delete shelf.dataset.sheet;
-      closeSheet = null;
-      void Promise.resolve(api.shelfHold?.(false)).catch(() => {});
-      onClose?.();
-    };
-  }
-  sheetBack.onclick = () => closeSheet?.();
-  usageCard.onclick = () => {
-    if (!usagePanel) return;
-    const wrap = el('div', 'usage-sheet');
-    wrap.dataset.kind = 'usage';
-    wrap.append(usagePanel);
-    openSheet('AI kullanımı', wrap);
-  };
-
-  // v0.8.14: weather — a sheet the size of the AI usage one with the next five days
-  const DAYS = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
-  const pickCity = () => {
-    closeSheet?.();
-    document.getElementById('weather-idle')?.click();
-  };
-  function openWeather() {
-    const wrap = el('div', 'weather-sheet');
-    wrap.dataset.kind = 'weather';
-    const change = button('weather-change', 'Şehri değiştir', svg('pencil'));
-    change.onclick = pickCity;
-    wrap.append(el('p', 'weather-note', 'Tahmin yükleniyor…'));
-    openSheet('Hava durumu', wrap);
-    void Promise.resolve(api.weatherForecast?.())
-      .then((f: any) => {
-        if (!f?.city) {
-          const choose = button('weather-choose', 'Şehrini seç', svg('pencil'), el('span', '', 'Şehrini seç'));
-          choose.onclick = pickCity;
-          wrap.replaceChildren(el('p', 'weather-note', 'Hava durumunu görmek için şehrini seç.'), choose);
-          return;
-        }
-        const c = f.current || {};
-        const deg = (v: any) => (Number.isFinite(v) ? v + '°' : '—');
-        const city = el('strong', 'weather-city', f.city);
-        city.translate = false;
-        const now = el(
-          'div',
-          'weather-now',
-          el('span', 'weather-now-emoji', c.emoji || '🌤️'),
-          el('span', 'weather-now-temp', deg(c.temp)),
-          el('span', 'weather-now-text', city, el('small', '', c.text || '')),
-          change,
-        );
-        const details = el('div', 'weather-details');
-        if (Number.isFinite(c.feels)) details.append(el('span', '', el('small', '', 'Hissedilen'), el('b', '', deg(c.feels))));
-        if (Number.isFinite(c.humidity)) details.append(el('span', '', el('small', '', 'Nem'), el('b', '', '%' + c.humidity)));
-        if (Number.isFinite(c.wind)) details.append(el('span', '', el('small', '', 'Rüzgâr'), el('b', '', c.wind + ' km/sa')));
-        const days = el('div', 'weather-days');
-        (f.days || []).slice(0, 5).forEach((d: any, i: number) => {
-          const date = new Date(String(d.date) + 'T12:00:00');
-          const name = i === 0 ? 'Bugün' : i === 1 ? 'Yarın' : DAYS[date.getDay()] || '';
-          const day = el(
-            'div',
-            'weather-day' + (i === 0 ? ' today' : ''),
-            el('small', 'weather-day-name', name),
-            // v0.8.15: the rain chance next to the sky (smaller cards, room below them)
-            el(
-              'span',
-              'weather-day-sky',
-              el('span', 'weather-day-emoji', d.emoji || '🌤️'),
-              el('small', 'weather-day-rain' + (Number(d.rain) >= 40 ? ' wet' : ''), Number.isFinite(d.rain) && d.rain > 0 ? '%' + d.rain : ''),
-            ),
-            el('span', 'weather-day-temps', el('b', '', deg(d.max)), el('small', '', deg(d.min))),
-          );
-          day.setAttribute('aria-label', `${name}: ${d.text || ''}, ${deg(d.max)} / ${deg(d.min)}`);
-          days.append(day);
-        });
-        wrap.replaceChildren(now, details, days);
-      })
-      .catch(() => {
-        const retry = button('weather-choose', 'Şehri değiştir', svg('pencil'), el('span', '', 'Şehri değiştir'));
-        retry.onclick = pickCity;
-        wrap.replaceChildren(el('p', 'weather-note', 'Hava durumuna şu anda ulaşılamıyor.'), retry);
-      });
-  }
-
-  const converter = converterSheet({
-    api,
-    notice,
-    attempt,
-    show: (content) => {
-      if (view === 'notch') void api.islandView('shelf').catch(() => {});
-      openSheet('Dönüştürücü', content);
-    },
-    hide: () => closeSheet?.(),
-    card: convertCard,
-  });
-  convertCard.onclick = () => converter.choose();
-  convertCard.onkeydown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      converter.choose();
-    }
-  };
-  // v0.9.2: Gönder — Quick Share / LocalSend sheet (src/island/share.ts)
-  const share = shareSheet({
-    api,
-    notice,
-    attempt,
-    show: (content, onClose) => {
-      if (view !== 'shelf') void api.islandView('shelf').catch(() => {});
-      openSheet('Dosya paylaşımı', content, onClose);
-    },
-    hide: () => closeSheet?.(),
-    card: sendCard,
-  });
-  sendCard.onclick = () => share.open();
-  sendCard.onkeydown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      share.open();
-    }
-  };
-
   // ── views ──────────────────────────────────────────────────────────────────
   function placePet() {
     // v0.9.1: the app window (Çalışma alanı) puts Slime in its own Charles card: he stays there
@@ -469,9 +615,13 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     grip?.setAttribute('aria-label', next === 'chat' ? 'Panel yüksekliği · sürükle' : next === 'shelf' ? 'Adayı küçült' : 'Sohbeti aç');
     grip?.setAttribute('role', next === 'chat' ? 'separator' : 'button');
     // v0.8.11: a sheet (usage, a finished conversion) does not stay open once the island closes
-    if (next !== 'shelf' && closeSheet && (sheet.dataset.kind === 'usage' || (!converter.running() && !share.busy())))
+    if (next !== 'shelf' && openKind && (openKind !== 'files' || (!converter.running() && !share.busy())))
       closeSheet();
     placePet();
+    if (next === 'shelf') {
+      sentHeight = 0;
+      sendHeight();
+    }
   }
   api.onView?.(setView);
   new MutationObserver(placePet).observe(body, { attributes: true, attributeFilter: ['class'] });
@@ -528,7 +678,7 @@ function musicCard(attempt: Deps['attempt'], api: any) {
   const artImg = el('img') as HTMLImageElement;
   artImg.alt = '';
   art.append(svg('music'), artImg);
-  const label = el('small', 'music-label', svg('music'), el('span', '', 'Şimdi çalıyor'));
+  const label = el('small', 'music-label', svg('music'), el('span', '', 'Spotify · Hazır'));
   const title = el('strong', 'music-title', 'Müzik');
   const artist = el('small', 'music-artist', '');
   const click = (id: string) => () => document.getElementById(id)?.click();
@@ -554,7 +704,7 @@ function musicCard(attempt: Deps['attempt'], api: any) {
   start.onclick = click('music-play');
   const idleHint = el('small', 'music-hint', 'Spotify’ı açar ve son çalınanı başlatır');
   const meta = el('div', 'music-meta', label, title, artist, controls, progress, start, idleHint);
-  const card = el('div', 'card card-music', art, meta);
+  const card = el('div', 'h13-music', art, meta);
   // v0.8.14: a click on the card (not on its buttons or the seek bar) opens Spotify
   card.addEventListener('click', (e) => {
     if (onPath(e, 'button, input')) return;
@@ -611,7 +761,7 @@ function musicCard(attempt: Deps['attempt'], api: any) {
         localStorage.setItem('charles-last-track', lastTitle);
       } catch {}
     }
-    label.lastElementChild!.textContent = active ? (playing ? 'Şimdi çalıyor' : 'Duraklatıldı') : 'Müzik';
+    label.lastElementChild!.textContent = 'Spotify · ' + (active ? (playing ? 'Şimdi çalıyor' : 'Duraklatıldı') : 'Hazır');
     title.textContent = active ? r.title || 'Spotify' : 'Şu an bir şey çalmıyor';
     artist.textContent = active ? r.artist || '' : lastTitle ? 'Son çalınan: ' + lastTitle : 'Spotify';
     const ok = /^data:image\/(png|jpeg|webp);base64,/.test(r.art || '');
@@ -643,6 +793,8 @@ function musicCard(attempt: Deps['attempt'], api: any) {
     big.alt = '';
     art.firstElementChild?.replaceWith(big);
   }
+  // v0.9.13: until the first media state arrives the card shows the idle "Çalmaya başla"
+  paint({ ok: false });
   return {
     card,
     paint,

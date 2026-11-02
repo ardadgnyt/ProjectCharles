@@ -323,10 +323,10 @@ function singleCard(item) {
 function dismissButton(singleItem = null) {
   // v0.8.9: the card goes at once; Charles forgets the notifications after it
   // v0.8.11: on pointerdown (see dismissOnPress), so a redraw can never swallow it
-  const b = element('button', 'wa-btn wa-x');
+  // v0.9.13: the same × as the mail / reminder cards (no floating circle on the corner)
+  const b = element('button', 'close wa-x', '×');
   b.type = 'button';
   b.setAttribute('aria-label', T('WhatsApp bildirimlerini kapat'));
-  b.append(glyph(G.close));
   dismissOnPress(b, () => {
     sendSeq++;
     if (waView.mode === 'compose') void window.bubble.wa('focus', { on: false }).catch(() => {});

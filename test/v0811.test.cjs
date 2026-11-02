@@ -13,7 +13,8 @@ const cv = require('../app/files/convert.cjs');
 const { textPdf, systemFonts } = require('../app/files/text-pdf.cjs');
 
 test('a normal-sized island; closed without music it is the hidden strip (v0.8.13)', () => {
-  assert.ok(SHELF.width <= 760 && SHELF.height <= 180);
+  // v0.9.13: the redesigned home page is wider and grows with its open panel (SHELF_MAX)
+  assert.ok(SHELF.width <= 760 && SHELF.height <= 280);
   const area = { x: 0, y: 0, width: 1920, height: 1040 };
   assert.equal(bounds(area, { expanded: false, side: 'center', height: 620, music: false }).height, HIDDEN.height);
   assert.equal(bounds(area, { expanded: false, side: 'center', height: 620, music: true }).width, NOTCH.width);

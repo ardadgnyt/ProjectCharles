@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.12%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.13%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -42,6 +42,7 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 | Version | What’s new | Yenilikler |
 | --- | --- | --- |
+| **v0.9.13** | Redesigned island home: Charles with an inline message box (mic, voice call), a new Spotify card and three expanding cards (Files · AI usage · Weather with hourly forecast) · quiet WhatsApp catch-up, muted/archived chats stay silent | Adacık ana sayfası yenilendi: satır içi mesaj kutulu Charles (mikrofon, sesli görüşme), yeni Spotify kartı ve açılır üç kart (Dosyalar · AI kullanımı · saatlik tahminli Hava durumu) · WhatsApp birikmiş mesajları sessiz, sessize alınmış/arşivlenmiş sohbetler bildirim vermiyor |
 | **v0.9.12** | Modules can save and open files (`files.save`, `files.pick`) through Windows’ own Save / Open window | Modüller Windows’un Kaydet / Aç penceresiyle dosya kaydedip açabiliyor (`files.save`, `files.pick`) |
 | **v0.9.11** | Long chats can be continued after a restart · Charles sleeps when you are away | Uzun sohbetler yeniden başlattıktan sonra sürdürülebiliyor · Charles sen yokken uyuyor |
 | **v0.9.10** | Smoother Slime (no waving in his sleep, no doubled cheeks) · durations in your language · tables with formulas and file citations render properly · the chat keeps its place | Daha akıcı Slime (uykuda el sallama yok, çift yanak yok) · süreler seçili dilde · formüllü tablolar ve dosya kaynakları düzgün görünüyor · sohbet yerini koruyor |
@@ -52,51 +53,57 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 Details · Ayrıntılar: [CHANGELOG](CHANGELOG.md) · [File sharing / Dosya paylaşımı](docs/SHARING.md)
 
-### Convert & share / Dönüştür ve paylaş
+### The island · Adacık
+
+Charles with an inline message box (microphone, voice call, send), the Spotify card, and three
+cards that open a panel below them: **Files**, **AI usage** and **Weather**.
+
+Satır içi mesaj kutulu Charles (mikrofon, sesli görüşme, gönder), Spotify kartı ve altlarında
+panel açan üç kart: **Dosyalar**, **AI kullanımı** ve **Hava durumu**.
 
 <p align="center">
-  <img src="docs/images/island.png" alt="v0.9.3 island: icon-only converter and send buttons, centered Charles and music" width="100%">
+  <img src="docs/images/island.png" alt="v0.9.13 island home: Charles with a message box, the Spotify card, and the Files, AI usage and Weather cards" width="720">
 </p>
 
 ### Convert files on your desktop · Masaüstünde dosya dönüştür
 
-Drop a file on the **circular arrow** beside Charles, choose an output format, then press
-**Convert**. Images, audio, video, documents, data and archives stay on your computer.
+Open **Files → Convert** (or drag a file onto the **Files** card: its Convert / Send tiles open
+by themselves), choose an output format, then press **Convert**. Images, audio, video, documents, data and archives stay on your computer.
 Supported formats depend on the selected file and the installed tools; image and video
 options include quality and output size. The result is saved beside the original.
 
-Charles’ın yanındaki **dairesel ok** simgesine dosyanı bırak, hedef biçimi seç ve
-**Dönüştür**’e bas. Görsel, ses, video, belge, veri ve arşiv işlemleri bilgisayarında yapılır.
+**Dosyalar → Dönüştür**’ü aç (ya da dosyayı **Dosyalar** kartının üstüne sürükle; Dönüştür / Gönder
+kutucukları kendiliğinden açılır), hedef biçimi seç ve **Dönüştür**’e bas. Görsel, ses, video, belge, veri ve arşiv işlemleri bilgisayarında yapılır.
 Seçenekler dosya türüne ve kurulu araçlara göre gösterilir; görsel ve videolarda kalite ve
 boyut seçebilirsin. Sonuç, orijinal dosyanın yanına kaydedilir.
 
 <p align="center">
-  <img src="docs/images/converter.png" alt="Converter with a sample PNG, output formats, quality and size controls" width="100%">
+  <img src="docs/images/converter.png" alt="Files → Convert with a sample PNG: grouped output formats, quality and size" width="720">
 </p>
 
 ### All Android devices with Quick Share · Tüm Android cihazlarda Quick Share
 
-Drop files on the **paper plane**, select a nearby device and send. Quick Share supports
+Open **Files → Send**, drop or choose files, and press **Send** beside a nearby device. Quick Share supports
 two-way transfers between Android devices and computers on the same local
 network. Charles remains discoverable while running when receiving is enabled, even with
 the panel closed. An incoming request opens the accept/reject panel immediately.
 Quick Share must be available and enabled on the Android device.
 
-**Kâğıt uçak** simgesine dosya bırak, yakındaki cihazı seç ve gönder. Quick Share ile aynı
+**Dosyalar → Gönder**’i aç, dosyanı bırak ya da seç ve yakındaki cihazın yanındaki **Gönder**’e bas. Quick Share ile aynı
 yerel ağdaki tüm Android cihazlar ve bilgisayarlar arasında iki yönlü aktarım
 yapabilirsin. Alım açıkken Charles çalıştığı sürece bilgisayarın görünür kalır; paneli açık
 tutman gerekmez. Gelen istek, kabul/ret panelini doğrudan açar.
 Android cihazda Quick Share özelliğinin bulunması ve açık olması gerekir.
 
 <p align="center">
-  <img src="docs/images/sharing.png" alt="File sharing panel with a sample Galaxy S24+ and receive visibility controls" width="100%">
+  <img src="docs/images/sharing.png" alt="Files → Send with a sample picture, nearby devices with their own Send buttons, and the Receiving switch" width="720">
 </p>
 
-- **Receiving On / Dosya alımı Açık:** enabled at startup; every file still needs your approval. It stays on while Slime sleeps or the sharing panel is closed. / Açılışta etkindir; her dosya için onay ister. Slime uyusa veya paylaşım paneli kapansa da açık kalır.
-- **Off / Kapalı:** disables receiving and visibility until you enable it again or restart Charles. Sending remains available. / Yeniden açana veya Charles’ı yeniden başlatana kadar alımı ve görünürlüğü kapatır. Dosya göndermeye devam edebilirsin.
+- **Receiving switch on / Dosya alımı anahtarı açık:** enabled at startup; every file still needs your approval. It stays on while Slime sleeps or the sharing panel is closed. / Açılışta etkindir; her dosya için onay ister. Slime uyusa veya paylaşım paneli kapansa da açık kalır.
+- **Switch off / Anahtar kapalı:** disables receiving and visibility until you enable it again or restart Charles. Sending remains available. / Yeniden açana veya Charles’ı yeniden başlatana kadar alımı ve görünürlüğü kapatır. Dosya göndermeye devam edebilirsin.
 
 <p align="center">
-  <img src="docs/images/sharing-receive.png" alt="Incoming file request with a matching PIN and accept/reject buttons" width="100%">
+  <img src="docs/images/sharing-receive.png" alt="Incoming file request with a matching PIN and Accept / Decline buttons" width="720">
 </p>
 
 Received files go to Downloads; an existing file with the same name is preserved. QR is no
@@ -117,9 +124,9 @@ ve durum bilgileri tanıtım için örnektir.* [Sharing guide / Paylaşım rehbe
 
 ### An assistant that does things
 
-- **Island v2:** a thin strip at the top of the screen (a small notch with music controls while
-  a song plays) opens into a card shelf (AI usage, weather, converter, file sharing, Charles, music) and grows
-  down into the chat.
+- **Island:** a thin strip at the top of the screen (a small notch with music controls while
+  a song plays) opens into the home page (Charles with a message box, Spotify, and the Files ·
+  AI usage · Weather cards) and grows down into the chat.
 - **Converter:** drop files on the island to turn them into other formats: pictures, audio,
   video, Word/Markdown/PDF text, CSV/JSON, subtitles, ZIP. Offline, saved next to the original.
 - **Your own AI accounts:** chat with **ChatGPT (Codex)**, **Claude**, **Antigravity**, **Cursor** or
@@ -156,8 +163,8 @@ ve durum bilgileri tanıtım için örnektir.* [Sharing guide / Paylaşım rehbe
 
 ### İş yapan bir asistan
 
-- **Ada v2:** ekranın üstündeki ince şerit (şarkı çalarken müzik tuşlu küçük notch), kart rafına
-  (AI kullanımı, hava, Dönüştürücü, dosya paylaşımı, Charles, müzik) açılır ve aşağı uzayıp sohbete dönüşür.
+- **Ada:** ekranın üstündeki ince şerit (şarkı çalarken müzik tuşlu küçük notch), ana sayfaya
+  (mesaj kutulu Charles, Spotify, Dosyalar · AI kullanımı · Hava durumu kartları) açılır ve aşağı uzayıp sohbete dönüşür.
 - **Dönüştürücü:** dosyaları adaya bırak, başka biçime çevir: görsel, ses, video, Word/Markdown/PDF
   metni, CSV/JSON, altyazı, ZIP. İnternetsiz, sonuç orijinalin yanına kaydedilir.
 - **Kendi yapay zekâ hesapların:** **ChatGPT (Codex)**, **Claude**, **Antigravity**, **Cursor** ya da
@@ -227,10 +234,24 @@ Charles’ın indirme altyapısını kullanabilir ve Slime’ı aksesuarları, t
 takibiyle çizebilir. Her yetki, kullanıcının onayladığı bir izinle gelir.
 Ayrıntılar: [docs/MODULES.md](docs/MODULES.md).
 
+### AI usage & weather · AI kullanımı ve hava durumu
+
+**AI usage** shows every connected AI (Codex, Claude, Antigravity, Cursor, Abacus AI, EVREN)
+with its two windows and when they reset. **Weather** shows the current conditions, the next
+hours and five days; the location button changes the city.
+
+**AI kullanımı** bağlı bütün yapay zekâları iki halkası ve sıfırlanma süreleriyle gösterir.
+**Hava durumu** anlık durumu, önümüzdeki saatleri ve beş günü gösterir; konum tuşu şehri değiştirir.
+
+<p align="center">
+  <img src="docs/images/usage.png" alt="AI usage panel: Codex, Claude, Antigravity, Cursor, Abacus AI and EVREN with remaining-usage rings" width="49%">
+  <img src="docs/images/weather.png" alt="Weather panel: current conditions, hourly forecast and five days" width="49%">
+</p>
+
 ## Screenshots · Ekran görüntüleri
 
 <p align="center">
-  <img src="docs/images/island.png" alt="The updated v0.9.3 island with centered Charles, converter and file-sharing icons" width="100%">
+  <img src="docs/images/island.png" alt="The v0.9.13 island home page" width="720">
 </p>
 
 <p align="center">

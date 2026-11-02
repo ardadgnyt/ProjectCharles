@@ -55,8 +55,10 @@ test('a bigger Charles on the shelf', () => {
 
 test('converter: quality and size sit under the file (never cut off below many formats)', () => {
   const conv = read('src/island/converter.ts');
-  assert.match(conv, /el\('div', 'conv-files', head, el\('div', 'conv-opts', \.\.\.options\(\)\), list\)/);
+  // v0.9.13: the file on the left; formats, then quality / size and the button on the right
+  assert.match(conv, /el\('div', 'conv-left conv-files', head, list\)/);
   assert.match(conv, /const formats = el\('div', 'conv-formats', chips\);/);
+  assert.match(conv, /el\('div', 'conv-right', formats, el\('div', 'conv-bottom', el\('div', 'conv-opts', \.\.\.options\(\)\), action\)\)/);
 });
 
 test('README shows the new island', () => {

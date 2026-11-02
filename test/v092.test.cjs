@@ -53,10 +53,9 @@ test('v0.9.2 · Küçük adacıkta yarı boy Dönüştürücü, Gönder kartı v
   const css092 = fs.readFileSync(path.join(__dirname, '../public/styles/25-v092.css'), 'utf8');
   const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
 
-  assert.match(shelfTs, /shelf-col shelf-col-mid/);
-  assert.match(shelfTs, /card card-send/);
-  assert.match(shareTs, /share-mode-seg/);
-  assert.match(shareTs, /share-mode-pill/);
+  // v0.9.13: Dönüştür and Gönder are tiles in the Dosyalar panel; Dosya alımı is a switch
+  assert.match(shelfTs, /tile\('share', 'send', 'Gönder'/);
+  assert.match(shareTs, /setAttribute\("role", "switch"\)/);
   assert.match(css092, /#shelf \.shelf-col\.shelf-col-mid/);
   assert.match(css092, /#shelf \.shelf-col-mid \.card-convert,\s*#shelf \.shelf-col-mid \.card-send/);
   assert.match(css092, /\.share-mode-pill\.active/);

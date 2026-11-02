@@ -125,6 +125,7 @@ let win,
   // v0.8.10: an open island shows the card shelf (home) or the chat panel
   chatOpen = false,
   shelfHeld = false,
+  shelfHeight = 220,
   // v0.8.11: the closed notch is wide (Slime + music controls) only while music plays
   // v0.8.13: there is no other closed notch: with nothing playing the closed island is the thin
   // hidden strip. musicState: 'playing' | 'paused' | 'none'
@@ -573,10 +574,11 @@ function whatsappLive() {
       if (!state.groups) for (const i of [...(mailBubble?.items || [])]) if (i.kind === 'whatsapp' && /@(g\.us|newsletter|broadcast)$/.test(String(i.chat))) mailBubble.remove(i.id);
     });
     waLive.on('message', (m) => {
-      const { update, ...item } = m;
+      const { update, quiet, ...item } = m;
       mailBubble?.upsert({ id: 'wa|' + m.chat, kind: 'whatsapp', ...item, quickReplies: waLive.settings.quickReplies }, { update: !!update });
       // Slime notices: a little happy face and a sound, like a new mail
-      if (!update && win && !win.isDestroyed()) win.webContents.send('whatsapp-message', { name: m.name });
+      // v0.9.13: not for messages that arrived while Charles was closed (they show quietly)
+      if (!update && !quiet && win && !win.isDestroyed()) win.webContents.send('whatsapp-message', { name: m.name });
     });
   }
   return waLive;
@@ -830,6 +832,7 @@ function position(animate = false) {
     side: v2?.data.side || 'center',
     height: v2?.data.height || 620,
     scale,
+    shelf: shelfHeight,
   });
   // Keep the transparent native surface stable across notch/shelf/chat/hidden states.
   // Only moving displays, docking or explicitly resizing changes the native bounds.
@@ -2637,6 +2640,14 @@ else {
         return true;
       });
       // the converter is working / a sheet is open on the shelf: it does not close by itself
+      // v0.9.13: the home page's own height (a panel opened or closed under the cards)
+      safeHandler('shelf-height', (value) => {
+        const next = require('./core/layout.cjs').shelfSize(value).height;
+        if (next === shelfHeight) return next;
+        shelfHeight = next;
+        if (expanded && !chatOpen && !hidden) position(false);
+        return next;
+      });
       safeHandler('shelf-hold', (value) => {
         shelfHeld = !!value;
         if (shelfHeld) {

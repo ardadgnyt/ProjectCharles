@@ -46,7 +46,8 @@ test('weather: five days from Open-Meteo, in a sheet the size of AI usage', asyn
   assert.deepEqual(f.days[3], { date: '2026-10-27', code: 71, text: 'Karlı', emoji: '❄️', max: 3, min: -2, rain: 40 });
   assert.equal(await w.forecast(null), null);
   const shelf = read('src/island/shelf.ts');
-  assert.match(shelf, /weatherCard\.onclick = \(\) => openWeather\(\);/);
+  // v0.9.13: the Hava durumu card opens its panel (togglePanel → openWeather)
+  assert.match(shelf, /else openWeather\(\);/);
   assert.match(shelf, /viaChat\('weather-idle', true\);/);
   assert.match(read('app/main.cjs'), /safeHandler\('weather-forecast'/);
   const css = read('public/styles/22-v0814.css');

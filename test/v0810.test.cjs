@@ -37,7 +37,7 @@ test('main: views, shelf closes by itself, converter handlers', () => {
 
 test('renderer: shelf cards, ‹ › dock the island, cream bar opens the chat, no page dots', () => {
   const shelf = read('src/island/shelf.ts');
-  for (const s of ['AI kullanımı', 'Dönüştürücü', 'Çalmaya başla', 'Sola yasla', "getElementById('dock-left')?.click()"]) assert.ok(shelf.includes(s), s);
+  for (const s of ['AI kullanımı', 'Dönüştür', 'Çalmaya başla', 'Sola yasla', "getElementById('dock-left')?.click()"]) assert.ok(shelf.includes(s), s);
   assert.match(read('src/island/companion.ts'), /api\.islandView\(target\)/);
   const css = read('public/styles/18-v0810.css');
   assert.match(css, /#resize-handle::after \{[^}]*background: var\(--v10-cream\)/);

@@ -155,6 +155,37 @@ function parseWebhook(body) {
     mine: p.is_from_me === true,
   };
 }
+/** v0.9.13: muted / archived chats from whatsmeow_chat_settings rows ({ chat_jid, muted, archived }). */
+function chatFlagsFrom(rows) {
+  const muted = new Set();
+  const archived = new Set();
+  const on = (v) => v === 1 || v === true || v === 1n || v === '1';
+  for (const r of Array.isArray(rows) ? rows : []) {
+    const jid = typeof r?.chat_jid === 'string' ? r.chat_jid : '';
+    if (!jid) continue;
+    if (on(r.muted)) muted.add(jid);
+    if (on(r.archived)) archived.add(jid);
+  }
+  return { muted, archived };
+}
+/** v0.9.13: a muted chat stored as 123@lid is also 905…@s.whatsapp.net (and the other way). */
+function addLinkedJids(set, pairs) {
+  const byLid = new Map(), byPn = new Map();
+  for (const p of Array.isArray(pairs) ? pairs : []) {
+    const lid = String(p?.lid || '').split('@')[0].split(':')[0];
+    const pn = String(p?.pn || '').split('@')[0].split(':')[0];
+    if (lid && pn) {
+      byLid.set(lid, pn);
+      byPn.set(pn, lid);
+    }
+  }
+  for (const jid of [...set]) {
+    const [user, server] = jid.split('@');
+    if (server === 'lid' && byLid.has(user)) set.add(byLid.get(user) + '@s.whatsapp.net');
+    if (server === 's.whatsapp.net' && byPn.has(user)) set.add(byPn.get(user) + '@lid');
+  }
+  return set;
+}
 /** Stored messages of a chat (GET /chat/{jid}/messages) → the same shape, oldest first. */
 function parseMessages(results) {
   const list = Array.isArray(results?.data) ? results.data : [];
@@ -390,6 +421,8 @@ class WhatsAppLive extends EventEmitter {
       stdio: 'ignore', // the gateway's own output may quote messages: it goes nowhere
     });
     this.child = child;
+    // v0.9.13: messages older than this run arrived while Charles was closed: shown, but quietly
+    this.startedAt = now();
     try {
       fs.writeFileSync(path.join(cwd, 'gateway.pid'), String(child.pid || ''));
     } catch {}
@@ -627,6 +660,9 @@ class WhatsAppLive extends EventEmitter {
       if (!isGroup(m.chat) && m.name) c.name = m.name;
       c.unread++;
       c.wrote = true;
+      // v0.9.13: muted or archived chats are kept (the chat still shows them) but never notify
+      if (this.silenced(m.chat)) return;
+      const quiet = !this.startedAt || m.at < this.startedAt - 1000;
       // v0.8.9: a group shows as the group (its name), with who wrote in the line below
       if (isGroup(m.chat) && !c.name) void this.groupName(m.chat).then((name) => {
         if (name && !c.name) {
@@ -634,8 +670,64 @@ class WhatsAppLive extends EventEmitter {
           this.emit('message', { ...this.preview(c), update: true });
         }
       });
-      this.emit('message', this.preview(c));
+      this.emit('message', { ...this.preview(c), ...(quiet ? { quiet: true } : {}) });
     } else c.unread = 0; // answered on the phone
+  }
+  /**
+   * v0.9.13: whether a chat is muted or archived on the phone. WhatsApp keeps these settings in
+   * the linked device's app state; the gateway's own database (whatsmeow_chat_settings) holds
+   * them. Read-only, refreshed at most every 20 seconds; anything unreadable counts as "not".
+   */
+  silenced(jid) {
+    const flags = this.chatFlags();
+    return flags.muted.has(jid) || flags.archived.has(jid);
+  }
+  chatFlags() {
+    if (this.flags && now() - this.flags.at < 20000) return this.flags;
+    const flags = { at: now(), muted: new Set(), archived: new Set() };
+    const file = this.binary ? path.join(path.dirname(this.binary), 'storages', 'whatsapp.db') : '';
+    if (file && fs.existsSync(file)) {
+      let db = null;
+      try {
+        const { DatabaseSync } = require('node:sqlite');
+        db = new DatabaseSync(file, { readOnly: true });
+        // compared inside SQLite: "muted for ever" is a 64-bit number JavaScript cannot hold
+        const rows = db
+          .prepare('SELECT chat_jid, CASE WHEN muted_until < 0 OR muted_until > ? THEN 1 ELSE 0 END AS muted, CASE WHEN archived THEN 1 ELSE 0 END AS archived FROM whatsmeow_chat_settings')
+          .all(Math.floor(now() / 1000));
+        Object.assign(flags, chatFlagsFrom(rows));
+        // a person's chat may be stored under the phone number or the newer LID: both count
+        try {
+          const pairs = db.prepare('SELECT lid, pn FROM whatsmeow_lid_map').all();
+          for (const set of [flags.muted, flags.archived]) addLinkedJids(set, pairs);
+        } catch {}
+      } catch {
+        // an older gateway database or no SQLite in this runtime: the archived list from the API
+        for (const jid of this.archivedApi || []) flags.archived.add(jid);
+        void this.refreshArchived();
+      } finally {
+        try {
+          db?.close();
+        } catch {}
+      }
+    }
+    flags.at = now();
+    this.flags = flags;
+    return flags;
+  }
+  async refreshArchived() {
+    if (!this.port || this.archivedBusy || (this.archivedAt && now() - this.archivedAt < 60000)) return;
+    this.archivedBusy = true;
+    try {
+      const r = await this.api('GET', '/chats?archived=true&limit=500');
+      const list = Array.isArray(r?.data) ? r.data : [];
+      this.archivedApi = new Set(list.filter((c) => c && typeof c.jid === 'string' && c.archived !== false).map((c) => c.jid));
+      this.archivedAt = now();
+      this.flags = null;
+    } catch {
+    } finally {
+      this.archivedBusy = false;
+    }
   }
   /**
    * v0.8.11: the picture of a photo (or sticker) message as a small data URL, kept in memory
@@ -799,6 +891,8 @@ module.exports = {
   binaryEntry,
   parseWebhook,
   parseMessages,
+  chatFlagsFrom,
+  addLinkedJids,
   signature,
   cleanReplies,
   isPerson,

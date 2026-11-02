@@ -1339,6 +1339,8 @@ export class BotEngine {
     if (prop > 0.01 && this.shownStation !== 'none') {
       x.save();
       x.globalAlpha *= prop;
+      // v0.9.13: the magnifier is held in front of his eye, so it turns with his face
+      if (this.shownStation === 'web') x.translate(Math.sin(this.yaw) * rx * 0.9, 0);
       drawStation(x, performance.now() / 1000, this.shownStation, false, !greeting);
       x.restore();
     }
