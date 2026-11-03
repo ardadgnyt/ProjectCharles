@@ -72,19 +72,41 @@ kapak, şarkı ve sanatçı görünür.
 
 ### Tools · Araçlar
 
-**Color picker** (pick from the screen, HEX · RGB · HSL), **Timer** (focus with breaks,
-countdown, stopwatch; it stays on the closed island), **Reminders**, **Calendar**, **Emails**,
-**Usage summary** and **Smart home** — the same cards as in the app window — and one-click
-shortcuts to your installed modules.
+The **Tools** card opens seven tools and your installed modules. Reminders, Calendar, Emails and
+Smart home are the same cards as in the app window; Usage summary is the weekly summary from
+Settings.
 
-**Renk seçici** (ekrandan renk al, HEX · RGB · HSL), **Zamanlayıcı** (molalı odak, geri sayım,
-kronometre; kapalı adacıkta da görünür), **Hatırlatıcılar**, **Takvim**, **E-postalar**,
-**Kullanım özeti** ve **Akıllı ev** — uygulama penceresindeki kartların aynısı — ve yüklü
-modüllere tek tıkla kısayollar.
+**Araçlar** kartı yedi aracı ve yüklü modüllerini açar. Hatırlatıcılar, Takvim, E-postalar ve
+Akıllı ev uygulama penceresindeki kartların aynısıdır; Kullanım özeti Ayarlar’daki haftalık özettir.
+
+| Tool · Araç | What it does | Ne yapar |
+| --- | --- | --- |
+| **Color picker · Renk seçici** | Pick a color anywhere on the screen with a magnifier (correct on HDR screens too), adjust it, copy it as HEX · RGB · HSL; four shades and your recent colors | Ekranın herhangi bir yerinden büyüteçle renk al (HDR ekranlarda da doğru), ayarla, HEX · RGB · HSL olarak kopyala; dört ton ve son renkler |
+| **Timer · Zamanlayıcı** | Focus sessions with a task name, a break you choose when the focus ends, countdown and stopwatch; it keeps running on the closed island and can mute notifications | Görev adlı odak oturumları, odak bitince seçilen mola, geri sayım ve kronometre; kapalı adacıkta çalışmaya devam eder, bildirimleri susturabilir |
+| **Reminders · Hatırlatıcılar** | Upcoming reminders, tick them off, add a new one; Charles can also add them by voice | Yaklaşan hatırlatıcılar, tamamlananı işaretle, yenisini ekle; Charles sesle de ekleyebilir |
+| **Calendar · Takvim** | The month with Google / Outlook events, reminders and holidays; the day’s list; Edit opens the full editor | Google / Outlook etkinlikleri, hatırlatıcılar ve tatillerle ay görünümü; günün listesi; Düzenle tam düzenleyiciyi açar |
+| **Emails · E-postalar** | Important emails (or the newest ones); a click lets Charles explain the email in the chat | Önemli (ya da en son) e-postalar; tıklayınca Charles e-postayı sohbette anlatır |
+| **Usage summary · Kullanım özeti** | This week or last week: computer time, active use, Charles’ work, sessions, files, commands and your most used apps | Bu hafta ya da geçen hafta: bilgisayar süresi, aktif kullanım, Charles’ın işleri, oturumlar, dosyalar, komutlar ve en çok kullandığın uygulamalar |
+| **Smart home · Akıllı ev** | Your Home Assistant lights, plugs, sensors and scenes; switch them on the tile | Home Assistant ışıkların, prizlerin, sensörlerin ve sahnelerin; kutucuktan aç / kapat |
 
 <p align="center">
-  <img src="docs/images/tools.png" alt="Tools panel: color picker, timer, reminders, calendar, emails, usage summary and smart home" width="49%">
-  <img src="docs/images/tools-calendar.png" alt="The calendar in Tools: the month and the day's events" width="49%">
+  <img src="docs/images/tools.png" alt="The Tools panel on the island: color picker, timer, reminders, calendar, emails, usage summary and smart home" width="720">
+</p>
+
+<p align="center">
+  <img src="docs/images/tool-colors.png" alt="Color picker: saturation and hue, the selected color with four shades, HEX RGB HSL and recent colors" width="49%">
+  <img src="docs/images/tool-timer.png" alt="Timer: a 50 minute focus with a 10 minute break, task name, sound and quiet switches" width="49%">
+</p>
+<p align="center">
+  <img src="docs/images/tool-reminders.png" alt="Reminders: upcoming reminders with check boxes and times" width="49%">
+  <img src="docs/images/tool-calendar.png" alt="Calendar: the month and the day's events" width="49%">
+</p>
+<p align="center">
+  <img src="docs/images/tool-mail.png" alt="Emails: important emails with sender, subject and why they matter" width="49%">
+  <img src="docs/images/tool-home-assistant.png" alt="Smart home: Home Assistant devices with switches" width="49%">
+</p>
+<p align="center">
+  <img src="docs/images/tool-usage.png" alt="Usage summary: this week's computer time, Charles' work and the most used apps" width="49%">
 </p>
 
 ### Convert files on your desktop · Masaüstünde dosya dönüştür
@@ -277,27 +299,12 @@ hours, today and the next five days; the location button changes the city.
 </p>
 
 <p align="center">
-  <img src="docs/images/projects-whatsapp.png" alt="Projects in the chat list, and WhatsApp messages under the island with quick replies, a reply box and the sent state" width="100%">
+  <img src="docs/images/workspace.png" alt="The Charles app window: chats in folders and projects, and the Spotify, reminders, calendar, important emails and smart home cards" width="100%">
 </p>
 
 <p align="center">
-  <img src="docs/images/modules-whatsapp-setup.png" alt="The Modules card with open buttons, three Slimes drawn by the module kit, and the WhatsApp card with a QR code" width="100%">
-</p>
-
-<p align="center">
-  <img src="docs/images/workspace.png" alt="The Charles app window: chats on the left, and Spotify, reminders, calendar, important emails, smart home and usage cards" width="100%">
-</p>
-
-<p align="center">
-  <img src="docs/images/workspace-chat.png" alt="A chat in the app window with a code box and the side panel open" width="100%">
-</p>
-
-<p align="center">
-  <img src="docs/images/workspace-editors.png" alt="The calendar editor and the smart home layout editor" width="100%">
-</p>
-
-<p align="center">
-  <img src="docs/images/screens.png" alt="The chat panel growing out of the island, the converter with formats for a picture, and the AI usage rings" width="100%">
+  <img src="docs/images/workspace-editors.png" alt="The calendar editor over the app window" width="49%">
+  <img src="docs/images/workspace-home.png" alt="The smart home layout editor over the app window" width="49%">
 </p>
 
 <p align="center">
@@ -428,10 +435,13 @@ Sonra **Ayarlar → Yapay zekâ modelleri**’nden hesabınla giriş yap.
 
 ## Running from source · Kaynaktan çalıştırma
 
-The repository holds source code only; `node_modules/`, `dist/`, the speech models and the
-helper tools are created or downloaded on your machine. You need [Node.js](https://nodejs.org)
-22 or newer. · Depo yalnızca kaynak kodu içerir; `node_modules/`, `dist/`, ses modelleri ve
-yardımcı araçlar bilgisayarında oluşturulur ya da indirilir. Node.js 22 veya üstü gerekir.
+The repository holds the source code and the download tools for Charles Download
+(`tools/download/`: yt-dlp and FFmpeg, see `licenses/download/`); `node_modules/`, `dist/`, the
+speech models and the other helper tools are created or downloaded on your machine. You need
+[Node.js](https://nodejs.org) 22 or newer. · Depo kaynak kodu ve Charles Download’un indirme
+araçlarını (`tools/download/`: yt-dlp ve FFmpeg, lisanslar `licenses/download/` içinde) içerir;
+`node_modules/`, `dist/`, ses modelleri ve diğer yardımcı araçlar bilgisayarında oluşturulur ya da
+indirilir. Node.js 22 veya üstü gerekir.
 
 ```cmd
 git clone https://github.com/HzPederPan/ProjectCharles.git

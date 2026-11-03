@@ -1,0 +1,5 @@
+{
+  "yt-dlp": { "version": "2026.10.21", "sha256": "33121d192d706e62f684a06f80918e3f3a8ba52ac3a65213b6951c39c7d9f555", "source": "https://github.com/yt-dlp/yt-dlp/releases/tag/2026.10.21 (SHA2-256SUMS checked)" },
+  "ffmpeg": { "version": "6.0 (ffmpeg-static b6.0, win32-x64; Windows build from gyan.dev)", "sha256": "e9fd5e711debab9d680955fc1e38a2c1160fd280b144476cc3f62bc43ef49db1", "source": "https://github.com/eugeneware/ffmpeg-static/releases/tag/b6.0" },
+  "fetchedAt": "2026-10-22T01:31:54Z"
+}

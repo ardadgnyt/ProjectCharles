@@ -50,6 +50,17 @@ export function stateText(r: any) {
     );
   return raw || '—';
 }
+// v0.9.14: "Açık" is "Clear" for the weather in the translation table; a device is "On"
+const DEVICE_WORDS: Record<string, Record<string, string>> = {
+  Açık: { en: 'On', de: 'An', fr: 'Allumé', es: 'Encendido', zh: '开' },
+  Kapalı: { en: 'Off', de: 'Aus', fr: 'Éteint', es: 'Apagado', zh: '关' },
+  Kilitli: { en: 'Locked', de: 'Verriegelt', fr: 'Verrouillé', es: 'Bloqueado', zh: '已锁定' },
+  Sahne: { en: 'Scene', de: 'Szene', fr: 'Scène', es: 'Escena', zh: '场景' },
+};
+export function deviceWord(text: string) {
+  const lang = (document.documentElement.lang || 'tr').slice(0, 2);
+  return DEVICE_WORDS[text]?.[lang] || text;
+}
 export function actionFor(r: any) {
   const id = r.id as string;
   const on = isOn(r);
@@ -123,7 +134,9 @@ export function homeCard(d: HomeDeps) {
     const on = isOn(r);
     t.classList.toggle('on', TOGGLE.test(r.id) && on);
     t.setAttribute('aria-checked', String(on));
-    t.querySelector('.ws-ht-state')!.textContent = stateText(r);
+    const st = t.querySelector('.ws-ht-state') as HTMLElement;
+    st.textContent = deviceWord(stateText(r));
+    st.translate = false;
     (t.querySelector('.ws-ht-name') as HTMLElement).textContent = r.title;
   }
   function tile(r: any) {
@@ -378,5 +391,7 @@ export function homeCard(d: HomeDeps) {
     paintEditor();
   }
 
-  return { element: card, load, paint, openEditor };
+  // the device words follow the interface language
+  new MutationObserver(() => paint()).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+    return { element: card, load, paint, openEditor };
 }

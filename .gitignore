@@ -7,6 +7,8 @@ models/
 tools/
 !tools/
 tools/*
+# v0.9.14: yt-dlp and FFmpeg for Charles Download are kept in the repository too
+!tools/download/
 !tools/quickshare/
 tools/quickshare/python/*
 !tools/quickshare/python/python313._pth

@@ -65,7 +65,8 @@ test('README shows the new island', () => {
   const md = read('README.md');
   assert.match(md, /docs\/images\/island\.png/);
   assert.doesNotMatch(md, /docs\/images\/desktop\.png/);
-  for (const f of ['island.png', 'screens.png']) assert.ok(fs.statSync(path.join(root, 'docs/images', f)).size > 100000, f);
+  // v0.9.14: screens.png (the v0.8 island) was replaced by the tool and app window pictures
+  for (const f of ['island.png', 'tools.png', 'workspace.png']) assert.ok(fs.statSync(path.join(root, 'docs/images', f)).size > 100000, f);
 });
 
 test('AI usage as in v0.8.9: a glowing provider light and glowing rings', () => {
