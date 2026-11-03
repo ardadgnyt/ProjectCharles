@@ -180,7 +180,17 @@ export function wardrobeUI(api: any, bot: BotEngine) {
   actions.append(save, reset, status);
   body.append(preview.element, controls);
   section.append(title, hint, body, actions);
-  document.querySelector('.settings-page[data-category=look]')!.append(section);
+  // v0.9.14: Slime stüdyosu is the first thing on Ayarlar → Görünüm (it was at the bottom).
+  // The other sections may be placed on the page after this one, so it moves up once they are in.
+  const look = document.querySelector('.settings-page[data-category=look]')!;
+  const toTop = () => {
+    if (look.firstElementChild !== section) look.prepend(section);
+  };
+  look.append(section);
+  toTop();
+  window.setTimeout(toTop, 0);
+  window.setTimeout(toTop, 1500);
+  document.querySelector<HTMLButtonElement>('button[data-category=look]')?.addEventListener('click', toTop);
 
   let saved = {
     acc: { hat: 'none', eyes: 'none', other: 'none' } as Accessories,

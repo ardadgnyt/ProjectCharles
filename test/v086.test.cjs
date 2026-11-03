@@ -16,7 +16,9 @@ test('any module may ask for "download"; the install screen explains it', () => 
   const bridge = read('app/modules/download/bridge.cjs');
   assert.match(bridge, /const permitted = \(id\) => \{[^}]*m\.enabled !== false && \(m\.permissions \|\| \[\]\)\.includes\('download'\)/);
   assert.doesNotMatch(bridge, /id !== 'download'/);
-  assert.match(read('modules/download/scripts/pack.mjs'), /'download', 'storage'/);
+  // the module's own sources are not in this repository (they ship as a zip in Releases → Modules)
+  if (fs.existsSync(path.join(__dirname, '..', 'modules/download/scripts/pack.mjs')))
+    assert.match(read('modules/download/scripts/pack.mjs'), /'download', 'storage'/);
 });
 
 test('version 0.8.6 or later', () => {

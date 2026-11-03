@@ -1,0 +1,318 @@
+/* GENERATED (v0.9.14): the app window's Hatırlatıcılar / Takvim / E-postalar / Akıllı ev cards
+   in the island's Araçlar (.h13-wscard) and Ayarlar → Haftalık özet there (.h13-weekly).
+   The originals are scoped to #workspace / #settings-panel; see 9–30. */
+#shelf.shelf13 .h13-weekly .weekly-period {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: #ffffff04;
+  border: 1px solid #ffffff08;
+  border-radius: 10px;
+  margin: 0 0 14px;
+}
+#shelf.shelf13 .h13-weekly .weekly-period button {
+  border: 0;
+  background: transparent;
+  min-height: 26px;
+  padding: 4px 12px;
+  font-size: 11px;
+}
+#shelf.shelf13 .h13-weekly .weekly-period button[aria-pressed="true"] {
+  background: #ffffff0c;
+  color: var(--accent);
+}
+#shelf.shelf13 .h13-weekly .weekly-grid small {
+  color: #aaaab5;
+}
+#shelf.shelf13 .h13-wscard {
+  --ws-bg: #0d0e11;
+  --ws-card: #15161a;
+  --ws-card-2: #1b1c21;
+  --ws-field: #1d1e23;
+  --ws-line: rgba(255, 255, 255, 0.065);
+  --ws-line-2: rgba(255, 255, 255, 0.1);
+  --ws-text: #f3f1ee;
+  --ws-body: #d9d6d2;
+  --ws-muted: #8f8d8a;
+  --ws-accent: var(--sb-accent, #edc9a9);
+  --ws-accent-ink: #2a1a0f;
+  --ws-green: #3ddc84;
+}
+#shelf.shelf13 .h13-wscard .ws-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #c9c6c2;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+#shelf.shelf13 .h13-wscard .ws-icon svg {
+  width: 19px;
+  height: 19px;
+}
+#shelf.shelf13 .h13-wscard .ws-icon:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ws-text);
+}
+#shelf.shelf13 .h13-wscard .ws-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+#shelf.shelf13 .h13-wscard .ws-more {
+  width: 30px;
+  height: 30px;
+  opacity: 0;
+}
+#shelf.shelf13 .h13-wscard .ws-music-controls .ws-icon.on {
+  color: var(--ws-accent);
+}
+#shelf.shelf13 .h13-wscard .ws-ask .ws-icon:first-child {
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: 50%;
+}
+#shelf.shelf13 .h13-wscard .ws-home-card.editing .ws-tile,
+#shelf.shelf13 .h13-wscard .ws-home-card.editing .ws-scene {
+  outline: 1px dashed rgba(237, 201, 169, 0.35);
+  outline-offset: -1px;
+  cursor: default;
+}
+#shelf.shelf13 .h13-wscard .ws-panel-actions .ws-icon {
+  width: 32px;
+  height: 32px;
+}
+#shelf.shelf13 .h13-wscard .ws-panel-actions .ws-icon svg {
+  width: 17px;
+  height: 17px;
+}
+#shelf.shelf13 .h13-wscard .ws-panel-actions .ws-icon.done {
+  color: #6fd9b0;
+}
+#shelf.shelf13 .h13-wscard .ws-panel-actions .ws-icon.on {
+  color: var(--ws-accent);
+  background: var(--ws-card-2);
+}
+#shelf.shelf13 .h13-wscard .ws-modal button:not(.ws-icon):not(.ws-chip-ev):not(.ws-day-cell):not(.ws-picker-row) {
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: 11px;
+  background: var(--ws-card-2);
+  color: var(--ws-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+#shelf.shelf13 .h13-wscard .ws-modal button.ws-primary,
+#shelf.shelf13 .h13-wscard button.ws-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0 !important;
+  background: var(--ws-accent) !important;
+  color: var(--ws-accent-ink) !important;
+}
+#shelf.shelf13 .h13-wscard button.ws-primary svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+}
+#shelf.shelf13 .h13-wscard .ws-seg button {
+  height: 34px !important;
+  padding: 0 20px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  color: var(--ws-body) !important;
+}
+#shelf.shelf13 .h13-wscard .ws-seg button.on {
+  background: var(--ws-accent) !important;
+  color: var(--ws-accent-ink) !important;
+}
+#shelf.shelf13 .h13-wscard .ws-modal button:not(.ws-icon):not(.ws-chip-ev):not(.ws-day-cell):not(.ws-picker-row) {
+  font-size: 14px;
+}
+#shelf.shelf13 .h13-wscard {
+  --ws-bg: #010101;
+  --ws-card: #090908;
+  --ws-card-2: #100f0e;
+  --ws-field: #121110;
+  --ws-line: rgba(255, 236, 214, 0.07);
+  --ws-line-2: rgba(255, 236, 214, 0.11);
+  --ws-text: #f6efe6;
+  --ws-body: #ddd4c9;
+  --ws-muted: #978c80;
+}
+#shelf.shelf13 .h13-wscard .ws-home {
+  overflow-x: hidden;
+}
+#shelf.shelf13 .h13-wscard .ws-home > * {
+  min-width: 0;
+}
+#shelf.shelf13 .h13-wscard .ws-dash {
+  container-type: inline-size;
+  min-width: 0;
+}
+#shelf.shelf13 .h13-wscard .ws-mail-row > *,
+#shelf.shelf13 .h13-wscard .ws-list > * > * {
+  min-width: 0;
+}
+#shelf.shelf13 .h13-wscard .ws-home-grid {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+#shelf.shelf13 .h13-wscard .ws-icon.spinning {
+  color: var(--ws-accent);
+  pointer-events: none;
+}
+#shelf.shelf13 .h13-wscard .ws-icon.spinning svg {
+  animation: ws-spin 0.85s linear infinite;
+  transform-origin: 50% 50%;
+}
+#shelf.shelf13 .h13-wscard .ws-icon.on {
+  color: var(--ws-accent);
+  background: rgba(238, 210, 178, 0.12);
+}
+#shelf.shelf13 .h13-wscard .ws-home-editbar button.ws-primary {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 11px;
+  font-weight: 650;
+}
+#shelf.shelf13 .h13-wscard .ws-card-chrome .ws-card-x {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  color: #ff8f80;
+}
+#shelf.shelf13 .h13-wscard .ws-card-chrome .ws-card-x:hover {
+  background: rgba(255, 120, 100, 0.14) !important;
+  color: #ffb1a6;
+}
+#shelf.shelf13 .h13-wscard .ws-card-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 74px;
+  border: 1.5px dashed rgba(238, 210, 178, 0.28);
+  border-radius: 18px;
+  background: rgba(238, 210, 178, 0.03);
+  color: var(--ws-accent);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+#shelf.shelf13 .h13-wscard .ws-card-add:hover {
+  border-color: rgba(238, 210, 178, 0.55);
+  background: rgba(238, 210, 178, 0.08);
+}
+#shelf.shelf13 .h13-wscard .ws-card-add:active {
+  transform: scale(0.99);
+}
+#shelf.shelf13 .h13-wscard .ws-home-empty button.ws-primary {
+  height: 42px;
+  margin-top: 8px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-weight: 650;
+}
+#shelf.shelf13 .h13-wscard .ws-modal .ws-seg button {
+  height: 32px !important;
+  padding: 0 14px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  color: var(--ws-muted) !important;
+  font-size: 13px;
+  font-weight: 600;
+}
+#shelf.shelf13 .h13-wscard .ws-modal .ws-seg button.on {
+  background: var(--ws-accent) !important;
+  color: var(--ws-accent-ink) !important;
+}
+#shelf.shelf13 .h13-wscard .ws-modal button.ws-card-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 26px;
+  align-items: center;
+  gap: 12px;
+  height: auto !important;
+  min-height: 78px;
+  padding: 12px 12px 12px 12px !important;
+  border: 1px solid var(--ws-line) !important;
+  border-radius: 16px !important;
+  background: var(--ws-card-2) !important;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+#shelf.shelf13 .h13-wscard .ws-modal button.ws-card-option:hover {
+  border-color: rgba(238, 210, 178, 0.4) !important;
+  background: rgba(238, 210, 178, 0.06) !important;
+  transform: translateY(-1px);
+}
+#shelf.shelf13 .h13-wscard .ws-modal button.ws-card-option.added {
+  border-color: rgba(238, 210, 178, 0.3) !important;
+  background: rgba(238, 210, 178, 0.07) !important;
+}
+#shelf.shelf13 .h13-wscard .ws-cmd-suggest .ws-chip {
+  cursor: pointer;
+  background: transparent;
+}
+#shelf.shelf13 .h13-wscard .ws-cmd-suggest .ws-chip:hover {
+  border-color: rgba(238, 210, 178, 0.4);
+}
+#shelf.shelf13 .h13-wscard .ws-now-files .ws-link,
+#shelf.shelf13 .h13-wscard .ws-now-wait .ws-link {
+  width: auto;
+  margin: 0 0 0 4px;
+  padding: 0 !important;
+  border: 0 !important;
+  color: var(--ws-accent);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+#shelf.shelf13 .h13-wscard .ws-now-steer button.ws-primary {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 11px;
+  font-weight: 650;
+}
+#shelf.shelf13 .h13-wscard .ws-q-form button.ws-primary {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+#shelf.shelf13 .h13-wscard .ws-q-actions .ws-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+#shelf.shelf13 .h13-wscard .ws-q-actions .ws-icon svg {
+  width: 15px;
+  height: 15px;
+}
+#shelf.shelf13 .h13-wscard .ws-q-foot .ws-link {
+  width: auto;
+  margin: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: 12.5px;
+}
+#shelf.shelf13 .h13-wscard .ws-chat-view .ws-q-form button.ws-primary {
+  height: 30px;
+  margin-left: auto;
+  padding: 0 10px;
+  border-radius: 9px;
+  font-size: 12.5px;
+}
+#shelf.shelf13 .h13-wscard .ws-chat-view .ws-q-actions .ws-icon {
+  width: 24px;
+  height: 24px;
+}

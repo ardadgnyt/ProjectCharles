@@ -5,6 +5,11 @@ export function voiceUI(api: any, notice: (text: string) => void, busy: () => bo
   const read = document.getElementById('voice-read') as HTMLInputElement;
   const status = document.getElementById('voice-status')!;
   const prompt = document.getElementById('prompt') as HTMLTextAreaElement;
+  // v0.9.14: the home page's message box can ask for the text instead of the chat's box
+  let into: HTMLInputElement | HTMLTextAreaElement | null = null;
+  document.addEventListener('charles-dictate-into', (e: any) => {
+    into = e.detail instanceof HTMLInputElement || e.detail instanceof HTMLTextAreaElement ? e.detail : null;
+  });
   let phase = 'idle',
     epoch = 0,
     stream: MediaStream | null = null,
@@ -92,10 +97,13 @@ export function voiceUI(api: any, notice: (text: string) => void, busy: () => bo
       length = 0;
       const text = await api.voiceTranscribe(data);
       if (token !== epoch) return;
-      prompt.value = (prompt.value.trim() ? prompt.value.trim() + '\n' : '') + text;
-      prompt.dispatchEvent(new Event('input', { bubbles: true }));
+      const box = into?.isConnected ? into : prompt;
+      into = null;
+      const join = box instanceof HTMLInputElement ? ' ' : '\n';
+      box.value = (box.value.trim() ? box.value.trim() + join : '') + text;
+      box.dispatchEvent(new Event('input', { bubbles: true }));
       show('idle', 'Metni kontrol et, ardından Gönder’e bas.');
-      prompt.focus();
+      box.focus();
     } catch (e) {
       if (token === epoch) {
         show('idle', 'Yeniden deneyebilirsin.');

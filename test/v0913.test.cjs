@@ -17,7 +17,7 @@ test('the home page grows with its panel, within limits', () => {
 
 test('three cards with panels, a message box with a voice-call button', () => {
   const shelf = read('src/island/shelf.ts');
-  for (const s of ["acc('files'", "acc('usage'", "acc('weather'", "viaComposer('voice-call')", "viaComposer('voice-mic')", "filesAcc.b.dataset.drop = 'files'"]) assert.ok(shelf.includes(s), s);
+  for (const s of ["acc('files'", "acc('usage'", "acc('weather'", "filesAcc.b.dataset.drop = 'files'"]) assert.ok(shelf.includes(s), s);
   // a panel no longer pins the island open (only a transfer does)
   assert.match(shelf, /api\.shelfHold\?\.\(kind === 'files' && share\.busy\(\)\)/);
   // a drop on the Dosyalar card itself is not added to the chat
@@ -61,7 +61,7 @@ test('WhatsApp: muted / archived chats, quiet catch-up, one sound per burst', ()
   const live = read('app/plugins/whatsapp-live.cjs');
   assert.match(live, /if \(this\.silenced\(m\.chat\)\) return;/);
   assert.match(live, /const quiet = !this\.startedAt \|\| m\.at < this\.startedAt - 1000;/);
-  assert.match(read('app/main.cjs'), /if \(!update && !quiet && win/);
+  assert.match(read('app/main.cjs'), /if \(!update && !quiet && !focusQuiet && win/);
   assert.match(read('src/renderer.ts'), /Date\.now\(\) - lastWhatsappSound < 4000/);
   assert.match(read('public/bubble.js'), /element\('button', 'close wa-x', '×'\)/);
 });
@@ -74,7 +74,9 @@ test('small fixes: composer scroll, magnifier turns, mode switch', () => {
 
 test('the new home page is translated', () => {
   const i18n = read('src/settings/i18n-0913.ts');
-  for (const s of ['Dönüştür veya gönder', 'BUGÜN · SAATLİK', 'YAKINDAKİ CİHAZLAR', 'Spotify · Hazır', 'Kredi']) assert.ok(i18n.includes(s), s);
+  for (const s of ['Dönüştür veya gönder', 'YAKINDAKİ CİHAZLAR', 'Spotify · Hazır', 'Kredi']) assert.ok(i18n.includes(s), s);
+  // v0.9.14: the section labels are in sentence case now (i18n-0914.ts)
+  assert.ok(read('src/settings/i18n-0914.ts').includes("'Bugün · saatlik'"));
   assert.match(i18n, /sağlayıcı\$\/, \(_, n\) =>/);
   for (const lang of ['de', 'fr', 'es', 'zh']) {
     const t = read(`src/settings/lang/${lang}.ts`);

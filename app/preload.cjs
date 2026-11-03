@@ -132,6 +132,10 @@ contextBridge.exposeInMainWorld('charles', {
   onView: (cb) => ipcRenderer.on('ui-view', (_e, view) => cb(view)),
   shelfHold: (value) => invoke('shelf-hold', value),
   shelfHeight: (value) => invoke('shelf-height', value),
+  // v0.9.14: Araçlar (colour picker, timer)
+  colorPick: () => invoke('color-pick'),
+  notchTool: (value) => invoke('notch-tool', value),
+  focusQuiet: (value) => invoke('focus-quiet', value),
   notchMusic: (value) => invoke('notch-music', value),
   spotifyOpen: () => invoke('spotify-open'),
   spotifyIcon: () => invoke('spotify-icon'),

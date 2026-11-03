@@ -1,5 +1,6 @@
 // Screen-area capture overlay ("şuna bak").
-const { BrowserWindow, desktopCapturer, screen, ipcMain } = require('electron');
+const { BrowserWindow, screen, ipcMain } = require('electron');
+const { grabDisplay } = require('./screen-grab.cjs');
 const path = require('node:path');
 class Capture {
   constructor(root, main, onImage) {
@@ -18,18 +19,8 @@ class Capture {
       const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
       this.main.hide();
       await new Promise((r) => setTimeout(r, 160));
-      const sources = await desktopCapturer.getSources({
-        types: ['screen'],
-        thumbnailSize: {
-          width: Math.round(display.size.width * display.scaleFactor),
-          height: Math.round(display.size.height * display.scaleFactor),
-        },
-      });
-      const source =
-        sources.find((s) => s.display_id === String(display.id)) ||
-        (sources.length === 1 ? sources[0] : null);
-      if (!source || source.thumbnail.isEmpty()) throw Error('Ekran görüntüsü alınamadı.');
-      const shot = source.thumbnail;
+      // v0.9.14: through GDI on Windows (correct colours with HDR on; app/system/screen-grab.cjs)
+      const shot = await grabDisplay(display);
       const overlay = new BrowserWindow({
         ...display.bounds,
         frame: false,

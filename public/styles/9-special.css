@@ -185,7 +185,7 @@ body.workspace #mini-music {
 }
 .ws-brand strong {
   font-size: 18px;
-  font-weight: 750;
+  font-weight: 600;
   letter-spacing: -0.3px;
 }
 .ws-sep {
@@ -304,7 +304,7 @@ body.workspace #mini-music {
   flex: 1;
   margin: 0;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.2px;
 }
 .ws-card-icon {
@@ -349,7 +349,7 @@ body.workspace .ws-pet-slot #slime {
 }
 .ws-name {
   font-size: 26px;
-  font-weight: 750;
+  font-weight: 600;
   letter-spacing: -0.5px;
 }
 .ws-version {
@@ -400,7 +400,7 @@ body.workspace .ws-pet-slot #slime {
   border-radius: 11px !important;
   background: var(--ws-accent) !important;
   color: var(--ws-accent-ink) !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
   font-size: 14px !important;
   cursor: pointer;
 }
@@ -761,7 +761,7 @@ body.workspace .ws-pet-slot #slime {
 }
 .ws-track {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -906,7 +906,7 @@ body.workspace .ws-pet-slot #slime {
 .ws-day-cell.today {
   background: var(--ws-accent);
   color: var(--ws-accent-ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 .ws-day-cell.busy::after {
   content: '';
@@ -1336,7 +1336,7 @@ button.ws-tile {
 }
 .ws-chat-title {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.2px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2130,7 +2130,7 @@ body.workspace #sessions-panel[open] {
   display: grid;
   place-items: center;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .ws-ring-label {
@@ -2717,7 +2717,7 @@ body:not(.workspace) .code-tools .code-panel {
 .ws-modal-titles h2 {
   margin: 0;
   font-size: 21px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .ws-modal-titles p {
   margin: 3px 0 0;
@@ -3004,7 +3004,7 @@ body:not(.workspace) .code-tools .code-panel {
 .ws-big-grid .today .ws-day-num {
   background: var(--ws-accent);
   color: var(--ws-accent-ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 .ws-chips {
   display: grid;
@@ -3137,7 +3137,7 @@ body:not(.workspace) .code-tools .code-panel {
 .ws-form-heading {
   margin-top: -6px;
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .ws-field {
   display: grid;

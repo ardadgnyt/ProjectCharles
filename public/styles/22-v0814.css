@@ -95,7 +95,7 @@ body.v10[data-view='chat']:not(.desktop-pet) header #pet {
   color: var(--v10-ink);
   font-size: 20px;
   line-height: 1;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 #shelf .weather-now-text {

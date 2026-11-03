@@ -91,7 +91,8 @@ test('closed with no music: the hidden strip (no Slime-only notch)', () => {
   assert.equal(bounds(area, { expanded: false, side: 'center', height: 620, music: true }).width, NOTCH.width);
   assert.doesNotMatch(read('app/core/layout.cjs'), /NOTCH_IDLE/);
   const main = read('app/main.cjs');
-  assert.match(main, /if \(!expanded && !notchMusic\) hidden = true;/);
+  // v0.9.14: a tool on the notch (timer, colour) keeps it too
+  assert.match(main, /if \(!expanded && !notchMusic && !notchTool\) hidden = true;/);
   assert.match(main, /value === 'Paused' \? 'paused' : 'none'/);
   // resting on the strip with nothing playing opens the card shelf
   assert.match(main, /expand\(true, false, false\);\s*win\.webContents\.send\('character-peek'\);/);

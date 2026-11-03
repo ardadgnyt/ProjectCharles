@@ -30,9 +30,12 @@ test('download: any module may ask for the permission; the bridge checks only th
   assert.match(bridge, /if \(!permitted\(id\)\) throw Error/);
   assert.ok(!fs.existsSync(path.join(ROOT, 'app/modules/download/trusted.json')));
   assert.ok(!fs.existsSync(path.join(ROOT, 'app/modules/download/trust.cjs')));
-  assert.doesNotMatch(read('modules/download/scripts/pack.mjs'), /trusted\.json/);
-  const manifest = JSON.parse(read('modules/download/manifest.json'));
-  assert.deepEqual(manifest.permissions, ['download']);
+  // the module's own sources are not in this repository (they ship as a zip in Releases → Modules)
+  if (fs.existsSync(path.join(ROOT, 'modules/download/manifest.json'))) {
+    if (fs.existsSync(path.join(ROOT, 'modules/download/scripts/pack.mjs'))) assert.doesNotMatch(read('modules/download/scripts/pack.mjs'), /trusted\.json/);
+    const manifest = JSON.parse(read('modules/download/manifest.json'));
+    assert.deepEqual(manifest.permissions, ['download']);
+  }
 });
 
 test('download tools: tools/download, download-tools (moved), AppData and the module folder', () => {

@@ -84,7 +84,7 @@ export function shareSheet(d: any) {
       return;
     }
     // v0.9.13: otherwise the card keeps its own text (Dosyalar · "Dönüştür veya gönder")
-    hint.textContent = hint.dataset.idle || (state.receiveMode === "off" ? "Alım kapalı" : "Paylaşıma açık");
+    hint.textContent = hint.dataset.idle ?? (state.receiveMode === "off" ? "Alım kapalı" : "Paylaşıma açık");
   }
 
   function paint() {
@@ -249,7 +249,7 @@ export function shareSheet(d: any) {
       const head = el(
         "div",
         "share-peers-head",
-        el("small", "", "YAKINDAKİ CİHAZLAR"),
+        el("small", "", "Yakındaki cihazlar"),
         btn(
           "share-scan-btn",
           "Tara",
@@ -335,12 +335,12 @@ export function shareSheet(d: any) {
   }
 
   function open() {
-    if (!isOpen) {
-      d.show(root, () => { isOpen = false; });
-      // show() may close the previous sheet synchronously. Mark this view open
-      // only after its previous onClose callback has finished.
-      isOpen = true;
-    }
+    // v0.9.14: always shown again — if the island folded without closing its panel, `isOpen`
+    // stayed true and a click on Gönder only repainted a sheet nobody could see.
+    // show() may close the previous sheet synchronously. Mark this view open
+    // only after its previous onClose callback has finished.
+    d.show(root, () => { isOpen = false; });
+    isOpen = true;
     paint();
     void Promise.resolve(api.shareDiscover?.()).then(applyState).catch(() => {});
     void Promise.resolve(api.shareFirewall?.("check"))

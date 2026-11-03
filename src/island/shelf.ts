@@ -14,6 +14,11 @@ import { bindFileDropTargets } from './drop-target';
 import { shareSheet } from './share';
 import { usageAll } from './usage-all';
 import { modeSegment } from './mode-seg';
+import { weatherView } from './weather-view';
+import { colorPicker } from './color-picker';
+import { timerTool, type TimerInfo } from './timer';
+import { hub } from './tools-hub';
+import { weeklySummaryUI } from '../settings/weekly-summary';
 
 type View = 'notch' | 'shelf' | 'chat';
 type Deps = {
@@ -141,7 +146,16 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   );
   const notchBar = el('i');
   const notchProgress = el('div', 'notch-progress', notchBar);
-  notch.append(notchPet, notchName, notchWeather, notchMusic, notchProgress);
+  // v0.9.14: with music the notch shows the song (a small cover, the title, the artist)
+  const notchArt = el('img', 'notch-track-art') as HTMLImageElement;
+  notchArt.alt = '';
+  const notchArtBox = el('span', 'notch-track-cover', svg('music'), notchArt);
+  const notchTitle = el('strong', 'notch-track-title');
+  const notchArtist = el('small', 'notch-track-artist');
+  notchTitle.translate = false;
+  notchArtist.translate = false;
+  const notchTrack = el('span', 'notch-track', notchArtBox, el('span', 'notch-track-text', notchTitle, notchArtist));
+  notch.append(notchPet, notchName, notchTrack, notchWeather, notchMusic, notchProgress);
   island.prepend(notch);
   notch.addEventListener('click', (e) => {
     if ((e.target as HTMLElement).closest('#pet, .notch-ctl')) return;
@@ -192,20 +206,117 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   askInput.placeholder = 'Charles’a bir şey sor…';
   askInput.setAttribute('aria-label', 'Charles’a bir şey sor');
   askInput.maxLength = 100000;
-  const viaComposer = (id: string) => () =>
-    void attempt(async () => {
-      await api.islandView('chat');
-      window.setTimeout(() => document.getElementById(id)?.click(), 260);
-    });
   const askMic = button('h13-ask-btn', 'Konuş', svg('mic'));
   askMic.title = 'Konuş';
-  askMic.onclick = viaComposer('voice-mic');
-  const askCall = button('h13-ask-btn', 'Sesli görüşme', svg('wave'));
-  askCall.title = 'Sesli görüşme';
-  askCall.onclick = viaComposer('voice-call');
+  // v0.9.14: dictation right into this box (the chat does not open)
+  askMic.onclick = () => {
+    const recording = document.body.dataset.voicePhase === 'recording';
+    if (!recording) document.dispatchEvent(new CustomEvent('charles-dictate-into', { detail: askInput }));
+    document.getElementById('voice-mic')?.click();
+  };
+  new MutationObserver(() => {
+    const p = document.body.dataset.voicePhase || 'idle';
+    askMic.classList.toggle('recording', p === 'recording');
+    askMic.classList.toggle('busy', p === 'transcribing' || p === 'starting');
+    askMic.setAttribute('aria-label', p === 'recording' ? 'Dikteyi bitir' : 'Konuş');
+  }).observe(body, { attributes: true, attributeFilter: ['data-voice-phase'] });
+  // v0.9.14: the voice call has its own card above the message box. It starts here, on the home
+  // page, without opening the chat; while it runs the card is green, says who is talking, how
+  // long the call has been going, and its bars move with the sound.
+  const voiceIcon = el('span', 'h13-voice-icon', svg('mic'));
+  const voiceTitle = el('strong', 'h13-voice-title', 'Sesli sohbet');
+  const voiceSub = el('small', 'h13-voice-sub', 'Dokun ve konuş');
+  const voiceBars = el('span', 'h13-voice-bars');
+  const BAR_SHAPE = [0.4, 0.55, 0.7, 0.55, 0.85, 1, 0.85, 0.55, 0.7, 0.55, 0.4];
+  for (let i = 0; i < BAR_SHAPE.length; i++) voiceBars.append(el('i'));
+  const bars = [...voiceBars.children] as HTMLElement[];
+  const voiceEnd = button('h13-voice-end', 'Sesli sohbeti bitir', svg('x'));
+  voiceEnd.title = 'Sesli sohbeti bitir';
+  const voiceBtn = el('div', 'h13-voice', voiceIcon, el('span', 'h13-voice-text', voiceTitle, voiceSub), voiceBars, voiceEnd);
+  voiceBtn.tabIndex = 0;
+  voiceBtn.setAttribute('role', 'button');
+  voiceBtn.setAttribute('aria-label', 'Sesli sohbet');
+  const pressCall = () => {
+    const call = document.getElementById('voice-call') as HTMLButtonElement | null;
+    if (call) call.click();
+    else notice('Sesli sohbet için Ayarlar → AI Modelleri bölümünden Gemini Live’ı etkinleştir.');
+  };
+  const liveOn = () => document.body.dataset.liveVoice === 'active';
+  // v0.9.14: with the microphone switched off (header), the voice card does nothing
+  const micMuted = () => document.body.dataset.micOff === 'true';
+  voiceBtn.onclick = (e) => {
+    if ((e.target as HTMLElement).closest('.h13-voice-end')) return;
+    if (!liveOn() && !micMuted()) pressCall();
+  };
+  voiceBtn.onkeydown = (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && !liveOn() && !micMuted()) {
+      e.preventDefault();
+      pressCall();
+    }
+  };
+  voiceEnd.onclick = (e) => {
+    e.stopPropagation();
+    if (liveOn()) pressCall();
+  };
+  let callStart = 0;
+  let charlesTalking = false;
+  const callClock = () => {
+    const s = Math.max(0, Math.floor((Date.now() - callStart) / 1000));
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  };
+  const paintVoice = () => {
+    const on = liveOn();
+    voiceBtn.classList.toggle('on', on);
+    voiceBtn.classList.toggle('charles', on && charlesTalking);
+    voiceBtn.setAttribute('aria-pressed', String(on));
+    voiceTitle.textContent = !on ? 'Sesli sohbet' : charlesTalking ? 'Charles konuşuyor' : 'Dinliyor…';
+    voiceSub.textContent = on ? `Sesli sohbet · ${callClock()}` : 'Dokun ve konuş';
+  };
+  document.addEventListener('charles-live-level', (e: any) => {
+    const d = e.detail;
+    const l = Math.max(0, Math.min(1, Number(typeof d === 'object' ? d?.level : d) || 0));
+    const who = !!(typeof d === 'object' && d?.charles);
+    bars.forEach((b, i) => (b.style.transform = l ? `scaleY(${Math.max(0.25, Math.min(1, 0.25 + l * BAR_SHAPE[i] * (0.8 + Math.random() * 0.4))).toFixed(3)})` : ''));
+    voiceBtn.classList.toggle('speaking', l > 0.08);
+    if (who !== charlesTalking) {
+      charlesTalking = who;
+      paintVoice();
+    }
+  });
+  let voiceTimer = 0;
+  // the island stays open (pinned) for the whole call, then goes back as it was
+  let autoPinned = false;
+  const pinFor = (on: boolean) => {
+    const pin = document.getElementById('panel-pin');
+    if (!pin) return;
+    const pressed = pin.getAttribute('aria-pressed') === 'true';
+    if (on && !pressed) {
+      autoPinned = true;
+      pin.click();
+    } else if (!on && autoPinned) {
+      autoPinned = false;
+      if (pressed) pin.click();
+    }
+  };
+  const syncVoice = () => {
+    const on = liveOn();
+    pinFor(on);
+    if (on && !voiceTimer) {
+      callStart = Date.now();
+      voiceTimer = window.setInterval(paintVoice, 1000);
+    } else if (!on && voiceTimer) {
+      window.clearInterval(voiceTimer);
+      voiceTimer = 0;
+      charlesTalking = false;
+      bars.forEach((b) => (b.style.transform = ''));
+    }
+    paintVoice();
+  };
+  new MutationObserver(syncVoice).observe(body, { attributes: true, attributeFilter: ['data-live-voice'] });
+  syncVoice();
   const askSend = button('h13-ask-btn h13-ask-send', 'Gönder', svg('arrowUp'));
   askSend.type = 'submit';
-  ask.append(askInput, askMic, askCall, askSend);
+  ask.append(askInput, askMic, askSend);
   const syncAsk = () => (askSend.disabled = !askInput.value.trim());
   askInput.addEventListener('input', syncAsk);
   syncAsk();
@@ -227,7 +338,10 @@ export function islandShelf({ api, notice, attempt }: Deps) {
       }, 260);
     });
   };
-  const hero = el('div', 'h13-hero', charlesSlot, el('div', 'h13-hero-main', charlesName, ask));
+  // v0.9.14: the voice call and the message box on the left, Charles in the middle, music on the right
+  const askCol = el('div', 'h13-askcol', voiceBtn, ask);
+  // Charles in the middle: Slime, then his name and version
+  const hero = el('div', 'h13-hero h13-center', charlesSlot, charlesName);
   hero.addEventListener('click', (e) => {
     if (e.target === hero) void attempt(() => api.islandView('chat'));
   });
@@ -240,10 +354,10 @@ export function islandShelf({ api, notice, attempt }: Deps) {
       if (typeof src === 'string' && /^data:image\/png;base64,/.test(src)) music.brand(src);
     })
     .catch(() => {});
-  inner.append(el('div', 'h13-top', hero, music.card));
+  inner.append(el('div', 'h13-top', askCol, hero, music.card));
 
   // the three cards
-  type Kind = 'files' | 'usage' | 'weather';
+  type Kind = 'files' | 'usage' | 'weather' | 'tools';
   const acc = (kind: Kind, iconNode: Node, title: string, sub: string) => {
     const subEl = el('small', 'h13-acc-sub send-hint', sub);
     subEl.dataset.idle = sub;
@@ -254,18 +368,23 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     b.onclick = () => togglePanel(kind);
     return { b, sub: subEl, title: titleEl, icon: b.querySelector('.h13-acc-icon') as HTMLElement };
   };
-  const filesAcc = acc('files', svg('folder'), 'Dosyalar', 'Dönüştür veya gönder');
+  // no line under Dosyalar (an incoming file or a transfer still shows there)
+  const filesAcc = acc('files', svg('folder'), 'Dosyalar', '');
   // v0.9.13: a file dragged onto Dosyalar opens its two drop tiles
   filesAcc.b.dataset.drop = 'files';
   const usageAcc = acc('usage', svg('chart'), 'AI kullanımı', 'Okunuyor…');
   const weatherAcc = acc('weather', el('span', 'h13-emoji', '☁️'), 'Hava durumu', 'Konum seç');
-  const accs = el('div', 'h13-accs', filesAcc.b, usageAcc.b, weatherAcc.b);
+  // v0.9.14: Araçlar — the colour picker, the timer and shortcuts to the installed modules
+  // no line under Araçlar, except a running / finished timer's state
+  const toolsAcc = acc('tools', svg('wrench'), 'Araçlar', '');
+  toolsAcc.b.classList.add('no-sub');
+  const accs = el('div', 'h13-accs', filesAcc.b, usageAcc.b, weatherAcc.b, toolsAcc.b);
   const panel = el('div', 'h13-panel');
   panel.hidden = true;
   const panelBody = el('div', 'h13-panel-body');
   panel.append(panelBody);
   inner.append(accs, panel);
-  const accByKind: Record<Kind, HTMLButtonElement> = { files: filesAcc.b, usage: usageAcc.b, weather: weatherAcc.b };
+  const accByKind: Record<Kind, HTMLButtonElement> = { files: filesAcc.b, usage: usageAcc.b, weather: weatherAcc.b, tools: toolsAcc.b };
 
   // the page's height follows its content (main clamps it, app/core/layout.cjs)
   let sentHeight = 0;
@@ -334,6 +453,7 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     if (openKind === kind) return closePanel();
     if (kind === 'files') openFiles('home');
     else if (kind === 'usage') openUsage();
+    else if (kind === 'tools') openTools('home');
     else openWeather();
   }
 
@@ -406,6 +526,7 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     notice,
     attempt,
     show: () => {
+      if (hub.filesHost?.('convert')) return;
       showFiles();
       openFiles('convert');
     },
@@ -417,20 +538,63 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     notice,
     attempt,
     show: (_content: HTMLElement, onClose?: () => void) => {
+      if (hub.filesHost?.('share', onClose)) return;
       showFiles();
       openFiles('share', onClose);
     },
     hide: () => closePanel(),
     card: filesAcc.b,
   });
+  hub.converter = converter;
+  hub.share = share;
   convertTile.onclick = () => openFiles('convert');
   shareTile.onclick = () => share.open();
   segShare.onclick = () => share.open();
   // a file dragged over the Dosyalar card opens the two tiles (dropped elsewhere it goes to the chat)
+  // the panel a drag opened closes again when the drag is given up (or dropped elsewhere)
+  let dragPanel = false, lastDragOver = 0, tileDropped = false, dragWatch = 0;
   filesAcc.b.addEventListener('dragenter', (e) => {
     if (!e.dataTransfer?.types.includes('Files')) return;
     if (openKind === 'files' && filesSub === 'home') return;
+    const wasOpen = openKind === 'files';
     openFiles('home');
+    if (wasOpen) return;
+    dragPanel = true;
+    tileDropped = false;
+    lastDragOver = Date.now();
+    window.clearInterval(dragWatch);
+    // fallback: no dragover for a moment means the drag is gone
+    dragWatch = window.setInterval(() => {
+      if (Date.now() - lastDragOver < 250) return;
+      endDragPanel(0);
+    }, 80);
+  });
+  // closes the panel a drag opened, unless the file went onto one of its tiles
+  // (a drop on a tile answers through the converter / sender a moment later: `wait`)
+  function endDragPanel(wait: number) {
+    if (!dragPanel) return;
+    window.clearInterval(dragWatch);
+    dragPanel = false;
+    const close = () => {
+      if (!tileDropped && openKind === 'files' && filesSub === 'home') closePanel();
+    };
+    if (wait) window.setTimeout(close, wait);
+    else close();
+  }
+  document.addEventListener('dragover', () => {
+    if (dragPanel) lastDragOver = Date.now();
+  });
+  // the file is pulled out of the island: back to normal at once
+  document.addEventListener('dragleave', (e) => {
+    if (!dragPanel) return;
+    // (Chromium reports 0,0 or a point on the edge when a drag leaves the window)
+    const out = (e.clientX === 0 && e.clientY === 0) || e.clientX < 1 || e.clientY < 1 || e.clientX >= innerWidth - 1 || e.clientY >= innerHeight - 1;
+    if (out) endDragPanel(0);
+  });
+  document.addEventListener('drop', () => endDragPanel(400), true);
+  document.addEventListener('dragend', () => endDragPanel(0));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && dragPanel) endDragPanel(0);
   });
   filesAcc.b.addEventListener('dragover', (e) => {
     if (e.dataTransfer?.types.includes('Files')) e.preventDefault();
@@ -439,11 +603,13 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   const clearDropTargets = bindFileDropTargets();
   // a drop on the converter never leaves the dashed frame behind
   api.onConvertDrop?.(() => {
+    tileDropped = true;
     clearDropTargets();
     document.dispatchEvent(new Event('dragend'));
     document.body.classList.remove('dropping');
   });
   api.onShareDrop?.(() => {
+    tileDropped = true;
     clearDropTargets();
     document.dispatchEvent(new Event('dragend'));
     document.body.classList.remove('dropping');
@@ -473,7 +639,8 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     if (parts.length >= 3) {
       const emoji = parts[2].match(/\p{Extended_Pictographic}[️]?/u)?.[0] || '🌤️';
       emojiEl.textContent = emoji;
-      weatherAcc.sub.textContent = `${parts[1]} · ${parts[0]} · ${parts[2].replace(/\p{Extended_Pictographic}[️]?/gu, '').trim()}`;
+      // v0.9.14: only the temperature and the city
+      weatherAcc.sub.textContent = `${parts[1]} · ${parts[0]}`;
       notchWeather.textContent = `${emoji} ${parts[1]}`;
     } else {
       emojiEl.textContent = city ? '🌤️' : '📍';
@@ -484,93 +651,238 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   api.onCompanion?.(paintWeather);
   void Promise.resolve(api.companionRead?.()).then(paintWeather).catch(() => paintWeather(null));
 
-  const DAYS = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
   const pickCity = () => {
     closePanel();
     document.getElementById('weather-idle')?.click();
   };
-  const weatherView = el('div', 'weather-sheet h13-weather');
-  weatherView.dataset.kind = 'weather';
+  const weather = weatherView(api, pickCity, () => sendHeight());
   function openWeather() {
-    const wrap = weatherView;
-    const change = button('weather-change', 'Şehri değiştir', svg('location'));
-    change.title = 'Şehri değiştir';
-    change.onclick = pickCity;
-    if (!wrap.childElementCount) wrap.append(el('p', 'weather-note', 'Tahmin yükleniyor…'));
-    openPanel('weather', wrap);
-    void Promise.resolve(api.weatherForecast?.())
-      .then((f: any) => {
-        if (!f?.city) {
-          const choose = button('weather-choose', 'Şehrini seç', svg('location'), el('span', '', 'Şehrini seç'));
-          choose.onclick = pickCity;
-          wrap.replaceChildren(el('p', 'weather-note', 'Hava durumunu görmek için şehrini seç.'), choose);
-          sendHeight();
-          return;
-        }
-        const c = f.current || {};
-        const deg = (v: any) => (Number.isFinite(v) ? v + '°' : '—');
-        const city = el('strong', 'weather-city', f.city);
-        city.translate = false;
-        const details = el('div', 'weather-details');
-        if (Number.isFinite(c.feels)) details.append(el('span', '', el('small', '', 'Hissedilen'), el('b', '', deg(c.feels))));
-        if (Number.isFinite(c.humidity)) details.append(el('span', '', el('small', '', 'Nem'), el('b', '', '%' + c.humidity)));
-        if (Number.isFinite(c.wind)) details.append(el('span', '', el('small', '', 'Rüzgâr'), el('b', '', c.wind + ' km/sa')));
-        const now = el(
-          'div',
-          'weather-now',
-          el('span', 'weather-now-emoji', c.emoji || '🌤️'),
-          el('span', 'weather-now-temp', deg(c.temp)),
-          el('span', 'weather-now-text', city, el('small', '', c.text || '')),
-          details,
-        );
-        // the next hours of today
-        const hours = el('div', 'weather-hours');
-        (Array.isArray(f.hours) ? f.hours : []).slice(0, 7).forEach((h: any, i: number) => {
-          // "Şimdi" is the current reading (the same numbers as the box beside it)
-          const temp = i === 0 && Number.isFinite(c.temp) ? c.temp : h.temp;
-          const cell = el(
-            'div',
-            'weather-hour' + (i === 0 ? ' now' : ''),
-            el('small', 'weather-hour-time', i === 0 ? 'Şimdi' : String(h.time || '')),
-            el('span', 'weather-hour-emoji', (i === 0 && c.emoji) || h.emoji || '🌤️'),
-            el('b', 'weather-hour-temp', deg(temp)),
-          );
-          cell.setAttribute('aria-label', `${i === 0 ? 'Şimdi' : h.time}: ${h.text || ''}, ${deg(h.temp)}`);
-          hours.append(cell);
-        });
-        // the city button sits at the top right, next to the hourly title
-        const hourly = el('div', 'weather-block weather-block-hours', el('div', 'h13-sec-head', el('small', 'h13-sec-title', 'BUGÜN · SAATLİK'), change), hours);
-        if (!hours.childElementCount) hours.hidden = true;
-        const days = el('div', 'weather-days');
-        (f.days || []).slice(0, 5).forEach((d: any, i: number) => {
-          const date = new Date(String(d.date) + 'T12:00:00');
-          const name = i === 0 ? 'Bugün' : i === 1 ? 'Yarın' : DAYS[date.getDay()] || '';
-          const day = el(
-            'div',
-            'weather-day' + (i === 0 ? ' today' : ''),
-            el('small', 'weather-day-name', name),
-            el(
-              'span',
-              'weather-day-sky',
-              el('span', 'weather-day-emoji', d.emoji || '🌤️'),
-              el('small', 'weather-day-rain' + (Number(d.rain) >= 40 ? ' wet' : ''), Number.isFinite(d.rain) && d.rain > 0 ? '%' + d.rain : ''),
-            ),
-            el('span', 'weather-day-temps', el('b', '', deg(d.max)), el('small', '', deg(d.min))),
-          );
-          day.setAttribute('aria-label', `${name}: ${d.text || ''}, ${deg(d.max)} / ${deg(d.min)}`);
-          days.append(day);
-        });
-        const daily = el('div', 'weather-block weather-block-days', el('div', 'h13-sec-head', el('small', 'h13-sec-title', '5 GÜNLÜK')), days);
-        wrap.replaceChildren(el('div', 'weather-top', now, hourly), daily);
-        sendHeight();
-      })
-      .catch(() => {
-        const retry = button('weather-choose', 'Şehri değiştir', svg('location'), el('span', '', 'Şehri değiştir'));
-        retry.onclick = pickCity;
-        wrap.replaceChildren(el('p', 'weather-note', 'Hava durumuna şu anda ulaşılamıyor.'), retry);
-        sendHeight();
-      });
+    openPanel('weather', weather.root);
+    weather.load();
   }
+
+  // ── Araçlar: Renk seçici, Zamanlayıcı, the v0.9.14 tools and the installed modules ──
+  type ToolsSub = 'home' | 'colors' | 'timer' | 'reminders' | 'calendar' | 'mail' | 'usage' | 'home-assistant';
+  let toolsSub: ToolsSub = 'home';
+  // v0.9.14: Hatırlatıcılar, Takvim, E-postalar and Akıllı ev are the app window's own cards
+  // (borrowed from src/workspace/dashboard.ts); Kullanım özeti is Ayarlar → Haftalık özet.
+  const CARD: Partial<Record<ToolsSub, 'reminders' | 'calendar' | 'mail' | 'home'>> = {
+    reminders: 'reminders',
+    calendar: 'calendar',
+    mail: 'mail',
+    'home-assistant': 'home',
+  };
+  const cardHost = el('div', 'h13-wscard');
+  const weeklyHost = el('div', 'h13-weekly');
+  const weekly = weeklySummaryUI(weeklyHost, api, notice);
+  // what opens a window of its own (editors) or the chat goes on in the app window / the chat
+  cardHost.addEventListener(
+    'click',
+    (e) => {
+      const target = e.target as HTMLElement;
+      const editor = target.closest<HTMLElement>('.ws-edit-btn, .ws-more');
+      if (editor) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        void attempt(async () => {
+          await api.workspace(true);
+          window.setTimeout(() => editor.click(), 500);
+        });
+        return;
+      }
+      if (target.closest('.ws-mail-row')) window.setTimeout(() => void attempt(() => api.islandView('chat')), 400);
+    },
+    true,
+  );
+  const TOOLS: [Exclude<ToolsSub, 'home'>, string, string][] = [
+    ['colors', 'pipette', 'Renk seçici'],
+    ['timer', 'timer', 'Zamanlayıcı'],
+    ['reminders', 'checklist', 'Hatırlatıcılar'],
+    ['calendar', 'calendar', 'Takvim'],
+    ['mail', 'mail', 'E-postalar'],
+    ['usage', 'chart', 'Kullanım özeti'],
+    ['home-assistant', 'home', 'Akıllı ev'],
+  ];
+  // v0.9.14: icon and name only (no description); long names wrap
+  const toolTile = (sub: Exclude<ToolsSub, 'home'>, name: string, title: string) => {
+    const t = el('button', 'h13-tt', el('span', 'h13-tt-icon', svg(name)), el('strong', 'h13-tt-name', title));
+    t.type = 'button';
+    t.dataset.sub = sub;
+    t.onclick = () => openTools(sub);
+    return t;
+  };
+  const modsRow = el('div', 'h13-mods');
+  const modsHead = el('div', 'h13-sec-head', el('small', 'h13-sec-title', 'Modüller'));
+  const toolsHome = el(
+    'div',
+    'h13-tools-home',
+    el('div', 'h13-tgrid', ...TOOLS.map(([sub, name, title]) => toolTile(sub, name, title))),
+    modsHead,
+    modsRow,
+  );
+  toolsHome.dataset.kind = 'tools';
+  async function paintModules() {
+    let list: any[] = [];
+    try {
+      const r = await api.modulesList?.();
+      list = Array.isArray(r?.modules) ? r.modules.filter((m: any) => m.enabled && !m.error) : [];
+    } catch {}
+    if (!list.length) {
+      const add = button('h13-mod h13-mod-add', 'Modül yükle', svg('plus'), el('span', '', 'Modül yükle'));
+      add.onclick = () =>
+        void attempt(async () => {
+          await api.islandView('chat');
+          window.setTimeout(() => document.getElementById('settings-toggle')?.click(), 260);
+        });
+      modsRow.replaceChildren(add);
+    } else
+      modsRow.replaceChildren(
+        ...list.map((m) => {
+          const ic = m.icon ? Object.assign(el('img', 'h13-mod-img') as HTMLImageElement, { src: m.icon, alt: '' }) : el('span', 'h13-mod-letter', String(m.name || '?').slice(0, 1).toLocaleUpperCase('tr'));
+          const name = el('span', 'h13-mod-name', m.name);
+          name.translate = false;
+          const b = button('h13-mod', m.name + ' · Aç', el('span', 'h13-mod-icon', ic), name);
+          b.title = m.description || m.name;
+          b.onclick = () => void attempt(() => api.modulesOpen(m.id));
+          return b;
+        }),
+      );
+    sendHeight();
+  }
+  const toolsBack = button('h13-back', 'Geri', svg('chevronLeft'));
+  toolsBack.onclick = () => openTools('home');
+  const toolsIcon = el('span', 'h13-tools-icon');
+  const toolsTitle = el('strong', 'h13-tools-title');
+  const toolsSlot = el('span', 'h13-files-tools');
+  const toolsBody = el('div', 'h13-tools-body');
+  const toolsView = el('div', 'h13-files h13-tools', el('div', 'h13-files-head', toolsBack, toolsIcon, toolsTitle, toolsSlot), toolsBody);
+  toolsView.dataset.kind = 'tools';
+  function openTools(sub: ToolsSub) {
+    toolsSub = sub;
+    if (sub === 'home') {
+      openPanel('tools', toolsHome);
+      void paintModules();
+      return;
+    }
+    const meta = TOOLS.find(([id]) => id === sub)!;
+    toolsIcon.replaceChildren(svg(meta[1]));
+    toolsTitle.textContent = meta[2];
+    const card = CARD[sub] ? hub.cards?.[CARD[sub]!] : undefined;
+    if (card) {
+      cardHost.dataset.card = CARD[sub]!;
+      cardHost.replaceChildren(card.element);
+      card.load();
+    }
+    if (sub === 'usage') void weekly.load();
+    toolsSlot.replaceChildren(...(card || sub === 'usage' ? [] : [sub === 'colors' ? color.action : timer.tabs]));
+    toolsBody.replaceChildren(card ? cardHost : sub === 'usage' ? weeklyHost : sub === 'colors' ? color.root : timer.root);
+    toolsView.dataset.sub = sub;
+    toolsView.classList.toggle('with-card', !!card);
+    if (sub === 'timer') timer.open();
+    if (openKind !== 'tools' || panelBody.firstElementChild !== toolsView) openPanel('tools', toolsView);
+    else sendHeight();
+  }
+
+  // ── the closed island shows a running timer, a colour just taken, a finished timer ──
+  const notchTool = el('div', 'notch-tool');
+  notch.append(notchTool);
+  let colorFlash: { hex: string; until: number } | null = null;
+  let timerInfo: TimerInfo | null = null;
+  let toolKind = '';
+  const NR = 2 * Math.PI * 13;
+  function paintNotchTool() {
+    const t = timerInfo;
+    const kind = t?.finished ? 'done' : colorFlash && Date.now() < colorFlash.until ? 'color' : t && (t.running || t.paused) ? 'timer' : '';
+    if (kind === 'timer' && t) {
+      const svgRing = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svgRing.setAttribute('viewBox', '0 0 32 32');
+      const frac = t.mode === 'stopwatch' ? (t.ms % 60000) / 60000 : t.total ? t.ms / t.total : 0;
+      svgRing.innerHTML = `<circle class="track" cx="16" cy="16" r="13"/><circle class="value" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="${NR.toFixed(1)}" stroke-dashoffset="${(NR * (1 - frac)).toFixed(1)}"/>`;
+      const label = { focus: 'ODAK', break: 'MOLA', countdown: 'GERİ SAYIM', stopwatch: 'KRONOMETRE' }[t.mode];
+      const play = button('notch-tool-btn', t.running ? 'Duraklat' : 'Devam et', svg(t.running ? 'pause' : 'play'));
+      play.onclick = (e) => {
+        e.stopPropagation();
+        timer.toggle();
+      };
+      const sub = el('small', 'notch-tool-sub', t.label || (t.paused ? 'Duraklatıldı' : ''));
+      sub.translate = !t.label;
+      notchTool.replaceChildren(el('span', 'notch-tool-ring' + (t.paused ? ' paused' : ''), svgRing), el('span', 'notch-tool-text', el('b', 'notch-tool-kind', label), sub), el('strong', 'notch-tool-time', t.text), play);
+    } else if (kind === 'color' && colorFlash) {
+      const hex = el('b', 'notch-tool-hex', colorFlash.hex);
+      hex.translate = false;
+      const sw = el('span', 'notch-tool-swatch');
+      sw.style.background = colorFlash.hex;
+      notchTool.replaceChildren(sw, el('span', 'notch-tool-text', hex, el('small', 'notch-tool-ok', 'Panoya kopyalandı')), el('span', 'notch-tool-check', svg('check')));
+    } else if (kind === 'done' && t?.finished) {
+      const f = t.finished;
+      const go = button('notch-tool-action', f.action, f.action);
+      go.onclick = (e) => {
+        e.stopPropagation();
+        if (f.next) timer.next();
+        else timer.dismiss();
+      };
+      notchTool.replaceChildren(el('span', 'notch-tool-text', el('b', 'notch-tool-title', f.title), el('small', 'notch-tool-sub', f.sub)), go);
+    } else notchTool.replaceChildren();
+    notch.dataset.tool = kind;
+    body.classList.toggle('notch-tool-on', !!kind);
+    if (kind !== toolKind) {
+      toolKind = kind;
+      void Promise.resolve(api.notchTool?.(kind)).catch(() => {});
+    }
+  }
+  const color = colorPicker({
+    api,
+    notice,
+    onPicked: (hex) => {
+      colorFlash = { hex, until: Date.now() + 3500 };
+      paintNotchTool();
+      window.setTimeout(paintNotchTool, 3600);
+    },
+  });
+  const timer = timerTool({
+    api,
+    onChange: (info) => {
+      timerInfo = info;
+      const live = info.running || info.paused;
+      const names = { focus: 'Odak', break: 'Mola', countdown: 'Geri sayım', stopwatch: 'Kronometre' };
+      toolsAcc.sub.textContent = info.finished
+        ? info.finished.title
+        : live
+          ? info.mode === 'stopwatch'
+            ? `${names[info.mode]} · ${info.text}`
+            : `${names[info.mode]} · ${info.text} kaldı`
+          : toolsAcc.sub.dataset.idle || '';
+      toolsAcc.b.classList.toggle('live', live || !!info.finished);
+      toolsAcc.b.classList.toggle('no-sub', !live && !info.finished);
+      paintNotchTool();
+    },
+  });
+  hub.color = color;
+  hub.timer = timer;
+  // a click on the timer / colour in the closed island opens Araçlar there
+  notch.addEventListener(
+    'click',
+    (e) => {
+      if (!toolKind || (e.target as HTMLElement).closest('button, #pet')) return;
+      e.stopImmediatePropagation();
+      void attempt(async () => {
+        await api.islandView('shelf');
+        openTools(toolKind === 'color' ? 'colors' : 'timer');
+      });
+    },
+    true,
+  );
+  // the app window gives the panels back when it closes
+  hub.reclaim = () => {
+    if (openKind === 'tools') openTools(toolsSub);
+    else if (openKind === 'files') openFiles(filesSub);
+  };
+  let wasWorkspace = body.classList.contains('workspace');
+  new MutationObserver(() => {
+    const now = body.classList.contains('workspace');
+    if (wasWorkspace && !now) hub.reclaim?.();
+    wasWorkspace = now;
+  }).observe(body, { attributes: true, attributeFilter: ['class'] });
 
   // v0.8.15: a click on an empty part of the shelf (or of its top bar) opens the chat (the cream
   // bar below closes the island); in the chat it goes back to the shelf (the cream bar closes)
@@ -653,6 +965,13 @@ export function islandShelf({ api, notice, attempt }: Deps) {
       document.getElementById(playing ? 'music-pause' : 'music-play')?.click();
     };
     music.paint(r);
+    notchTitle.textContent = r.title || 'Spotify';
+    notchArtist.textContent = r.artist || '';
+    const art = typeof r.art === 'string' && /^data:image\/(png|jpeg|webp);base64,/.test(r.art) ? r.art : '';
+    notchArtBox.classList.toggle('has-art', !!art);
+    if (art) {
+      if (notchArt.src !== art) notchArt.src = art;
+    } else notchArt.removeAttribute('src');
   });
   // v0.8.12: the notch's progress line follows the song directly (no slow fill after a seek)
   const paintBar = () => {
@@ -702,9 +1021,9 @@ function musicCard(attempt: Deps['attempt'], api: any) {
   const progress = el('div', 'music-progress', now, range, end);
   const start = button('music-start', 'Çalmaya başla', svg('play'), el('span', '', 'Çalmaya başla'));
   start.onclick = click('music-play');
-  const idleHint = el('small', 'music-hint', 'Spotify’ı açar ve son çalınanı başlatır');
-  const meta = el('div', 'music-meta', label, title, artist, controls, progress, start, idleHint);
-  const card = el('div', 'h13-music', art, meta);
+  // v0.9.14: a small cover; the progress bar runs under the whole card
+  const meta = el('div', 'music-meta', label, title, artist, controls, start);
+  const card = el('div', 'h13-music', art, meta, progress);
   // v0.8.14: a click on the card (not on its buttons or the seek bar) opens Spotify
   card.addEventListener('click', (e) => {
     if (onPath(e, 'button, input')) return;
@@ -752,6 +1071,7 @@ function musicCard(attempt: Deps['attempt'], api: any) {
     const active = !!r.ok && (r.state === 'Playing' || r.state === 'Paused');
     const playing = !!r.ok && r.state === 'Playing';
     card.classList.toggle('idle', !active);
+    card.classList.toggle('playing', playing);
     // v0.8.15: no length known (Spotify read from its window): no progress bar stuck at 0:00
     card.classList.toggle('no-time', active && !(r.duration > 0));
     document.body.classList.toggle('music-no-time', active && !(r.duration > 0));

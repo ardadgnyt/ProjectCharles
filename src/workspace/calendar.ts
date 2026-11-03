@@ -202,11 +202,13 @@ export function calendarCard(d: CalendarDeps) {
     });
     const dayItems = items(new Date(selected.getFullYear(), selected.getMonth(), selected.getDate()), new Date(selected.getFullYear(), selected.getMonth(), selected.getDate()));
     const isToday = sameDay(selected, new Date());
+    // v0.9.14: "Bugün" is translated, the date (already in the UI language) is not
+    const date = el('span', '', dayTitle(selected));
+    date.translate = false;
     listHead.replaceChildren(
-      el('strong', '', (isToday ? 'Bugün · ' : '') + dayTitle(selected)),
+      el('strong', '', ...(isToday ? [el('span', '', 'Bugün'), ' · '] : []), date),
       el('small', '', dayItems.length ? dayItems.length + ' etkinlik' : ''),
     );
-    (listHead.firstChild as HTMLElement).translate = false;
     list.replaceChildren();
     for (const x of dayItems) {
       const name = el('strong', '', x.title);
@@ -269,7 +271,7 @@ export function calendarCard(d: CalendarDeps) {
   const bigGrid = el('div', 'ws-big-grid');
   const left = el('div', 'ws-cal-left', el('div', 'ws-cal-tools', todayB, el('span', 'ws-cal-step', ePrev, eTitle, eNext)), bigGrid);
   // form
-  const fLabel = el('small', 'ws-form-label', 'YENİ ETKİNLİK');
+  const fLabel = el('small', 'ws-form-label', 'Yeni etkinlik');
   const fHeading = el('strong', 'ws-form-heading', '');
   fHeading.translate = false;
   const field = (label: string, input: HTMLElement) => el('label', 'ws-field', el('span', '', label), input);
@@ -352,7 +354,7 @@ export function calendarCard(d: CalendarDeps) {
     if (x?.kind === 'holiday') fWhere.add(new Option(x.off ? 'Resmî tatil' : 'Özel gün', 'holiday'));
     const base = x?.date || date || new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), 10, 0);
     if (!x && !date && sameDay(selected, new Date())) base.setHours(new Date().getHours() + 1, 0, 0, 0);
-    fLabel.textContent = x ? 'SEÇİLİ ETKİNLİK' : 'YENİ ETKİNLİK';
+    fLabel.textContent = x ? 'Seçili etkinlik' : 'Yeni etkinlik';
     fHeading.textContent = x ? x.title : t('Yeni etkinlik');
     fTitle.value = x?.title || '';
     fDate.value = ymd(base);

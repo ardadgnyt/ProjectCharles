@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.13%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.14%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -42,6 +42,7 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 | Version | What’s new | Yenilikler |
 | --- | --- | --- |
+| **v0.9.14** | Island redesign: a big voice chat card (bars that move with the voice), the message box with dictation, a new Spotify card and the song on the closed island · **Tools**: color picker, timer (focus with breaks, countdown, stopwatch), reminders, calendar, emails, usage summary and smart home, plus module shortcuts · faster, HDR-correct screenshots and color picking · design polish | Adacık yenilendi: büyük sesli sohbet kartı (sese göre hareket eden çizgiler), dikteli mesaj kutusu, yeni Spotify kartı ve kapalı adacıkta çalan şarkı · **Araçlar**: renk seçici, zamanlayıcı (molalı odak, geri sayım, kronometre), hatırlatıcılar, takvim, e-postalar, kullanım özeti ve akıllı ev, modül kısayolları · daha hızlı, HDR’de doğru renkli ekran görüntüsü ve renk seçimi · tasarım cilası |
 | **v0.9.13** | Redesigned island home: Charles with an inline message box (mic, voice call), a new Spotify card and three expanding cards (Files · AI usage · Weather with hourly forecast) · quiet WhatsApp catch-up, muted/archived chats stay silent | Adacık ana sayfası yenilendi: satır içi mesaj kutulu Charles (mikrofon, sesli görüşme), yeni Spotify kartı ve açılır üç kart (Dosyalar · AI kullanımı · saatlik tahminli Hava durumu) · WhatsApp birikmiş mesajları sessiz, sessize alınmış/arşivlenmiş sohbetler bildirim vermiyor |
 | **v0.9.12** | Modules can save and open files (`files.save`, `files.pick`) through Windows’ own Save / Open window | Modüller Windows’un Kaydet / Aç penceresiyle dosya kaydedip açabiliyor (`files.save`, `files.pick`) |
 | **v0.9.11** | Long chats can be continued after a restart · Charles sleeps when you are away | Uzun sohbetler yeniden başlattıktan sonra sürdürülebiliyor · Charles sen yokken uyuyor |
@@ -55,14 +56,35 @@ Details · Ayrıntılar: [CHANGELOG](CHANGELOG.md) · [File sharing / Dosya payl
 
 ### The island · Adacık
 
-Charles with an inline message box (microphone, voice call, send), the Spotify card, and three
-cards that open a panel below them: **Files**, **AI usage** and **Weather**.
+A big **voice chat** card (tap and talk; its bars follow your voice and Charles’), a message box
+with dictation, Charles in the middle, the Spotify card, and four cards that open a panel below
+them: **Files**, **AI usage**, **Weather** and **Tools**. While music plays, the closed island
+shows the cover, the song and the artist.
 
-Satır içi mesaj kutulu Charles (mikrofon, sesli görüşme, gönder), Spotify kartı ve altlarında
-panel açan üç kart: **Dosyalar**, **AI kullanımı** ve **Hava durumu**.
+Büyük bir **sesli sohbet** kartı (dokun ve konuş; çizgileri senin ve Charles’ın sesiyle hareket
+eder), dikteli mesaj kutusu, ortada Charles, Spotify kartı ve altlarında panel açan dört kart:
+**Dosyalar**, **AI kullanımı**, **Hava durumu** ve **Araçlar**. Müzik çalarken kapalı adacıkta
+kapak, şarkı ve sanatçı görünür.
 
 <p align="center">
-  <img src="docs/images/island.png" alt="v0.9.13 island home: Charles with a message box, the Spotify card, and the Files, AI usage and Weather cards" width="720">
+  <img src="docs/images/island.png" alt="v0.9.14 island: the voice chat card, the message box, Charles, the Spotify card and the Files, AI usage, Weather and Tools cards" width="720">
+</p>
+
+### Tools · Araçlar
+
+**Color picker** (pick from the screen, HEX · RGB · HSL), **Timer** (focus with breaks,
+countdown, stopwatch; it stays on the closed island), **Reminders**, **Calendar**, **Emails**,
+**Usage summary** and **Smart home** — the same cards as in the app window — and one-click
+shortcuts to your installed modules.
+
+**Renk seçici** (ekrandan renk al, HEX · RGB · HSL), **Zamanlayıcı** (molalı odak, geri sayım,
+kronometre; kapalı adacıkta da görünür), **Hatırlatıcılar**, **Takvim**, **E-postalar**,
+**Kullanım özeti** ve **Akıllı ev** — uygulama penceresindeki kartların aynısı — ve yüklü
+modüllere tek tıkla kısayollar.
+
+<p align="center">
+  <img src="docs/images/tools.png" alt="Tools panel: color picker, timer, reminders, calendar, emails, usage summary and smart home" width="49%">
+  <img src="docs/images/tools-calendar.png" alt="The calendar in Tools: the month and the day's events" width="49%">
 </p>
 
 ### Convert files on your desktop · Masaüstünde dosya dönüştür
@@ -238,20 +260,20 @@ Ayrıntılar: [docs/MODULES.md](docs/MODULES.md).
 
 **AI usage** shows every connected AI (Codex, Claude, Antigravity, Cursor, Abacus AI, EVREN)
 with its two windows and when they reset. **Weather** shows the current conditions, the next
-hours and five days; the location button changes the city.
+hours, today and the next five days; the location button changes the city.
 
 **AI kullanımı** bağlı bütün yapay zekâları iki halkası ve sıfırlanma süreleriyle gösterir.
-**Hava durumu** anlık durumu, önümüzdeki saatleri ve beş günü gösterir; konum tuşu şehri değiştirir.
+**Hava durumu** anlık durumu, önümüzdeki saatleri, bugünü ve sonraki beş günü gösterir; konum tuşu şehri değiştirir.
 
 <p align="center">
   <img src="docs/images/usage.png" alt="AI usage panel: Codex, Claude, Antigravity, Cursor, Abacus AI and EVREN with remaining-usage rings" width="49%">
-  <img src="docs/images/weather.png" alt="Weather panel: current conditions, hourly forecast and five days" width="49%">
+  <img src="docs/images/weather.png" alt="Weather panel: current conditions, hourly forecast, today and the next five days" width="49%">
 </p>
 
 ## Screenshots · Ekran görüntüleri
 
 <p align="center">
-  <img src="docs/images/island.png" alt="The v0.9.13 island home page" width="720">
+  <img src="docs/images/island.png" alt="The v0.9.14 island" width="720">
 </p>
 
 <p align="center">

@@ -130,7 +130,8 @@ test('reminders are hard to miss; weekly summary in hours and minutes', () => {
   const main = read('app/main.cjs');
   assert.match(main, /new Notification\(\{\s*title: item\.kind === 'focus'/);
   assert.match(read('src/settings/personal.ts'), /reminderAlert\(item/);
-  const wk = read('src/settings/shortcuts.ts');
+  // v0.9.14: the weekly summary moved to its own builder (shared with Araçlar → Kullanım özeti)
+  const wk = read('src/settings/weekly-summary.ts');
   assert.match(wk, /\['Bilgisayarda toplam süre', duration\(/);
   assert.doesNotMatch(wk, /\/ 60\) \+ ' dk'\]/);
   const { englishFor } = (() => {

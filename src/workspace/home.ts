@@ -11,18 +11,18 @@ export type HomeDeps = {
   openSettings: (category: string) => void;
 };
 
-const TOGGLE = /^(light|switch|fan|input_boolean|automation|lock|media_player|cover|climate)\./;
-const ACTION = /^(scene|script)\./;
+export const TOGGLE = /^(light|switch|fan|input_boolean|automation|lock|media_player|cover|climate)\./;
+export const ACTION = /^(scene|script)\./;
 const PICKABLE = /^(light|switch|fan|input_boolean|automation|lock|scene|script|sensor|binary_sensor|climate|cover|media_player)\./;
 
-const isOn = (r: any) => {
+export const isOn = (r: any) => {
   const id = r.id as string;
   if (/^lock\./.test(id)) return r.text === 'locked';
   if (/^cover\./.test(id)) return r.text === 'open' || r.text === 'opening';
   if (/^(media_player|climate)\./.test(id)) return !['off', 'unavailable', 'unknown', 'standby'].includes(r.text);
   return r.text === 'on';
 };
-function iconFor(id: string, title = '') {
+export function iconFor(id: string, title = '') {
   const t = (id + ' ' + title).toLocaleLowerCase('tr');
   if (/^light\./.test(id)) return 'bulb';
   if (/^media_player\./.test(id) || /tv|televizyon/.test(t)) return 'tv';
@@ -35,7 +35,7 @@ function iconFor(id: string, title = '') {
   if (ACTION.test(id)) return 'bolt';
   return 'home';
 }
-function stateText(r: any) {
+export function stateText(r: any) {
   const id = r.id as string;
   if (/^lock\./.test(id)) return r.text === 'locked' ? 'Kilitli' : 'Açık';
   if (/^cover\./.test(id)) return isOn(r) ? 'Açık' : 'Kapalı';
@@ -50,14 +50,14 @@ function stateText(r: any) {
     );
   return raw || '—';
 }
-function actionFor(r: any) {
+export function actionFor(r: any) {
   const id = r.id as string;
   const on = isOn(r);
   if (/^lock\./.test(id)) return on ? 'unlock' : 'lock';
   if (/^cover\./.test(id)) return on ? 'close_cover' : 'open_cover';
   return on ? 'turn_off' : 'turn_on';
 }
-const flip = (r: any) => {
+export const flip = (r: any) => {
   const id = r.id as string;
   const on = isOn(r);
   r.text = /^lock\./.test(id) ? (on ? 'unlocked' : 'locked') : /^cover\./.test(id) ? (on ? 'closed' : 'open') : on ? 'off' : 'on';
@@ -378,5 +378,5 @@ export function homeCard(d: HomeDeps) {
     paintEditor();
   }
 
-  return { element: card, load, paint };
+  return { element: card, load, paint, openEditor };
 }

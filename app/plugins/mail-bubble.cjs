@@ -25,6 +25,7 @@ class MailBubble {
     this.window = null;
     this.ready = null;
     this.suppressed = false;
+    this.held = false;
     this.composing = false;
     // v0.8.13: what the user closed stays closed. A closed mail / reminder never comes back;
     // a closed WhatsApp chat comes back only with a newer message (not for its photo or the
@@ -121,6 +122,12 @@ class MailBubble {
     this.remove(id);
   }
 
+  /** v0.9.14: a focus session with "Bildirimleri sustur": the cards wait until it ends. */
+  hold(value) {
+    this.held = !!value;
+    this.place();
+  }
+
   // Hide while the desktop pet, a plugin guide or screen capture owns the screen.
   suppress(value) {
     this.suppressed = !!value;
@@ -195,7 +202,7 @@ class MailBubble {
   place() {
     const w = this.window;
     if (!w || w.isDestroyed()) return;
-    if (!this.items.length || !this.height || this.suppressed) {
+    if (!this.items.length || !this.height || this.suppressed || this.held) {
       this.composing = false;
       if (w.isVisible()) w.hide();
       return;

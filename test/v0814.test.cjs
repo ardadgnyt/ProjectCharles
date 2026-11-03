@@ -37,7 +37,7 @@ test('weather: five days from Open-Meteo, in a sheet the size of AI usage', asyn
     };
   });
   const f = await w.forecast({ name: 'Ankara, Türkiye', latitude: 39.9, longitude: 32.8 });
-  assert.match(url, /forecast_days=5/);
+  assert.match(url, /forecast_days=6/);
   assert.match(url, /daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max/);
   assert.equal(f.city, 'Ankara');
   assert.deepEqual([f.current.temp, f.current.feels, f.current.humidity, f.current.wind, f.current.text], [16, 15, 71, 10, 'Parçalı bulutlu']);

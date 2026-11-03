@@ -4,6 +4,44 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.14 Beta — 3 Kasım 2026
+
+- **Araçlar:** adacığa dördüncü kart eklendi. Açılan panelde Renk seçici ve Zamanlayıcı kutucukları ile yüklü modüllerin kısayolları var; modüle tıklayınca açılır.
+  - **Renk seçici:** doygunluk / parlaklık alanı ve renk tonu çubuğu, seçilen renk ile dört açık → koyu tonu, kopyalama tuşlu HEX · RGB · HSL satırları (elle de yazılabilir) ve son renkler.
+    - **Ekrandan seç:** ekranın görüntüsü üzerinde büyüteçle bir nokta seçilir; renk alınır ve HEX olarak panoya kopyalanır. Görüntü hiçbir yere kaydedilmez.
+  - **Zamanlayıcı:** Odak, Geri sayım ve Kronometre.
+    - Odak oturumu bitince Study modülündeki gibi ne kadar mola verileceği sorulur (5–30 dk ya da özel); molayı başlatabilir, atlayabilir ya da oturumu bitirebilirsin. Mola bitince tekrar odaklanmak tek tuş.
+    - Görev adı, süre seçimi (25 / 50 / 90 dk ya da özel), 4 oturumluk sayaç, bitince ses ve odak sırasında bildirimleri susturma.
+    - Süre, bilgisayar uyusa da kaymaz (bitiş zamanına göre sayılır).
+- **Araçlar’a yeni araçlar:** Hatırlatıcılar, Takvim, E-postalar (önemli / son), Akıllı ev ve Kullanım özeti. İlk dördü uygulama penceresindeki kartların kendisi (aynı görünüm ve işlevler); Kullanım özeti Ayarlar → Haftalık özet ile aynı. Düzenleyiciler (Takvimi / Akıllı evi düzenle) uygulama penceresinde açılır. Araç kutucuklarında açıklama yazısı yok; adlar kelime ortasından bölünmeden sığar.
+- **Tasarım cilası (adacık ve uygulama penceresi):** bölüm etiketleri BÜYÜK HARF yerine normal yazımda (“Kalan kullanım”, “Modüller”, “Bugün · saatlik”, “6 günlük”, “Son renkler”, “Yakındaki cihazlar”); başlıklar 700–800 yerine en fazla 600 kalınlıkta; boştaki Spotify kartının “Çalmaya başla” düğmesi ve karıştır tuşu kremde (yeşil yalnızca Spotify logosunda); e-posta avatarları tek nötr renkte; uygulama penceresindeki oynat tuşu adacıktaki gibi krem daire; mesaj kutusunda yazı artık kesilmiyor; AI kullanımı kartında ham hata yerine kısa yazı (“Giriş gerekli”, “Bağlantı yok”); adacıktaki boşluklar 4 px düzenine çekildi; uygulama penceresinde de ince, oksuz kaydırma çubuğu.
+- **Ayarlar → Görünüm:** Slime stüdyosu sayfanın en üstünde (önceden en alttaydı).
+- **Depo:** Download modülünün kaynak dosyaları (`modules/`) depodan kaldırıldı; modüller yalnızca Releases → Modules’ta `.zip` olarak yayımlanır. İndirme araçlarının köprüsü (`app/modules/download/`) Charles’ta kalır.
+- **Kapalı adacık:** çalışan zamanlayıcı (halka, görev, kalan süre, duraklat), ekrandan alınan renk (“Panoya kopyalandı”) ve süre dolunca krem ışıkla parlayan “Odak bitti! · Molaya başla” kapalı adacıkta görünür; tıklayınca Araçlar açılır.
+- **Uygulama penceresi:** ana sayfaya Renk seçici, Zamanlayıcı, Dosyalar (dönüştür / gönder) ve Hava durumu kartları eklenebiliyor. Renk seçici, zamanlayıcı ve dosya araçları adacıktakiyle aynıdır.
+- **Ana sayfa yeni düzen:** solda büyük **Sesli sohbet** kartı ve altında “Charles’a bir şey sor” kutusu, ortada Charles, sağda küçülen Spotify kartı (küçük kapak, ilerleme çubuğu altta).
+  - Sesli sohbet kartına dokununca sohbet adacığı açılmadan sesli sohbet başlar. Kart yeşil yanar; “Dinliyor…” ya da “Charles konuşuyor” ve geçen süre yazar, çizgiler sese göre hareket eder (sen konuşurken yeşil, Charles konuşurken krem). × ile biter.
+  - Müzik çalarken küçük adacıkta “Charles” yazısının yerine şarkının kapağı, adı ve sanatçısı görünür.
+- **Sesli sohbet sırasında** adacık kendiliğinden sabitlenir; sohbet bitene kadar kapanıp sesli sohbeti kesmez. Bitince sabitleme eski hâline döner.
+- **Dikte ana sayfada:** “Charles’a bir şey sor” kutusundaki mikrofon sohbet adacığını açmadan doğrudan o kutuya yazar.
+- **Ekran görüntüsü ve renk seçici daha hızlı açılır:** ekranı alan yardımcı Charles açılırken bir kez hazırlanıp bekler; görüntü PNG’ye çevrilmeden, ham piksel olarak tek kopyayla aktarılır (4K’da saniyelerden ~0,2 sn’ye).
+- **Mikrofon kapalıyken** sağ üstteki mikrofon simgesi kırmızı yanar ve Sesli sohbet kartı tıklanınca çalışmaz.
+- **Spotify kartı:** yeşil nokta yerine Spotify logosu (müzik çalarken yeşil, değilken beyaz); “Spotify’ı açar ve son çalınanı başlatır” yazısı kaldırıldı.
+- **Dikte:** kayıt sırasında mikrofon yeşil, yazıya çevrilirken sarı yanar.
+- **Dosya sürükleyip vazgeçince** sürüklemenin açtığı Dosyalar paneli, dosya adacığın üstünden çekildiği an kapanır.
+- **Gönder:** dosya sürüklemeden Gönder’e tıklayınca panel bazen açılmıyordu; düzeltildi.
+- **Spotify kartı boştayken** kapak ve yazılar kartın ortasında duruyor (yukarı yaslanmıyor).
+- **Uygulama penceresi, Dosyalar kartı:** Dönüştür / Gönder hep sağda; “Dosya alımı” anahtarı onun solunda.
+- **Hava durumu:** günlük tahmin bugün ve sonraki beş günü gösteriyor; kartlar daha sıkı.
+- Küçük düzeltmeler: Slime’ın etrafındaki parlama kaldırıldı, Slime biraz büyüdü ve Charles yazısından biraz daha uzağa, yukarı alındı; müzik adacığındaki Slime artık bozulmuyor; boştaki ses çizgileri simetrik; sesli sohbet kartının yeşil çerçevesi daha düzgün; Spotify kartında ve müzik adacığında şarkı adı daha küçük ve aşağıda; “Özel süre” kutusunda mavi seçim yok; açık anahtarlar turuncu.
+- **Mola süresi:** Odak görünümünde süre seçiminin altında mola süresi de seçilebiliyor (odak sürerken de değiştirilebilir).
+- **HDR ekranlar:** ekran görüntüsü alma ve renk seçici, Windows’ta ekranı GDI ile alıyor; HDR açıkken görüntü artık cırtlak çıkmıyor ve renk doğru alınıyor.
+- **Ana sayfa:**
+  - Hava durumu kartının alt satırında yalnızca derece ve şehir yazar.
+  - Dosyalar ve Araçlar kartlarında alt yazı yok (Araçlar’da yalnızca çalışan zamanlayıcının durumu görünür).
+  - AI kullanımı alt satırı artık turuncu olmuyor.
+  - “Charles’a bir şey sor” kutusu Spotify kartının alt kenarıyla aynı hizada ve biraz daha yüksek.
+
 ## v0.9.13 Beta — 2 Kasım 2026
 
 - **Adacığın ana sayfası yenilendi:**

@@ -633,7 +633,7 @@ body.v10 #shelf #slime {
 }
 #shelf .charles-name strong {
   font-size: 25px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.5px;
 }
 #shelf .charles-name small {
@@ -709,7 +709,7 @@ body.v10 #shelf #slime {
 }
 #shelf .music-title {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.2px;
   white-space: nowrap;
   overflow: hidden;
@@ -776,7 +776,7 @@ body.v10 #shelf #slime {
   content: '1';
   position: absolute;
   font-size: 8px;
-  font-weight: 700;
+  font-weight: 600;
   top: 11px;
 }
 #shelf .music-play {
@@ -1301,7 +1301,7 @@ body.v10 #shelf #usage-weather .usage-title {
   align-items: center;
   gap: 8px;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--v10-ink);
 }
 body.v10 #shelf #usage-weather .usage-dot {
@@ -1380,7 +1380,7 @@ body.v10 #shelf #usage-weather .usage-gauge strong {
   left: 0;
   right: 0;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--v10-ink);
   text-align: center;
 }

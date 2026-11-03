@@ -1,0 +1,2227 @@
+/* ==========================================================================
+   30 · v0.9.14 — Araçlar: Renk seçici, Zamanlayıcı, modül kısayolları;
+   kapalı adacıkta zamanlayıcı / renk / "süre doldu"; dört kartlı ana sayfa.
+   Renk seçici (.cp13) ve zamanlayıcı (.tm13) hem adacık panelinde hem uygulama
+   penceresinin kartlarında aynı öğedir; stilleri bu yüzden #shelf'e bağlı değil.
+   ========================================================================== */
+
+/* --- the home page: four cards; the message box sits on the Spotify card's baseline --- */
+#shelf.shelf13 .h13-accs {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+#shelf.shelf13 .h13-acc {
+  gap: 8px;
+  padding: 0 6px 0 8px;
+}
+#shelf.shelf13 .h13-acc-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+}
+#shelf.shelf13 .h13-acc-icon svg {
+  width: 15px;
+  height: 15px;
+}
+#shelf.shelf13 .h13-acc-title {
+  font-size: 12px;
+}
+#shelf.shelf13 .h13-acc-sub {
+  font-size: 10px;
+}
+#shelf.shelf13 .h13-acc-chev {
+  width: 14px;
+}
+#shelf.shelf13 .h13-acc-chev svg {
+  width: 13px;
+  height: 13px;
+}
+/* no orange line under AI kullanımı (low quota shows in the panel's rings) */
+#shelf.shelf13 .h13-acc.low .h13-acc-sub {
+  color: var(--v10-muted);
+}
+/* a running or finished timer: the Araçlar line in cream */
+#shelf.shelf13 .h13-acc.live .h13-acc-sub {
+  color: var(--v10-cream);
+  font-variant-numeric: tabular-nums;
+}
+#shelf.shelf13 .h13-hero {
+  align-items: stretch;
+  padding: 0;
+}
+#shelf.shelf13 .h13-pet {
+  align-self: center;
+}
+#shelf.shelf13 .h13-hero-main {
+  justify-content: flex-end;
+  gap: 10px;
+  margin-left: -4px;
+}
+#shelf.shelf13 .h13-ask {
+  height: 40px;
+  padding-left: 14px;
+}
+
+/* --- Araçlar home: the two tiles and the modules ------------------------------- */
+#shelf.shelf13 .h13-tools-home {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#shelf.shelf13 .h13-tools-home .h13-sec-head {
+  margin-top: 2px;
+}
+#shelf.shelf13 .h13-mods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+#shelf.shelf13 .h13-mod {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  min-height: 0;
+  max-width: 220px;
+  padding: 0 12px 0 4px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 11px;
+  background: var(--h13-well);
+  color: var(--v10-ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+#shelf.shelf13 .h13-mod:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+#shelf.shelf13 .h13-mod-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(237, 201, 169, 0.1);
+  color: var(--v10-cream);
+}
+#shelf.shelf13 .h13-mod-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#shelf.shelf13 .h13-mod-letter {
+  font-size: 12px;
+  font-weight: 600;
+}
+#shelf.shelf13 .h13-mod-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#shelf.shelf13 .h13-mod-add {
+  padding-left: 10px;
+  color: #cfcac3;
+}
+#shelf.shelf13 .h13-mod-add svg {
+  width: 14px;
+  height: 14px;
+}
+#shelf.shelf13 .h13-tools-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Renk seçici (.cp13)
+   ========================================================================== */
+.cp13 {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr) minmax(0, 1.25fr);
+  gap: 14px;
+  color: var(--v10-ink, #f3eee7);
+}
+.cp13 > * {
+  min-width: 0;
+}
+.cp13 > :not(:last-child) {
+  padding-right: 14px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+.cp13-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cp13-square {
+  position: relative;
+  height: 128px;
+  border-radius: 12px;
+  background:
+    linear-gradient(to top, #000, transparent),
+    linear-gradient(to right, #fff, var(--hue, #f80));
+  cursor: crosshair;
+  touch-action: none;
+  outline-offset: 2px;
+}
+.cp13-knob,
+.cp13-hue-knob {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.cp13-hue {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f00, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00);
+  cursor: pointer;
+  touch-action: none;
+  outline-offset: 2px;
+}
+.cp13-hue-knob {
+  top: 50%;
+}
+.cp13-chosen {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cp13-big {
+  display: flex;
+  align-items: flex-end;
+  height: 92px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  color: #1b1712;
+  font-size: 11.5px;
+  font-weight: 600;
+  box-shadow: 0 10px 26px -14px var(--picked, #000);
+}
+.cp13-big:not(.light) {
+  color: rgba(255, 255, 255, 0.92);
+}
+.cp13-tones {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+.cp13-tone {
+  height: 28px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.cp13-tone:hover {
+  transform: translateY(-1px);
+}
+.cp13-hint {
+  font-size: 10px;
+  color: var(--v10-faint, #6f6c69);
+}
+.cp13-values {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cp13-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 4px 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+}
+.cp13-row:focus-within {
+  border-color: rgba(237, 201, 169, 0.4);
+}
+.cp13-label {
+  width: 30px;
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  color: var(--v10-faint, #6f6c69);
+}
+.cp13-value {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--v10-ink, #f3eee7);
+  font: 600 12px/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+.cp13-copy {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #a9a49d;
+  cursor: pointer;
+}
+.cp13-copy:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--v10-ink, #f3eee7);
+}
+.cp13-copy.done {
+  color: #8fd18a;
+}
+.cp13 svg,
+.tm13 svg,
+.cp13-screen svg,
+.tm13-tabs svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cp13-copy svg {
+  width: 13px;
+  height: 13px;
+}
+.cp13-recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.cp13-sec {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.9px;
+  color: var(--v10-faint, #6f6c69);
+}
+.cp13-clear {
+  height: 20px;
+  min-height: 0;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: #9d988f;
+  font: inherit;
+  font-size: 10.5px;
+  cursor: pointer;
+}
+.cp13-clear:hover {
+  color: var(--v10-ink, #f3eee7);
+}
+.cp13-recent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.cp13-swatch {
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  cursor: pointer;
+}
+.cp13-swatch.on {
+  outline: 2px solid var(--v10-cream, #edc9a9);
+  outline-offset: 1px;
+}
+.cp13-empty {
+  font-size: 10.5px;
+  color: var(--v10-faint, #6f6c69);
+}
+.cp13-screen {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  min-height: 0;
+  padding: 0 12px 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--v10-cream, #edc9a9);
+  color: #1b1712;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cp13-screen:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.cp13-screen:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.cp13-screen svg {
+  width: 14px;
+  height: 14px;
+}
+.ws-colors .cp13,
+.cp13.narrow {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.ws-colors .cp13-values {
+  grid-column: 1 / -1;
+}
+.ws-colors .cp13 > :nth-child(2) {
+  padding-right: 0;
+  border-right: 0;
+}
+
+/* ==========================================================================
+   Zamanlayıcı (.tm13)
+   ========================================================================== */
+.tm13 {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) 150px;
+  align-items: center;
+  gap: 16px;
+  color: var(--v10-ink, #f3eee7);
+}
+.tm13 > * {
+  min-width: 0;
+}
+.tm13-tabs {
+  display: inline-flex;
+  gap: 4px;
+}
+.tm13-tab {
+  height: 26px;
+  min-height: 0;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  background: transparent;
+  color: #cfcac3;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.tm13-tab:hover:not(:disabled):not(.on) {
+  background: rgba(255, 255, 255, 0.05);
+}
+.tm13-tab.on {
+  border-color: rgba(237, 201, 169, 0.5);
+  background: rgba(237, 201, 169, 0.12);
+  color: var(--v10-ink, #f3eee7);
+}
+.tm13-tab:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.tm13-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 132px;
+  height: 132px;
+}
+.tm13-ring svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.tm13-ring circle {
+  fill: none;
+  stroke-width: 7;
+}
+.tm13-ring circle.track {
+  stroke: rgba(255, 255, 255, 0.07);
+}
+.tm13-ring circle.value {
+  stroke: var(--v10-cream, #edc9a9);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.25s linear;
+}
+.tm13[data-mode='break'] .tm13-ring circle.value {
+  stroke: #8fd1b0;
+}
+.tm13[data-mode='countdown'] .tm13-ring circle.value {
+  stroke: #a8c7fa;
+}
+.tm13[data-mode='stopwatch'] .tm13-ring circle.value {
+  stroke: #c9b6ff;
+}
+.tm13-ring.paused circle.value {
+  opacity: 0.55;
+}
+.tm13-ring-text {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.tm13-ring-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--v10-cream, #edc9a9);
+}
+.tm13-ring-time {
+  font-size: 27px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+.tm13-ring-sub {
+  font-size: 10px;
+  color: var(--v10-muted, #a29e98);
+}
+.tm13-middle {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tm13-task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.025);
+  color: #cfcac3;
+}
+.tm13-task:focus-within {
+  border-color: rgba(237, 201, 169, 0.4);
+}
+.tm13-task svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.tm13-task-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--v10-ink, #f3eee7);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.tm13-task-input::placeholder {
+  color: #85817c;
+  font-weight: 400;
+}
+.tm13-task-tag,
+.tm13-key {
+  flex: none;
+  font-size: 10.5px;
+  color: var(--v10-faint, #6f6c69);
+}
+.tm13-durations,
+.tm13-sessions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.tm13-durations[hidden],
+.tm13-sessions[hidden],
+.tm13-task[hidden],
+.tm13-laps[hidden],
+.tm13-option[hidden],
+.tm13-lap[hidden] {
+  display: none;
+}
+.tm13-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tm13-chip {
+  height: 27px;
+  min-height: 0;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  background: transparent;
+  color: #e3dfd8;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.tm13-chip:hover:not(:disabled):not(.on) {
+  background: rgba(255, 255, 255, 0.05);
+}
+.tm13-chip.on {
+  border-color: transparent;
+  background: var(--v10-cream, #edc9a9);
+  color: #1b1712;
+}
+.tm13-chip:disabled:not(.on) {
+  opacity: 0.45;
+  cursor: default;
+}
+.tm13-chip-input {
+  width: 64px;
+  text-align: center;
+  outline: 0;
+  border-color: rgba(237, 201, 169, 0.5);
+}
+.tm13-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.tm13-dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.tm13-dots i.done {
+  background: var(--v10-cream, #edc9a9);
+}
+.tm13-dots i.now {
+  width: 18px;
+  background: rgba(237, 201, 169, 0.55);
+}
+.tm13-next {
+  font-size: 11px;
+  color: var(--v10-muted, #a29e98);
+}
+.tm13-laps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 104px;
+  overflow: auto;
+}
+.tm13-lap-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 11.5px;
+}
+.tm13-lap-row b {
+  font-variant-numeric: tabular-nums;
+}
+.tm13-right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+.tm13-buttons {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.tm13-reset,
+.tm13-go {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  min-height: 0;
+  padding: 0 8px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tm13-reset {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: #e3dfd8;
+}
+.tm13-reset:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+}
+.tm13-reset:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.tm13-go {
+  border: 0;
+  background: var(--v10-cream, #edc9a9);
+  color: #1b1712;
+}
+.tm13-go:hover {
+  filter: brightness(1.06);
+}
+.tm13-reset svg,
+.tm13-go svg {
+  width: 14px;
+  height: 14px;
+}
+.tm13-go svg {
+  fill: currentColor;
+}
+.tm13-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  color: #cfcac3;
+}
+.tm13-switch {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  min-height: 0;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  transition: background-color 0.18s;
+}
+.tm13-switch i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e9e5df;
+  transition: transform 0.2s;
+}
+.tm13-switch.on {
+  background: rgba(237, 201, 169, 0.55);
+}
+.tm13-switch.on i {
+  transform: translateX(14px);
+  background: #fff8ef;
+}
+/* the app window's narrower card */
+.ws-timer .tm13 {
+  grid-template-columns: 120px minmax(0, 1fr);
+}
+.ws-timer .tm13-ring {
+  width: 120px;
+  height: 120px;
+}
+.ws-timer .tm13-right {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  padding-left: 0;
+  border-left: 0;
+}
+.ws-timer .tm13-buttons {
+  grid-column: 1 / -1;
+}
+
+/* ==========================================================================
+   The closed island: timer · colour taken · time is up
+   ========================================================================== */
+#notch .notch-tool {
+  display: none;
+}
+body.v10.notch-tool-on[data-view='notch']:not(.desktop-pet):not(.hidden-island) #notch {
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 10px !important;
+  /* a little lower, centred between the top edge and the cream bar */
+  padding: 8px 14px 6px 12px !important;
+}
+body.v10.notch-tool-on[data-view='notch'] #notch .notch-name,
+body.v10.notch-tool-on[data-view='notch'] #notch .notch-weather,
+body.v10.notch-tool-on[data-view='notch'] #notch .notch-music,
+body.v10.notch-tool-on[data-view='notch'] #notch .notch-progress {
+  display: none !important;
+}
+body.v10.notch-tool-on[data-view='notch'] #notch .notch-pet,
+body.v10.notch-tool-on[data-view='notch'] #notch #pet {
+  width: 38px !important;
+  height: 38px !important;
+}
+body.v10.notch-tool-on[data-view='notch'] #notch .notch-tool {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--v10-ink);
+}
+.notch-tool svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.notch-tool-ring {
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+.notch-tool-ring svg {
+  width: 100%;
+  height: 100%;
+}
+.notch-tool-ring circle {
+  fill: none;
+  stroke-width: 3.2;
+}
+.notch-tool-ring circle.track {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+.notch-tool-ring circle.value {
+  stroke: var(--v10-cream);
+  stroke-linecap: round;
+}
+.notch-tool-ring.paused circle.value {
+  opacity: 0.5;
+}
+.notch-tool-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+.notch-tool-kind {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.9px;
+  color: var(--v10-muted);
+}
+.notch-tool-sub,
+.notch-tool-ok {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--v10-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.notch-tool-ok {
+  color: #8fd18a;
+}
+.notch-tool-time {
+  flex: none;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+}
+.notch-tool-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--v10-cream);
+  color: #1b1712;
+  cursor: pointer;
+}
+.notch-tool-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+.notch-tool-swatch {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 9px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+.notch-tool-hex {
+  font: 700 13.5px/1.2 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+.notch-tool-check {
+  flex: none;
+  color: #8fd18a;
+}
+.notch-tool-check svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+}
+.notch-tool-title {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.notch-tool-action {
+  flex: none;
+  height: 30px;
+  min-height: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--v10-cream);
+  color: #1b1712;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.notch-tool-action:hover,
+.notch-tool-btn:hover {
+  filter: brightness(1.06);
+}
+/* time is up: the island glows in cream */
+body.v10[data-view='notch']:has(#notch[data-tool='done']) .island {
+  animation: notch-glow 1.6s ease-in-out infinite;
+}
+@keyframes notch-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(237, 201, 169, 0.35),
+      0 6px 22px -6px rgba(237, 201, 169, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(237, 201, 169, 0.7),
+      0 8px 30px -4px rgba(237, 201, 169, 0.6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.v10[data-view='notch']:has(#notch[data-tool='done']) .island {
+    animation: none;
+    box-shadow: 0 0 0 1px rgba(237, 201, 169, 0.6);
+  }
+}
+
+/* ==========================================================================
+   The app window's cards (Renk seçici · Zamanlayıcı · Dosyalar · Hava durumu)
+   ========================================================================== */
+.ws-tools13 .ws-card-head .ws-tool-slot {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+}
+.ws-tools13 .ws-files-seg {
+  margin-left: auto;
+}
+.ws-tools13 .ws-tool-body {
+  min-width: 0;
+}
+.ws-tools13 .ws-tool-body:empty::before {
+  content: '…';
+  color: var(--v10-faint, #6f6c69);
+}
+.ws-tools13 .ws-tool-body svg,
+.ws-tools13 .h13-weather svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#shelf.shelf13 .h13-acc.no-sub .h13-acc-sub {
+  display: none;
+}
+.tm13-done {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tm13-done[hidden] {
+  display: none;
+}
+.tm13-done-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.tm13-skip {
+  height: 30px;
+  min-height: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: transparent;
+  color: #e3dfd8;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.tm13-skip[hidden] {
+  display: none;
+}
+.tm13-skip:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+#shelf.shelf13 .h13-acc-sub:empty {
+  display: none;
+}
+.tm13.finished .tm13-buttons {
+  grid-template-columns: minmax(0, 1fr);
+}
+.tm13.finished .tm13-go {
+  order: -1;
+}
+.tm13.finished .tm13-sessions .tm13-next {
+  display: none;
+}
+/* the app window's buttons are light text by default: the cream ones keep dark text */
+.ws-tools13 .cp13-screen,
+.ws-tools13 .tm13-go,
+.ws-tools13 .tm13-chip.on,
+.ws-tools13 .h13-seg-btn.on,
+.ws-tools13 .conv-go,
+.ws-tools13 .conv-chip.on,
+.ws-tools13 .share-peer-send,
+.ws-tools13 .weather-choose {
+  color: #1b1712 !important;
+  opacity: 1;
+}
+.ws-tools13 .tm13-go:disabled,
+.ws-tools13 .conv-go:disabled {
+  opacity: 0.5;
+}
+
+/* ==========================================================================
+   v0.9.14 · home page row 1: voice call + message box | Charles | music
+   ========================================================================== */
+#shelf.shelf13 .h13-top {
+  grid-template-columns: minmax(0, 1fr) 124px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 128px;
+}
+#shelf.shelf13 .h13-askcol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+#shelf.shelf13 .h13-askcol .h13-ask {
+  flex: none;
+  height: 38px;
+  margin-left: 0;
+}
+/* the voice call card */
+#shelf.shelf13 .h13-voice {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-height: 78px;
+  padding: 0 10px 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--v10-ink);
+  cursor: pointer;
+  transition:
+    border-color 0.25s,
+    background-color 0.25s,
+    box-shadow 0.3s;
+}
+#shelf.shelf13 .h13-voice:hover:not(.on) {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.13);
+}
+#shelf.shelf13 .h13-voice:focus-visible {
+  outline: 2px solid var(--v10-cream);
+  outline-offset: 2px;
+}
+#shelf.shelf13 .h13-voice-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #e7e2db;
+  transition:
+    background-color 0.25s,
+    color 0.25s;
+}
+#shelf.shelf13 .h13-voice-icon svg {
+  width: 18px;
+  height: 18px;
+}
+#shelf.shelf13 .h13-voice-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+#shelf.shelf13 .h13-voice-title {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#shelf.shelf13 .h13-voice-sub {
+  overflow: hidden;
+  font-size: 10.5px;
+  color: var(--v10-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+#shelf.shelf13 .h13-voice-bars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 26px;
+  flex: none;
+}
+#shelf.shelf13 .h13-voice-bars i {
+  display: block;
+  width: 2.5px;
+  height: 26px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.32);
+  transform: scaleY(0.22);
+  transition:
+    transform 0.09s linear,
+    background-color 0.25s;
+}
+/* at rest the bars sketch a quiet wave */
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(4n + 2) {
+  transform: scaleY(0.38);
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(7) {
+  transform: scaleY(0.6);
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(6),
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(8) {
+  transform: scaleY(0.46);
+}
+#shelf.shelf13 .h13-voice-end {
+  display: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e7e2db;
+  cursor: pointer;
+}
+#shelf.shelf13 .h13-voice-end:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+#shelf.shelf13 .h13-voice-end svg {
+  width: 13px;
+  height: 13px;
+}
+/* in a call: green frame and glow; green bars while you talk, cream while Charles talks */
+#shelf.shelf13 .h13-voice.on {
+  border-color: rgba(61, 220, 132, 0.6);
+  background: linear-gradient(180deg, rgba(61, 220, 132, 0.09), rgba(61, 220, 132, 0.035));
+  box-shadow:
+    0 0 0 1px rgba(61, 220, 132, 0.18),
+    0 0 22px -6px rgba(61, 220, 132, 0.6);
+  cursor: default;
+}
+#shelf.shelf13 .h13-voice.on .h13-voice-icon {
+  background: #3ddc84;
+  color: #0b2416;
+}
+#shelf.shelf13 .h13-voice.on .h13-voice-end {
+  display: grid;
+}
+#shelf.shelf13 .h13-voice.on .h13-voice-bars i {
+  background: #3ddc84;
+}
+#shelf.shelf13 .h13-voice.on.charles .h13-voice-title {
+  color: #c9f5d9;
+}
+#shelf.shelf13 .h13-voice.on.charles .h13-voice-bars i {
+  background: var(--v10-cream);
+}
+#shelf.shelf13 .h13-voice.on.speaking {
+  box-shadow:
+    0 0 0 1px rgba(61, 220, 132, 0.3),
+    0 0 28px -4px rgba(61, 220, 132, 0.75);
+}
+/* Charles in the middle: Slime with a soft glow, then his name and version */
+#shelf.shelf13 .h13-center {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+}
+#shelf.shelf13 .h13-center::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  width: 118px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(150, 220, 90, 0.16), transparent);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+#shelf.shelf13 .h13-center .h13-pet {
+  position: relative;
+  width: 100px;
+  height: 90px;
+  margin: 0;
+}
+body.v10 #shelf.shelf13 .h13-center .h13-pet #pet {
+  width: 100px !important;
+  height: 90px !important;
+}
+body.v10 #shelf.shelf13 .h13-center .h13-pet #slime {
+  width: 118px !important;
+  height: 118px !important;
+  margin: -16px -9px -12px !important;
+}
+#shelf.shelf13 .h13-center .h13-name {
+  position: relative;
+  align-items: center;
+  align-self: center;
+  gap: 1px;
+  margin-top: 2px;
+}
+#shelf.shelf13 .h13-center .h13-name strong {
+  font-size: 20px;
+}
+#shelf.shelf13 .h13-center .h13-name small {
+  font-size: 10.5px;
+}
+/* Spotify: the cover with the song beside it and the controls at its foot, then the bar */
+#shelf.shelf13 .h13-music {
+  grid-template-columns: 84px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: stretch;
+  column-gap: 12px;
+  row-gap: 8px;
+  padding: 10px 12px 8px 10px;
+  border-radius: 18px;
+}
+#shelf.shelf13 .h13-music .music-art {
+  width: 84px;
+  height: 84px;
+  border-radius: 12px;
+}
+#shelf.shelf13 .h13-music .music-art > svg {
+  width: 28px;
+  height: 28px;
+}
+#shelf.shelf13 .h13-music .music-art .music-brand-big {
+  width: 34px;
+  height: 34px;
+}
+#shelf.shelf13 .h13-music .music-meta {
+  height: 84px;
+  gap: 0;
+}
+#shelf.shelf13 .h13-music .music-label {
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .h13-music .music-label svg,
+#shelf.shelf13 .h13-music .music-label img {
+  display: none;
+}
+#shelf.shelf13 .h13-music .music-label::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: #1ed760;
+}
+#shelf.shelf13 .h13-music.idle .music-label::before {
+  background: #6f6c69;
+}
+#shelf.shelf13 .h13-music .music-title {
+  margin-top: 2px;
+  font-size: 13.5px;
+}
+#shelf.shelf13 .h13-music .music-artist {
+  font-size: 11px;
+}
+#shelf.shelf13 .h13-music .music-controls {
+  justify-content: space-between;
+  margin-top: auto;
+}
+#shelf.shelf13 .h13-music .music-btn {
+  width: 26px;
+  height: 26px;
+}
+#shelf.shelf13 .h13-music .music-btn svg {
+  width: 14px;
+  height: 14px;
+}
+#shelf.shelf13 .h13-music .music-play {
+  width: 32px;
+  height: 32px;
+  background: var(--v10-cream);
+  color: #1b1712;
+}
+#shelf.shelf13 .h13-music .music-play:hover:not(:disabled) {
+  background: var(--v10-cream);
+  color: #000;
+  filter: brightness(1.06);
+}
+#shelf.shelf13 .h13-music .music-play svg {
+  width: 13px;
+  height: 13px;
+}
+#shelf.shelf13 .h13-music > .music-progress {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+#shelf.shelf13 .h13-music .music-range {
+  accent-color: var(--v10-cream);
+}
+#shelf.shelf13 .h13-music.idle .music-meta {
+  height: auto;
+  justify-content: center;
+}
+#shelf.shelf13 .h13-music.idle .music-title {
+  font-size: 12.5px;
+  white-space: normal;
+  line-height: 1.2;
+}
+#shelf.shelf13 .h13-music.idle .music-start {
+  height: 28px;
+  margin-top: 6px;
+  padding: 0 12px 0 10px;
+  font-size: 11.5px;
+}
+#shelf.shelf13 .h13-music.idle .music-hint {
+  grid-column: 1 / -1;
+}
+
+/* the music notch: the song instead of "Charles" */
+#notch .notch-track {
+  display: none;
+}
+body.v10.music-on:not(.notch-tool-on) #notch .notch-name {
+  display: none !important;
+}
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch .notch-track {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.notch-track-cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #8f8a84;
+}
+.notch-track-cover svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.notch-track-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+.notch-track-cover.has-art .notch-track-art {
+  opacity: 1;
+}
+.notch-track-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+.notch-track-title {
+  overflow: hidden;
+  color: var(--v10-ink);
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.notch-track-artist {
+  overflow: hidden;
+  color: var(--v10-muted);
+  font-size: 10.5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* the tool notch: Slime sits a little higher */
+body.v10.notch-tool-on[data-view='notch'] #notch .notch-pet {
+  transform: translateY(-6px);
+}
+#shelf.shelf13 .h13-music .music-controls .music-btn {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+#shelf.shelf13 .h13-music .music-controls .music-play {
+  width: 30px;
+  height: 30px;
+}
+/* room for "Charles konuşuyor" beside the bars */
+#shelf.shelf13 .h13-voice {
+  gap: 8px;
+  padding: 0 8px 0 10px;
+}
+#shelf.shelf13 .h13-voice-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+}
+#shelf.shelf13 .h13-voice-title {
+  font-size: 12.5px;
+  letter-spacing: -0.15px;
+}
+#shelf.shelf13 .h13-voice-bars {
+  gap: 2px;
+}
+#shelf.shelf13 .h13-voice-bars i {
+  width: 2px;
+}
+#shelf.shelf13 .h13-voice-end {
+  width: 26px;
+  height: 26px;
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(6) {
+  transform: scaleY(0.6);
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(7) {
+  transform: scaleY(0.46);
+}
+#shelf.shelf13 .h13-top {
+  grid-template-columns: minmax(0, 1fr) 108px minmax(0, 1fr);
+  gap: 10px;
+}
+#shelf.shelf13 .h13-voice-title {
+  font-size: 12px;
+}
+#shelf.shelf13 .h13-voice.on .h13-voice-bars i:first-child,
+#shelf.shelf13 .h13-voice.on .h13-voice-bars i:last-child {
+  display: none;
+}
+/* the song's name fits on the music notch */
+.notch-track-title {
+  font-size: 10.5px;
+  letter-spacing: -0.1px;
+}
+.notch-track-artist {
+  font-size: 9.5px;
+}
+.notch-track-cover {
+  width: 27px;
+  height: 27px;
+  border-radius: 6px;
+}
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch .notch-track {
+  gap: 8px;
+}
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch .notch-ctl:not(.notch-play) {
+  width: 26px;
+  height: 26px;
+}
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch .notch-play {
+  width: 30px;
+  height: 30px;
+}
+/* smaller text in the call card, so "Charles konuşuyor" / "Charles is speaking" always fits */
+#shelf.shelf13 .h13-voice-title {
+  font-size: 11.5px;
+  letter-spacing: -0.2px;
+}
+#shelf.shelf13 .h13-voice-sub {
+  font-size: 9.5px;
+}
+/* in a call: just a green frame, no glow */
+#shelf.shelf13 .h13-voice.on,
+#shelf.shelf13 .h13-voice.on.speaking {
+  border-color: rgba(61, 220, 132, 0.55);
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: none;
+}
+
+/* --- v0.9.14 polish ------------------------------------------------------------ */
+/* the call card's green frame: a smooth inset ring instead of the border */
+#shelf.shelf13 .h13-voice.on,
+#shelf.shelf13 .h13-voice.on.speaking {
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1.5px rgba(61, 220, 132, 0.75);
+}
+/* no glow around Slime; he sits a little higher and bigger */
+#shelf.shelf13 .h13-center::before {
+  display: none;
+}
+#shelf.shelf13 .h13-center {
+  justify-content: flex-start;
+  margin-top: -6px;
+}
+#shelf.shelf13 .h13-center .h13-pet {
+  width: 108px;
+  height: 98px;
+}
+body.v10 #shelf.shelf13 .h13-center .h13-pet #pet {
+  width: 108px !important;
+  height: 98px !important;
+}
+body.v10 #shelf.shelf13 .h13-center .h13-pet #slime {
+  width: 130px !important;
+  height: 130px !important;
+  margin: -18px -11px -14px !important;
+}
+/* Spotify card: a smaller song title so long names fit */
+#shelf.shelf13 .h13-music .music-title {
+  font-size: 12px;
+  letter-spacing: -0.1px;
+}
+#shelf.shelf13 .h13-music .music-artist {
+  font-size: 10.5px;
+}
+/* the music notch: its row sits lower, nearer the middle */
+body.v10.music-on:not(.notch-tool-on)[data-view='notch']:not(.desktop-pet):not(.hidden-island) #notch {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+/* dictating into the home page's box */
+#shelf.shelf13 .h13-ask-btn.recording {
+  background: rgba(240, 110, 100, 0.18);
+  color: #ff8a80;
+}
+#shelf.shelf13 .h13-ask-btn.busy {
+  opacity: 0.6;
+  cursor: progress;
+}
+/* "Özel süre": no blue selection, no spin arrows */
+.tm13-chip-input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+  caret-color: var(--v10-cream, #edc9a9);
+  color: var(--v10-ink, #f3eee7);
+  background: transparent;
+  box-shadow: none;
+}
+.tm13-chip-input::-webkit-outer-spin-button,
+.tm13-chip-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.tm13-chip-input::selection {
+  background: rgba(237, 201, 169, 0.3);
+  color: inherit;
+}
+.tm13-chip-input:focus,
+.tm13-chip-input:focus-visible {
+  outline: 0;
+  border-color: rgba(237, 201, 169, 0.6);
+}
+/* switches when on: a warm orange track with a white knob */
+.tm13-switch.on {
+  background: #e8a062;
+}
+.tm13-switch.on i {
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+/* the call card's bars: a little further left; at rest a calm, symmetric wave */
+#shelf.shelf13 .h13-voice-bars {
+  margin-right: 6px;
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(1) {
+  transform: scaleY(0.22);
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(2) {
+  transform: scaleY(0.32);
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(3) {
+  transform: scaleY(0.45);
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(4) {
+  transform: scaleY(0.6);
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(5) {
+  transform: scaleY(0.78);
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(6) {
+  transform: scaleY(0.95);
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(7) {
+  transform: scaleY(0.78);
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(8) {
+  transform: scaleY(0.6);
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(9) {
+  transform: scaleY(0.45);
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(10) {
+  transform: scaleY(0.32);
+}
+#shelf.shelf13 .h13-voice:not(.on) .h13-voice-bars i:nth-child(11) {
+  transform: scaleY(0.22);
+}
+/* dictation in the message box: green while recording, yellow while it becomes text */
+#shelf.shelf13 .h13-ask-btn.recording {
+  background: rgba(61, 220, 132, 0.18);
+  color: #3ddc84;
+}
+#shelf.shelf13 .h13-ask-btn.busy {
+  opacity: 1;
+  background: rgba(240, 200, 80, 0.18);
+  color: #f0c850;
+  cursor: progress;
+}
+/* the music notch: Slime stays clear of the progress line */
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch .notch-pet {
+  transform: translateY(-5px);
+}
+/* while Charles talks the whole call card turns cream (green while it listens to you) */
+#shelf.shelf13 .h13-voice.on.charles,
+#shelf.shelf13 .h13-voice.on.charles.speaking {
+  box-shadow: inset 0 0 0 1.5px rgba(237, 201, 169, 0.75);
+}
+#shelf.shelf13 .h13-voice.on.charles .h13-voice-icon {
+  background: var(--v10-cream);
+  color: #1b1712;
+}
+#shelf.shelf13 .h13-voice.on.charles .h13-voice-title {
+  color: #f6e3cf;
+}
+#shelf.shelf13 .h13-voice.on.charles .h13-voice-bars i {
+  background: var(--v10-cream);
+}
+#shelf.shelf13 .h13-voice .h13-voice-icon,
+#shelf.shelf13 .h13-voice {
+  transition:
+    box-shadow 0.25s,
+    background-color 0.25s,
+    color 0.25s;
+}
+/* a slightly smaller Slime fits between the top edge (his hat) and the progress line */
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch .notch-pet,
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch #pet {
+  width: 34px !important;
+  height: 34px !important;
+}
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch #slime {
+  width: 54px !important;
+  height: 54px !important;
+  margin: -10px !important;
+}
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch .notch-pet {
+  transform: translateY(-2px);
+}
+/* Spotify label: the Spotify logo instead of a dot — green while music plays, white otherwise */
+#shelf.shelf13 .h13-music .music-label::before,
+#shelf.shelf13 .h13-music.idle .music-label::before {
+  width: 11px;
+  height: 11px;
+  border-radius: 0;
+  background: #ffffff;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cmask id='m'%3E%3Ccircle cx='12' cy='12' r='12' fill='white'/%3E%3Cg fill='none' stroke='black' stroke-linecap='round'%3E%3Cpath d='M4.9 8.2C9.4 6.8 15.6 7 19.6 9.7' stroke-width='2.3'/%3E%3Cpath d='M5.5 12.1C9.5 10.9 14.3 11.3 18.1 13.5' stroke-width='1.9'/%3E%3Cpath d='M5.8 15.7C9.6 14.8 13.5 15 16.8 16.9' stroke-width='1.5'/%3E%3C/g%3E%3C/mask%3E%3Crect width='24' height='24' fill='white' mask='url(%23m)'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cmask id='m'%3E%3Ccircle cx='12' cy='12' r='12' fill='white'/%3E%3Cg fill='none' stroke='black' stroke-linecap='round'%3E%3Cpath d='M4.9 8.2C9.4 6.8 15.6 7 19.6 9.7' stroke-width='2.3'/%3E%3Cpath d='M5.5 12.1C9.5 10.9 14.3 11.3 18.1 13.5' stroke-width='1.9'/%3E%3Cpath d='M5.8 15.7C9.6 14.8 13.5 15 16.8 16.9' stroke-width='1.5'/%3E%3C/g%3E%3C/mask%3E%3Crect width='24' height='24' fill='white' mask='url(%23m)'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+#shelf.shelf13 .h13-music.playing .music-label::before {
+  background: #1ed760;
+}
+#shelf.shelf13 .h13-music .music-hint {
+  display: none !important;
+}
+/* microphone switched off in the header: a clear red, and the voice card is unavailable */
+body.v10 #island-bar #mic-privacy.muted,
+#mic-privacy.muted {
+  color: #ff4d4d !important;
+  opacity: 1;
+  background: rgba(255, 77, 77, 0.14) !important;
+}
+body[data-mic-off='true'] #shelf.shelf13 .h13-voice:not(.on) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+body[data-mic-off='true'] #shelf.shelf13 .h13-voice:not(.on) .h13-voice-icon {
+  color: #ff4d4d;
+}
+/* Slime a little higher: some room above the name */
+#shelf.shelf13 .h13-center .h13-pet {
+  transform: translateY(-6px);
+}
+/* weather: today + five days, a little tighter */
+#shelf.shelf13 .h13-weather .weather-days,
+.ws-tools13 .h13-weather .weather-days {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+}
+#shelf.shelf13 .h13-weather .weather-day,
+.ws-tools13 .h13-weather .weather-day {
+  column-gap: 4px;
+  padding: 6px 8px;
+}
+#shelf.shelf13 .h13-weather .weather-day-emoji,
+.ws-tools13 .h13-weather .weather-day-emoji {
+  font-size: 16px;
+}
+#shelf.shelf13 .h13-weather .weather-day-temps b,
+.ws-tools13 .h13-weather .weather-day-temps b {
+  font-size: 12px;
+}
+#shelf.shelf13 .h13-weather .weather-day-temps small,
+.ws-tools13 .h13-weather .weather-day-temps small {
+  font-size: 10px;
+}
+/* app window, Dosyalar card: Dönüştür / Gönder always at the right; "Dosya alımı" sits to their left */
+.ws-tools13.ws-files .ws-card-head .ws-tool-slot {
+  margin-left: auto;
+}
+.ws-tools13 .ws-files-seg {
+  margin-left: 14px;
+}
+/* Spotify card with nothing playing: cover and text centred in the card (not pushed to the top) */
+#shelf.shelf13 .h13-music.idle {
+  grid-template-rows: 1fr;
+  align-content: center;
+  align-items: center;
+}
+#shelf.shelf13 .h13-music.idle > .music-progress {
+  display: none;
+}
+#shelf.shelf13 .h13-music.idle .music-art {
+  align-self: center;
+}
+#shelf.shelf13 .h13-music.idle .music-meta {
+  align-self: center;
+}
+
+/* ==========================================================================
+   v0.9.14 Araçlar: seven tool tiles (no descriptions)
+   ========================================================================== */
+#shelf.shelf13 .h13-tgrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+#shelf.shelf13 .h13-tt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  padding: 10px 10px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 13px;
+  background: var(--h13-well);
+  color: var(--v10-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+#shelf.shelf13 .h13-tt:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+#shelf.shelf13 .h13-tt-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 10px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--v10-cream);
+}
+#shelf.shelf13 .h13-tt-icon svg {
+  width: 15px;
+  height: 15px;
+}
+#shelf.shelf13 .h13-tt-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#shelf.shelf13 .h13-tt-status {
+  max-width: 100%;
+  min-height: 13px;
+  overflow: hidden;
+  font-size: 10px;
+  color: var(--v10-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#shelf.shelf13 .h13-tools-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--v10-cream);
+}
+#shelf.shelf13 .h13-tools-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* tool tiles: no status line, the name wraps instead of "…" */
+#shelf.shelf13 .h13-tt {
+  justify-content: flex-start;
+}
+#shelf.shelf13 .h13-tt-name {
+  overflow: visible;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+#shelf.shelf13 .h13-tt-status {
+  display: none;
+}
+/* the tiles share the row by their names' longest word: no word is cut in the middle;
+   in a language with long words a tile moves to the next row */
+#shelf.shelf13 .h13-tgrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+#shelf.shelf13 .h13-tt {
+  flex: 1 1 0;
+  min-width: min-content;
+  padding: 8px 8px 8px;
+}
+#shelf.shelf13 .h13-tt-name {
+  font-size: 9.5px;
+  letter-spacing: -0.1px;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+/* --- Araçlar: the app window's cards inside the panel (.h13-wscard) --------------- */
+#shelf.shelf13 .h13-tools {
+  position: relative;
+}
+#shelf.shelf13 .h13-wscard > .ws-card {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+/* the card's own title is the panel's; its buttons sit on the panel's title row */
+#shelf.shelf13 .h13-wscard .ws-card-head > .ws-card-icon,
+#shelf.shelf13 .h13-wscard .ws-card-head h2,
+#shelf.shelf13 .h13-wscard .ws-card-chrome {
+  display: none !important;
+}
+#shelf.shelf13 .h13-wscard .ws-card-head {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 30px;
+  margin: 0;
+  gap: 6px;
+}
+#shelf.shelf13 .h13-wscard .ws-head-text {
+  display: flex;
+  align-items: center;
+}
+/* Kullanım özeti: Ayarlar → Haftalık özet */
+#shelf.shelf13 .h13-weekly {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+#shelf.shelf13 .h13-weekly h3 {
+  display: none;
+}
+#shelf.shelf13 .h13-weekly .weekly-period {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  gap: 2px;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+#shelf.shelf13 .h13-weekly .weekly-period button {
+  height: 24px;
+  min-height: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #b3aea7;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+#shelf.shelf13 .h13-weekly .weekly-period button[aria-pressed='true'] {
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+}
+#shelf.shelf13 .h13-weekly .weekly-notification {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #cfcac3;
+  font-size: 11.5px;
+}
+#shelf.shelf13 .h13-weekly .hint,
+#shelf.shelf13 .h13-weekly .weekly-explanation {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .h13-weekly .weekly-explanation summary {
+  cursor: pointer;
+}
+#shelf.shelf13 .h13-weekly .weekly-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 6px;
+}
+#shelf.shelf13 .h13-weekly .weekly-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 11px;
+  background: var(--h13-well);
+}
+#shelf.shelf13 .h13-weekly .weekly-grid small {
+  font-size: 10px;
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .h13-weekly .weekly-grid strong {
+  font-size: 15px;
+}
+#shelf.shelf13 .h13-weekly .weekly-apps h3 {
+  display: block;
+  margin: 4px 0 2px;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .h13-weekly .weekly-app-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+#shelf.shelf13 .h13-weekly .weekly-app-row small {
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .h13-weekly > button {
+  align-self: flex-start;
+  height: 28px;
+  min-height: 0;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--v10-ink);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+/* the cards a little smaller than in the app window, and side by side where they are tall */
+#shelf.shelf13 .h13-wscard,
+#shelf.shelf13 .h13-weekly {
+  zoom: 0.86;
+  max-height: 420px;
+  overflow-y: auto;
+  /* a thin bar in its own lane: it never covers the cards' right edge */
+  scrollbar-gutter: stable;
+  padding-right: 6px;
+}
+#shelf.shelf13 .h13-wscard::-webkit-scrollbar,
+#shelf.shelf13 .h13-weekly::-webkit-scrollbar {
+  width: 6px;
+}
+#shelf.shelf13 .h13-wscard::-webkit-scrollbar-track,
+#shelf.shelf13 .h13-weekly::-webkit-scrollbar-track {
+  background: transparent;
+}
+#shelf.shelf13 .h13-wscard::-webkit-scrollbar-thumb,
+#shelf.shelf13 .h13-weekly::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+#shelf.shelf13 .h13-wscard::-webkit-scrollbar-thumb:hover,
+#shelf.shelf13 .h13-weekly::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+#shelf.shelf13 .h13-wscard::-webkit-scrollbar-button,
+#shelf.shelf13 .h13-weekly::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+}
+#shelf.shelf13 .h13-wscard .ws-card-head {
+  zoom: 1.16;
+}
+#shelf.shelf13 .h13-wscard .ws-calendar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  column-gap: 22px;
+  align-items: start;
+}
+#shelf.shelf13 .h13-wscard .ws-calendar > .ws-cal-nav {
+  grid-column: 1;
+  grid-row: 1;
+}
+#shelf.shelf13 .h13-wscard .ws-calendar > .ws-cal-grid {
+  grid-column: 1;
+  grid-row: 2;
+}
+#shelf.shelf13 .h13-wscard .ws-calendar > .ws-cal-sep {
+  display: none;
+}
+#shelf.shelf13 .h13-wscard .ws-calendar > .ws-cal-list-head {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+  align-self: center;
+}
+#shelf.shelf13 .h13-wscard .ws-calendar > .ws-cal-list {
+  grid-column: 2;
+  grid-row: 2;
+}
+#shelf.shelf13 .h13-wscard .ws-day-cell {
+  min-height: 0;
+  height: 30px;
+}
+#shelf.shelf13 .h13-wscard .ws-home-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding-top: 0;
+  border-top: 0;
+}
+#shelf.shelf13 .h13-wscard .ws-ht {
+  min-height: 0;
+  padding: 12px 12px 10px;
+}
+#shelf.shelf13 .h13-wscard .ws-ht-icon svg {
+  width: 22px;
+  height: 22px;
+}
+#shelf.shelf13 .h13-weekly .weekly-grid {
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+}
+/* the same quiet bar for lists inside the borrowed cards */
+#shelf.shelf13 .h13-wscard *::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+#shelf.shelf13 .h13-wscard *::-webkit-scrollbar-track {
+  background: transparent;
+}
+#shelf.shelf13 .h13-wscard *::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+#shelf.shelf13 .h13-wscard *::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+}
+#shelf.shelf13 .h13-wscard,
+#shelf.shelf13 .h13-wscard *,
+#shelf.shelf13 .h13-weekly {
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+}
+
+/* ==========================================================================
+   v0.9.14 unslop pass — island and the app window
+   ========================================================================== */
+/* hierarchy from size, not from heavy weights: nothing above 600 */
+:where(#shelf, #notch, #workspace) :where(strong, b, h1, h2, h3) {
+  font-weight: 600;
+}
+/* section labels: sentence case, no wide tracking */
+#shelf.shelf13 .h13-sec-title,
+#shelf.shelf13 .cp13-sec,
+#shelf.shelf13 .conv13 .conv-group-name,
+.ws-tools13 .h13-sec-title,
+.ws-tools13 .conv13 .conv-group-name,
+#workspace .ws-form-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+#shelf.shelf13 .h13-weekly .weekly-apps h3 {
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+/* one accent: Spotify green stays on its logo and status dot; the idle play button is cream */
+#shelf.shelf13 .h13-music.idle .music-start {
+  background: var(--v10-cream);
+  color: #1b1712;
+}
+#shelf.shelf13 .h13-music .music-toggle[aria-pressed='true'] {
+  color: var(--v10-cream);
+}
+/* mail avatars: one neutral, not a colour per row */
+.ws-avatar,
+.ws-mail-row:nth-child(2) .ws-avatar,
+.ws-mail-row:nth-child(3) .ws-avatar {
+  background: rgba(255, 255, 255, 0.07);
+  color: #e6e3df;
+}
+/* the app window's play button matches the island's: a cream disc */
+#workspace .ws-play {
+  border: 0 !important;
+  background: var(--ws-accent) !important;
+  color: var(--ws-accent-ink) !important;
+}
+#workspace .ws-play:hover {
+  filter: brightness(1.06);
+}
+/* the app window's message box: the field keeps room for its text */
+.ws-ask {
+  gap: 6px;
+}
+.ws-ask input {
+  min-width: 160px;
+}
+.ws-model {
+  flex: 0 1 auto;
+  max-width: 132px;
+}
+#shelf.shelf13 .share-sheet .share-peers-head small,
+.ws-tools13 .share-peers-head small {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+/* the app window's scroll bars: the same quiet bar as the island's */
+#workspace ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+#workspace ::-webkit-scrollbar-track {
+  background: transparent;
+}
+#workspace ::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+#workspace ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+#workspace ::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+}
+#workspace .ws-tree,
+#workspace .ws-home,
+body.workspace .ws-chat-body #feed,
+#workspace .ws-panel-body,
+.ws-modal-body {
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+}
+.ws-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+.ws-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ws-modal-body::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.ws-modal-body::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+}
+/* borrowed cards' title rows: no rule under them, and their parts keep apart */
+#shelf.shelf13 .h13-wscard .ws-card-head {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  gap: 12px;
+}
+#shelf.shelf13 .h13-wscard .ws-home-head {
+  align-items: center !important;
+}
+#shelf.shelf13 .h13-wscard .ws-head-text {
+  flex: none;
+}

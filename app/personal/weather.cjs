@@ -28,10 +28,11 @@ class Weather {
         '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code' +
         '&hourly=temperature_2m,weather_code,precipitation_probability' +
         '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max' +
-        '&forecast_days=5&timezone=auto',
+        '&forecast_days=6&timezone=auto',
     );
     const d = r.daily || {};
-    const days = (Array.isArray(d.time) ? d.time : []).slice(0, 5).map((date, i) => {
+    // v0.9.14: today and the next five days (the panel shows the five after today)
+    const days = (Array.isArray(d.time) ? d.time : []).slice(0, 6).map((date, i) => {
       const code = Number(d.weather_code?.[i]);
       const [text, emoji] = split(describe(code));
       const num = (v) => (Number.isFinite(v) ? Math.round(v) : null);

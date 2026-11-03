@@ -104,7 +104,7 @@ test('converter: TXT → PDF has text, PDF → Word is offered', async () => {
 test('converter card: no dashed frame left after a drop; a finished sheet closes with the island', () => {
   const shelf = read('src/island/shelf.ts');
   // v0.9.2: one tracker clears every drop card (convert and share)
-  assert.match(shelf, /api\.onConvertDrop\?\.\(\(\) => \{\s*clearDropTargets\(\);/);
+  assert.match(shelf, /api\.onConvertDrop\?\.\(\(\) => \{\s*tileDropped = true;\s*clearDropTargets\(\);/);
   assert.match(shelf, /!converter\.running\(\) && !share\.busy\(\)\)\)\)\s*closeSheet\(\)/);
 });
 

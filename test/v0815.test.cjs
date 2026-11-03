@@ -31,7 +31,8 @@ test('weather: smaller day cards with room below them', () => {
   const css = read('public/styles/23-v0815.css');
   assert.match(css, /#shelf \.weather-day-sky \{/);
   assert.match(css, /#shelf \.shelf-sheet\[data-kind='weather'\] \{\s*padding: 6px 10px 10px;/);
-  assert.match(read('src/island/shelf.ts'), /'weather-day-sky',/);
+  // v0.9.14: the weather view moved to src/island/weather-view.ts
+  assert.match(read('src/island/weather-view.ts'), /'weather-day-sky',/);
   assert.match(read('public/index.html'), /styles\/23-v0815\.css/);
 });
 

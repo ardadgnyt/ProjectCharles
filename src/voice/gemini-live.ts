@@ -35,6 +35,25 @@ export function geminiLiveUI(api: any, notice: (s: string) => void, busy: () => 
   };
   let level = 0,
     meterFrame = 0;
+  // v0.9.14: the island's big voice button moves with the sound (your voice and Charles')
+  let analyser: AnalyserNode | null = null,
+    pulseFrame = 0;
+  const wave = new Float32Array(512);
+  function pulse() {
+    pulseFrame = 0;
+    let out = 0;
+    if (analyser) {
+      analyser.getFloatTimeDomainData(wave);
+      let sum = 0;
+      for (const v of wave) sum += v * v;
+      out = Math.min(1, Math.sqrt(Math.sqrt(sum / wave.length) / 0.12));
+    }
+    const mine = Math.min(1, level);
+    const value = active ? Math.max(mine, out) : 0;
+    // who is talking: Charles (the answer playing) or you (the microphone)
+    document.dispatchEvent(new CustomEvent('charles-live-level', { detail: { level: value, charles: active && out > 0.08 && out >= mine } }));
+    if (active) pulseFrame = requestAnimationFrame(pulse);
+  }
   const bars = [...meter.children] as HTMLElement[];
   const SHAPE = [0.45, 0.7, 0.9, 1, 0.9, 0.7, 0.45];
   function drawMeter() {
@@ -215,6 +234,8 @@ export function geminiLiveUI(api: any, notice: (s: string) => void, busy: () => 
     void input?.close();
     void output?.close();
     input = output = null;
+    analyser = null;
+    document.dispatchEvent(new CustomEvent('charles-live-level', { detail: { level: 0, charles: false } }));
     mic.disabled = false;
     mic.setAttribute('aria-pressed', 'false');
     mic.setAttribute('aria-label', 'Konuş');
@@ -237,6 +258,7 @@ export function geminiLiveUI(api: any, notice: (s: string) => void, busy: () => 
     const token = ++generation;
     active = true;
     document.body.dataset.liveVoice = 'active';
+    if (!pulseFrame) pulseFrame = requestAnimationFrame(pulse);
     callState('Sesli görüşme · Bağlanıyor');
     // The button stays usable: a second press while connecting cancels the call.
     mic.setAttribute('aria-pressed', 'true');
@@ -246,6 +268,9 @@ export function geminiLiveUI(api: any, notice: (s: string) => void, busy: () => 
     let early: MediaStream | null = null;
     try {
       output = new AudioContext({ sampleRate: 24000 });
+      analyser = output.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.connect(output.destination);
       // Microphone and Gemini connection are prepared in parallel.
       const micReady = api
         .liveVoiceArm()
@@ -414,7 +439,7 @@ export function geminiLiveUI(api: any, notice: (s: string) => void, busy: () => 
       for (let i = 0; i < data.length; i++) data[i] = view.getInt16(i * 2, true) / 32768;
       const s = output.createBufferSource();
       s.buffer = buffer;
-      s.connect(output.destination);
+      s.connect(analyser || output.destination);
       playing.add(s);
       s.onended = () => {
         playing.delete(s);

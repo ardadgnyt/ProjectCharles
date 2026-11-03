@@ -50,11 +50,13 @@ const desktop = new Desktop(shell);
 const { Startup } = require('./core/startup.cjs');
 const { Library } = require('./files/library.cjs');
 const { Capture } = require('./system/capture.cjs');
+const { ColorPick } = require('./system/color-pick.cjs');
 const { conversationTools } = require('./ai/conversation-tools.cjs');
 const { normalize } = require('./system/desktop.cjs');
 let startup,
   library,
   capture,
+  colorPick,
   companion,
   v2,
   layoutTimer,
@@ -126,6 +128,9 @@ let win,
   chatOpen = false,
   shelfHeld = false,
   shelfHeight = 220,
+  // v0.9.14: a tool (timer, colour picker) wants the closed notch: '' | 'timer' | 'color' | 'done'
+  notchTool = '',
+  focusQuiet = false,
   // v0.8.11: the closed notch is wide (Slime + music controls) only while music plays
   // v0.8.13: there is no other closed notch: with nothing playing the closed island is the thin
   // hidden strip. musicState: 'playing' | 'paused' | 'none'
@@ -578,7 +583,7 @@ function whatsappLive() {
       mailBubble?.upsert({ id: 'wa|' + m.chat, kind: 'whatsapp', ...item, quickReplies: waLive.settings.quickReplies }, { update: !!update });
       // Slime notices: a little happy face and a sound, like a new mail
       // v0.9.13: not for messages that arrived while Charles was closed (they show quietly)
-      if (!update && !quiet && win && !win.isDestroyed()) win.webContents.send('whatsapp-message', { name: m.name });
+      if (!update && !quiet && !focusQuiet && win && !win.isDestroyed()) win.webContents.send('whatsapp-message', { name: m.name });
     });
   }
   return waLive;
@@ -816,7 +821,7 @@ function position(animate = false) {
     return;
   }
   // v0.8.13: closed with no music → straight into the hidden strip (no Slime-only notch)
-  if (!expanded && !notchMusic) hidden = true;
+  if (!expanded && !notchMusic && !notchTool) hidden = true;
   const pref = extras?.prefs.screen;
   const display =
     pref === 'cursor'
@@ -828,7 +833,7 @@ function position(animate = false) {
     expanded,
     hidden,
     chat: chatOpen,
-    music: notchMusic,
+    music: notchMusic || !!notchTool,
     side: v2?.data.side || 'center',
     height: v2?.data.height || 620,
     scale,
@@ -1575,6 +1580,7 @@ else {
             !mailBubble?.contains(screen.getCursorScreenPoint()) &&
             Date.now() > dropHeldUntil &&
             !capture?.busy &&
+            !colorPick?.busy &&
             !voiceHeld &&
             !agent.requests.size
           )
@@ -2289,6 +2295,40 @@ else {
         }
         return true;
       });
+      // v0.9.14: Araçlar → Renk seçici → "Ekrandan seç"
+      colorPick = new ColorPick(win, () => v2?.data?.language || 'tr');
+      // v0.9.14: the screen picture helper starts ahead of time (the picker opens at once)
+      if (!demo) {
+        const grab = require('./system/screen-grab.cjs');
+        setTimeout(() => grab.warm(), 6000);
+        app.once('before-quit', () => grab.stopGrabber());
+      }
+      safeHandler('color-pick', async () => {
+        if (demo) return null;
+        try {
+          return await colorPick.pick();
+        } finally {
+          lastInside = Date.now();
+        }
+      });
+      // v0.9.14: the timer / colour picker on the closed notch ('' clears it)
+      safeHandler('notch-tool', (value) => {
+        const next = ['timer', 'color', 'done'].includes(value) ? value : '';
+        const was = notchTool;
+        notchTool = next;
+        if (!expanded && !detached && !workspace && !pluginGuide) {
+          if (next && hidden) expand(false);
+          else if (!next && was && !notchMusic && !hidden) restStrip();
+          else if (next !== was) position(false);
+        }
+        return notchTool;
+      });
+      // v0.9.14: "Bildirimleri sustur" while a focus session runs: cards wait, no sounds
+      safeHandler('focus-quiet', (value) => {
+        focusQuiet = !!value;
+        mailBubble?.hold(focusQuiet);
+        return focusQuiet;
+      });
       capture = new Capture(root, win, async (bytes) => {
         expand(true, true);
         win.webContents.send('capture-attachment', ingestImage(bytes));
@@ -2448,7 +2488,7 @@ else {
         musicState = state;
         notchMusic = state !== 'none';
         if (!expanded && !detached && !workspace && !pluginGuide) {
-          if (state === 'none' && !hidden) restStrip();
+          if (state === 'none' && !hidden && !notchTool) restStrip();
           // a song starting shows the music notch (also out of the hidden strip)
           else if (started && hidden) expand(false);
         }
@@ -3715,7 +3755,7 @@ else {
           lastInside = Date.now();
         } else if (inside) {
           lastInside = Date.now();
-          if (hidden && notchMusic) {
+          if (hidden && (notchMusic || notchTool)) {
             // music playing or paused: the strip wakes into the music notch
             expand(false);
             win.webContents.send('character-peek');
@@ -3733,6 +3773,7 @@ else {
           !expanded &&
           !detached &&
           musicState !== 'playing' &&
+          !notchTool &&
           !voiceHeld &&
           !dialogOpen &&
           Date.now() > dropHeldUntil &&
@@ -3746,6 +3787,7 @@ else {
           !chatOpen &&
           !panelPinned &&
           !shelfHeld &&
+          !voiceHeld &&
           !dialogOpen &&
           Date.now() > dropHeldUntil &&
           Date.now() - lastInside > 2500

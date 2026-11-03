@@ -1,6 +1,7 @@
 // v0.7.7: the customizable home page of the app window — which cards, in which column and
 // order, plus the contents of the "Notlar" and "Hızlı komutlar" cards (companion.json).
-const CARDS = ['music', 'reminders', 'calendar', 'mail', 'ask', 'home', 'usage', 'commands', 'notes', 'sysusage', 'sysinfo', 'modules'];
+// v0.9.14: colours, timer, files (convert / send) and weather
+const CARDS = ['music', 'reminders', 'calendar', 'mail', 'ask', 'home', 'usage', 'commands', 'notes', 'sysusage', 'sysinfo', 'modules', 'colors', 'timer', 'files', 'weather'];
 // v0.8.0: AIs the "Kalan kullanım" card can show (null = every connected one)
 const USAGE_PROVIDERS = ['gpt', 'claude', 'gemini', 'cursor', 'abacus', 'evren'];
 // same rule as a module manifest's id (app/modules/manifest.cjs)

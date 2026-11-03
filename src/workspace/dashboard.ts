@@ -11,6 +11,9 @@ import { t } from '../settings/i18n';
 import { commandsCard, notesCard, systemUsageCard, systemInfoCard } from './extra-cards';
 import { modulesCard } from './modules-card';
 import { dashEditor } from './dash-edit';
+import { hub, type FilesSub } from '../island/tools-hub';
+import { usageNote } from '../island/usage-all';
+import { weatherView } from '../island/weather-view';
 
 export type DashboardDeps = {
   api: any;
@@ -364,6 +367,26 @@ export function workspaceDashboard(d: DashboardDeps) {
   const homeView = homeCard({ api, notice: d.notice, openSettings: d.openSettings });
   const home = homeView.element;
   const loadHome = (force = false) => homeView.load(force);
+  // v0.9.14: the same cards in the island's Araçlar (the app window takes them back when it opens)
+  const readPersonal = async () => {
+    try {
+      personal = await api.personalRead();
+    } catch {}
+    paintReminders();
+    paintCalendar();
+  };
+  hub.cards = {
+    reminders: { element: reminders, load: () => void readPersonal() },
+    calendar: { element: calendar, load: () => void readPersonal().then(() => loadCalendar(true)) },
+    mail: {
+      element: mail,
+      load: () => {
+        mailMode = 'important';
+        void loadMail();
+      },
+    },
+    home: { element: home, load: () => void loadHome(true) },
+  };
 
   // ── Remaining usage: rings like the island (5 hours and week) ──────────────
   const usageRefresh = iconButton('refresh', 'Yenile', () => void loadUsage(true));
@@ -561,13 +584,13 @@ export function workspaceDashboard(d: DashboardDeps) {
           setRing(c.week, u.weekly, u.labels?.weekly || 'Haftalık');
           c.note.textContent =
             !u.fiveHour && !u.weekly
-              ? u.unavailable || 'Bilgi yok'
+              ? usageNote(u.unavailable, 'Bilgi yok')
               : u.stale
                 ? 'Son bilinen değer'
                 : u.note || '';
         } catch (err) {
           c.col.classList.add('off');
-          c.note.textContent = (err as Error).message.slice(0, 60);
+          c.note.textContent = usageNote((err as Error).message, 'Bilgi yok');
         }
       }),
     );
@@ -585,6 +608,76 @@ export function workspaceDashboard(d: DashboardDeps) {
   const sysUsage = systemUsageCard(extra);
   const sysInfo = systemInfoCard(extra);
   const modules = modulesCard({ api, notice: d.notice, openSettings: d.openSettings, save: saveDash });
+
+  // ── v0.9.14: Renk seçici, Zamanlayıcı, Dosyalar and Hava durumu ─────────────
+  // The colour picker, the timer, the converter and the sender are the island's own (one of
+  // each, src/island/tools-hub.ts): these cards show them while the app window is open.
+  const toolSlot = () => el('span', 'ws-tool-slot');
+  const colorsSlot = toolSlot(), timerSlot = toolSlot();
+  const colorsCard = cardShell('ws-colors ws-tools13', 'pipette', 'Renk seçici', colorsSlot);
+  const colorsBody = el('div', 'ws-tool-body');
+  colorsCard.append(colorsBody);
+  const timerCard = cardShell('ws-timer ws-tools13', 'timer', 'Zamanlayıcı', timerSlot);
+  const timerBody = el('div', 'ws-tool-body');
+  timerCard.append(timerBody);
+  const filesSeg = el('div', 'h13-seg ws-files-seg');
+  const filesTools = toolSlot();
+  const filesCard = cardShell('ws-files ws-tools13', 'folder', 'Dosyalar', filesTools, filesSeg);
+  const filesBody = el('div', 'ws-tool-body');
+  filesCard.append(filesBody);
+  let filesSub: FilesSub = 'convert';
+  let shareClose: (() => void) | null = null;
+  const segB = (sub: FilesSub, text: string) => {
+    const b = el('button', 'h13-seg-btn', text);
+    b.type = 'button';
+    b.onclick = () => (sub === 'share' ? hub.share?.open() : showFiles('convert'));
+    b.dataset.sub = sub;
+    return b;
+  };
+  filesSeg.append(segB('convert', 'Dönüştür'), segB('share', 'Gönder'));
+  function showFiles(sub: FilesSub, onClose?: () => void) {
+    if (sub !== 'share' && shareClose) {
+      const done = shareClose;
+      shareClose = null;
+      done();
+    }
+    if (onClose) shareClose = onClose;
+    filesSub = sub;
+    for (const b of filesSeg.querySelectorAll<HTMLElement>('.h13-seg-btn')) b.classList.toggle('on', b.dataset.sub === sub);
+    const part = sub === 'share' ? hub.share : hub.converter;
+    if (part) filesBody.replaceChildren(part.root);
+    filesTools.replaceChildren(...(sub === 'share' && hub.share ? [hub.share.receive] : []));
+  }
+  const weatherCard = cardShell('ws-weather ws-tools13', 'thermo', 'Hava durumu');
+  const wsWeather = weatherView(api, () => document.getElementById('weather-idle')?.click());
+  weatherCard.append(wsWeather.root);
+  /** The shared tools move into their cards (the app window is open and the card is on it). */
+  function mountTools() {
+    if (!visible) return;
+    if (placed('colors') && hub.color) {
+      colorsBody.replaceChildren(hub.color.root);
+      colorsSlot.replaceChildren(hub.color.action);
+    }
+    if (placed('timer') && hub.timer) {
+      timerBody.replaceChildren(hub.timer.root);
+      timerSlot.replaceChildren(hub.timer.tabs);
+      hub.timer.open();
+    }
+    if (placed('files')) showFiles(filesSub);
+    hub.filesHost = (sub, onClose) => {
+      if (!visible || !placed('files')) return false;
+      showFiles(sub, onClose);
+      return true;
+    };
+  }
+  function releaseTools() {
+    hub.filesHost = null;
+    if (shareClose) {
+      const done = shareClose;
+      shareClose = null;
+      done();
+    }
+  }
   let dash: any = null;
   const editor = dashEditor({
     root,
@@ -602,6 +695,10 @@ export function workspaceDashboard(d: DashboardDeps) {
       { id: 'sysusage', title: 'Sistem kullanımı', text: 'İşlemci, bellek ve disk doluluğu', icon: 'bolt', element: sysUsage.element, placed: (v) => (v && visible ? sysUsage.start() : sysUsage.stop()) },
       { id: 'sysinfo', title: 'Sistem bilgileri', text: 'Windows sürümü, işlemci, bellek, ekran', icon: 'window', element: sysInfo.element, placed: (v) => v && visible && void sysInfo.load() },
       { id: 'modules', title: 'Modüller', text: 'Yüklü modüllerin, hızlı açma tuşlarıyla', icon: 'puzzle', element: modules.element, placed: (v) => v && visible && void modules.load() },
+      { id: 'colors', title: 'Renk seçici', text: 'Ekrandan renk al, HEX · RGB · HSL olarak kopyala', icon: 'pipette', element: colorsCard, placed: (v) => v && mountTools() },
+      { id: 'timer', title: 'Zamanlayıcı', text: 'Odak modu, mola, geri sayım ve kronometre', icon: 'timer', element: timerCard, placed: (v) => v && mountTools() },
+      { id: 'files', title: 'Dosyalar', text: 'Dosya dönüştür veya yakındaki cihaza gönder', icon: 'folder', element: filesCard, placed: (v) => v && mountTools() },
+      { id: 'weather', title: 'Hava durumu', text: 'Şimdi, saatlik tahmin ve 5 gün', icon: 'thermo', element: weatherCard, placed: (v) => v && visible && wsWeather.load() },
     ],
     save: async (cols) => {
       try {
@@ -648,10 +745,17 @@ export function workspaceDashboard(d: DashboardDeps) {
     element: root,
     show() {
       visible = true;
+      // the cards the island borrowed for Araçlar come back to their columns
+      editor.set(editor.layout());
       void loadDash().then(() => {
         if (visible && placed('sysusage')) sysUsage.start();
       });
       void loadAll();
+      window.setTimeout(() => {
+        mountTools();
+        if (placed('weather')) wsWeather.load();
+      }, 0);
+      timers.push(window.setInterval(() => visible && placed('weather') && wsWeather.load(), 30 * 60000));
       timers.push(window.setInterval(() => visible && tick(), 1000));
       timers.push(window.setInterval(() => visible && placed('mail') && void loadMail(), 30000));
       timers.push(window.setInterval(() => visible && void loadAll(), 300000));
@@ -659,6 +763,7 @@ export function workspaceDashboard(d: DashboardDeps) {
     },
     hide() {
       visible = false;
+      releaseTools();
       sysUsage.stop();
       void notes.flush();
       editor.setEditing(false);

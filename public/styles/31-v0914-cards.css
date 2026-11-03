@@ -1,0 +1,1252 @@
+/* GENERATED (v0.9.14): the island's converter / sender / weather / usage styles for the app
+   window's cards (.ws-tools13). The originals are scoped to #shelf; see 18–30. */
+.ws-tools13 .conv {
+  display: grid;
+  grid-template-columns: minmax(0, 280px) minmax(0, 1fr) 210px;
+  gap: 18px;
+  min-height: 0;
+}
+.ws-tools13 .conv-files {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+.ws-tools13 .conv-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.ws-tools13 .conv-kind {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 15px;
+  background: linear-gradient(160deg, rgba(237, 201, 169, 0.22), rgba(237, 201, 169, 0.06));
+  border: 1px solid rgba(237, 201, 169, 0.2);
+  color: var(--v10-cream);
+}
+.ws-tools13 .conv-kind svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ws-tools13 .conv-file-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+.ws-tools13 .conv-file-text strong {
+  font-size: 14.5px;
+  font-weight: 650;
+  color: var(--v10-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ws-tools13 .conv-file-text small {
+  font-size: 12px;
+  color: var(--v10-muted);
+}
+.ws-tools13 .conv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: auto;
+  min-height: 0;
+  padding-right: 4px;
+}
+.ws-tools13 .conv-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 8px;
+  font-size: 11.5px;
+  color: #cfcbc5;
+}
+.ws-tools13 .conv-row-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ws-tools13 .conv-row-state {
+  color: var(--v10-muted);
+  white-space: nowrap;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ws-tools13 .conv-row-bar {
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.ws-tools13 .conv-row-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--v10-cream);
+  transition: width 0.3s;
+}
+.ws-tools13 .conv-row.ok .conv-row-state {
+  color: #9bd8a4;
+}
+.ws-tools13 .conv-row.ok .conv-row-bar i {
+  background: #8fcf99;
+}
+.ws-tools13 .conv-row.failed .conv-row-state {
+  color: #ec9a8e;
+}
+.ws-tools13 .conv-row.failed .conv-row-bar i {
+  background: #ec9a8e;
+}
+.ws-tools13 .conv-row-single .conv-row-name {
+  display: none;
+}
+.ws-tools13 .conv-row-single .conv-row-state {
+  grid-column: 1 / -1;
+  max-width: none;
+}
+.ws-tools13 .conv:not(.running):not(.done) .conv-row-single {
+  display: none;
+}
+.ws-tools13 .conv-formats {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+}
+.ws-tools13 .conv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.ws-tools13 .conv-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+.ws-tools13 .conv-group-name {
+  margin-right: 3px;
+  font-size: 11px;
+  color: var(--v10-faint);
+}
+.ws-tools13 .conv-chip {
+  height: 29px;
+  min-height: 0;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e6e2dc;
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    transform 0.15s;
+}
+.ws-tools13 .conv-chip:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+}
+.ws-tools13 .conv-chip.on {
+  background: var(--v10-cream);
+  border-color: transparent;
+  color: #1b1712;
+}
+.ws-tools13 .conv-chip:disabled:not(.on) {
+  opacity: 0.45;
+}
+.ws-tools13 .conv-opts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.ws-tools13 .conv-opts:empty {
+  display: none;
+}
+.ws-tools13 .conv-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #d8d4ce;
+}
+.ws-tools13 .conv-opt > small {
+  color: var(--v10-faint);
+  font-size: 11px;
+}
+.ws-tools13 .conv-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.ws-tools13 .conv-seg-btn {
+  height: 24px;
+  min-height: 0;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #bdb9b3;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ws-tools13 .conv-seg-btn.on {
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+}
+.ws-tools13 .conv-select {
+  height: 28px;
+  min-height: 0;
+  padding: 0 26px 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.ws-tools13 .conv-check input {
+  accent-color: var(--v10-cream);
+}
+.ws-tools13 .conv-note,
+.ws-tools13 .conv-empty {
+  font-size: 11.5px;
+  color: var(--v10-muted);
+  margin: 0;
+}
+.ws-tools13 .conv-action {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+.ws-tools13 .conv-go,
+.ws-tools13 .conv-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 0;
+  border-radius: 999px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.ws-tools13 .conv-go {
+  height: 46px;
+  border: 0;
+  background: var(--v10-cream);
+  color: #1b1712;
+  font-size: 15px;
+  box-shadow: 0 8px 22px -12px rgba(237, 201, 169, 0.7);
+}
+.ws-tools13 .conv-go:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.ws-tools13 .conv-go:disabled {
+  opacity: 0.45;
+  cursor: default;
+  box-shadow: none;
+}
+.ws-tools13 .conv-ghost {
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #d8d4ce;
+  font-size: 13px;
+}
+.ws-tools13 .conv-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+.ws-tools13 .conv-go svg,
+.ws-tools13 .conv-ghost svg,
+.ws-tools13 .conv-result svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ws-tools13 .conv-progress-label {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--v10-muted);
+}
+.ws-tools13 .conv.running .conv-progress-label::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  vertical-align: -1px;
+  border-radius: 50%;
+  border: 2px solid rgba(237, 201, 169, 0.25);
+  border-top-color: var(--v10-cream);
+  animation: v10-spin 0.8s linear infinite;
+}
+.ws-tools13 .conv-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 650;
+  color: #a6e0ae;
+}
+.ws-tools13 .conv {
+  grid-template-columns: minmax(0, 170px) minmax(0, 1fr) 132px;
+  gap: 12px;
+}
+.ws-tools13 .conv-file {
+  gap: 8px;
+}
+.ws-tools13 .conv-kind {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.ws-tools13 .conv-kind svg {
+  width: 17px;
+  height: 17px;
+}
+.ws-tools13 .conv-file-text strong {
+  font-size: 12px;
+}
+.ws-tools13 .conv-file-text small {
+  font-size: 10.5px;
+}
+.ws-tools13 .conv-row {
+  font-size: 10px;
+}
+.ws-tools13 .conv-chips {
+  gap: 5px 10px;
+}
+.ws-tools13 .conv-group {
+  gap: 4px;
+}
+.ws-tools13 .conv-group-name {
+  font-size: 9.5px;
+}
+.ws-tools13 .conv-chip {
+  height: 22px;
+  padding: 0 9px;
+  font-size: 10.5px;
+}
+.ws-tools13 .conv-formats {
+  gap: 5px;
+}
+.ws-tools13 .conv-opts {
+  gap: 4px 10px;
+}
+.ws-tools13 .conv-opt {
+  font-size: 10.5px;
+  gap: 5px;
+}
+.ws-tools13 .conv-opt > small {
+  font-size: 9.5px;
+}
+.ws-tools13 .conv-seg-btn {
+  height: 20px;
+  padding: 0 7px;
+  font-size: 10.5px;
+}
+.ws-tools13 .conv-select {
+  height: 22px;
+  padding: 0 20px 0 8px;
+  font-size: 10.5px;
+}
+.ws-tools13 .conv-action {
+  gap: 5px;
+}
+.ws-tools13 .conv-go {
+  height: 34px;
+  font-size: 12.5px;
+  gap: 6px;
+}
+.ws-tools13 .conv-ghost {
+  height: 26px;
+  font-size: 11px;
+  gap: 5px;
+}
+.ws-tools13 .conv-go svg,
+.ws-tools13 .conv-ghost svg,
+.ws-tools13 .conv-result svg {
+  width: 13px;
+  height: 13px;
+}
+.ws-tools13 .conv-progress-label,
+.ws-tools13 .conv-result {
+  font-size: 11.5px;
+}
+.ws-tools13 .conv-note,
+.ws-tools13 .conv-empty {
+  font-size: 10px;
+}
+.ws-tools13 .conv-formats {
+  gap: 4px;
+}
+.ws-tools13 .conv-chips {
+  gap: 4px 10px;
+}
+.ws-tools13 .conv-chip {
+  height: 21px;
+}
+.ws-tools13 .conv-list {
+  gap: 3px;
+}
+.ws-tools13 .conv-files .conv-opts {
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+.ws-tools13 .conv-files .conv-opt {
+  gap: 4px;
+}
+.ws-tools13 .conv-files .conv-select {
+  height: 21px;
+  padding: 0 18px 0 7px;
+  font-size: 10.5px;
+}
+.ws-tools13 .conv-files .conv-check {
+  font-size: 10px;
+}
+.ws-tools13 .conv.running .conv-files .conv-opts,
+.ws-tools13 .conv.done .conv-files .conv-opts {
+  display: none;
+}
+.ws-tools13 .conv-files .conv-list {
+  flex: 1;
+}
+.ws-tools13 .share-sheet {
+  display: grid;
+  grid-template-columns: minmax(142px, 27%) minmax(0, 1fr);
+  gap: 12px;
+  width: 100%; height: 100%; min-height: 0;
+  color: var(--v10-ink, #f4f3f0);
+  font-size: 11px;
+  line-height: 1.35;
+  overflow: hidden;
+}
+.ws-tools13 .share-sheet *,
+.ws-tools13 .share-sheet *::before { box-sizing: border-box;
+}
+.ws-tools13 .share-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;
+}
+.ws-tools13 .share-files { gap: 2px; padding-right: 10px; border-right: 1px solid #ffffff12; overflow-y: auto;
+}
+.ws-tools13 .share-sheet button { font: inherit; cursor: pointer; flex-shrink: 0; transition: background .15s, border-color .15s;
+}
+.ws-tools13 .share-sheet button:focus-visible { outline: 2px solid #a7caff; outline-offset: -2px;
+}
+.ws-tools13 .share-sheet button:hover { border-color: #ffffff38; background-color: #ffffff14;
+}
+.ws-tools13 .share-sheet svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+.ws-tools13 .share-pick-empty { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 30px; flex: 1; border: 1px dashed #ffffff2a; border-radius: 10px; background: #ffffff04; color: #e1e5ee; padding: 6px;
+}
+.ws-tools13 .share-file-head { display: flex; align-items: center; gap: 7px; min-width: 0;
+}
+.ws-tools13 .share-file-icon { display: grid; place-items: center; width: 27px; height: 27px; flex: none; color: #a7caff; background: #a7caff12; border-radius: 8px;
+}
+.ws-tools13 .share-file-meta { display: flex; align-items: baseline; gap: 5px; min-width: 0;
+}
+.ws-tools13 .share-file-head .share-file-icon { width: 22px; height: 22px;
+}
+.ws-tools13 .share-file-meta small { flex: none;
+}
+.ws-tools13 .share-file-meta strong { font-size: 11px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.ws-tools13 .share-file-meta small { color: #a2a7b3; font-size: 10px;
+}
+.ws-tools13 .share-file-actions,
+.ws-tools13 .share-transfer-btns { display: flex; gap: 5px; flex-wrap: wrap;
+}
+.ws-tools13 .share-mini-btn,
+.ws-tools13 .share-scan-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 22px; padding: 2px 7px; border: 1px solid #ffffff18; border-radius: 7px; color: #e1e5ee; background: #ffffff06; font-size: 10px !important;
+}
+.ws-tools13 .share-mini-btn svg { width: 11px; height: 11px;
+}
+.ws-tools13 .share-mode-box { margin-top: auto; display: flex; flex-direction: column; gap: 2px; flex: none;
+}
+.ws-tools13 .share-mode-head { display: flex; align-items: center; gap: 5px; min-width: 0; line-height: 10px;
+}
+.ws-tools13 .share-mode-dot { width: 5px; height: 5px; flex: none; border-radius: 50%; background: #7bd9ac;
+}
+.ws-tools13 .share-mode-dot.off { background: #858998;
+}
+.ws-tools13 .share-mode-dot.auto { background: #a7caff;
+}
+.ws-tools13 .share-mode-title { font-size: 9px; color: #b8bfcc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ws-tools13 .share-mode-seg { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); padding: 2px; gap: 2px; background: #00000024; border: 1px solid #ffffff0d; border-radius: 8px;
+}
+.ws-tools13 .share-mode-pill { min-width: 0; height: 18px; padding: 0 2px; border: 0; border-radius: 6px; color: #969dab; background: transparent; font-size: 9px !important;
+}
+.ws-tools13 .share-file-actions .share-mini-btn { min-height: 18px; padding: 0 6px;
+}
+.ws-tools13 .share-mode-pill.active { color: #e5edf9; background: #ffffff16;
+}
+.ws-tools13 .share-mode-pill.active.everyone { color: #9ce5bd; background: #7bd9ac16;
+}
+.ws-tools13 .share-mode-pill.active.auto { color: #b8d4ff; background: #a7caff16;
+}
+.ws-tools13 .share-center { gap: 5px;
+}
+.ws-tools13 .share-peers-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none;
+}
+.ws-tools13 .share-peers-head small { color: #b8bfcc; font-size: 10px;
+}
+.ws-tools13 .share-peers-list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #ffffff25 transparent;
+}
+.ws-tools13 .share-peers-empty { display: flex; align-items: center; gap: 10px; min-height: 42px; height: 100%; padding: 8px 12px; color: #a2a7b3; border: 1px solid #ffffff0d; border-radius: 10px; background: #080808; font-size: 10px;
+}
+.ws-tools13 .share-peers-empty svg { color: var(--v10-cream, #edc9a9); width: 20px; height: 20px;
+}
+.ws-tools13 .share-peer { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 6px 9px; border: 1px solid #ffffff12; border-radius: 10px; background: #ffffff04; color: #e1e5ee; text-align: left;
+}
+.ws-tools13 .share-peer.selected { border-color: #a7caff55;
+}
+.ws-tools13 .share-peer-icon { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; background: #ffffff08; color: #a7caff; flex: none;
+}
+.ws-tools13 .share-peer-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+}
+.ws-tools13 .share-peer-text strong { font-size: 11px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
+}
+.ws-tools13 .share-peer-text small { font-size: 9px; color: #969dab;
+}
+.ws-tools13 .share-peer-go { color: #a7caff;
+}
+.ws-tools13 .share-badge { flex: none; padding: 2px 6px; border-radius: 5px; font-size: 9px; font-weight: 500; white-space: nowrap;
+}
+.ws-tools13 .share-badge.quickshare { background: #a7caff12; color: #a7caff;
+}
+.ws-tools13 .share-badge.airdrop { background: #ffffff0a; color: #c9cad1;
+}
+.ws-tools13 .share-offer,
+.ws-tools13 .share-transfer { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: 1px solid #ffffff12; border-radius: 12px; background: #ffffff04; overflow-y: auto;
+}
+.ws-tools13 .share-offer { border-color: #a7caff45; background: #a7caff08;
+}
+.ws-tools13 .share-offer-top,
+.ws-tools13 .share-transfer-top { display: flex; align-items: center; gap: 7px; min-width: 0; flex: none;
+}
+.ws-tools13 .share-offer-top strong,
+.ws-tools13 .share-transfer-top strong { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600;
+}
+.ws-tools13 .share-pin { margin-left: auto; color: #b8d4ff; font: 600 10px ui-monospace, monospace; white-space: nowrap; flex: none;
+}
+.ws-tools13 .share-offer-files,
+.ws-tools13 .share-transfer-file { color: #aeb5c2; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none;
+}
+.ws-tools13 .share-offer-actions,
+.ws-tools13 .share-transfer-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; flex: none;
+}
+.ws-tools13 .share-offer-actions { justify-content: flex-end;
+}
+.ws-tools13 .share-transfer-foot > small { min-width: 0; font-size: 10px; color: #b8bfcc; overflow-wrap: anywhere;
+}
+.ws-tools13 .share-transfer.error .share-transfer-foot > small { color: #ffb6b6;
+}
+.ws-tools13 .share-transfer.done .share-transfer-foot > small { color: #9ce5bd;
+}
+.ws-tools13 .share-btn-primary,
+.ws-tools13 .share-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 26px; padding: 3px 12px; border: 1px solid #ffffff20; border-radius: 8px; font-size: 11px;
+}
+.ws-tools13 .share-btn-primary { background: #b8d4ff; color: #142238; border-color: transparent;
+}
+.ws-tools13 .share-btn-primary:hover { background: #d4e5ff !important;
+}
+.ws-tools13 .share-btn-ghost { background: transparent; color: #c5cbd6;
+}
+.ws-tools13 .share-bar { flex: none; height: 4px; width: 100%; border-radius: 8px; background: #ffffff0e; overflow: hidden;
+}
+.ws-tools13 .share-bar i { display: block; height: 100%; border-radius: inherit; background: #a7caff; transition: width .18s;
+}
+.ws-tools13 .share-sheet.over { outline: 1px dashed var(--v10-cream); outline-offset: -2px; border-radius: 10px; background: #edc9a908;
+}
+.ws-tools13 .h13-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+}
+.ws-tools13 .h13-sec-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.9px;
+  color: var(--v10-faint);
+}
+.ws-tools13 .h13-sec-tools {
+  display: flex;
+  gap: 2px;
+}
+.ws-tools13 .h13-icon-btn,
+.ws-tools13 .weather-change {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #b9b4ad;
+  cursor: pointer;
+}
+.ws-tools13 .h13-icon-btn:hover,
+.ws-tools13 .h13-icon-btn.on,
+.ws-tools13 .weather-change:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--v10-ink);
+}
+.ws-tools13 .h13-icon-btn svg,
+.ws-tools13 .weather-change svg {
+  width: 15px;
+  height: 15px;
+}
+.ws-tools13 .h13-icon-btn.spinning svg {
+  animation: h13-spin 0.8s linear infinite;
+}
+.ws-tools13 .h13-files-tools {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+.ws-tools13 .h13-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.ws-tools13 .h13-seg-btn {
+  height: 25px;
+  min-height: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #b3aea7;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+.ws-tools13 .h13-seg-btn:hover:not(.on) {
+  color: var(--v10-ink);
+  background: rgba(255, 255, 255, 0.05);
+}
+.ws-tools13 .h13-seg-btn.on {
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+}
+.ws-tools13 .conv.conv13 {
+  display: grid;
+  grid-template-columns: 206px minmax(0, 1fr);
+  gap: 13px;
+  min-height: 128px;
+}
+.ws-tools13 .conv13 .conv-left {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.ws-tools13 .conv13 .conv-file {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 12px;
+  background: var(--h13-well);
+}
+.ws-tools13 .conv13 .conv-kind {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.ws-tools13 .conv13 .conv-file-text strong {
+  font-size: 12.5px;
+}
+.ws-tools13 .conv13 .conv-file-text small {
+  font-size: 11px;
+}
+.ws-tools13 .conv13 .conv-list {
+  max-height: 64px;
+}
+.ws-tools13 .conv13 .conv-drop,
+.ws-tools13 .share-sheet .share-drop-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: 1;
+  min-height: 40px;
+  margin: 0;
+  padding: 7px 10px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  background: transparent;
+  color: #b9b4ad;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s,
+    color 0.15s;
+}
+.ws-tools13 .conv13 .conv-drop.big,
+.ws-tools13 .share-sheet .share-drop-area {
+  flex-direction: column;
+  min-height: 120px;
+}
+.ws-tools13 .conv13 .conv-drop:hover,
+.ws-tools13 .conv13 .conv-drop.over,
+.ws-tools13 .conv13.over .conv-drop,
+.ws-tools13 .share-sheet .share-drop-area:hover,
+.ws-tools13 .share-sheet.over .share-drop-area {
+  border-color: var(--v10-cream);
+  background: rgba(237, 201, 169, 0.05);
+  color: var(--v10-ink);
+}
+.ws-tools13 .conv13 .conv-drop svg,
+.ws-tools13 .share-sheet .share-drop-area svg {
+  width: 16px;
+  height: 16px;
+}
+.ws-tools13 .conv13 .conv-drop.big svg,
+.ws-tools13 .share-sheet .share-drop-area svg {
+  width: 20px;
+  height: 20px;
+  padding: 6px;
+  box-sizing: content-box;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+}
+.ws-tools13 .conv13.running .conv-drop,
+.ws-tools13 .conv13.done .conv-drop {
+  display: none;
+}
+.ws-tools13 .conv13 .conv-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.ws-tools13 .conv13 .conv-formats {
+  flex: 1;
+  overflow: visible;
+  padding: 0;
+}
+.ws-tools13 .conv13 .conv-formats-empty {
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.015);
+}
+.ws-tools13 .conv13 .conv-chips {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
+}
+.ws-tools13 .conv13 .conv-group {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+}
+.ws-tools13 .conv13 .conv-group-name {
+  margin: 0;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--v10-faint);
+}
+.ws-tools13 .conv13 .conv-group-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.ws-tools13 .conv13 .conv-chip {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+}
+.ws-tools13 .conv13 .conv-chip.on,
+.ws-tools13 .conv13 .conv-chip.on:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+}
+.ws-tools13 .conv13 .conv-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+}
+.ws-tools13 .conv13 .conv-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ws-tools13 .conv13 .conv-opts:empty {
+  display: block;
+}
+.ws-tools13 .conv13 .conv-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+.ws-tools13 .conv13 .conv-opt > small {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.4px;
+}
+.ws-tools13 .conv13 .conv-opt.conv-check {
+  flex-direction: row;
+  align-items: center;
+  align-self: flex-end;
+  height: 28px;
+}
+.ws-tools13 .conv13 .conv-select {
+  height: 28px;
+  min-width: 100px;
+  border-radius: 8px;
+  font-size: 11.5px;
+}
+.ws-tools13 .conv13 .conv-action {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-left: auto;
+}
+.ws-tools13 .conv13 .conv-go {
+  height: 34px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.ws-tools13 .conv13 .conv-ghost {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+.ws-tools13 .share-sheet {
+  grid-template-columns: 206px minmax(0, 1fr);
+  gap: 13px;
+  height: auto;
+  min-height: 128px;
+  font-size: 11.5px;
+  overflow: visible;
+}
+.ws-tools13 .share-sheet .share-files {
+  gap: 7px;
+  padding-right: 0;
+  border-right: 0;
+}
+.ws-tools13 .share-sheet .share-file-head {
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 12px;
+  background: var(--h13-well);
+}
+.ws-tools13 .share-sheet .share-file-head .share-file-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.ws-tools13 .share-sheet .share-file-meta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.ws-tools13 .share-sheet .share-file-meta strong {
+  max-width: 100%;
+  font-size: 12.5px;
+}
+.ws-tools13 .share-sheet .share-file-meta small {
+  font-size: 11px;
+}
+.ws-tools13 .share-sheet .share-file-actions .share-mini-btn,
+.ws-tools13 .share-sheet .share-mini-btn,
+.ws-tools13 .share-sheet .share-scan-btn {
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+}
+.ws-tools13 .share-sheet .share-mini-btn svg,
+.ws-tools13 .share-sheet .share-scan-btn svg {
+  width: 12px;
+  height: 12px;
+}
+.ws-tools13 .share-sheet .share-center {
+  gap: 7px;
+}
+.ws-tools13 .share-sheet .share-peers-head small {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.9px;
+  color: var(--v10-faint);
+}
+.ws-tools13 .share-sheet .share-peers-list {
+  flex: none;
+  max-height: 150px;
+  gap: 5px;
+}
+.ws-tools13 .share-sheet .share-peers-empty {
+  min-height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.015);
+  font-size: 11.5px;
+}
+.ws-tools13 .share-sheet .share-peer {
+  min-height: 46px;
+  padding: 6px 6px 6px 8px;
+  gap: 10px;
+  border-radius: 12px;
+  background: var(--h13-well);
+}
+.ws-tools13 .share-sheet .share-peer-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: var(--v10-cream);
+  background: rgba(237, 201, 169, 0.08);
+}
+.ws-tools13 .share-sheet .share-peer-icon svg {
+  width: 15px;
+  height: 15px;
+}
+.ws-tools13 .share-sheet .share-peer-text strong {
+  font-size: 12.5px;
+}
+.ws-tools13 .share-sheet .share-peer-text small {
+  font-size: 10.5px;
+  color: var(--v10-muted);
+}
+.ws-tools13 .share-sheet .share-peer-send {
+  flex: none;
+  height: 30px;
+  min-height: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+  font-size: 12px;
+  font-weight: 600;
+}
+.ws-tools13 .share-sheet .share-peer-send:hover {
+  background: var(--v10-cream) !important;
+  filter: brightness(1.06);
+}
+.ws-tools13 .share-sheet .share-peers-hint {
+  font-size: 10.5px;
+  color: var(--v10-faint);
+}
+.ws-tools13 .share-sheet .share-offer-top strong,
+.ws-tools13 .share-sheet .share-transfer-top strong {
+  font-size: 12.5px;
+}
+.ws-tools13 .share-sheet .share-offer-files,
+.ws-tools13 .share-sheet .share-transfer-file,
+.ws-tools13 .share-sheet .share-transfer-foot > small {
+  font-size: 11.5px;
+}
+.ws-tools13 .share-sheet .share-btn-primary,
+.ws-tools13 .share-sheet .share-btn-ghost {
+  min-height: 30px;
+  padding: 0 14px;
+  border-radius: 9px;
+  font-size: 12px;
+}
+.ws-tools13 .share-sheet .share-firewall small {
+  font-size: 10.5px;
+}
+.ws-tools13 .share-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 28px;
+  min-height: 0;
+  padding: 0 4px 0 9px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #cfcac3;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ws-tools13 .share-switch:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+}
+.ws-tools13 .share-switch:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.ws-tools13 .share-switch-track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  transition: background-color 0.18s;
+}
+.ws-tools13 .share-switch-track i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e9e5df;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s var(--v10-ease);
+}
+.ws-tools13 .share-switch.on .share-switch-track {
+  background: var(--v10-cream);
+}
+.ws-tools13 .share-switch.on .share-switch-track i {
+  transform: translateX(14px);
+  background: #1b1712;
+}
+.ws-tools13 .h13-weather {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: auto;
+  padding: 0;
+}
+.ws-tools13 .h13-weather .weather-top {
+  display: grid;
+  grid-template-columns: minmax(0, 212px) minmax(0, 1fr);
+  gap: 11px;
+}
+.ws-tools13 .h13-weather .weather-now {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 7px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 12px;
+  background: var(--h13-well);
+}
+.ws-tools13 .h13-weather .weather-now-emoji {
+  font-size: 28px;
+  line-height: 1;
+}
+.ws-tools13 .h13-weather .weather-now-temp {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+.ws-tools13 .h13-weather .weather-now-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.ws-tools13 .h13-weather .weather-city {
+  font-size: 13px;
+}
+.ws-tools13 .h13-weather .weather-now-text small {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--v10-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ws-tools13 .h13-weather .weather-details {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 0;
+}
+.ws-tools13 .h13-weather .weather-details span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ws-tools13 .h13-weather .weather-details small {
+  font-size: 9.5px;
+  color: var(--v10-faint);
+}
+.ws-tools13 .h13-weather .weather-details b {
+  font-size: 11.5px;
+  font-weight: 650;
+}
+.ws-tools13 .h13-weather .weather-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.ws-tools13 .h13-weather .weather-block-hours .h13-sec-head {
+  margin-top: -2px;
+}
+.ws-tools13 .h13-weather .weather-hours {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+.ws-tools13 .h13-weather .weather-hours[hidden] {
+  display: none;
+}
+.ws-tools13 .h13-weather .weather-hour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 2px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.022);
+}
+.ws-tools13 .h13-weather .weather-hour.now {
+  background: rgba(237, 201, 169, 0.07);
+  outline: 1px solid rgba(237, 201, 169, 0.28);
+}
+.ws-tools13 .h13-weather .weather-hour-time {
+  font-size: 9.5px;
+  color: var(--v10-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ws-tools13 .h13-weather .weather-hour.now .weather-hour-time {
+  color: var(--v10-cream);
+  font-weight: 600;
+}
+.ws-tools13 .h13-weather .weather-hour-emoji {
+  font-size: 17px;
+  line-height: 1;
+}
+.ws-tools13 .h13-weather .weather-hour-temp {
+  font-size: 11.5px;
+}
+.ws-tools13 .h13-weather .weather-days {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+.ws-tools13 .h13-weather .weather-day {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 6px;
+  row-gap: 3px;
+  min-width: 0;
+  height: auto;
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 11px;
+  background: var(--h13-well);
+}
+.ws-tools13 .h13-weather .weather-day.today {
+  border-color: rgba(237, 201, 169, 0.26);
+}
+.ws-tools13 .h13-weather .weather-day-name {
+  grid-column: 1 / -1;
+  font-size: 10.5px;
+  font-weight: 650;
+  color: #d4cfc8;
+}
+.ws-tools13 .h13-weather .weather-day-sky {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.ws-tools13 .h13-weather .weather-day-emoji {
+  font-size: 18px;
+  line-height: 1;
+}
+.ws-tools13 .h13-weather .weather-day-rain {
+  font-size: 9px;
+  color: #8fb7e8;
+}
+.ws-tools13 .h13-weather .weather-day-rain.wet {
+  color: #a7caff;
+  font-weight: 600;
+}
+.ws-tools13 .h13-weather .weather-day-temps {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.ws-tools13 .h13-weather .weather-day-temps b {
+  font-size: 12.5px;
+}
+.ws-tools13 .h13-weather .weather-day-temps small {
+  font-size: 10.5px;
+  color: var(--v10-faint);
+}
+.ws-tools13 .h13-weather .weather-note {
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--v10-muted);
+}
+.ws-tools13 .h13-weather .weather-choose {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  align-self: flex-start;
+  height: 30px;
+  min-height: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ws-tools13 .h13-weather .weather-choose svg {
+  width: 14px;
+  height: 14px;
+}

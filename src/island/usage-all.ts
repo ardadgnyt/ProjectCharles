@@ -33,7 +33,7 @@ export function usageAll(api: any, onSummary: (text: string, low: boolean) => vo
   const pick = iconBtn('sliders', 'Gösterilecek yapay zekâlar', () => toggleMenu());
   pick.setAttribute('aria-haspopup', 'true');
   pick.setAttribute('aria-expanded', 'false');
-  const head = el('div', 'h13-sec-head', el('small', 'h13-sec-title', 'KALAN KULLANIM'), el('span', 'h13-sec-tools', pick, refresh));
+  const head = el('div', 'h13-sec-head', el('small', 'h13-sec-title', 'Kalan kullanım'), el('span', 'h13-sec-tools', pick, refresh));
   const menu = el('div', 'h13-usage-menu');
   menu.hidden = true;
   menu.setAttribute('role', 'group');
@@ -216,15 +216,26 @@ export function usageAll(api: any, onSummary: (text: string, low: boolean) => vo
           const a = setRing(c.a, u.fiveHour, u.labels?.fiveHour || '5 saatlik');
           const b = setRing(c.b, u.weekly, u.labels?.weekly || 'Haftalık');
           c.left = a ?? b;
-          c.note.textContent = !u.fiveHour && !u.weekly ? u.unavailable || 'Veri bekleniyor' : u.stale ? 'Son bilinen değer' : u.note || '';
+          c.note.textContent = !u.fiveHour && !u.weekly ? usageNote(u.unavailable) : u.stale ? 'Son bilinen değer' : u.note || '';
         } catch (err) {
           c.col.classList.add('off');
           c.left = null;
-          c.note.textContent = String((err as Error)?.message || 'Veri bekleniyor').slice(0, 60);
+          c.note.textContent = usageNote((err as Error)?.message);
         }
       }),
     );
     summary();
   }
   return { root, load };
+}
+
+/** v0.9.14: a provider's raw error ("codex account authentication required…") as a short line */
+export function usageNote(raw: unknown, fallback = 'Veri bekleniyor') {
+  const s = String(raw || '').trim();
+  if (!s) return fallback;
+  if (/auth|sign.?in|log.?in|unauthori[sz]ed|forbidden|\b40[13]\b|token|credential/i.test(s)) return 'Giriş gerekli';
+  if (/network|enotfound|econn|etimedout|timed? ?out|fetch failed|offline|socket/i.test(s)) return 'Bağlantı yok';
+  // Charles' own (Turkish) messages are already short and translated
+  if (/[çğıöşüÇĞİÖŞÜ]/.test(s) || s.length <= 24) return s.slice(0, 60);
+  return fallback;
 }
