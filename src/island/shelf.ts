@@ -11,6 +11,7 @@
 import { el, icon } from '../workspace/icons';
 import { converterSheet } from './converter';
 import { bindFileDropTargets } from './drop-target';
+import { fileRack } from './file-rack';
 import { shareSheet } from './share';
 import { usageAll } from './usage-all';
 import { modeSegment } from './mode-seg';
@@ -458,7 +459,7 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   }
 
   // ── Dosyalar: two tiles, then Dönüştür | Gönder ────────────────────────────
-  const tile = (kind: 'convert' | 'share', name: string, title: string, text: string) => {
+  const tile = (kind: 'convert' | 'share' | 'rack', name: string, title: string, text: string) => {
     const t = el('button', 'h13-tile', el('span', 'h13-tile-icon', svg(name)), el('span', 'h13-tile-text', el('strong', '', title), el('small', '', text)), el('span', 'h13-tile-go', svg('chevronRight')));
     t.type = 'button';
     t.dataset.drop = kind;
@@ -467,12 +468,13 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   };
   const convertTile = tile('convert', 'refresh', 'Dönüştür', 'Görsel, belge ve arşivleri başka formata çevir');
   const shareTile = tile('share', 'send', 'Gönder', 'Yakındaki cihaza Quick Share ile gönder');
-  const tiles = el('div', 'h13-tiles', convertTile, shareTile);
+  const rackTile = tile('rack', 'folder', 'Dosya Rafı', 'Dosyaları sakla, istediğin yere sürükle');
+  const tiles = el('div', 'h13-tiles', convertTile, shareTile, rackTile);
   tiles.dataset.kind = 'files';
   const filesBack = button('h13-back', 'Geri', svg('chevronLeft'));
   const seg = el('div', 'h13-seg');
   seg.setAttribute('role', 'tablist');
-  const segBtn = (sub: 'convert' | 'share', text: string) => {
+  const segBtn = (sub: 'convert' | 'share' | 'rack', text: string) => {
     const b = el('button', 'h13-seg-btn', text);
     b.type = 'button';
     b.setAttribute('role', 'tab');
@@ -481,16 +483,17 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   };
   const segConvert = segBtn('convert', 'Dönüştür');
   const segShare = segBtn('share', 'Gönder');
-  seg.append(segConvert, segShare);
+  const segRack = segBtn('rack', 'Raf');
+  seg.append(segConvert, segShare, segRack);
   const filesTools = el('span', 'h13-files-tools');
   const filesHead = el('div', 'h13-files-head', filesBack, seg, filesTools);
   const filesBody = el('div', 'h13-files-body');
   const filesView = el('div', 'h13-files', filesHead, filesBody);
   filesView.dataset.kind = 'files';
-  let filesSub: 'home' | 'convert' | 'share' = 'home';
+  let filesSub: 'home' | 'convert' | 'share' | 'rack' = 'home';
   let subClose: (() => void) | null = null;
   filesBack.onclick = () => openFiles('home');
-  function openFiles(sub: 'home' | 'convert' | 'share', onSubClose?: () => void) {
+  function openFiles(sub: 'home' | 'convert' | 'share' | 'rack', onSubClose?: () => void) {
     const leaving = subClose;
     subClose = null;
     if (filesSub !== sub || openKind !== 'files') leaving?.();
@@ -506,10 +509,12 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     }
     segConvert.classList.toggle('on', sub === 'convert');
     segShare.classList.toggle('on', sub === 'share');
+    segRack.classList.toggle('on', sub === 'rack');
     segConvert.setAttribute('aria-selected', String(sub === 'convert'));
     segShare.setAttribute('aria-selected', String(sub === 'share'));
+    segRack.setAttribute('aria-selected', String(sub === 'rack'));
     filesTools.replaceChildren(...(sub === 'share' ? [share.receive] : []));
-    filesBody.replaceChildren(sub === 'convert' ? converter.root : share.root);
+    filesBody.replaceChildren(sub === 'convert' ? converter.root : sub === 'share' ? share.root : rack.root);
     filesView.dataset.sub = sub;
     if (openKind !== 'files' || panelBody.firstElementChild !== filesView)
       openPanel('files', filesView, () => {
@@ -517,6 +522,7 @@ export function islandShelf({ api, notice, attempt }: Deps) {
         subClose = null;
       });
     else sendHeight();
+    if (sub === 'rack') rack.open();
   }
   const showFiles = () => {
     if (view !== 'shelf') void api.islandView('shelf').catch(() => {});
@@ -545,10 +551,12 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     hide: () => closePanel(),
     card: filesAcc.b,
   });
+  const rack = fileRack({ api, notice, attempt });
   hub.converter = converter;
   hub.share = share;
   convertTile.onclick = () => openFiles('convert');
   shareTile.onclick = () => share.open();
+  rackTile.onclick = () => openFiles('rack');
   segShare.onclick = () => share.open();
   // a file dragged over the Dosyalar card opens the two tiles (dropped elsewhere it goes to the chat)
   // the panel a drag opened closes again when the drag is given up (or dropped elsewhere)
@@ -613,6 +621,14 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     clearDropTargets();
     document.dispatchEvent(new Event('dragend'));
     document.body.classList.remove('dropping');
+  });
+  api.onRackDrop?.((drop: any) => {
+    tileDropped = true;
+    clearDropTargets();
+    document.dispatchEvent(new Event('dragend'));
+    document.body.classList.remove('dropping');
+    rack.received(drop);
+    if (view === 'shelf' && (openKind !== 'files' || filesSub !== 'rack')) openFiles('rack');
   });
 
   // ── AI kullanımı: every connected AI ───────────────────────────────────────

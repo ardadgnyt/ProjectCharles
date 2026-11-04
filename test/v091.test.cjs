@@ -50,7 +50,8 @@ test('pictures sent in the chat open large on a click', () => {
   assert.match(main, /\/\^\[0-9a-f\]\{40\}\\\.\(png\|jpg\|webp\|gif\)\$\//);
   const renderer = read('src/renderer.ts');
   assert.match(renderer, /img\.classList\.add\('zoomable'\);/);
-  assert.match(renderer, /\.historyImage\(name\)\s*\.then\(\(src: string\) => lightbox\(src, file\.name\)\)/);
+  // v0.9.15: a message sent just now opens the attachment itself (it has no history copy yet)
+  assert.match(renderer, /\(name \? api\.historyImage\(name\) : api\.attachmentImage\(file\.id\)\)\s*\.then\(\(src: string\) => lightbox\(src, file\.name\)\)/);
   assert.match(read('src/chat/image-card.ts'), /export function lightbox\(\s*src: string,\s*alt = /);
   const { storeImage } = require('../app/ai/sessions.cjs');
   const os = require('node:os');
@@ -61,9 +62,9 @@ test('pictures sent in the chat open large on a click', () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('version 0.9.14', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.9.14-beta.1');
-  assert.match(read('public/index.html'), /v0\.9\.14 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.9\.14 Beta'/);
-  assert.match(read('CHANGELOG.md'), /## v0\.9\.14 Beta/);
+test('version 0.9.15', () => {
+  assert.equal(JSON.parse(read('package.json')).version, '0.9.15-beta.1');
+  assert.match(read('public/index.html'), /v0\.9\.15 Beta/);
+  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.9\.15 Beta'/);
+  assert.match(read('CHANGELOG.md'), /## v0\.9\.15 Beta/);
 });

@@ -2274,6 +2274,7 @@ else {
           const item = extras.ingest(file);
           item.name = 'Panodaki resim · ' + new Date().toLocaleTimeString('tr-TR') + '.png';
           extras.attachments.get(item.id).name = item.name;
+          extras.attachments.get(item.id).pasted = true;
           return attachment(item);
         } finally {
           if (fs.existsSync(file)) fs.unlinkSync(file);
@@ -2286,6 +2287,40 @@ else {
           extras.attachments.get(item.id).name = item.name;
         }
         return item;
+      });
+      // v0.9.15: the attachment's own picture, for the big view of a message sent just now
+      safeHandler('attachment-image', (id) => {
+        if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) throw Error('Geçersiz ek.');
+        const a = extras.attachments.get(id);
+        if (!a || (a.kind !== 'image' && a.kind !== 'gif')) throw Error('Ek bulunamadı.');
+        const ext = path.extname(a.path).slice(1).toLowerCase();
+        return `data:image/${ext === 'jpg' ? 'jpeg' : ext};base64,` + fs.readFileSync(a.path).toString('base64');
+      });
+      // v0.9.15: Dosyalar → Dosya Rafı (app/files/file-rack.cjs)
+      const rack = new (require('./files/file-rack.cjs').FileRack)(path.join(app.getPath('userData'), 'file-rack'));
+      safeHandler('rack-list', () => rack.list());
+      safeHandler('rack-add', (paths) => {
+        if (!Array.isArray(paths) || !paths.every((p) => typeof p === 'string' && path.isAbsolute(p))) throw Error('Geçersiz dosya listesi.');
+        return rack.addPaths(paths);
+      });
+      safeHandler('rack-remove', (id) => rack.remove(id));
+      // Read here, not from a paste event: a screenshot works with nothing to type in
+      safeHandler('rack-paste', () => {
+        const image = clipboard.readImage();
+        if (image.isEmpty()) throw Error('Panoda resim yok.');
+        const stamp = new Date().toLocaleString('sv-SE').replace(/:/g, '.');
+        const word = !v2?.data?.language || v2.data.language === 'tr' ? 'Ekran görüntüsü ' : 'Screenshot ';
+        return rack.addBytes(word + stamp + '.png', image.toPNG());
+      });
+      // The file itself goes to the drag, so Explorer and other programs receive a real file
+      safeHandler('rack-drag', (id) => {
+        const file = rack.pathOf(id);
+        clearTimeout(blurTimer);
+        dropHeldUntil = Date.now() + 1500;
+        lastInside = Date.now();
+        const icon = nativeImage.createFromPath(path.join(root, 'public', 'icon.png'));
+        win.webContents.startDrag({ file, icon: icon.resize({ width: 32, height: 32 }) });
+        return true;
       });
       safeHandler('drop-active', (active) => {
         dropHeldUntil = active ? Date.now() + 1500 : 0;
@@ -3153,8 +3188,11 @@ else {
                   const { storeImage } = require('./ai/sessions.cjs');
                   const dir = path.join(app.getPath('userData'), 'history-images');
                   const big = Math.min(1, 1920 / size.width, 1440 / size.height);
+                  // v0.9.15: a pasted picture keeps every pixel (it exists nowhere else)
                   const data =
-                    a.kind === 'gif' && fs.statSync(a.path).size <= 8 * 1024 * 1024
+                    a.pasted
+                      ? 'data:image/png;base64,' + fs.readFileSync(a.path).toString('base64')
+                      : a.kind === 'gif' && fs.statSync(a.path).size <= 8 * 1024 * 1024
                       ? 'data:image/gif;base64,' + fs.readFileSync(a.path).toString('base64')
                       : 'data:image/jpeg;base64,' +
                         (big < 1 ? img.resize({ width: Math.max(1, Math.round(size.width * big)), height: Math.max(1, Math.round(size.height * big)), quality: 'best' }) : img)

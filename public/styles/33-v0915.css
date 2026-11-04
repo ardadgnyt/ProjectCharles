@@ -1,0 +1,174 @@
+/* v0.9.15: the big picture's close button, three tiles under Dosyalar, Dosya Rafı */
+
+.image-lightbox-close {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+.image-lightbox-close svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+#shelf.shelf13 .h13-tiles {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+#shelf.shelf13 .h13-tile {
+  gap: 10px;
+  padding: 0 10px;
+}
+#shelf.shelf13 .h13-tile-go {
+  display: none;
+}
+
+#shelf.shelf13 .rack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 128px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 14px;
+  background: var(--h13-well);
+  outline: none;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+#shelf.shelf13 .rack:focus-within,
+#shelf.shelf13 .rack:focus {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+#shelf.shelf13 .rack.over {
+  border: 1px dashed var(--v10-cream);
+  background: rgba(237, 201, 169, 0.06);
+}
+#shelf.shelf13 .rack-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .rack-empty[hidden] {
+  display: none;
+}
+#shelf.shelf13 .rack-empty strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--v10-ink);
+}
+#shelf.shelf13 .rack-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(237, 201, 169, 0.1);
+  color: var(--v10-cream);
+}
+#shelf.shelf13 .rack-empty-icon svg {
+  width: 19px;
+  height: 19px;
+}
+#shelf.shelf13 .rack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 212px;
+  overflow-y: auto;
+}
+#shelf.shelf13 .rack-list[hidden] {
+  display: none;
+}
+#shelf.shelf13 .rack-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: none;
+  height: 40px;
+  padding: 0 4px 0 8px;
+  border-radius: 10px;
+  cursor: grab;
+  transition: background-color 0.15s;
+}
+#shelf.shelf13 .rack-item:hover {
+  background: rgba(255, 255, 255, 0.055);
+}
+#shelf.shelf13 .rack-item:active {
+  cursor: grabbing;
+}
+#shelf.shelf13 .rack-item-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--v10-cream);
+}
+#shelf.shelf13 .rack-item-icon svg {
+  width: 17px;
+  height: 17px;
+}
+#shelf.shelf13 .rack-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+#shelf.shelf13 .rack-name {
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#shelf.shelf13 .rack-text small {
+  font-size: 10.5px;
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .rack-remove {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--v10-muted);
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+#shelf.shelf13 .rack-remove svg {
+  width: 15px;
+  height: 15px;
+}
+#shelf.shelf13 .rack-remove:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--v10-ink);
+}
+#shelf.shelf13 .rack-remove.armed {
+  background: rgba(237, 201, 169, 0.14);
+  color: var(--v10-cream);
+}
+#shelf.shelf13 .rack-hint {
+  flex: none;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--v10-muted);
+}

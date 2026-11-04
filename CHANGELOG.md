@@ -4,6 +4,18 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.15 Beta — 4 Kasım 2026
+
+- **Dosya Rafı:** Dosyalar’a üçüncü kutucuk olarak eklendi; Raf sekmesiyle de açılır.
+  - Sürükleyip bırakılan dosyaların kopyası `%APPDATA%\Charles\file-rack` içinde saklanır. Kaynak dosya taşınmaz, değiştirilmez; sonradan silinse de raftaki kopya kullanılabilir.
+  - Raf, uygulama yeniden başlatılınca korunur; dosyalar sen silene kadar kalır. Silme yalnızca raftaki kopyayı siler (yanlışlıkla silinmesin diye iki basış ister).
+  - Satırları Windows Gezgini gibi dış uygulamalara gerçek dosya olarak sürükleyebilirsin.
+  - Raf odaktayken Ctrl+V panodaki ekran görüntüsünü dosya olarak ekler; sohbetin Ctrl+V davranışı değişmedi.
+  - Aynı adlı dosyalar üst üste yazılmaz: ikincisi “ad (2).uzantı” olur.
+- **Antigravity:** arka plan sorgularında kısa süreli açılan `agy.exe` terminal penceresi kalktı. Pencereyi Charles değil, aracın kendi güncelleyicisi (`--bg-updater`) yeni bir konsolda açıyordu; bu yüzden `windowsHide` yetmiyordu. Kota, hesap kontrolü, model listesi ve kullanıcının görmediği arka plan istekleri güncelleyiciyi yalnızca o çalıştırma için kapatıyor. Kurulu dosyalara ve sistem ayarlarına dokunulmuyor; araç sohbet sırasında kendini güncellemeyi sürdürüyor.
+- **Gönderilen mesajdaki resimler:** yeni gönderilen mesajda resme tıklayınca 112 piksellik küçük resim açılıyordu; artık orijinali açılır. Panodan eklenen resimlerin sohbet geçmişindeki kopyası da küçültülmeden saklanır.
+- **Büyük resim görünümü:** kapatma düğmesindeki × artık tam ortada; Charles kapanırken görünüm de kapanır (önceden küçülen adacığın içinde açık kalıyordu).
+
 ## v0.9.14 Beta — 3 Kasım 2026
 
 - **Araçlar:** adacığa dördüncü kart eklendi. Açılan panelde Renk seçici ve Zamanlayıcı kutucukları ile yüklü modüllerin kısayolları var; modüle tıklayınca açılır.

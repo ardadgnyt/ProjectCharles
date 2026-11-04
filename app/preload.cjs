@@ -27,6 +27,13 @@ const shareDropCallback = (v) => {
       cb(v);
     } catch {}
 };
+const rackDropCallbacks = new Set();
+const rackDropCallback = (v) => {
+  for (const cb of rackDropCallbacks)
+    try {
+      cb(v);
+    } catch {}
+};
 let lastDropSignal = 0;
 function dropActive(active) {
   if (active && Date.now() - lastDropSignal < 350) return;
@@ -103,6 +110,23 @@ window.addEventListener(
       invoke('share-drop', paths).then(
         (state) => shareDropCallback({ state }),
         (error) => shareDropCallback({ error: error.message }),
+      );
+      return;
+    }
+    // v0.9.15: files dropped on Dosya Rafı are copied onto the shelf
+    const rackTarget = event.target && event.target.closest ? event.target.closest('[data-drop="rack"]') : null;
+    if (rackTarget) {
+      if (!files.length) return;
+      let paths;
+      try {
+        paths = files.map((f) => webUtils.getPathForFile(f));
+      } catch (error) {
+        rackDropCallback({ error: error.message });
+        return;
+      }
+      invoke('rack-add', paths).then(
+        (result) => rackDropCallback({ result }),
+        (error) => rackDropCallback({ error: error.message }),
       );
       return;
     }
@@ -261,6 +285,15 @@ contextBridge.exposeInMainWorld('charles', {
   pluginsConfigure: (id, v) => invoke('plugins-configure', id, v),
   // v0.9.10: the original name of an attached file Charles keeps as <id>.pdf (for citation chips)
   attachmentName: (id) => invoke('attachment-name', id),
+  // v0.9.15: the big view of a message sent just now; Dosya Rafı
+  attachmentImage: (id) => invoke('attachment-image', id),
+  rackList: () => invoke('rack-list'),
+  rackRemove: (id) => invoke('rack-remove', id),
+  rackPaste: () => invoke('rack-paste'),
+  rackDrag: (id) => invoke('rack-drag', id),
+  onRackDrop: (cb) => {
+    if (typeof cb === 'function') rackDropCallbacks.add(cb);
+  },
   pluginsLogin: (id) => invoke('plugins-login', id),
   pluginsDisconnect: (id) => invoke('plugins-disconnect', id),
   pluginsSettings: (v) => invoke('plugins-settings', v),

@@ -16,6 +16,8 @@ test('Models follow verified login and logout; old preferences cannot fake a log
       calls++;
       return id === 'gemini' && logged;
     };
+    // v0.9.15: never the real tool here: on a signed-in computer it lists that account's models
+    p.refreshGeminiModels = async () => p.geminiModels;
     await p.refreshAuth(true);
     assert.equal(p.models().length, 0);
     logged = true;

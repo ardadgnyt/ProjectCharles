@@ -55,6 +55,9 @@ docs/VERIFICATION-v0.4.4.md
 # Local visual regression captures
 .qa/
 
+# Graphify knowledge graph (kept locally; scripts/package.py and release-pack.cjs skip it too)
+/graphify-out/
+
 # Agent scratch files and local rollback copies
 .mimocode/
 alpha-backups/

@@ -372,6 +372,19 @@ class Providers {
     }
     throw Error('Geçersiz sağlayıcı.');
   }
+  /**
+   * v0.9.15: agy starts its own updater (`agy.exe --bg-updater`) in a new console, so Windows
+   * shows a terminal titled agy.exe; windowsHide only covers the process Charles starts. Runs
+   * nobody is watching switch that updater off for that one process (only the value "true"
+   * works: agy ignores "1"). The user's own chats leave it on, so agy still updates itself.
+   */
+  geminiEnv({ background = false } = {}) {
+    return {
+      ...this.env,
+      USERPROFILE: path.join(this.dir, 'gemini'),
+      ...(background ? { AGY_CLI_DISABLE_AUTO_UPDATE: 'true' } : {}),
+    };
+  }
   async usage(force = false) {
     if (this.quotaPending) return this.quotaPending;
     // Gemini is fetched only by manual refresh or opening the workspace window.
@@ -380,7 +393,7 @@ class Providers {
     this.quotaPending=(async()=>{
       const spec=this.spec('gemini');
       const cli=await runOffThread(spec.exe,[...spec.args,'--output-format','json','-p','/usage'],{
-        cwd:path.join(this.dir,'workspace'),env:{...this.env,USERPROFILE:path.join(this.dir,'gemini')},windowsHide:true,timeout:20000,maxBuffer:262144,
+        cwd:path.join(this.dir,'workspace'),env:this.geminiEnv({background:true}),windowsHide:true,timeout:20000,maxBuffer:262144,
       });
       const {geminiUsage}=require('../usage/gemini-usage.cjs');
       // v0.8.5: only what the official CLI reports. (0.8.4 also read Antigravity's Google sign-in
@@ -788,7 +801,7 @@ class Providers {
     this.geminiListing = (async () => {
       const { error, out } = await runOffThread(spec.exe, [...spec.args, 'models'], {
         cwd: path.join(this.dir, 'workspace'),
-        env: { ...this.env, USERPROFILE: path.join(this.dir, 'gemini') },
+        env: this.geminiEnv({ background: true }),
         windowsHide: true, timeout: 20000, maxBuffer: 1024 * 1024,
       });
       const list = error ? [] : parseGeminiModels(out);
@@ -831,8 +844,7 @@ class Providers {
       ],
       {
         cwd: path.join(this.dir, 'workspace'),
-        env:
-          id === 'gemini' ? { ...this.env, USERPROFILE: path.join(this.dir, 'gemini') } : this.env,
+        env: id === 'gemini' ? this.geminiEnv({ background: true }) : this.env,
         windowsHide: true,
         timeout: 15000,
         maxBuffer: 65536,
@@ -1166,7 +1178,7 @@ class Providers {
       cwd: plan.cwd,
       env:
         provider === 'gemini'
-          ? { ...this.env, USERPROFILE: path.join(this.dir, 'gemini') }
+          ? this.geminiEnv({ background: args.background === true })
           : isAbacus
             ? abacus.abacusEnv(this.env)
             : this.env,

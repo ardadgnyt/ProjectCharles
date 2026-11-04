@@ -113,27 +113,37 @@ const ICONS: Record<string, string> = {
   copy: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2.5"/><path d="M5 15V7a2 2 0 0 1 2-2h8"/></svg>',
   zoom: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M10 19H5v-5M19 5l-6 6M5 19l6-6"/></svg>',
   ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+  close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>',
 };
+
+let closeOpen: (() => void) | null = null;
+/** v0.9.15: closes the big view, if one is open (the island is closing). */
+export const closeLightbox = () => closeOpen?.();
 
 export function lightbox(
   src: string,
   alt = 'Charles tarafından oluşturulan görsel (büyük)',
 ) {
+  closeLightbox();
   const box = el('div', 'image-lightbox');
   box.setAttribute('role', 'dialog');
   box.setAttribute('aria-label', 'Görsel büyük boy');
   const img = el('img');
   img.src = src;
   img.alt = alt;
-  const close = el('button', 'image-lightbox-close', '×');
+  // v0.9.15: an icon like the other buttons (the "×" letter sat low and off-centre in the circle)
+  const close = el('button', 'image-lightbox-close');
+  close.innerHTML = ICONS.close;
   close.type = 'button';
   close.setAttribute('aria-label', 'Kapat');
   box.append(img, close);
   const done = () => {
+    closeOpen = null;
     box.classList.add('closing');
     setTimeout(() => box.remove(), 160);
     document.removeEventListener('keydown', key, true);
   };
+  closeOpen = done;
   const key = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       e.preventDefault();

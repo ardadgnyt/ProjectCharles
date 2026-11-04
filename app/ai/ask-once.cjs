@@ -43,7 +43,8 @@ async function askOnce({
     const args = { cwd, mode: 'chat', access: 'ask', model, prompt, stream: false };
     // v0.8.7: images ({ type: 'localImage', path }) like the main chat's attachments
     if (Array.isArray(attachments) && attachments.length) args.attachments = attachments;
-    if (SUBSCRIPTION.test(model || '')) await providers.send(agent, args);
+    // v0.9.15: `background`: nobody is watching this run (see Providers.geminiEnv)
+    if (SUBSCRIPTION.test(model || '')) await providers.send(agent, { ...args, background: true });
     else {
       await agent.connect();
       await agent.send(args);

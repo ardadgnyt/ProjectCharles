@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.14%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.15%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -42,6 +42,7 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 | Version | What’s new | Yenilikler |
 | --- | --- | --- |
+| **v0.9.15** | File shelf: keep copies of files on the island, drag them out as real files, Ctrl+V adds a screenshot · Pictures in a sent message open at full size · Antigravity quota checks no longer flash a terminal window | Dosya Rafı: dosyaların kopyalarını adada sakla, gerçek dosya olarak dışarı sürükle, Ctrl+V ile ekran görüntüsü ekle · Gönderilen mesajdaki resimler tam boyutta açılır · Antigravity kota sorguları artık terminal penceresi açmaz |
 | **v0.9.14** | Island redesign: a big voice chat card (bars that move with the voice), the message box with dictation, a new Spotify card and the song on the closed island · **Tools**: color picker, timer (focus with breaks, countdown, stopwatch), reminders, calendar, emails, usage summary and smart home, plus module shortcuts · faster, HDR-correct screenshots and color picking · design polish | Adacık yenilendi: büyük sesli sohbet kartı (sese göre hareket eden çizgiler), dikteli mesaj kutusu, yeni Spotify kartı ve kapalı adacıkta çalan şarkı · **Araçlar**: renk seçici, zamanlayıcı (molalı odak, geri sayım, kronometre), hatırlatıcılar, takvim, e-postalar, kullanım özeti ve akıllı ev, modül kısayolları · daha hızlı, HDR’de doğru renkli ekran görüntüsü ve renk seçimi · tasarım cilası |
 | **v0.9.13** | Redesigned island home: Charles with an inline message box (mic, voice call), a new Spotify card and three expanding cards (Files · AI usage · Weather with hourly forecast) · quiet WhatsApp catch-up, muted/archived chats stay silent | Adacık ana sayfası yenilendi: satır içi mesaj kutulu Charles (mikrofon, sesli görüşme), yeni Spotify kartı ve açılır üç kart (Dosyalar · AI kullanımı · saatlik tahminli Hava durumu) · WhatsApp birikmiş mesajları sessiz, sessize alınmış/arşivlenmiş sohbetler bildirim vermiyor |
 | **v0.9.12** | Modules can save and open files (`files.save`, `files.pick`) through Windows’ own Save / Open window | Modüller Windows’un Kaydet / Aç penceresiyle dosya kaydedip açabiliyor (`files.save`, `files.pick`) |

@@ -15,7 +15,7 @@ import { paintSoundButton } from './ui/sound-button';
 import { micPrivacyUI } from './ui/mic-button';
 import { Jelly } from './island/jelly';
 import { onboardingUI } from './island/onboarding';
-import { showGenerating, showImage, showFailed, lightbox } from './chat/image-card';
+import { showGenerating, showImage, showFailed, lightbox, closeLightbox } from './chat/image-card';
 import { expressionsUI } from './settings/expressions';
 import { panelMotion } from './island/panel-motion';
 import { settingsPages } from './settings/settings-pages';
@@ -536,9 +536,11 @@ function row(text: string, className = '', attachments: any[] = []) {
           img.setAttribute('aria-label', file.name + ' · büyüt');
           const open = () => {
             const name = typeof file.preview === 'string' ? file.preview : '';
-            if (!name) return lightbox(file.thumbnail, file.name);
-            void api
-              .historyImage(name)
+            // v0.9.15: a message sent just now has no history copy yet; it opens the attachment
+            // itself. A GIF's thumbnail already is the whole (moving) picture.
+            const original = typeof file.id === 'string' && !file.thumbnail.startsWith('data:image/gif');
+            if (!name && !original) return lightbox(file.thumbnail, file.name);
+            void (name ? api.historyImage(name) : api.attachmentImage(file.id))
               .then((src: string) => lightbox(src, file.name))
               .catch(() => lightbox(file.thumbnail, file.name));
           };
@@ -1383,6 +1385,13 @@ function applyExpanded(value: boolean) {
   if (cursorPosition) onCursor(cursorPosition);
 }
 api.onExpanded(applyExpanded);
+// v0.9.15: the big view belongs to the chat; left open it stayed squeezed inside the closed island
+api.onExpanded((value: boolean) => {
+  if (!value) closeLightbox();
+});
+api.onView?.((view: string) => {
+  if (view !== 'chat') closeLightbox();
+});
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     e.preventDefault();
