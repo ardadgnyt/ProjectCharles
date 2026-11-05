@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.16%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.17%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -42,6 +42,7 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 | Version | What’s new | Yenilikler |
 | --- | --- | --- |
+| **v0.9.17** | Quick Share: a stale phone address is looked up again before giving up, with a clear message if the phone stays closed | Quick Share: telefonun eski adresi vazgeçmeden önce yeniden aranır, telefon kapalı kalırsa anlaşılır mesaj gösterilir |
 | **v0.9.16** | PowerPoint in the chat and the converter (.pptx, .ppt → PDF, Word, slide pictures, text) · File shelf: Ctrl+V adds a screenshot, previews on every row, a drag card with the file's name · Scrolling while an answer is written · Clearer Quick Share start errors, LocalSend works on its own · Fixes for the limit animation, the finished state and the taskbar | Sohbette ve dönüştürücüde PowerPoint (.pptx, .ppt → PDF, Word, slayt resimleri, metin) · Dosya Rafı: Ctrl+V ile ekran görüntüsü, satırlarda önizleme, sürüklerken dosya adlı kart · Yanıt yazılırken kaydırma · Quick Share başlatma hataları anlaşılır, LocalSend tek başına çalışır · Limit animasyonu, “Tamamlandı” ve görev çubuğu düzeltmeleri |
 | **v0.9.15** | File shelf: keep copies of files on the island, drag them out as real files, Ctrl+V adds a screenshot · Pictures in a sent message open at full size · Antigravity quota checks no longer flash a terminal window | Dosya Rafı: dosyaların kopyalarını adada sakla, gerçek dosya olarak dışarı sürükle, Ctrl+V ile ekran görüntüsü ekle · Gönderilen mesajdaki resimler tam boyutta açılır · Antigravity kota sorguları artık terminal penceresi açmaz |
 | **v0.9.14** | Island redesign: a big voice chat card (bars that move with the voice), the message box with dictation, a new Spotify card and the song on the closed island · **Tools**: color picker, timer (focus with breaks, countdown, stopwatch), reminders, calendar, emails, usage summary and smart home, plus module shortcuts · faster, HDR-correct screenshots and color picking · design polish | Adacık yenilendi: büyük sesli sohbet kartı (sese göre hareket eden çizgiler), dikteli mesaj kutusu, yeni Spotify kartı ve kapalı adacıkta çalan şarkı · **Araçlar**: renk seçici, zamanlayıcı (molalı odak, geri sayım, kronometre), hatırlatıcılar, takvim, e-postalar, kullanım özeti ve akıllı ev, modül kısayolları · daha hızlı, HDR’de doğru renkli ekran görüntüsü ve renk seçimi · tasarım cilası |

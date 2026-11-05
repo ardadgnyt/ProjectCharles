@@ -7,5 +7,6 @@ export const english0916: Record<string, string> = {
   'Quick Share çalışma dosyaları eksik veya bozuk. Charles Setup paketiyle yeniden kurmak bunu düzeltir.': 'Quick Share files are missing or damaged. Reinstalling with the Charles Setup package fixes this.',
   'Quick Share motoru iki dakikada açılamadı. Güvenlik yazılımı taraması bilgisayarı yavaşlatıyor olabilir.': 'The Quick Share engine did not start within two minutes. A security scan may be slowing the computer down.',
   'Quick Share ağ hazırlığı zaman aşımına uğradı. Ağ bağdaştırıcıları veya VPN yanıt vermiyor olabilir.': 'Quick Share timed out while preparing the network. An adapter or VPN may not be responding.',
+  'Telefon bağlantıyı kabul etmedi. Telefonda ekranı açıp Quick Share’i “Herkes” görünürlüğüne alın, sonra yeniden deneyin.': 'The phone did not accept the connection. Unlock it, set Quick Share to Everyone, then try again.',
   'Panodaki resim okunamadı.': 'The picture on the clipboard could not be read.',
 };

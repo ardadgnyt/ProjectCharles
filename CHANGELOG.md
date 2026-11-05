@@ -4,6 +4,12 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.17 Beta — 5 Kasım 2026
+
+- **Quick Share ile gönderme:** telefon görünür olduğu her seferde yeni bir port açtığı için listedeki adres eskiyebiliyor, gönderim “cannot connect … WinError 1225” hatasıyla kalıyordu. Artık Charles cihazı yeniden arar, yeni adresle bir kez daha dener. Telefon yine kabul etmezse ham hata yerine ne yapılacağı yazar.
+- **Quick Share ile alma:** bu sürümde telefonun bilgisayarı listeleme davranışı değişmedi. Ölçümlerde bilgisayarın duyurusu telefona ulaşıyor ve dosya alımı çalışıyor; telefon her Paylaş ekranında Quick Share taraması yapmıyor. Görünmezse paylaşım ekranını kapatıp yeniden açmak gerekebilir.
+- **Önizleme pencereleri:** `--demo` ile açılan test örnekleri artık Quick Share ve LocalSend motorlarını başlatmaz; aynı bilgisayar adıyla ağa ikinci bir cihaz çıkaramaz.
+
 ## v0.9.16 Beta — 5 Kasım 2026
 
 - **PowerPoint sohbette:** `.pptx` ve `.ppt` dosyaları sohbete eklenebilir (dosya seçici, sürükle-bırak; en fazla 100 MB). Charles slaytları sırası ve numarasıyla okur: metinler, tablolar, grafik değerleri, konuşmacı notları.

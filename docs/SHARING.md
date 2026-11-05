@@ -18,7 +18,7 @@ Telefonların bilgisayarı görebilmesi için Windows güvenlik duvarının Quic
 
 ## Gönderme ve alma
 
-Dosya seçip yakındaki cihaza tıklamak gönderimi başlatır. Alıcı kabul ettikten sonra ilerleme gösterilir. Alınan dosyalar için **Klasörde göster** kullanılabilir. Aynı adlı dosyalar üzerine yazılmaz; yeni ad verilir. İptal edilen veya eksik aktarım başarılı gösterilmez ve yarım dosyası temizlenir. Windows'ta iPhone için LocalSend gerekir; Windows Wi-Fi sürücülerinde Apple AWDL desteği yoktur.
+Dosya seçip yakındaki cihaza tıklamak gönderimi başlatır. Alıcı kabul ettikten sonra ilerleme gösterilir. Alınan dosyalar için **Klasörde göster** kullanılabilir. Aynı adlı dosyalar üzerine yazılmaz; yeni ad verilir. İptal edilen veya eksik aktarım başarılı gösterilmez ve yarım dosyası temizlenir. Telefona gönderirken telefon adresi eskimişse Charles cihazı yeniden arar ve yeni adresle bir kez daha dener; telefon bağlantıyı yine kabul etmezse ekranın açık ve Quick Share görünürlüğünün “Herkes” olması gerekir. Windows'ta iPhone için LocalSend gerekir; Windows Wi-Fi sürücülerinde Apple AWDL desteği yoktur.
 
 Quick Share ve LocalSend birbirinden bağımsız başlar: biri açılamazsa diğeri çalışmayı sürdürür ve neden paylaşım panelinde yazar. Bağlantı aşamaları ve hatalar `%APPDATA%\Charles\logs\quickshare.log` dosyasına yazılır (`start-failed`, `bridge-exit`, `bridge-stderr`; kullanıcı klasörleri çıkarılmış olarak). Dosya içeriği, cihaz adları veya şifreleme anahtarları kaydedilmez.
 

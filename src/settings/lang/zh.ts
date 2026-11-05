@@ -1753,4 +1753,5 @@ export const chinese: Record<string, string> = {
   "The Quick Share engine did not start within two minutes. A security scan may be slowing the computer down.": "Quick Share 引擎未能在两分钟内启动。安全扫描可能正在拖慢电脑。",
   "Quick Share timed out while preparing the network. An adapter or VPN may not be responding.": "Quick Share 准备网络时超时。网络适配器或 VPN 可能没有响应。",
   "The picture on the clipboard could not be read.": "无法读取剪贴板中的图片。",
+  "The phone did not accept the connection. Unlock it, set Quick Share to Everyone, then try again.": "手机未接受连接。请解锁手机，将 Quick Share 设为“所有人”，然后重试。",
 };

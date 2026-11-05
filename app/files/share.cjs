@@ -11,6 +11,9 @@ const { getLocalIPv4 } = require('./mdns-wire.cjs');
 const { MultiDropEngine } = require('./quickshare-multidrop.cjs');
 const { AirDropEngine } = require('./airdrop.cjs');
 
+const REFUSED = /cannot connect to|WinError 1225|WinError 10061|ECONNREFUSED/i;
+const PHONE_NOT_READY = 'Telefon bağlantıyı kabul etmedi. Telefonda ekranı açıp Quick Share’i “Herkes” görünürlüğüne alın, sonra yeniden deneyin.';
+
 function clearOfferTimer(offer) {
   if (offer?.timer) {
     clearTimeout(offer.timer);
@@ -24,6 +27,7 @@ class ShareService extends EventEmitter {
     this.userData = opts.userData || os.tmpdir();
     this.downloadDir = opts.downloadDir || path.join(os.homedir(), 'Downloads');
     this.settingsFile = path.join(this.userData, 'share-settings.json');
+    this.offline = !!opts.offline;
     const saved = this.#loadSettings();
     this.deviceName = saved.deviceName || os.hostname() || 'Charles PC';
     // Start visible, with explicit consent for every incoming offer. Never restore
@@ -219,6 +223,7 @@ class ShareService extends EventEmitter {
   }
 
   async start() {
+    if (this.offline) return this.state();
     // A failed startup must recover without opening the share sheet.
     if (!this.retryTimer) {
       this.retryTimer = setInterval(() => {
@@ -626,13 +631,13 @@ class ShareService extends EventEmitter {
           signal: ac.signal,
         });
       } else {
-        res = await this.qs.sendFiles({
+        const sendTo = (toHost, toPort) => this.qs.sendFiles({
           id: peer?.id,
           instanceName: peer?.instanceName,
           qrMatched: Boolean(peer?.qrMatched),
           name: peerName,
-          host,
-          port,
+          host: toHost,
+          port: toPort,
           files,
           onPin: (pin) => {
             if (this.transfer && this.transfer.id === jobId) {
@@ -643,6 +648,23 @@ class ShareService extends EventEmitter {
           onProgress,
           signal: ac.signal,
         });
+        try {
+          res = await sendTo(host, port);
+        } catch (error) {
+          // v0.9.17: a phone opens a new port each time it becomes visible, so a listed address can
+          // be stale ("WinError 1225"). Look again and try the fresh address once.
+          if (!REFUSED.test(error.message) || ac.signal.aborted) throw error;
+          this.note('send-refused');
+          await Promise.resolve(this.qs.scan({ wake: true })).catch(() => {});
+          const fresh = this.peers().find((p) => p.id === peer?.id);
+          if (ac.signal.aborted) throw error;
+          if (!fresh || (fresh.port === port && fresh.host === host)) throw Error(PHONE_NOT_READY);
+          try {
+            res = await sendTo(fresh.host, fresh.port);
+          } catch (again) {
+            throw REFUSED.test(again.message) ? Error(PHONE_NOT_READY) : again;
+          }
+        }
       }
       const entry = {
         id: jobId,

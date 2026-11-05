@@ -2630,6 +2630,9 @@ else {
           shareService = new ShareService({
             userData: app.getPath('userData'),
             downloadDir: app.getPath('downloads'),
+            // v0.9.17: a preview window has its own profile; a second engine with the same computer
+            // name beside the real Charles would confuse the phones on the network
+            offline: demo,
           });
           shareService.on('state', (st) => {
             if (!win.isDestroyed()) win.webContents.send('share-state', st);

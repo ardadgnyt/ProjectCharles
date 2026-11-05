@@ -1753,4 +1753,5 @@ export const french: Record<string, string> = {
   "The Quick Share engine did not start within two minutes. A security scan may be slowing the computer down.": "Le moteur Quick Share n’a pas démarré en deux minutes. Une analyse de sécurité ralentit peut-être l’ordinateur.",
   "Quick Share timed out while preparing the network. An adapter or VPN may not be responding.": "Quick Share a expiré en préparant le réseau. Un adaptateur ou un VPN ne répond peut-être pas.",
   "The picture on the clipboard could not be read.": "L’image du presse-papiers n’a pas pu être lue.",
+  "The phone did not accept the connection. Unlock it, set Quick Share to Everyone, then try again.": "Le téléphone n’a pas accepté la connexion. Déverrouillez-le, réglez Quick Share sur « Tout le monde », puis réessayez.",
 };

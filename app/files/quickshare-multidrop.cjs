@@ -276,7 +276,8 @@ class MultiDropEngine extends EventEmitter {
   }
 
   scan() {
-    if (!this.child || this.scanPromise) return;
+    if (!this.child) return;
+    if (this.scanPromise) return this.scanPromise;
     this.scanPromise = this.request('discover', {}, 15000).catch(error => {
       this.note('discovery-error');
     }).finally(() => { this.scanPromise = null; });
