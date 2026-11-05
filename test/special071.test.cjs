@@ -75,7 +75,8 @@ test('workspace window: title bar, sidebar with folders, overview cards and chat
   assert.match(read('public/index.html'), /styles\/9-special\.css/);
   assert.ok(read('public/index.html').includes('v' + require('../package.json').version.split('-')[0] + ' Beta'));
   assert.match(read('public/styles/9-special.css'), /body\.workspace main\.island/);
-  assert.match(read('src/island/desktop-pet.ts'), /classList\.contains\('workspace'\)/);
+  // v0.9.18: the character also comes out of the app window (his own window, src/island/desktop-pet.ts)
+  assert.match(read('src/island/desktop-pet.ts'), /charles:\/\/app\/pet\.html/);
 });
 
 test('chat history: folders get a folder icon instead of the side arrow', () => {

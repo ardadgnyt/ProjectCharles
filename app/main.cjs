@@ -159,10 +159,19 @@ let layoutId = 0,
   visibleBounds = null,
   ignoringPointer = false;
 let petTopTimer = null;
+let extrasAttachment = null,
+  dictation = null;
 let mailBubble = null,
   mailAlerts = null,
   proposals = null,
   bubbleTimer = null;
+// v0.9.18: petOut: Charles in his own small window, with the panel left as it was (`detached` is
+// the older mode: the whole page shrinks to him, used when the island is closed)
+let petOut = false,
+  petWin = null,
+  petHover = false,
+  contentDrop = null,
+  contentTarget = null;
 let petDrag = null,
   detached = false,
   petPosition = null,
@@ -327,6 +336,8 @@ function createAppWindow() {
   });
   appWin.on('moved', saveWorkspace);
   appWin.on('resized', saveWorkspace);
+  // v0.9.18: notification cards stay in the corner of the app window
+  for (const ev of ['moved', 'resized', 'minimize', 'restore', 'maximize', 'unmaximize']) appWin.on(ev, () => mailBubble?.place());
   // the caption ×, Alt+F4 and the taskbar's "Close window": back to the island, never quit
   appWin.on('close', (event) => {
     if (quitting) return;
@@ -407,7 +418,7 @@ function setWorkspace(on) {
   const { workspaceBounds } = require('./core/workspace.cjs');
   if (on) {
     if (pluginGuide) endPluginGuide();
-    stopPetPhysics();
+    if (!petOut) stopPetPhysics();
     petDrag = null;
     if (detached) {
       detached = false;
@@ -427,7 +438,6 @@ function setWorkspace(on) {
     }).catch(() => {});
     workspace = { maximized: false };
     clearInterval(petTopTimer);
-    mailBubble?.suppress(true);
     appWin.setBounds(restore);
     moveView(appWin);
     win.webContents.send('ui-hidden', false);
@@ -438,6 +448,8 @@ function setWorkspace(on) {
     islandWin.hide();
     sendWorkspace();
     checkWindowsSoon();
+    mailBubble?.place();
+    mailBubble?.raise();
   } else {
     saveWorkspace();
     workspace = null;
@@ -446,7 +458,6 @@ function setWorkspace(on) {
       appWin.hide();
       appWin.setSkipTaskbar(true);
     }
-    mailBubble?.suppress(false);
     applyTopmost();
     sendWorkspace();
     // back to the island without a size animation from the big window, then make sure it is
@@ -636,16 +647,124 @@ function sendWhatsAppCommand(cmd) {
     en: !!v2?.data?.language && v2.data.language !== 'tr',
   });
 }
+/** v0.9.18: what the notification cards stand next to. */
+function bubbleAnchor() {
+  if (workspace) {
+    const open = appWin && !appWin.isDestroyed() && appWin.isVisible() && !appWin.isMinimized();
+    return { ...(open ? appWin.getBounds() : screen.getPrimaryDisplay().workArea), corner: true };
+  }
+  return detached ? win.getBounds() : visibleBounds || win.getBounds();
+}
 function placePet(point) {
   const { petBounds } = require('./core/desktop-pet.cjs');
   const display = screen.getDisplayNearestPoint(point);
   const rect = petBounds(point, display.workArea);
   petPosition = { x: rect.x, y: rect.y };
+  if (petOut) {
+    // with its size each time: setPosition alone grows the window on a scaled screen
+    if (petWin && !petWin.isDestroyed()) petWin.setBounds(rect);
+    return;
+  }
   const previous = win.getBounds();
   if (previous.width !== rect.width || previous.height !== rect.height) win.setBounds(rect);
   else if (previous.x !== rect.x || previous.y !== rect.y) win.setPosition(rect.x + 0, rect.y + 0, false);
   visibleBounds = rect;
   mailBubble?.place();
+}
+function startPetOut() {
+  if (petOut) return;
+  petOut = true;
+  petHover = true;
+  win.webContents.send('ui-pet-out', true);
+  // window.open needs a user gesture and the drag's press may no longer count as one when this
+  // message arrives: without the gesture the window never opened and Charles only vanished
+  win.webContents
+    .executeJavaScript('window.charlesPetOpen?.()', true)
+    .then((opened) => {
+      if (!opened) endPetOut();
+    })
+    .catch(() => endPetOut());
+}
+function endPetOut() {
+  if (!petOut) return;
+  petOut = false;
+  stopPetPhysics();
+  if (petDrag) petDrag = null;
+  const w = petWin;
+  petWin = null;
+  win.webContents.send('ui-pet-out', false);
+  if (w && !w.isDestroyed()) w.destroy();
+}
+/** The window that page opens for him (public/pet.html). */
+function petWindowOpened(w) {
+  petWin = w;
+  w.setMenu?.(null);
+  w.setSkipTaskbar(true);
+  w.setAlwaysOnTop(!fullscreenOther, 'screen-saver');
+  w.on('closed', () => {
+    if (petWin === w) endPetOut();
+  });
+  w.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  const { PET_SIZE } = require('./core/desktop-pet.cjs');
+  w.setContentSize(PET_SIZE, PET_SIZE);
+  placePet(petPosition || screen.getCursorScreenPoint());
+  w.showInactive();
+  applyTopmost();
+}
+const petWindowOptions = () => {
+  const { PET_SIZE } = require('./core/desktop-pet.cjs');
+  return {
+    width: PET_SIZE,
+    height: PET_SIZE,
+    frame: false,
+    transparent: true,
+    hasShadow: false,
+    resizable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    focusable: false, // a click on him leaves the focus (and the open panel) where it is
+    show: false,
+    backgroundColor: '#00000000',
+    title: 'Charles',
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+  };
+};
+/** v0.9.18: Charles was dropped on a window: read it, then show the card in the chat. */
+async function readDropped(target, pick = -1) {
+  contentTarget = target;
+  win.webContents.send('content-reading', true);
+  let value;
+  try {
+    // before the panel takes the focus: the check for an open password field looks at that window
+    const r = await contentDrop.read(target, pick);
+    value = r.error || r.candidates ? r : contentAttachment(r);
+  } catch (e) {
+    value = { error: e.message };
+  }
+  win.webContents.send('content-reading', false);
+  if (detached) {
+    detached = false;
+    win.webContents.send('ui-desktop-pet', false);
+    startPetOut();
+  }
+  if (!workspace) expand(true, true);
+  win.webContents.send('content-context', value);
+}
+function contentAttachment(r) {
+  const { target, text, image, file: saved, ...card } = r;
+  // a saved Word or PowerPoint file goes through the same readers as a file added to the chat
+  if (saved) return { ...card, item: extrasAttachment(saved) };
+  const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'charles-content-'));
+  const safe = String(r.title || r.app).replace(/[\\/:*?"<>|\r\n]+/g, ' ').trim().slice(0, 60);
+  const file = image || path.join(dir, 'Okunan içerik - ' + (safe || r.app) + '.txt');
+  try {
+    if (!image)
+      fs.writeFileSync(file, [`Kaynak: ${r.app} (${r.kind})`, `Başlık: ${r.title || '-'}`, `Kapsam: ${r.scopeLabel}`, '', require('./core/untrusted.cjs').defuse(text, 120000)].join('\n'), 'utf8');
+    return { ...card, item: extrasAttachment(file) };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+    if (image) fs.rmSync(image, { force: true });
+  }
 }
 // v0.6.2 jelly physics: throwing, bouncing, sticking (app/core/pet-physics.cjs).
 let petPhysics = null,
@@ -663,16 +782,19 @@ function physics() {
         y: Math.round(petPhysics.y + PET_SIZE / 2),
       }).workArea,
     move: (x, y) => {
-      if (!win || win.isDestroyed() || !detached) return;
+      const target = petOut ? petWin : win;
+      if (!target || target.isDestroyed() || !(detached || petOut)) return;
       x = toInt(x);
       y = toInt(y);
       try {
-        win.setPosition(x, y, false);
+        if (petOut) target.setBounds({ x, y, width: PET_SIZE, height: PET_SIZE });
+        else target.setPosition(x, y, false);
       } catch {
         petPhysics?.stop();
         return;
       }
       petPosition = { x, y };
+      if (petOut) return;
       visibleBounds = { x, y, width: PET_SIZE, height: PET_SIZE };
       mailBubble?.place();
     },
@@ -688,7 +810,7 @@ function stopPetPhysics() {
   petPhysics?.stop();
 }
 function releasePet(samples) {
-  if (!detached || !petPosition) return;
+  if (!(detached || petOut) || !petPosition) return;
   const p = physics();
   if (p.release(petPosition.x, petPosition.y, samples) !== 'fly') return;
   let last = Date.now();
@@ -697,7 +819,7 @@ function releasePet(samples) {
     const now = Date.now();
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    if (!detached || !p.step(dt)) {
+    if (!(detached || petOut) || !p.step(dt)) {
       clearInterval(petPhysicsTimer);
       petPhysicsTimer = null;
       if (petPosition) {
@@ -708,7 +830,7 @@ function releasePet(samples) {
   }, 16);
 }
 function movePetDrag(point) {
-  if (!petDrag || pluginGuide || workspace) return;
+  if (!petDrag || pluginGuide) return;
   // pointer samples for the throw velocity (window position over time)
   petDrag.samples.push({
     t: Date.now(),
@@ -718,14 +840,17 @@ function movePetDrag(point) {
   if (petDrag.samples.length > 12) petDrag.samples.shift();
   if (!petDrag.moved && Math.hypot(point.x - petDrag.start.x, point.y - petDrag.start.y) > 6) {
     petDrag.moved = true;
-    if (!detached) {
+    if (!detached && !petOut) {
       petPosition = { x: point.x - petDrag.offset.x, y: point.y - petDrag.offset.y };
-      detachPet(true);
+      // v0.9.18: an open panel stays open; he leaves it and his place stays empty
+      if (workspace || (expanded && !hidden)) startPetOut();
+      else detachPet(true);
     }
   }
   if (petDrag.moved) {
     placePet({ x: point.x - petDrag.offset.x, y: point.y - petDrag.offset.y });
-    if (ignoringPointer) {
+    contentDrop?.move(point);
+    if (ignoringPointer && !petOut) {
       win.setIgnoreMouseEvents(false);
       ignoringPointer = false;
     }
@@ -756,23 +881,31 @@ function detachPet(value) {
 // v0.9.6: the island too stays above every window — unless another app covers its whole
 // screen (a game, a video, a presentation); then it steps back until that app is left.
 let fullscreenOther = false;
+function raisePet() {
+  if (!petWin || petWin.isDestroyed()) return;
+  petWin.setAlwaysOnTop(!fullscreenOther, 'screen-saver');
+  if (!fullscreenOther) petWin.moveTop();
+}
 function applyTopmost() {
   if (!win || win.isDestroyed()) return;
+  raisePet();
   if (workspace || fullscreenOther) {
     clearInterval(petTopTimer);
     win.setAlwaysOnTop(false);
     return;
   }
-  const strong = detached || panelPinned;
-  win.setAlwaysOnTop(true, strong ? 'screen-saver' : 'floating');
+  const strong = detached || panelPinned || petOut;
+  win.setAlwaysOnTop(true, detached || panelPinned ? 'screen-saver' : 'floating');
   clearInterval(petTopTimer);
   win.moveTop();
   mailBubble?.raise();
+  raisePet();
   if (strong) {
     petTopTimer = setInterval(() => {
-      if ((detached || panelPinned) && !fullscreenOther && !win.isDestroyed()) {
+      if ((detached || panelPinned || petOut) && !fullscreenOther && !win.isDestroyed()) {
         win.moveTop();
         mailBubble?.raise();
+        raisePet();
       }
     }, 2500);
   }
@@ -795,6 +928,8 @@ function startTopGuard() {
     if (full !== fullscreenOther) {
       fullscreenOther = full;
       applyTopmost();
+      // v0.9.18: a game gets its Down Arrow at once, with no wait for a double press
+      dictation?.pause(full || micBlocked());
       return;
     }
     if (full) return;
@@ -961,6 +1096,12 @@ function expand(value, focus = false, chat = true) {
   mailBubble?.raise();
 
   return expanded;
+}
+/** v0.9.18: the sheet with what a version changed (src/chat/release-notes.ts). */
+function showReleaseNotes(version) {
+  const notes = require('./core/release-notes.cjs').notes(root, version);
+  expand(true, true);
+  win.webContents.send('release-notes', notes ? { version, ...notes } : null);
 }
 function loginOptions() {
   return {
@@ -1312,7 +1453,7 @@ else {
       // Important mail and calendar reminders appear as bubbles under the island
       // (app/plugins/mail-alerts.cjs) instead of a Windows toast for every message.
       mailBubble = new (require('./plugins/mail-bubble.cjs').MailBubble)({
-        anchor: () => (detached ? win.getBounds() : visibleBounds),
+        anchor: () => bubbleAnchor(),
         onOpen: () => {},
         onWhatsApp: (action, args) => whatsappBubbleAction(action, args),
         language: () => v2?.data?.language || 'tr',
@@ -1354,6 +1495,8 @@ else {
         },
         // v0.8.14: a module's notice opens that module; Charles' own ones open the panel
         focus: (item) => {
+          // v0.9.18: "Charles güncellendi" opens what this version changed
+          if (item?.updateNotes) return showReleaseNotes(String(item.updateNotes));
           // v0.9.12: a module's "Kaydedildi" notice shows the saved file in its folder
           if (item?.reveal && typeof item.reveal === 'string') {
             if (fs.existsSync(item.reveal)) shell.showItemInFolder(item.reveal);
@@ -1555,8 +1698,17 @@ else {
       // a window with a separate page does not pass the keyboard focus on by itself
       islandWin.on('focus', () => {
         if (activeWindow() === islandWin && !view.webContents.isDestroyed()) view.webContents.focus();
+        // v0.9.18: Windows puts the window it activates first on the topmost band
+        setImmediate(() => mailBubble?.raise());
       });
-      win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+      // v0.9.18: the only window the page may open is Charles' own (src/island/desktop-pet.ts)
+      win.webContents.setWindowOpenHandler(({ url }) =>
+        url === 'charles://app/pet.html' && petOut
+          ? { action: 'allow', overrideBrowserWindowOptions: petWindowOptions() }
+          : { action: 'deny' },
+      );
+      win.webContents.on('did-create-window', (w) => petWindowOpened(w));
+      contentDrop = new (require('./system/content-drop.cjs').ContentDrop)({ BrowserWindow, screen, globalShortcut, temp: app.getPath('temp') });
       win.webContents.on('render-process-gone', () => {
         voiceHeld = false;
         micArmedUntil = 0;
@@ -1587,6 +1739,7 @@ else {
             !(shelfHeld && !chatOpen) &&
             !mailBubble?.active() &&
             !mailBubble?.contains(screen.getCursorScreenPoint()) &&
+            !petDrag &&
             Date.now() > dropHeldUntil &&
             !capture?.busy &&
             !colorPick?.busy &&
@@ -1773,6 +1926,7 @@ else {
       safeHandler('plugins-setup-start', async (id) => {
         const url = require('./plugins/oauth-setup.cjs').setupURL(id);
         if (pluginGuide) endPluginGuide();
+        endPetOut();
         const previous = { detached, expanded, petPosition, workspace: !!workspace };
         // The guide needs the small Slime beside the browser: leave the app window for now,
         // it comes back when the guide ends.
@@ -1820,6 +1974,18 @@ else {
         }
       });
       safeHandler('pet-detach', (value) => detachPet(value));
+      safeHandler('pet-home', () => {
+        endPetOut();
+        return true;
+      });
+      safeHandler('content-read', (pick) => {
+        if (!contentTarget) throw Error('Okunacak bir hedef yok; Charles’ı yeniden içeriğin üzerine bırak.');
+        return readDropped(contentTarget, Number.isInteger(pick) ? pick : -1);
+      });
+      safeHandler('content-forget', () => {
+        contentTarget = null;
+        return true;
+      });
       safeHandler('panel-pointer-enter', () => {
         const p = screen.getCursorScreenPoint();
         if (mailBubble?.contains(p)) {
@@ -1844,7 +2010,6 @@ else {
         return true;
       });
       safeHandler('pet-drag', (active, origin) => {
-        if (workspace) return false; // the Slime stays inside the app window
         if (active === true) {
           const now = screen.getCursorScreenPoint();
           const p =
@@ -1855,21 +2020,26 @@ else {
               ? origin
               : now;
           stopPetPhysics();
-          const b = win.getBounds();
+          const b = (petOut && petWin && !petWin.isDestroyed() ? petWin : win).getBounds();
           const { PET_SIZE } = require('./core/desktop-pet.cjs');
           petDrag = {
             start: p,
             moved: false,
             samples: [],
-            offset: detached
+            offset: detached || petOut
               ? { x: p.x - b.x, y: p.y - b.y }
               : { x: Math.round(PET_SIZE * 0.39), y: Math.round(PET_SIZE * 0.39) },
           };
+          contentDrop?.begin();
         } else {
           const drag = petDrag;
           petDrag = null;
-          if (drag?.moved && detached) releasePet(drag.samples);
-          if (detached && petPosition) {
+          const target = contentDrop?.end();
+          if (drag?.moved && (detached || petOut)) {
+            if (target) void readDropped(target);
+            else releasePet(drag.samples);
+          }
+          if ((detached || petOut) && petPosition) {
             v2.data.petPosition = petPosition;
             v2.save();
           }
@@ -1945,6 +2115,11 @@ else {
         if (!m) throw Error('Görsel okunamadı.');
         return { ext: m[1] === 'jpeg' ? 'jpg' : m[1], bytes: Buffer.from(m[2], 'base64') };
       };
+      // v0.9.18: the right-click menu's Yapıştır: the same paste as Ctrl+V (text and pictures)
+      safeHandler('edit-paste', () => {
+        win.webContents.paste();
+        return true;
+      });
       safeHandler('image-save', async (dataUrl) => {
         const { ext, bytes } = imageData(dataUrl);
         const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
@@ -2189,7 +2364,9 @@ else {
         if (value !== undefined && value !== null) {
           if (typeof value !== 'boolean') throw Error('Geçersiz mikrofon tercihi.');
           extras.setMicOff(value);
+          dictation?.pause(value);
           if (value) {
+            dictation?.cancel();
             micArmedUntil = 0;
             voiceHeld = false;
             try {
@@ -2267,6 +2444,7 @@ else {
         }
         return item;
       }
+      extrasAttachment = (file) => attachment(extras.ingest(file, { untrusted: 'content' }));
       function ingestImage(bytes) {
         if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length > 20 * 1024 * 1024)
           throw Error('Resim en fazla 20 MB olabilir.');
@@ -2419,7 +2597,8 @@ else {
             return;
           }
           if (id === 'pet') {
-            detachPet(!detached);
+            if (petOut) endPetOut();
+            else detachPet(!detached);
             return;
           }
           expand(true, true);
@@ -2429,6 +2608,52 @@ else {
         },
       );
       const captureShortcut = !shortcuts.errors.capture;
+      // v0.9.18: Bas-konuş (app/voice/dictation.cjs): off until turned on in Ayarlar → Kısayollar
+      const shortcutNames = () => {
+        const names = { chat: 'Sohbeti aç', alert: 'Uyarıya atla', terminal: 'Son terminal işlemi', next: 'Sonraki sohbet', previous: 'Önceki sohbet', voice: 'Sesli görüşme', dictate: 'Dikte et', pet: 'Slime’ı masaüstüne gönder', wardrobe: 'Gardırop', capture: 'Ekrandan alan seç' };
+        return Object.fromEntries(Object.entries(shortcuts.read().values).map(([id, key]) => [names[id] || id, key]));
+      };
+      dictation = new (require('./voice/dictation.cjs').Dictation)({
+        dir: app.getPath('userData'),
+        voice: new Voice(root, app.getPath('userData')),
+        send: (channel, value) => {
+          if (win && !win.isDestroyed()) win.webContents.send(channel, value);
+        },
+        mic: {
+          blocked: micBlocked,
+          arm: () => {
+            if (voiceHeld || liveRoom) return false;
+            micArmedUntil = Date.now() + 15000;
+            return true;
+          },
+          off: () => {
+            if (!voiceHeld && !liveRoom) micArmedUntil = 0;
+          },
+        },
+        BrowserWindow,
+        screen,
+        clipboard,
+        shortcuts: shortcutNames,
+        language: () => v2?.data?.language || 'tr',
+        preload: path.join(__dirname, 'voice/dictation-preload.cjs'),
+      });
+      ipcMain.on('dictation-action', (event, name) => {
+        if (dictation.win && event.sender === dictation.win.webContents) void dictation.action(String(name)).catch(() => {});
+      });
+      safeHandler('dictation-read', () => dictation.read());
+      safeHandler('dictation-save', (value) => dictation.save(value));
+      safeHandler('dictation-pause', (on) => {
+        dictation.pause(on);
+        return true;
+      });
+      safeHandler('dictate-audio', (ticket, bytes) => dictation.audio(ticket, bytes));
+      safeHandler('dictate-failed', (ticket, message) => {
+        dictation.failed(ticket, String(message || '').slice(0, 200));
+        return true;
+      });
+      dictation.begin();
+      if (micBlocked()) dictation.pause(true);
+      app.once('before-quit', () => dictation.destroy());
       safeHandler('shortcuts-record', (active) => {
         if (typeof active !== 'boolean') throw Error('Invalid recording state');
         shortcuts.recording(active);
@@ -3296,6 +3521,22 @@ else {
       safeHandler('review-get', (id) => changeReview.get(String(id)));
       safeHandler('review-undo', (id) => changeReview.undo(String(id)));
       safeHandler('system-usage', () => require('./core/system-info.cjs').usage(app));
+      // v0.9.18: Araçlar → Sistem izleyici (app/system/live-metrics.cjs); measures while on screen
+      const liveMetrics = new (require('./system/live-metrics.cjs').LiveMetrics)({
+        send: (value) => {
+          if (win && !win.isDestroyed()) win.webContents.send('metrics', value);
+        },
+        fallbackCpu: () => require('./core/system-info.cjs').cpuPercent(),
+        file: path.join(app.getPath('userData'), 'system-monitor.json'),
+      });
+      liveMetrics.start();
+      safeHandler('metrics-watch', (on) => liveMetrics.watch(on));
+      safeHandler('metrics-select', (value) => liveMetrics.select(value));
+      safeHandler('metrics-pause', (on) => liveMetrics.pause(on));
+      safeHandler('metrics-reset', () => liveMetrics.reset());
+      safeHandler('metrics-background', (on) => liveMetrics.setBackground(on));
+      win.webContents.on('render-process-gone', () => liveMetrics.watch(false));
+      app.once('before-quit', () => liveMetrics.stop());
       safeHandler('system-info', () => require('./core/system-info.cjs').info(app, app.getVersion()));
       // v0.8.0: modules (app/modules/*, Ayarlar → Modüller)
       moduleRegistry = new (require('./modules/registry.cjs').ModuleRegistry)({ userData: app.getPath('userData') });
@@ -3410,22 +3651,41 @@ else {
         return updateLast;
       };
       const finished = updateResult;
-      if (finished)
+      // v0.9.18: first install, update and an ordinary restart are told apart (core/release-notes.cjs)
+      const started = new (require('./core/release-notes.cjs').WhatsNew)(app.getPath('userData')).check({
+        fresh: freshProfile,
+        current: app.getVersion(),
+        updated: !!finished?.ok,
+      });
+      if (started === 'update' || finished?.ok === false)
         setTimeout(() => {
           const en = updateEn();
-          const updateResult = finished;
+          const ok = finished?.ok !== false;
           mailBubble?.add({
-            id: 'update|' + Date.now(),
+            id: 'update|' + (ok ? app.getVersion() : Date.now()),
             kind: 'charles',
-            icon: updateResult.ok ? '✨' : '⚠️',
-            title: updateResult.ok ? (en ? 'Charles updated' : 'Charles güncellendi') : en ? 'Update failed' : 'Güncelleme yapılamadı',
-            reason: updateResult.ok
-              ? updater.label(updateResult.version) + (en ? ' is installed.' : ' kuruldu.')
+            icon: ok ? '✨' : '⚠️',
+            ...(ok ? { updateNotes: app.getVersion() } : { plain: true }),
+            title: ok ? (en ? 'Charles updated' : 'Charles güncellendi') : en ? 'Update failed' : 'Güncelleme yapılamadı',
+            reason: ok
+              ? updater.label(app.getVersion()) + (en ? ' is installed.' : ' kuruldu.')
               : en
                 ? 'The previous version was restored. Details: _update\\update.log'
                 : 'Önceki sürüme dönüldü. Ayrıntılar: _update\\update.log',
           });
         }, 6000);
+      safeHandler('release-notes-attach', (version) => {
+        const notes = require('./core/release-notes.cjs').notes(root, version);
+        if (!notes) throw Error('Bu sürümün notları bulunamadı.');
+        const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'charles-notes-'));
+        const file = path.join(dir, 'Release notes ' + updater.label(version) + '.txt');
+        try {
+          fs.writeFileSync(file, notes.title + '\n\n' + notes.body, 'utf8');
+          return [attachment(extras.ingest(file))];
+        } finally {
+          fs.rmSync(dir, { recursive: true, force: true });
+        }
+      });
       safeHandler('update-state', () => {
         const result = updateResult;
         updateResult = null;
@@ -3814,6 +4074,14 @@ else {
       // Native cursor poll: window-relative logical pixels, also
       // when another application has focus. Electron already returns DIP units.
       let lastCursor = null;
+      // v0.9.18: only his body takes the pointer; the rest of his square window lets clicks through
+      function petPointer(point) {
+        const b = petWin.getBounds();
+        const over = Math.hypot(point.x - (b.x + b.width / 2), point.y - (b.y + b.height * 0.53)) < b.width * 0.36;
+        if (over === petHover) return;
+        petHover = over;
+        petWin.setIgnoreMouseEvents(!over, { forward: true });
+      }
       function watchCursor() {
         cursorTimer = setTimeout(watchCursor, petDrag ? 16 : hidden ? 150 : detached || workspace ? 33 : 16);
         if (!win || win.isDestroyed() || !win.isVisible() || win.isMinimized()) return;
@@ -3823,7 +4091,9 @@ else {
           return;
         }
         const bounds = win.getContentBounds();
-        const cursor = { x: point.x - bounds.x, y: point.y - bounds.y };
+        const outside = petOut && petWin && !petWin.isDestroyed() ? petWin.getBounds() : null;
+        if (outside) petPointer(point);
+        const cursor = outside ? { x: point.x - outside.x, y: point.y - outside.y } : { x: point.x - bounds.x, y: point.y - bounds.y };
         const visible = visibleBounds || bounds;
         const onBubble = Boolean(mailBubble?.contains(point));
         // v0.8.13: a notification card is never under the island's pointer area
@@ -3926,6 +4196,7 @@ else {
       for (const event of ['suspend', 'lock-screen'])
         powerMonitor.on(event, () => {
           computerTime.pause();
+          dictation?.cancel();
           liveVoice.stop('Bilgisayar kilitlendi veya uykuya geçti; mikrofon kapatıldı.');
           voice.stop();
           wakeVoice.stop();
@@ -3988,6 +4259,7 @@ else {
     usageForeground?.stop();
     clearInterval(topGuard);
     topForeground?.stop();
+    contentDrop?.destroy();
     clearInterval(pluginTimer);
     plugins?.stop();
     clearInterval(reminderTimer);

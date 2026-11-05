@@ -324,7 +324,7 @@ class Extras {
                 : deckFile
                   ? 'presentation'
                   : 'text',
-      ...(untrusted ? { untrusted: true } : {}),
+      ...(untrusted ? { untrusted } : {}),
     };
     this.attachments.set(id, item);
     return { id, name: item.name, size: item.size, kind: item.kind };
@@ -403,7 +403,7 @@ class Extras {
       // v0.9.9: file contents go to the model fenced as outside data (core/untrusted.cjs); a
       // mail Charles opened says that its sender wrote it, not the user.
       const { fence } = require('./untrusted.cjs');
-      const who = a.untrusted ? 'Charles’ın açtığı e-posta (gönderen yazdı, kullanıcı değil)' : 'Kullanıcının eklediği dosya';
+      const who = a.untrusted === 'content' ? 'Charles’ın kullanıcının isteğiyle okuduğu dış içerik (kullanıcı yazmadı)' : a.untrusted ? 'Charles’ın açtığı e-posta (gönderen yazdı, kullanıcı değil)' : 'Kullanıcının eklediği dosya';
       if (a.kind === 'docx')
         return {
           type: 'text',

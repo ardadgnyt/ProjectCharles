@@ -11,6 +11,25 @@ const WIDTH = 380;
 const MAX_VISIBLE = 3;
 const GAP = 8;
 
+/**
+ * v0.9.18: where the cards go. Under the island when they fit there; a panel too tall for that used
+ * to send them on top of itself, and a window on the same topmost band as the focused panel stays
+ * behind it, so only the sound got through. Now beside the panel, above it, and over it only as the
+ * last choice. { corner: true } is the app window: its top right corner, under the title bar.
+ */
+function bubbleSpot(a, area, width, height, gap = GAP) {
+  const right = area.x + area.width;
+  const bottom = area.y + area.height;
+  if (a.corner) return { x: Math.max(area.x, a.x + a.width - width - 16), y: Math.min(a.y + 60, Math.max(area.y, bottom - height)) };
+  const middle = Math.max(area.x, Math.min(right - width, Math.round(a.x + (a.width - width) / 2)));
+  if (a.y + a.height + gap + height <= bottom) return { x: middle, y: a.y + a.height + gap };
+  const top = Math.max(area.y, Math.min(a.y, bottom - height));
+  if (a.x + a.width + gap + width <= right) return { x: a.x + a.width + gap, y: top };
+  if (a.x - gap - width >= area.x) return { x: a.x - gap - width, y: top };
+  if (a.y - gap - height >= area.y) return { x: middle, y: a.y - gap - height };
+  return { x: middle, y: area.y };
+}
+
 class MailBubble {
   // anchor(): { x, y, width, height } of the visible island in screen coordinates.
   // onOpen(item): called when the user clicks a bubble.
@@ -211,11 +230,8 @@ class MailBubble {
     if (!a) return;
     const area = screen.getDisplayNearestPoint({ x: a.x + a.width / 2, y: a.y }).workArea;
     const width = Math.min(WIDTH, area.width);
-    let x = Math.round(a.x + (a.width - width) / 2);
-    x = Math.max(area.x, Math.min(area.x + area.width - width, x));
-    let y = a.y + a.height + GAP;
-    if (y + this.height > area.y + area.height) y = Math.max(area.y, a.y - this.height - GAP);
-    w.setBounds({ x, y: Math.round(y), width, height: this.height });
+    const spot = bubbleSpot(a, area, width, this.height);
+    w.setBounds({ x: Math.round(spot.x), y: Math.round(spot.y), width, height: this.height });
     w.setIgnoreMouseEvents(false);
     w.setAlwaysOnTop(true, 'screen-saver');
     w.setSkipTaskbar(true);
@@ -276,4 +292,4 @@ class MailBubble {
   }
 }
 
-module.exports = { MailBubble };
+module.exports = { MailBubble, bubbleSpot };

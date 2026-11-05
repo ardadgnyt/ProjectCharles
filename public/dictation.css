@@ -1,0 +1,88 @@
+/* v0.9.18: the small Bas-konuş indicator. It never takes the keyboard. */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+  color: #f5eee5;
+  font: 13px 'Segoe UI', sans-serif;
+}
+#card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background: #161513;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #edc9a9;
+}
+.recording .dot {
+  background: #5fd8a4;
+  animation: beat 1.1s ease-in-out infinite;
+}
+.processing .dot {
+  background: #e9c46a;
+}
+.error .dot {
+  background: #e76f6f;
+}
+@keyframes beat {
+  50% {
+    transform: scale(0.65);
+  }
+}
+.text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hint {
+  flex: none;
+  margin-left: auto;
+  color: rgba(245, 238, 229, 0.55);
+  font-size: 11px;
+}
+.result {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: rgba(245, 238, 229, 0.8);
+  font-size: 12px;
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+button {
+  padding: 3px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+}
+button.primary {
+  border-color: transparent;
+  background: #f1dcc4;
+  color: #161513;
+}

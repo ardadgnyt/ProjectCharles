@@ -1,0 +1,36 @@
+/* v0.9.18: shows what Charles would read when he is dropped here. Takes no clicks. */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+  font: 13px 'Segoe UI', sans-serif;
+}
+#frame {
+  box-sizing: border-box;
+  position: relative;
+  height: 100%;
+  border: 2px solid #edc9a9;
+  border-radius: 10px;
+  background: rgba(237, 201, 169, 0.07);
+}
+#frame.off {
+  border-color: rgba(245, 238, 229, 0.45);
+  border-style: dashed;
+  background: none;
+}
+#label {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  max-width: calc(100% - 28px);
+  padding: 6px 12px;
+  overflow: hidden;
+  transform: translateX(-50%);
+  border-radius: 9px;
+  background: #161513;
+  color: #f5eee5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

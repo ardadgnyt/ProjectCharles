@@ -12,8 +12,8 @@ type Deps = {
   attempt: (fn: () => Promise<any>) => Promise<void>;
 };
 
-const GHOST_W = 150;
-const GHOST_H = 60;
+const GHOST_W = 180;
+const GHOST_H = 112;
 const dragScale = () => Math.max(1, Math.min(3, window.devicePixelRatio || 1));
 
 /**
@@ -35,11 +35,13 @@ function nameLines(x: CanvasRenderingContext2D, name: string, width: number) {
 }
 
 /**
- * What follows the pointer. Electron's startDrag writes the file's whole path beside the picture
- * it is given and cuts it to "C:\Users\User\..." (it cannot be turned off); a picture as wide as
- * that drag label leaves it no room, so the card below is all that is seen.
+ * What follows the pointer, in the look of a file dragged from the desktop: the picture on nothing,
+ * its name under it in white with a soft shadow. v0.9.18: no card behind them any more, everything
+ * around the picture and the name is fully transparent.
+ * Electron's startDrag writes the file's whole path beside the picture it is given and cuts it to
+ * "C:\Users\User\..." (it cannot be turned off); a picture this wide leaves that text no room.
  */
-function dragCard(name: string, size: string, thumb: HTMLImageElement | null) {
+function dragCard(name: string, thumb: HTMLImageElement | null) {
   const scale = dragScale();
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(GHOST_W * scale);
@@ -47,43 +49,27 @@ function dragCard(name: string, size: string, thumb: HTMLImageElement | null) {
   const x = canvas.getContext('2d');
   if (!x) return '';
   x.scale(scale, scale);
-  x.beginPath();
-  x.roundRect(0.5, 0.5, GHOST_W - 1, GHOST_H - 1, 12);
-  x.fillStyle = '#171614';
-  x.fill();
-  x.strokeStyle = 'rgba(237, 201, 169, 0.28)';
-  x.stroke();
-  const box = 44;
-  const left = 8, top = (GHOST_H - box) / 2;
+  const box = 76;
+  const top = 2;
   if (thumb?.complete && thumb.naturalWidth) {
-    // pictures fill their square; file type icons keep their own shape and margin
-    const pictureLike = thumb.naturalWidth >= 64 && thumb.naturalHeight >= 64 && thumb.naturalWidth !== thumb.naturalHeight;
-    const k = (pictureLike ? Math.max : Math.min)(box / thumb.naturalWidth, box / thumb.naturalHeight);
-    const w = thumb.naturalWidth * k, h = thumb.naturalHeight * k;
+    const k = Math.min(box / thumb.naturalWidth, box / thumb.naturalHeight);
+    const w = thumb.naturalWidth * k;
+    const h = thumb.naturalHeight * k;
     x.save();
-    x.beginPath();
-    x.roundRect(left, top, box, box, 8);
-    x.fillStyle = 'rgba(255, 255, 255, 0.05)';
-    x.fill();
-    x.clip();
-    x.drawImage(thumb, left + (box - w) / 2, top + (box - h) / 2, w, h);
+    x.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    x.shadowBlur = 5;
+    x.shadowOffsetY = 1;
+    x.drawImage(thumb, (GHOST_W - w) / 2, top + (box - h) / 2, w, h);
     x.restore();
-    x.beginPath();
-    x.roundRect(left + 0.5, top + 0.5, box - 1, box - 1, 8);
-    x.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-    x.stroke();
   }
-  const textLeft = left + box + 8;
-  const room = GHOST_W - textLeft - 8;
+  x.font = '12px "Segoe UI Variable Text", "Segoe UI", sans-serif';
+  x.textAlign = 'center';
   x.textBaseline = 'alphabetic';
-  x.fillStyle = '#f5eee5';
-  x.font = '600 10.5px "Segoe UI", sans-serif';
-  const lines = nameLines(x, name, room);
-  const first = lines.length > 1 ? 19 : 26;
-  lines.forEach((line, i) => x.fillText(line, textLeft, first + i * 13));
-  x.fillStyle = 'rgba(245, 238, 229, 0.62)';
-  x.font = '9.5px "Segoe UI", sans-serif';
-  x.fillText(size, textLeft, first + lines.length * 13 + 1);
+  x.fillStyle = '#ffffff';
+  x.shadowColor = 'rgba(0, 0, 0, 0.9)';
+  x.shadowBlur = 3;
+  x.shadowOffsetY = 1;
+  nameLines(x, name, GHOST_W - 8).forEach((line, i) => x.fillText(line, GHOST_W / 2, top + box + 16 + i * 15));
   return canvas.toDataURL('image/png');
 }
 
@@ -151,7 +137,7 @@ export function fileRack({ api, notice, attempt }: Deps) {
     line.ondragstart = (e) => {
       e.preventDefault();
       document.dispatchEvent(new Event('dragend'));
-      void attempt(() => api.rackDrag(item.id, dragCard(item.name, sizeText(item.size), thumb), dragScale()));
+      void attempt(() => api.rackDrag(item.id, dragCard(item.name, thumb), dragScale()));
     };
     return line;
   };

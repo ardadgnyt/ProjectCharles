@@ -3,12 +3,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { spawn } = require('node:child_process');
-function validateWave(value) {
+const MAX_WAVE = 1920044;
+function validateWave(value, max = MAX_WAVE) {
   if (!(value instanceof Uint8Array)) throw Error('Geçersiz ses kaydı.');
   const b = Buffer.from(value);
   if (
     b.length < 6444 ||
-    b.length > 1920044 ||
+    b.length > max ||
     b.toString('ascii', 0, 4) !== 'RIFF' ||
     b.toString('ascii', 8, 12) !== 'WAVE' ||
     b.toString('ascii', 12, 16) !== 'fmt ' ||
@@ -91,10 +92,10 @@ class Voice {
       );
     });
   }
-  async transcribe(value) {
+  async transcribe(value, { max = MAX_WAVE } = {}) {
     if (!this.available()) throw Error('Yerel ses modeli bulunamadı. Ses kurulumunu çalıştır.');
     if (this.job) throw Error('Ses işlemi zaten çalışıyor.');
-    const b = validateWave(value);
+    const b = validateWave(value, max);
     fs.mkdirSync(this.dir, { recursive: true });
     const prefix = path.join(this.dir, randomUUID());
     const file = prefix + '.wav';

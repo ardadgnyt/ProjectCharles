@@ -9,6 +9,7 @@
 // Existing parts of the island (quota gauges, weather line, Spotify controls) keep working as
 // they did; the cards read their state and use their buttons.
 import { el, icon } from '../workspace/icons';
+import { systemMonitor } from './system-monitor';
 import { converterSheet } from './converter';
 import { bindFileDropTargets } from './drop-target';
 import { fileRack } from './file-rack';
@@ -679,7 +680,7 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   }
 
   // ── Araçlar: Renk seçici, Zamanlayıcı, the v0.9.14 tools and the installed modules ──
-  type ToolsSub = 'home' | 'colors' | 'timer' | 'reminders' | 'calendar' | 'mail' | 'usage' | 'home-assistant';
+  type ToolsSub = 'home' | 'colors' | 'timer' | 'reminders' | 'calendar' | 'mail' | 'usage' | 'home-assistant' | 'monitor';
   let toolsSub: ToolsSub = 'home';
   // v0.9.14: Hatırlatıcılar, Takvim, E-postalar and Akıllı ev are the app window's own cards
   // (borrowed from src/workspace/dashboard.ts); Kullanım özeti is Ayarlar → Haftalık özet.
@@ -719,7 +720,9 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     ['mail', 'mail', 'E-postalar'],
     ['usage', 'chart', 'Kullanım özeti'],
     ['home-assistant', 'home', 'Akıllı ev'],
+    ['monitor', 'pulse', 'Sistem izleyici'],
   ];
+  const monitor = systemMonitor(api);
   // v0.9.14: icon and name only (no description); long names wrap
   const toolTile = (sub: Exclude<ToolsSub, 'home'>, name: string, title: string) => {
     const t = el('button', 'h13-tt', el('span', 'h13-tt-icon', svg(name)), el('strong', 'h13-tt-name', title));
@@ -791,8 +794,8 @@ export function islandShelf({ api, notice, attempt }: Deps) {
       card.load();
     }
     if (sub === 'usage') void weekly.load();
-    toolsSlot.replaceChildren(...(card || sub === 'usage' ? [] : [sub === 'colors' ? color.action : timer.tabs]));
-    toolsBody.replaceChildren(card ? cardHost : sub === 'usage' ? weeklyHost : sub === 'colors' ? color.root : timer.root);
+    toolsSlot.replaceChildren(...(card || sub === 'usage' ? [] : [sub === 'monitor' ? monitor.action : sub === 'colors' ? color.action : timer.tabs]));
+    toolsBody.replaceChildren(card ? cardHost : sub === 'monitor' ? monitor.root : sub === 'usage' ? weeklyHost : sub === 'colors' ? color.root : timer.root);
     toolsView.dataset.sub = sub;
     toolsView.classList.toggle('with-card', !!card);
     if (sub === 'timer') timer.open();

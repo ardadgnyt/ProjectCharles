@@ -1,226 +1,241 @@
-# ProjectCharles — Geliştirici Rehberi (DEVELOPMENT)
+# Project Charles — Developer guide
 
-Sürüm: **v0.9.2 Beta** · Fikir ve yön: **HzPederPan**
+Idea and direction: **HzPederPan**
 
-Charles’ın tasarımı, [Sam Green’in YouTube kanalındaki](https://www.youtube.com/@SamGreen)
-*Epic Minequest* video serisindeki Charles’tan esinlenmiştir. Proje bağımsızdır; Sam Green ile
-bir bağı yoktur.
+Charles’s design is inspired by Charles from the *Epic Minequest* series on
+[Sam Green’s YouTube channel](https://www.youtube.com/@SamGreen). The project is independent and
+has no connection with Sam Green.
 
-Bu belge, Charles'ın kaynak kodunda neyin nerede olduğunu, uygulamanın nasıl çalıştığını ve
-bir değişikliğin nasıl derlenip test edileceğini anlatır. Kullanıcı kurulumu için `README.md`,
-sürüm geçmişi için `CHANGELOG.md` dosyasına bak.
-
----
-
-## 1. Ana klasörün düzeni
-
-```
-ProjectCharles v0.9.2 Beta/
-├── Start-Charles.cmd            Charles'ı mevcut verilerle açar (Node.js gerekmez)
-├── setup/                       Kurulum araçları:
-│   ├── Install.cmd              Başka bilgisayara kurulum (install.ps1'i çalıştırır)
-│   ├── install.ps1              Kurulumun kendisi
-│   ├── Create-Desktop-Shortcut.vbs  Masaüstüne kısayol oluşturur
-│   └── Reset-Charles.cmd        Yerel ayarları yedekleyip sıfırlar (dikkat: sohbetleri arşivler)
-├── README.md                    Tanıtım ve kurulum (İngilizce)
-├── CHANGELOG.md                 Sürüm sürüm yapılan değişiklikler
-├── DEVELOPMENT.md               Bu belge
-├── .gitignore / .gitattributes  GitHub'a gitmeyecek dosyalar / Windows satır sonları
-├── package.json              Uygulama tanımı; "main": app/main.cjs
-├── biome.json                Kod biçimlendirme kuralları
-│
-├── app/                      ANA SÜREÇ (Electron main, Node.js) — bilgisayara erişen taraf
-├── src/                      ARAYÜZ KAYNAĞI (TypeScript) — derlenince dist/renderer.js olur
-├── public/                   ARAYÜZ VARLIKLARI (HTML, CSS, sesler) — dist/ içine kopyalanır
-├── dist/                     ÇALIŞAN ARAYÜZ (derleme çıktısı; elle düzenleme; GitHub'a gitmez)
-├── test/                     Otomatik testler (node --test)
-├── scripts/                  Derleme / başlatma / kurulum betikleri
-├── docs/                     Kullanım rehberi (USER-GUIDE.md), mimari, eklenti kurulumu, profil soruları, README görselleri
-├── licenses/                 Üçüncü taraf lisansları
-│
-├── node_modules/             Çalışma bileşenleri (Electron, Codex, Claude Code, …)
-├── models/                   Yerel Whisper ses modelleri (small + tiny)
-└── tools/                    Antigravity, Cursor ve Whisper araçları
-```
-
-**Kullanıcı verisi bu klasörde DEĞİLDİR.** Sohbetler, ayarlar, hafıza ve hesap bağlantıları
-Windows'un uygulama veri klasöründe tutulur: `%APPDATA%\Charles`
-(ör. `C:\Users\<kullanıcı>\AppData\Roaming\Charles`). Bkz. bölüm 6.
+This guide explains where things are in the source, how the app works, and how to build and test a
+change. For installation see `README.md`; for version history see `CHANGELOG.md`.
 
 ---
 
-## 2. Uygulama nasıl çalışır (kısa akış)
+## 1. Folder layout
 
 ```
- Windows ── electron.exe ── app/main.cjs  (ana süreç: pencere, IPC, dosya, ağ, alt süreçler)
+ProjectCharles/
+├── Start-Charles.cmd            starts Charles with existing data (Node.js not needed)
+├── setup/                       installer tools:
+│   ├── Install.cmd              installs on another computer (runs install.ps1)
+│   ├── install.ps1              the installer itself
+│   ├── Create-Desktop-Shortcut.vbs  creates a desktop shortcut
+│   └── Reset-Charles.cmd        backs up and resets local settings (archives chats)
+├── README.md                    introduction and installation
+├── CHANGELOG.md                 changes per version
+├── DEVELOPMENT.md               this guide
+├── .gitignore / .gitattributes  files kept out of GitHub / Windows line endings
+├── package.json                 app definition; "main": app/main.cjs
+├── biome.json                   formatting rules
+│
+├── app/                         MAIN PROCESS (Electron, Node.js): the side that reaches the computer
+├── src/                         INTERFACE SOURCE (TypeScript): compiled to dist/renderer.js
+├── public/                      INTERFACE ASSETS (HTML, CSS, sounds): copied into dist/
+├── dist/                        RUNNING INTERFACE (build output; do not edit; not on GitHub)
+├── test/                        automated tests (node --test)
+├── scripts/                     build, start and setup scripts
+├── docs/                        user guide, architecture, plugin setup, README images
+├── licenses/                    third-party licenses
+│
+├── node_modules/                runtime components (Electron, Codex, Claude Code, …)
+├── models/                      local Whisper speech models (small + tiny)
+└── tools/                       Antigravity, Cursor and Whisper tools
+```
+
+**User data is not in this folder.** Chats, settings, memory and account connections are in
+Windows’ application data folder: `%APPDATA%\Charles`. See section 6.
+
+---
+
+## 2. How the app runs
+
+```
+ Windows ── electron.exe ── app/main.cjs  (main process: windows, IPC, files, network, child processes)
                                │  ▲
-              app/preload.cjs  │  │  yalnızca izin verilen çağrılar (window.charles.*)
+              app/preload.cjs  │  │  only the allowed calls (window.charles.*)
                                ▼  │
-                         dist/index.html + dist/renderer.js   (arayüz, sandbox içinde)
+                         dist/index.html + dist/renderer.js   (interface, sandboxed)
 ```
 
-1. `main.cjs` tek pencere açar (şeffaf, çerçevesiz, her zaman üstte) ve `charles://app/`
-   protokolüyle **yalnızca `dist/`** içindeki dosyaları sunar.
-2. Arayüz Node.js'e doğrudan erişemez. Her işlem `preload.cjs` içindeki bir fonksiyonla
-   `ipcMain.handle` ucuna gider. Uçlar `safeHandler` ile tanımlıdır ve gönderen pencereyi doğrular.
-3. Sohbet: GPT modelleri için `app/ai/agent.cjs` yerel Codex app-server'ı başlatır;
-   Antigravity / Claude / Cursor için `app/ai/providers.cjs` ilgili aboneliğin CLI aracını çalıştırır.
-4. Mesaj göndermeden önce `main.cjs` → `safeHandler('send')` bazı istekleri **yerelde** yanıtlar
-   (Spotify, uygulama açma, hava durumu, eklenti komutları, hafıza). Diğerleri yapay zekâya gider.
+1. `main.cjs` opens the window (transparent, frameless, always on top) and serves **only `dist/`**
+   through the `charles://app/` protocol.
+2. The interface cannot reach Node.js. Every operation goes through a function in `preload.cjs` to
+   an `ipcMain.handle` endpoint. Endpoints are defined with `safeHandler`, which checks the sender.
+3. Chat: for GPT models `app/ai/agent.cjs` starts the local Codex app-server; for Antigravity,
+   Claude and Cursor `app/ai/providers.cjs` runs that subscription’s CLI tool.
+4. Before sending a message, `main.cjs` → `safeHandler('send')` answers some requests **locally**
+   (Spotify, opening apps, weather, plugin commands, memory). The rest go to the AI.
 
 ---
 
-## 3. `app/` — ana süreç modülleri
+## 3. `app/` — main process
 
-| Klasör | Ne yapar | Önemli dosyalar |
+| Folder | What it does | Important files |
 | --- | --- | --- |
-| `app/` (kök) | Giriş noktaları | `main.cjs` (pencereler: şeffaf adacık + Windows çerçeveli uygulama penceresi, ikisinin paylaştığı tek sayfa (WebContentsView); yerleşim, IPC uçları), `preload.cjs` (arayüz köprüsü) |
-| `app/core/` | Temel altyapı | `store.cjs` (güvenli JSON kaydı), `policy.cjs` (Codex izinleri), `layout.cjs` (panel ölçüleri), `preferences.cjs`, `shortcuts.cjs`, `startup.cjs`, `extras.cjs` (görünüm tercihleri + ekler), `desktop-pet.cjs`, `task-mode.cjs`, **`proposals.cjs`** (Charles’ın sohbette düğmeli soruları), **`ask-format.cjs`** (yapay zekâya soru sorma biçimi), **`reset.cjs`** (Ayarlar → Hesap sıfırlama: istek dosyası, açılışta yedeğe taşıma), **`file-preview.cjs`** (v0.7.2 yan panel: izinli klasörlerdeki dosyayı güvenle okuma), **`change-review.cjs`** (v0.7.7 değişiklik inceleme: dosyaların önceki/sonraki hali, güvenli geri al), **`dash-layout.cjs`** (v0.7.7 ana sayfa kart yerleşimi, notlar, hızlı komutlar), **`system-info.cjs`** (v0.7.7 sistem kullanımı ve bilgileri kartları) |
-| `app/ai/` | Yapay zekâ ve sohbetler | `agent.cjs` + `rpc.cjs` (Codex), `providers.cjs` (Antigravity/Claude/Cursor), **`provider-tools.cjs`** (proje modunda erişim ayarına göre araç izinleri; izin atlatma modu yok), `sessions.cjs` (sohbet geçmişi), `chat-folders.cjs`, `chat-classifier.cjs`, `ask-once.cjs` (arka plan tek soru), `chat-actions.cjs`, `conversation-tools.cjs` |
-| `app/usage/` | Adacıktaki kalan kullanım | `codex-usage.cjs`, `gemini-usage.cjs`, `claude-usage.cjs`, **`cursor-usage.cjs`** (Cursor CLI oturumuyla plan kullanımı) |
-| `app/modules/` | v0.8.2 modüller | `manifest.cjs` (manifest doğrulama), `package.cjs` (zip/klasör denetimleri), `registry.cjs` (kurulum, güncelleme, kaldırma, `modules.json`), `storage.cjs` (modül verisi, kota), `protocol.cjs` (`charles-module://`, CSP), `host.cjs` (pencere, izinli API, geliştirici modu), `module-preload.cjs` (`window.charlesModule`), `ai-image.cjs` (görsel oluşturma); belge: `docs/MODULES.md`, örnek: `docs/examples/hello-module` |
-| `app/plugins/` | Hesaplar ve bildirimler | `plugins.cjs` (Gmail, Outlook, takvim, Drive, okul e-postası, Home Assistant), `pop3.cjs`, `plugin-commands.cjs`, **`home-climate.cjs`** (v0.7.4 ev içi sıcaklık/nem soruları), **`mail-search.cjs`** (kelime/tarihle mail arama), `oauth-setup.cjs`, **`mail-triage.cjs`** (önem değerlendirme), **`mail-alerts.cjs`** (akış), **`mail-bubble.cjs`** + `bubble-preload.cjs` (adacık baloncukları), **`deadlines.cjs`** (e-postadaki tarihler → hatırlatma + .ics) |
-| `app/voice/` | Ses | `voice.cjs` + `voice.ps1` (Whisper, Windows sesi), `gemini-live.cjs`, `live-computer.cjs`, `live-plugins.cjs`, `wake-profile.cjs` |
-| `app/personal/` | Kişisel veriler | `personal.cjs` (hafıza, hatırlatıcı, görünüm, erişim), `memory.cjs`, `profile-transfer.cjs`, `creator-profile.cjs`, `companion.cjs`, `weather.cjs`, `weather-chat.cjs` |
-| `app/system/` | Windows ile çalışan parçalar | `desktop.cjs` + `.ps1` (uygulama açma, Spotify), `media-worker.*`, `performance.*`, **`watchdog.cjs`** (sistem nöbetçisi: CPU/RAM/disk → Slime terler), `foreground.*`, `computer-time.cjs`, `weekly.cjs`, `capture.cjs` (ekrandan alan seçme), **`web-commands.cjs`** (“internetten arat”, “YouTube’dan aç” → varsayılan tarayıcı), **`whatsapp.cjs`** (v0.7.2: “WhatsApp’tan X’e … at” ayrıştırma, kayıtlı kişiler, WhatsApp Desktop’ı açma), **`open-with.cjs`** (yan panelden VS Code / GitHub Desktop / Notepad++ / Terminal) |
-| `app/files/` | Dosyalar | `library.cjs` (seçili klasörlerde arama), `docx.cjs`, `pdf-text.cjs`, **`file-rack.cjs`** (v0.9.15 Dosya Rafı: kopyalar `%APPDATA%\Charles\file-rack` içinde), **`slides.cjs`** + `pptx-read.cjs`, `ppt-read.cjs`, `powerpoint-com.cjs` (v0.9.16 PowerPoint: okuma, çizim, Word çıktısı; varsa PowerPoint ile PDF) |
+| `app/` (root) | Entry points | `main.cjs` (windows: the transparent island and the framed app window, one shared page in a WebContentsView; layout, IPC endpoints), `preload.cjs` (interface bridge) |
+| `app/core/` | Infrastructure | `store.cjs` (safe JSON storage), `policy.cjs` (Codex permissions), `layout.cjs` (panel sizes), `preferences.cjs`, `shortcuts.cjs`, `startup.cjs`, `extras.cjs` (appearance preferences and attachments), `desktop-pet.cjs`, `pet-physics.cjs`, `task-mode.cjs`, `proposals.cjs`, `ask-format.cjs`, `reset.cjs`, `file-preview.cjs`, `change-review.cjs`, `dash-layout.cjs`, `system-info.cjs`, `release-notes.cjs` (notes of a version from `CHANGELOG.md`; first install, update or restart), `metric-stats.cjs` (Current / Average / Peak and chart points) |
+| `app/ai/` | AI and chats | `agent.cjs` + `rpc.cjs` (Codex), `providers.cjs`, `provider-tools.cjs` (tool permissions in project mode; no permission-bypass mode), `sessions.cjs`, `chat-folders.cjs`, `chat-classifier.cjs`, `ask-once.cjs`, `chat-actions.cjs`, `conversation-tools.cjs` |
+| `app/usage/` | Remaining usage on the island | `codex-usage.cjs`, `gemini-usage.cjs`, `claude-usage.cjs`, `cursor-usage.cjs`, `evren-usage.cjs` |
+| `app/modules/` | Modules | `manifest.cjs`, `package.cjs`, `registry.cjs`, `storage.cjs`, `protocol.cjs`, `host.cjs`, `module-preload.cjs`, `ai-image.cjs`; docs: `docs/MODULES.md` |
+| `app/plugins/` | Accounts and notifications | `plugins.cjs`, `pop3.cjs`, `plugin-commands.cjs`, `home-climate.cjs`, `mail-search.cjs`, `oauth-setup.cjs`, `mail-triage.cjs`, `mail-alerts.cjs`, `mail-bubble.cjs` + `bubble-preload.cjs`, `deadlines.cjs`, `whatsapp-live.cjs` |
+| `app/voice/` | Voice | `voice.cjs` + `voice.ps1` (Whisper, Windows speech), `dictation.cjs` + `dictation-preload.cjs` (push to talk), `gemini-live.cjs`, `live-computer.cjs`, `live-plugins.cjs`, `wake-profile.cjs` |
+| `app/personal/` | Personal data | `personal.cjs`, `memory.cjs`, `profile-transfer.cjs`, `creator-profile.cjs`, `companion.cjs`, `weather.cjs`, `weather-chat.cjs` |
+| `app/system/` | Windows helpers | `desktop.cjs` + `.ps1`, `media-worker.*`, `performance.*`, `live-metrics.cjs` + `.ps1` (system monitor), `content-drop.cjs` + `content-reader.ps1` (what Charles reads when dropped), `dictation-keys.ps1` (push-to-talk key hook and typing), `watchdog.cjs`, `foreground.*`, `computer-time.cjs`, `weekly.cjs`, `capture.cjs`, `web-commands.cjs`, `whatsapp.cjs`, `open-with.cjs` |
+| `app/files/` | Files | `library.cjs`, `docx.cjs`, `pdf-text.cjs`, `file-rack.cjs`, `slides.cjs` + `pptx-read.cjs`, `ppt-read.cjs`, `powerpoint-com.cjs`, `convert.cjs`, `share.cjs` |
 
-Her dosyanın ilk satırında ne işe yaradığını anlatan kısa bir açıklama vardır.
+Every file starts with a short description line.
 
-**Kural:** `.ps1` yardımcıları, onları çalıştıran `.cjs` ile aynı klasörde durur
-(`path.join(__dirname, 'x.ps1')` ile okunur). Birini taşırsan diğerini de taşı.
+**Rule:** `.ps1` helpers stay in the same folder as the `.cjs` that runs them. Long-running helpers
+read one line per request instead of starting a shell per sample.
 
 ---
 
-## 4. `src/` — arayüz (TypeScript)
+## 4. `src/` — interface (TypeScript)
 
-| Klasör | Ne yapar |
+| Folder | What it does |
 | --- | --- |
-| `src/renderer.ts` | Arayüzün giriş noktası: sohbet akışı, gönderme, onaylar, karakter tepkileri |
-| `src/chat/` | Mesajlar: `markdown.ts` (güvenli markdown, `html: false`), `model-picker.ts`, `history-folders.ts`, `activity.ts`, `reactions.ts`, `reading.ts`, `status-scroll.ts`, **`ai-questions.ts`** (yapay zekânın sorduğu sorular → tek tek soran kart), **`steer.ts`** (iş sürerken ek talimat · Ctrl+Enter), **`highlight.ts`** (v0.7.2 kod kutusu renklendirme) |
-| `src/island/` | Küçük adacık ve Slime: `usage.ts` (kalan kullanım halkaları), `panel-motion.ts` (büyüme/küçülme animasyonu), `companion.ts` (yerleşim, hava durumu), `desktop-pet.ts`, `wardrobe.ts`, `animation-loop.ts` |
-| `src/workspace/` | Uygulama penceresi: `workspace.ts` (pencere, sohbeti ve Slime'ı taşıma), `sidebar.ts` (klasörlü sohbet listesi), `dashboard.ts` (Genel bakış kartları), **`side-panel.ts`** (dosya/kod/terminal paneli, Aç menüsü, seçimi sohbete ekle/düzenle), **`calendar.ts`** + **`holidays.ts`** (takvim kartı, düzenleme penceresi, ülkelere göre tatiller), **`home.ts`** (akıllı ev kartı ve sürükle-bırak düzenleyici), v0.7.7: **`dash-edit.ts`** + **`extra-cards.ts`** (özelleştirilebilir ana sayfa ve yeni kartlar), **`work.ts`** (“Şu an ne yapıyorum?” ve iş kuyruğu), **`review.ts`** + **`diff.ts`** (değişiklik inceleme ekranı), **`drop-slime.ts`** (dosya sürüklenince + yerine Slime), **`modal.ts`**, `icons.ts`, `bridge.ts`; ana süreçte `app/core/workspace.cjs` (pencere ölçüleri) |
-| `src/settings/` | Ayarlar sayfaları: `settings-pages.ts`, `settings-cards.ts`, `providers.ts`, `plugins.ts`, `plugin-guide.ts`, `shortcuts.ts`, `personal.ts`, `extras.ts`, `workspace.ts`, `profile-transfer.ts` (Kullandığım AI ile beni tanı), `polish-070.ts` (dil simgesi, düğme satırları), **`account-tab.ts`** (Hesap sekmesi: bağlı hesaplar, veri klasörü, sıfırlama), `i18n.ts` + `i18n-063.ts` + `i18n-070.ts` + `i18n-071.ts` + `i18n-special.ts` + `i18n-072.ts` (Türkçe → İngilizce), **`lang/de.ts`, `fr.ts`, `es.ts`, `zh.ts`** (İngilizce metin → diğer diller; `{n}` sayı yeri), **`whatsapp-card.ts`**, `gcal-card.ts` |
-| `src/voice/` | Ses arayüzü: `voice.ts`, `wake.ts`, `wake-training.ts`, `gemini-live.ts` |
-| `src/ui/` | Ortak yardımcılar: `sound-button.ts`, **`mic-button.ts`** (mikrofon gizlilik düğmesi) |
-| `src/vendor/` | Slime karakter motoru, aksesuarlar, sesler ve animasyon yardımcıları (lisans: THIRD-PARTY-NOTICES.md) |
+| `src/renderer.ts` | Entry point: chat flow, sending, approvals, character reactions |
+| `src/chat/` | Messages: `markdown.ts`, `model-picker.ts`, `history-folders.ts`, `activity.ts`, `reactions.ts`, `reading.ts`, `status-scroll.ts`, `ai-questions.ts`, `steer.ts`, `highlight.ts`, `release-notes.ts`, `content-context.ts` |
+| `src/island/` | The island and Slime: `shelf.ts`, `usage.ts`, `panel-motion.ts`, `companion.ts`, `desktop-pet.ts`, `wardrobe.ts`, `animation-loop.ts`, `file-rack.ts`, `system-monitor.ts` |
+| `src/workspace/` | App window: `workspace.ts`, `sidebar.ts`, `dashboard.ts`, `side-panel.ts`, `calendar.ts` + `holidays.ts`, `home.ts`, `dash-edit.ts` + `extra-cards.ts`, `work.ts`, `review.ts` + `diff.ts`, `drop-slime.ts`, `modal.ts`, `icons.ts`, `bridge.ts` |
+| `src/settings/` | Settings pages: `settings-pages.ts`, `settings-cards.ts`, `providers.ts`, `plugins.ts`, `plugin-guide.ts`, `shortcuts.ts`, `push-to-talk.ts`, `personal.ts`, `extras.ts`, `workspace.ts`, `profile-transfer.ts`, `account-tab.ts`, `i18n*.ts` (Turkish → English), `lang/de.ts`, `fr.ts`, `es.ts`, `zh.ts` (English text → other languages; `{n}` is a number) |
+| `src/voice/` | Voice interface: `voice.ts`, `dictation.ts`, `wav.ts`, `wake.ts`, `wake-training.ts`, `gemini-live.ts` |
+| `src/ui/` | Shared helpers: `sound-button.ts`, `mic-button.ts`, `context-menu.ts` |
+| `src/vendor/` | Slime engine, accessories, sounds and animation helpers (license: THIRD-PARTY-NOTICES.md) |
 
 ---
 
-## 5. `public/` — HTML ve stiller
+## 5. `public/` — HTML and styles
 
-| Dosya | Görev |
+| File | Purpose |
 | --- | --- |
-| `index.html` | Ana pencerenin iskeleti |
-| `bubble.html/.css/.js` | Önemli e-posta baloncukları (ayrı küçük pencere) |
-| `capture.html/.css/.js` | Ekrandan alan seçme katmanı |
-| `styles/1-base.css` | Temel yerleşim ve bileşenler |
-| `styles/2-panel-layout.css` | Panel yerleşimi, ayarlar, kenara yaslama |
-| `styles/3-island.css` | Küçük adacık, kullanım halkaları, masaüstü Slime |
-| `styles/4-polish.css` | Kart tasarımı ve ince ayarlar |
-| `styles/5-design-system.css` | **Tasarım sistemi**: renk değişkenleri (`--sb-*`), yüzeyler, odak, hareket |
-| `styles/6-acrylic.css` | **Akrilik tema** (v0.5.5): cam yüzeyler (`--ac-*`), görsel oluşturma kartı |
-| `styles/7-settings-v070.css` | v0.7.0 ayar kartları, düğme satırları, soru kartı |
-| `styles/9-special.css` | Uygulama penceresi, klasör simgeleri, “Şimdi” düğmesi; v0.7.2 kod kutuları, yan panel, takvim ve akıllı ev pencereleri, WhatsApp kartı |
-| `styles/8-v071.css` | v0.7.1 hava durumu konum seçici, Hesap sekmesi, Gemini Live paneli, eklenti “bağlı” düğmeleri |
+| `index.html` | Main window skeleton |
+| `bubble.html/.css/.js` | Notification cards (a separate small window) |
+| `capture.html/.css/.js` | Screen region selection layer |
+| `pet.html/.css` | Charles outside the panel (drawn by the page’s own engine) |
+| `drop-target.html/.css/.js` | The frame around what Charles would read |
+| `dictation.html/.css/.js` | The push-to-talk indicator |
+| `styles/*.css` | Styles, loaded in order; a later file overrides an earlier one |
 
-Stiller sırayla yüklenir; sonraki dosya öncekini ezer. **Yeni görsel değişiklikleri
-`6-acrylic.css` içine yaz**, renkleri `5-design-system.css` (`--sb-*`) ve `6-acrylic.css`
-(`--ac-*`) içindeki `:root` değişkenlerinden al.
+Colours come from the `:root` variables in `5-design-system.css` (`--sb-*`) and `6-acrylic.css`
+(`--ac-*`).
 
 ---
 
-## 6. Kullanıcı verisi (`%APPDATA%\Charles`)
+## 6. User data (`%APPDATA%\Charles`)
 
-| Dosya / klasör | İçerik |
+| File / folder | Contents |
 | --- | --- |
-| `charles-history.json` (+ `.bak`) | Sohbet geçmişi, klasörler, düzenleme dalları |
-| `personal.json` | Hafıza, hatırlatıcılar, görünüm, erişim modu |
-| `companion.json` | Şehir, yerleşim tarafı, öneri tercihleri |
-| `display.json` | Ekran, otomatik kapanma, varsayılan model |
-| `plugins.enc.json` | Eklenti hesapları — **Windows ile şifreli** (DPAPI; başka bilgisayarda açılmaz, yeniden bağlanmak gerekir) |
-| `gemini-live.enc.json` | Gemini Live API anahtarı — şifreli |
-| `providers/` | Antigravity / Claude / Cursor oturumları, `enabled.json` (ana yapay zekâ) |
-| `computer-time.json`, `weekly.json`, `resource-history.sqlite` | Kullanım istatistikleri |
+| `charles-history.json` (+ `.bak`) | Chat history, folders, edit branches |
+| `personal.json` | Memory, reminders, appearance, access mode |
+| `companion.json` | City, docking side, suggestion preferences |
+| `display.json` | Screen, auto close, default model |
+| `plugins.enc.json` | Plugin accounts, **encrypted by Windows** (DPAPI; reconnect on another computer) |
+| `gemini-live.enc.json` | Gemini Live API key, encrypted |
+| `providers/` | Antigravity / Claude / Cursor sessions, `enabled.json` (main AI) |
+| `computer-time.json`, `weekly.json`, `resource-history.sqlite` | Usage statistics |
+| `dictation.json` | Push to talk: on or off, and the key |
+| `system-monitor.json` | Whether the monitor measures in the background |
+| `whats-new.json` | The last version started (first install, update or restart) |
 
-Uygulama adı `app.setName('Charles')` ile sabittir; bu yüzden **her Charles sürümü aynı veriyi
-kullanır**. Klasör yoksa ilk açılışta oluşturulur. Aynı anda yalnızca bir Charles çalışabilir
-(tek örnek kilidi), böylece iki sürüm aynı dosyaya birlikte yazmaz.
+The app name is fixed with `app.setName('Charles')`, so **every Charles version uses the same data**.
+The folder is created at first start if missing. Only one Charles can run at a time (single
+instance lock), so two versions never write to the same file together.
 
-Kayıtlar `app/core/store.cjs` ile yazılır: önce `.tmp`, diske zorla yazma (fsync), sonra
-yeniden adlandırma; bozulan dosya silinmez, `.corrupt-…` olarak kenara alınır.
+Records are written through `app/core/store.cjs`: first `.tmp`, a forced disk write (fsync), then a
+rename; a damaged file is not deleted but set aside as `.corrupt-…`.
 
 ---
 
-## 7. Önemli akışlar
+## 7. Important flows
 
-### Kalan kullanım (adacık)
-`src/island/usage.ts` seçili modelin sağlayıcısını izler ve `usageRead(force, provider)` ile
-sorar. Her istek bir sıra numarası taşır; kullanıcı bu arada sağlayıcı değiştirdiyse eski yanıt
-atılır. Ana süreç tarafı: `main.cjs` → `safeHandler('usage-read')`:
-- **Codex** → çalışan app-server'dan (`agent.usage()`), 60 sn'de bir
-- **Claude** → `app/usage/claude-usage.cjs`: Claude Code'un kendi oturumuyla
-  `https://api.anthropic.com/api/oauth/usage` (5 saatlik + haftalık pencere), 5 dk'da bir
-- **Antigravity** → `/usage` (yalnızca açılışta, sağlayıcı değişince ve ↻ ile)
+### Remaining usage (island)
+`src/island/usage.ts` follows the provider of the selected model and asks through
+`usageRead(force, provider)`. Each request carries a sequence number; if the user changed provider
+meanwhile, the old answer is dropped. Main side: `main.cjs` → `safeHandler('usage-read')`.
 
-### Önemli e-posta baloncukları
+### Important mail bubbles
 ```
-plugins.poll() (5 dk)  →  yeni okunmamış e-postalar  →  mail-alerts.mail()
-   → mail-triage.triageMail()  (tek AI isteği; AI yoksa işaret + anahtar kelime kuralları)
-   → mail-bubble.add()  →  adacığın altında baloncuk (ayrı pencere, odak çalmaz)
-   → tıklama  →  e-postanın tam metni ek dosya olur  →  arayüze 'mail-explain'
-   → renderer.ts mesajı gönderir, Charles e-postayı anlatır
+plugins.poll()  →  new unread mail  →  mail-alerts.mail()
+   → mail-triage.triageMail()  (one AI request; without AI: flags + keyword rules)
+   → mail-bubble.add()  →  a card (separate window, never takes focus)
+   → click  →  the mail's full text becomes an attachment  →  'mail-explain' to the interface
+   → renderer.ts sends the message, Charles explains the mail
 ```
-Takvim hatırlatmaları da aynı baloncuklarda görünür. Windows bildirimi yalnızca kişisel
-hatırlatıcılar için kullanılır.
+`bubbleSpot()` in `mail-bubble.cjs` places the cards: under the island, beside a tall panel, above
+it, or in the corner of the app window. All windows on Windows share one topmost band, so the cards
+are raised again whenever the island is activated.
 
-### Panel animasyonu
-`app/main.cjs` → `position()` hedef ölçüyü hesaplar ve `ui-layout` olayı gönderir.
-`src/island/panel-motion.ts` gövdeyi son ölçüye getirip eski ölçüden ölçekler. Ortadaki panel
-`translateX(-50%)` ile, kenara yaslı panel dönüşümsüz çizilir. Fare alanı (`visibleBounds`)
-aynı kurala göre hesaplanır; bunlardan biri değişirse diğeri de değişmelidir.
+### Panel animation
+`app/main.cjs` → `position()` calculates the target size and sends `ui-layout`.
+`src/island/panel-motion.ts` brings the body to the final size and scales from the old one. The
+centred panel uses `translateX(-50%)`; a docked panel has no transform. The mouse area
+(`visibleBounds`) follows the same rule; if one changes the other must too.
+
+### Charles outside the panel
+With the panel or app window open, `movePetDrag` calls `startPetOut()`: the page opens
+`public/pet.html` as a small window of its own and copies each frame of the one engine there. The
+gesture comes from `executeJavaScript(…, true)`, because `window.open` needs one. From the closed
+island the older mode (`detached`) shrinks the whole page to him.
+
+### Dropping Charles on content
+`content-drop.cjs` arms only after the pointer stayed still (`holdStep`). `content-reader.ps1` finds
+the first window under the point, skipping Charles’ own, through UI Automation. A saved Word or
+PowerPoint file and a local PDF in a browser are attached as files; other text becomes an attachment
+with `untrusted: 'content'`, so the turn runs without tools and the text is fenced as data.
+
+### Push to talk
+`dictation-keys.ps1` holds a low-level keyboard hook that looks at one key; the gestures live in its
+`PushToTalk` class. Text is typed with `SendInput` as Unicode, marked so the hook ignores it.
+`dictation.cjs` compares the target before and after with `canType()`.
+
+### System monitor
+`live-metrics.cjs` keeps one helper running and an hour of samples: every second while the monitor
+is on screen, every 5 seconds otherwise. GPU load per adapter is the sum per engine across processes,
+then the busiest engine; engines are never added together.
 
 ---
 
-## 8. Geliştirme
+## 8. Development
 
-Gerekenler: **Node.js 24** (yalnızca geliştirme için; kullanıcı paketi Node istemez).
+You need **Node.js 24** (for development only; the user package needs no Node).
 
 ```bat
-npm.cmd ci                  :: bağımlılıklar (ilk kez)
-npm.cmd run build           :: public/ → dist/ kopyala + src/ → dist/renderer.js derle
-npm.cmd test                :: tüm otomatik testler
-npm.cmd run dev             :: derle ve Electron ile aç
+npm.cmd ci                  :: dependencies (first time)
+npm.cmd run build           :: copies public/ → dist/, compiles src/ → dist/renderer.js
+npm.cmd test                :: all automated tests
+npm.cmd run dev             :: builds and opens Electron
 ```
 
-Biçimlendirme (isteğe bağlı): `npx @biomejs/biome format --write app src test scripts`
-(kurallar `biome.json` içinde: 2 boşluk, 100 karakter satır, tek tırnak).
+Formatting (optional): `npx @biomejs/biome format --write app src test scripts`
+(rules in `biome.json`: 2 spaces, 100 character lines, single quotes).
 
-### Yeni bir özellik eklerken
-1. Ana süreç kodunu uygun `app/<alan>/` klasörüne koy; ilk satıra kısa açıklama yaz.
-2. Arayüzün çağıracağı ucu `main.cjs` içinde `safeHandler('ad', …)` ile aç,
-   `preload.cjs` içine `ad: (...) => invoke('ad', ...)` ekle.
-3. Arayüz kodunu `src/<alan>/` altına koy ve `src/renderer.ts` içinden çağır.
-4. Görünümü `public/styles/6-acrylic.css` içine yaz.
-5. `test/` altına test ekle, `npm.cmd test` ve `npm.cmd run build` çalıştır.
+### Adding a feature
+1. Put main process code in the right `app/<area>/` folder, with a short first-line description.
+2. Open the endpoint with `safeHandler('name', …)` in `main.cjs` and add
+   `name: (...) => invoke('name', ...)` to `preload.cjs`.
+3. Put interface code under `src/<area>/` and call it from `src/renderer.ts`.
+4. Put styles in a new `public/styles/` file loaded last.
+5. Add a test under `test/`, then run `npm.cmd test` and `npm.cmd run build`.
+6. Write the release notes in English in `CHANGELOG.md`: Charles shows that section after an update.
 
-### Güvenlik kuralları (değiştirme)
-- Arayüz penceresinde `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`.
-- Yapay zekâ yanıtları ve e-posta içerikleri HTML olarak değil, metin olarak işlenir.
-- Hesap anahtarları yalnızca `safeStorage` (Windows şifreleme) ile kaydedilir.
-- Antigravity / Claude / Cursor sohbet bağlantıları araçsız (salt sohbet) modda çalışır. Antigravity mesajında açıkça belirtilen mevcut klasör, Proje modunu seçer; erişim ayarı okuma/düzenleme sınırını belirler.
+### Security rules (do not change)
+- The interface window uses `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`.
+- AI answers and mail contents are handled as text, not HTML.
+- Account keys are stored only with `safeStorage` (Windows encryption).
+- Antigravity / Claude / Cursor chat connections run tool-free. A folder explicitly named in an
+  Antigravity message selects Project mode; the access setting limits reading and editing.
 
 ---
 
-## 9. Paket hazırlama
+## 9. Packaging
 
-Kullanıcıya verilecek klasör: bu klasörün tamamı. ZIP'ten çıkarılınca
-`Start-Charles.cmd` ile açılır. `test/`, `src/`, `scripts/` olmadan da çalışır;
-bunlar geliştirme içindir.
-
+`npm run release:pack` builds the in-place update package; `scripts/setup-pack.py` builds the setup
+kit. `test/`, `src/` and `scripts/` are not needed to run; they are for development.
 
 ## Charles Download (optional)
 
-İndirme motoru ve pano/adacık köprüsü `app/modules/download/` altında ayrıdır.
-`app/modules/host.cjs` çağrıları yönlendirir; `module-preload.cjs` sınırlı API verir.
-`main.cjs` değişmedi. Modülün kendi kurulum belgesi modülün ayrı deposunda ve Releases → Modules paketinde durur; ana depoda modül belgesi tutulmaz. Araçlar `npm run setup:download` ile kurulur.
+The download engine and its clipboard/island bridge are separate, under `app/modules/download/`.
+`app/modules/host.cjs` routes calls; `module-preload.cjs` exposes a limited API. The module’s own
+setup notes live in its separate repository and in the Releases → Modules package. Tools are set up
+with `npm run setup:download`.

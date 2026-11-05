@@ -1,0 +1,17 @@
+/* v0.9.18: the Charles taken out of the panel. The picture is drawn by the panel's own engine. */
+html,
+body {
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+}
+#pet-out {
+  display: block;
+  width: 160px;
+  height: 160px;
+  cursor: grab;
+  touch-action: none;
+}
+#pet-out:active {
+  cursor: grabbing;
+}

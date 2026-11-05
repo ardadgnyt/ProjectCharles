@@ -1,0 +1,432 @@
+﻿/* v0.9.18: right-click menu, release notes, system monitor, what Charles reads */
+
+/* --- text menu ---------------------------------------------------------------------------- */
+#text-menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  min-width: 168px;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: #1a1917;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  color: #f5eee5;
+}
+#text-menu button {
+  display: block;
+  width: 100%;
+  padding: 7px 11px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+}
+#text-menu button:hover:not(:disabled) {
+  background: rgba(237, 201, 169, 0.14);
+}
+#text-menu button:disabled {
+  opacity: 0.4;
+}
+
+/* --- release notes ------------------------------------------------------------------------- */
+#release-notes {
+  width: min(560px, calc(100% - 32px));
+  max-height: min(560px, calc(100% - 32px));
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: #161513;
+  color: #f5eee5;
+}
+#release-notes[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#release-notes h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.release-notes-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.release-notes-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* --- system monitor ------------------------------------------------------------------------ */
+.sm-root {
+  container: monitor / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.sm-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.sm-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+.h13-tools[data-sub='monitor'] .h13-tools-title {
+  white-space: nowrap;
+}
+.sm-seg-btn,
+.sm-pill {
+  padding: 4px 9px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: rgba(245, 238, 229, 0.72);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.sm-seg-btn[aria-pressed='true'] {
+  background: #f1dcc4;
+  color: #161513;
+  font-weight: 600;
+}
+.sm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.sm-pill svg {
+  width: 12px;
+  height: 12px;
+}
+.sm-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.sm-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+}
+.sm-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.sm-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--sm-color);
+}
+.sm-icon svg {
+  width: 16px;
+  height: 16px;
+}
+.sm-cpu {
+  --sm-color: #edc9a9;
+}
+.sm-gpu {
+  --sm-color: #5fd8a4;
+}
+.sm-ram {
+  --sm-color: #7da7f2;
+}
+.sm-title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.sm-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.sm-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  background: var(--sm-color);
+}
+.sm-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.sm-sub {
+  overflow: hidden;
+  color: rgba(245, 238, 229, 0.55);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sm-gpu-pick {
+  max-width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: #1a1917;
+  color: inherit;
+  font-size: 11px;
+}
+.sm-reading {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.sm-stat-label {
+  color: rgba(245, 238, 229, 0.55);
+  font-size: 10.5px;
+}
+.sm-value {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.sm-value.sm-none {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 2;
+  color: rgba(245, 238, 229, 0.6);
+}
+.sm-chart {
+  display: block;
+  width: 100%;
+  height: 112px;
+}
+.sm-time {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sm-axis,
+.sm-scope {
+  color: rgba(245, 238, 229, 0.45);
+  font-size: 10.5px;
+}
+.sm-others {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  color: rgba(245, 238, 229, 0.62);
+  font-size: 11.5px;
+}
+.sm-others b {
+  color: #f5eee5;
+  font-weight: 600;
+}
+.sm-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.sm-pair {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.sm-pair small {
+  color: rgba(245, 238, 229, 0.5);
+  font-size: 10.5px;
+}
+.sm-pair b {
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.sm-pair b.sm-none {
+  color: rgba(245, 238, 229, 0.45);
+  font-size: 10.5px;
+  font-weight: 500;
+}
+.sm-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 14px;
+}
+.sm-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 14px;
+  min-width: 0;
+  color: rgba(245, 238, 229, 0.6);
+  font-size: 11.5px;
+}
+.sm-top b {
+  color: #f5eee5;
+  font-weight: 600;
+}
+.sm-top-title {
+  color: rgba(245, 238, 229, 0.55);
+  font-size: 11px;
+}
+@container monitor (max-width: 470px) {
+  .sm-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sm-chart {
+    height: 84px;
+  }
+}
+
+/* --- Charles out of the panel: his place stays, empty ---------------------------------------- */
+body.pet-out #slime {
+  visibility: hidden;
+}
+body.pet-out #pet {
+  pointer-events: none;
+}
+
+/* --- what he read ---------------------------------------------------------------------------- */
+#content-context {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 8px;
+  padding: 9px 11px;
+  border: 1px solid rgba(237, 201, 169, 0.28);
+  border-radius: 12px;
+  background: rgba(237, 201, 169, 0.06);
+}
+#content-context[hidden] {
+  display: none;
+}
+#content-context strong {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#content-context small {
+  color: rgba(245, 238, 229, 0.62);
+  font-size: 11px;
+}
+.cc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.cc-close {
+  flex: none;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1;
+}
+.cc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.cc-actions:empty,
+.cc-actions[hidden] {
+  display: none;
+}
+.cc-actions button {
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+}
+.cc-actions button:hover {
+  background: rgba(237, 201, 169, 0.14);
+}
+
+/* --- Bas-konuş settings ----------------------------------------------------------------------- */
+.ptt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+}
+.ptt-card h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ptt-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ptt-row input[readonly] {
+  width: 150px;
+}
+
+.sm-foot-end {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.sm-bg-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: rgba(245, 238, 229, 0.62);
+  font-size: 10.5px;
+}
+
+#composer:has(#content-context:not([hidden])) #drop-actions {
+  display: none;
+}
+
+.sm-others span {
+  display: inline-flex;
+  gap: 4px;
+}
+.sm-others i {
+  font-style: normal;
+}
+.sm-details {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+.sm-pair small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

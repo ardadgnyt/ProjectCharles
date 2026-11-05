@@ -1,4 +1,5 @@
 import { weeklySummaryUI } from './weekly-summary';
+import { pushToTalk } from './push-to-talk';
 export function shortcutsUI(api: any, notice: (s: string) => void) {
   const $ = (id: string) => document.getElementById(id)!;
   const page = document.querySelector('.settings-page[data-category=shortcuts]')!;
@@ -176,6 +177,7 @@ export function shortcutsUI(api: any, notice: (s: string) => void) {
       else $('sessions-toggle').click();
     } else $('prompt').focus();
   });
+  pushToTalk(api, page, notice);
   const weekly = document.querySelector('.settings-page[data-category=weekly]')!;
   const { load: loadSummary } = weeklySummaryUI(weekly, api, notice);
   void loadSummary();

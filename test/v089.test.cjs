@@ -130,7 +130,7 @@ test('WhatsApp card: centred send, × inside the window, no Windows tooltips', (
 
 test('README: modules, official modules link, updater since v0.8.2', () => {
   const md = read('README.md');
-  assert.match(md, /## Modules · Modüller/);
+  assert.match(md, /^## Modules$/m);
   assert.match(md, /https:\/\/github\.com\/ardadgnyt\/ProjectCharles\/releases#release-Modules/);
   assert.match(md, /docs\/images\/modules\.png/);
   assert.ok(fs.existsSync(path.join(root, 'docs/images/modules.png')));

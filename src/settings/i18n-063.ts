@@ -104,7 +104,6 @@ export const english063: Record<string, string> = {
   'Panel yüksekliği': 'Panel height',
   'Proje klasörü seç': 'Choose project folder',
   'Proje klasörünü aç ↗': 'Open project folder ↗',
-  'Son değişiklikleri gör': 'See recent changes',
   'Bununla ne yapalım?': 'What should we do with this?',
   Özetle: 'Summarize',
   'Sorunu bul': 'Find the problem',

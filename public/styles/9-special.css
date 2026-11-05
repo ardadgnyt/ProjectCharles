@@ -1433,13 +1433,6 @@ body.workspace .ws-chat-body #feed {
 body.workspace .ws-chat-body #composer,
 body.workspace .ws-chat-body #requests,
 body.workspace .ws-chat-body #service-pills,
-body.workspace .ws-chat-body #diff-box {
-  width: calc(100% - 56px);
-  max-width: 1060px;
-  margin-left: auto !important;
-  margin-right: auto !important;
-  box-sizing: border-box;
-}
 body.workspace .ws-chat-body #composer {
   margin-bottom: 8px !important;
 }

@@ -353,12 +353,6 @@ pre {
   gap: 8px;
   margin-top: 10px;
 }
-#diff-box {
-  font-size: 11px;
-  color: #bcbcc3;
-  max-height: 160px;
-  overflow: auto;
-}
 #composer {
   border: 1px solid #ffffff22;
   background: #1c1d22;

@@ -1,30 +1,30 @@
-# Dosya paylaşımı — v0.9.6
+# File sharing
 
-Charles açıldığında **Dosya alımı Açık** başlar ve paylaşım paneli hiç açılmasa da arka planda açık kalır. Alım açık olması otomatik kabul anlamına gelmez; gelen her aktarımda onay istenir. Quick Share motoru, pakete dahil edilen kendi Windows çalışma ortamını (`tools/quickshare`, [MultiDrop](https://github.com/digitaldanis/multidrop) tabanlı) kullanır; üçüncü taraf lisans ve telif bildirimleri `THIRD-PARTY-NOTICES.md` dosyasındadır.
+When Charles starts, **File receiving is on** and it stays on in the background even if the sharing panel is never opened. Being on does not mean files are accepted automatically: every incoming transfer asks for approval. The Quick Share engine uses its own bundled Windows runtime (`tools/quickshare`, based on [MultiDrop](https://github.com/digitaldanis/multidrop)); third-party license and copyright notices are in `THIRD-PARTY-NOTICES.md`.
 
-- **Açık:** gelen dosyanın adı, boyutu ve eşleşme kodu gösterilir; Kabul et veya Reddet seçilir.
-- **Kapalı:** cihaz duyurusu ve gelen dosya alımı kapanır.
+- **On:** the incoming file’s name, size and matching code are shown; choose Accept or Decline.
+- **Off:** the device announcement and incoming transfers stop.
 
-Tüm Android cihazlarla yerleşik Quick Share; Apple cihazlarla LocalSend uygulaması üzerinden paylaşım desteklenir. Telefon adı gizlenmişse bağlantıda öğrenilen ad oturum içinde hatırlanır; bilinmeyen telefonlar **Android cihazı** olarak gösterilir.
+Android devices are supported through built-in Quick Share, and Apple devices through the LocalSend app. If a phone hides its name, the name learned during a connection is remembered for the session; unknown phones appear as **Android device**.
 
-## Telefonda görünme (v0.9.6)
+## Being visible on the phone
 
-- Charles, Quick Share duyurusunu birkaç saniyede bir kendiliğinden tekrarlar; telefon paylaşım ekranını açtığında bilgisayarın görünmesi için paylaşım panelini açmak gerekmez.
-- Duyuru yalnızca gerçek ağ bağdaştırıcılarında yapılır (VirtualBox, Hyper-V, WSL, VPN gibi sanal bağdaştırıcılar atlanır) ve telefona yalnızca kendi ağındaki adres verilir. Böylece telefon ulaşamayacağı bir adrese bağlanmaya çalışıp “Bağlanıyor…” durumunda kalmaz.
-- Uykudan dönüşte ve kilit açılınca duyuru yeni soketlerle baştan yapılır; çok noktaya yayın üyeliği dakikada bir tazelenir.
-- Bazı modemler Wi-Fi cihazları arasında çok noktaya yayını iletmez. Charles bu yüzden ağda mDNS konuşan cihazlara (telefon dahil) duyurunun bir kopyasını doğrudan da gönderir.
+- Charles repeats its Quick Share announcement every few seconds by itself, so the computer appears on the phone’s share sheet without opening the sharing panel.
+- Announcements go out only on real network adapters (virtual ones such as VirtualBox, Hyper-V, WSL and VPNs are skipped), and the phone gets only the address on its own network. This keeps it from trying an address it cannot reach and staying on “Connecting…”.
+- After sleep and after unlocking, announcing starts again with new sockets; multicast membership is refreshed every minute.
+- Some routers do not pass multicast between Wi-Fi devices, so Charles also sends a copy of the announcement directly to devices that speak mDNS on the network, phones included.
 
-Telefonların bilgisayarı görebilmesi için Windows güvenlik duvarının Quick Share çalışma ortamına izin vermesi gerekir. İzin yoksa (ya da Windows'un ilk açılış sorusu kapatıldığı için bir engelleme kuralı varsa) Charles bunu fark eder: paylaşım panelinde **Ağ izni ver** düğmesi çıkar ve açılıştan kısa süre sonra bir kez hatırlatır. Düğme, Windows onayıyla `tools/quickshare/Allow-Local-Network.ps1` betiğini çalıştırır: yalnızca özel/etki alanı ağındaki yerel cihazlardan TCP/53318 ve UDP/5353 erişimine izin verir ve yalnızca bu çalışma ortamı için yazılmış engelleme kurallarını kaldırır.
+For phones to see the computer, Windows Firewall has to allow the Quick Share runtime. If it does not (or a block rule exists because Windows’ first prompt was closed), Charles notices: the sharing panel shows an **Allow network access** button and reminds you once shortly after start. With Windows’ approval the button runs `tools/quickshare/Allow-Local-Network.ps1`, which allows TCP/53318 and UDP/5353 only from local devices on private or domain networks and removes only the block rules written for this runtime.
 
-## Gönderme ve alma
+## Sending and receiving
 
-Dosya seçip yakındaki cihaza tıklamak gönderimi başlatır. Alıcı kabul ettikten sonra ilerleme gösterilir. Alınan dosyalar için **Klasörde göster** kullanılabilir. Aynı adlı dosyalar üzerine yazılmaz; yeni ad verilir. İptal edilen veya eksik aktarım başarılı gösterilmez ve yarım dosyası temizlenir. Telefona gönderirken telefon adresi eskimişse Charles cihazı yeniden arar ve yeni adresle bir kez daha dener; telefon bağlantıyı yine kabul etmezse ekranın açık ve Quick Share görünürlüğünün “Herkes” olması gerekir. Windows'ta iPhone için LocalSend gerekir; Windows Wi-Fi sürücülerinde Apple AWDL desteği yoktur.
+Choose a file and click a nearby device to start sending. Progress appears after the receiver accepts. **Show in folder** is available for received files. Files with the same name are not overwritten; a new name is used. A cancelled or incomplete transfer is not shown as successful, and its partial file is removed. When sending to a phone whose address has gone stale, Charles looks for the device again and tries once more with the new address. If the phone still refuses, its screen must be on and its Quick Share visibility set to “Everyone”. iPhones need LocalSend on Windows, because Windows Wi-Fi drivers have no Apple AWDL support.
 
-Quick Share ve LocalSend birbirinden bağımsız başlar: biri açılamazsa diğeri çalışmayı sürdürür ve neden paylaşım panelinde yazar. Bağlantı aşamaları ve hatalar `%APPDATA%\Charles\logs\quickshare.log` dosyasına yazılır (`start-failed`, `bridge-exit`, `bridge-stderr`; kullanıcı klasörleri çıkarılmış olarak). Dosya içeriği, cihaz adları veya şifreleme anahtarları kaydedilmez.
+Quick Share and LocalSend start independently: if one cannot start, the other keeps working and the reason appears in the sharing panel. Connection stages and errors are written to `%APPDATA%\Charles\logs\quickshare.log` (`start-failed`, `bridge-exit`, `bridge-stderr`, with user folders removed). File contents, device names and encryption keys are not logged.
 
-## Cihaz testi
+## Device test
 
-1. Charles'ı kapat, bir dakika bekle ve aç. Paylaşım paneline dokunmadan telefonda Quick Share ile dosya gönder: bilgisayar birkaç saniye içinde listelenmeli ve aktarım tamamlanmalı.
-2. Aynı işlemi Slime uyurken ve adacık küçükken tekrarla.
-3. Bilgisayarı uyku moduna al, uyandır; telefondan yeniden gönder.
-4. Ardı ardına iki dosya gönder; her birinde onay istenmeli.
+1. Close Charles, wait a minute and open it. Without touching the sharing panel, send a file from the phone with Quick Share: the computer should be listed within a few seconds and the transfer should finish.
+2. Repeat while Slime sleeps and the island is small.
+3. Put the computer to sleep, wake it and send again from the phone.
+4. Send two files one after the other; each should ask for approval.

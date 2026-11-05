@@ -39,7 +39,7 @@ test('seek: shown at once, no slow fill', () => {
 test('dragging Slime: the drag survives Slime moving to another place in the page', () => {
   const pet = read('src/island/desktop-pet.ts');
   assert.match(pet, /addEventListener\('lostpointercapture', \(\) => \{/);
-  assert.match(pet, /pet\.setPointerCapture\(pointerId\)/);
+  assert.match(pet, /target\.setPointerCapture\(pointerId\)/);
   assert.doesNotMatch(pet, /addEventListener\('lostpointercapture', finish\)/);
 });
 

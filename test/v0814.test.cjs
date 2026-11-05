@@ -88,7 +88,7 @@ test('module notices: no copies, close by themselves, a click opens the module, 
   const mb = read('app/plugins/mail-bubble.cjs');
   assert.match(mb, /if \(ttl > 0\) setTimeout\(\(\) => this\.remove\(item\.id\)/);
   assert.match(mb, /hover\(point\) \{/);
-  assert.match(read('public/bubble.js'), /\(item\.module \? ' module' : ''\)/);
+  assert.match(read('public/bubble.js'), /\(item\.module \|\| item\.plain \? ' module' : ''\)/);
 });
 
 test('version 0.8.14 is in the changelog', () => {

@@ -4,6 +4,23 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.18 Beta — November 5, 2026
+
+Release notes are written in English from this version on.
+
+- **System monitor:** Tools now has live charts for CPU, GPU and RAM. Current, Average and Peak are calculated from the chosen range (1 min, 5 min, 1 hour). You can pause it, reset the history and pick a GPU when there is more than one.
+  - It measures while Charles runs: once a second on screen, every 5 seconds in the background (this can be turned off on the monitor). The last hour stays in memory; it is not written to disk or sent anywhere, and sleep shows as a gap.
+  - Values come from Windows performance counters. GPU load is the busiest engine, as in Task Manager; engines are not added together. GPU power is the percentage Windows reports, not watts. There is no reliable source for CPU temperature, so it shows “No data”.
+- **Push to talk:** hold a key in any app and speak; when you let go, your words are typed at the cursor. A quick double press starts hands-free recording and Esc cancels. The default key is Right Arrow; turn it on or change it in Settings → Shortcuts (it is off by default).
+  - Speech is processed by the local Whisper model and stays on your computer. The clipboard is not used, Enter is never pressed, and nothing is typed into password fields or apps running as administrator. If the focus changes, the text is offered for copying instead.
+- **Drop Charles on content:** hold Charles over a page, document or email for a moment to see what he would read; let go and only that content is read. The chat then offers Summarize, Key points and What I need to do. Dropping sends nothing to an AI by itself, and Esc cancels. No browser extension is needed. Pages and other windows are read through Windows accessibility, so only the text an app shares is available. Saved Word and PowerPoint files and PDFs opened from your computer in Chrome or Edge are read from the file itself; an app that shares no text is pictured as one window.
+- **Charles leaves the panel:** in the app window and in the open island you can drag the character out; his place stays empty and everything else stays where it is. Double-click him to send him back.
+- **Right-click menu:** Copy, Paste and Ask Charles on selected text and in text boxes. Ask Charles puts the selection in the message box as a quote and sends nothing by itself.
+- **Notifications:** with the app window open the notification cards were hidden and only the sound was heard; they now appear in the window’s top right corner. On a tall panel they could stay behind it; they now sit beside it.
+- **Update summary:** clicking the “Charles updated” card opens the notes of this version. They are read from your computer, so no AI is needed; “Let Charles explain” is optional. The card appears once after an update, not after a first install or a normal start.
+- **File shelf:** the dark card behind a dragged file is gone; the file’s picture and name appear on a transparent background.
+- **Chat:** “See recent changes” above the message box was removed.
+
 ## v0.9.17 Beta — 5 Kasım 2026
 
 - **Quick Share ile gönderme:** telefon görünür olduğu her seferde yeni bir port açtığı için listedeki adres eskiyebiliyor, gönderim “cannot connect … WinError 1225” hatasıyla kalıyordu. Artık Charles cihazı yeniden arar, yeni adresle bir kez daha dener. Telefon yine kabul etmezse ham hata yerine ne yapılacağı yazar.

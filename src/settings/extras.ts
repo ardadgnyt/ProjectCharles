@@ -499,6 +499,10 @@ export function extraUI(
     closeSettings,
     ids: () => files.map((f) => f.id),
     addFiles,
+    remove: (id: string) => {
+      files = files.filter((f) => f.id !== id);
+      attachments();
+    },
     // v0.9.15: `id`: a just-sent picture opens its original (the chip's thumbnail is only 112 px)
     previews: () => files.map((f) => ({ id: f.id, name: f.name, kind: f.kind, thumbnail: f.thumbnail })),
     clear: () => {

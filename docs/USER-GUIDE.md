@@ -253,3 +253,41 @@ Anything else, in any language, goes to the AI you selected.
 | Spotify is not shown or its buttons do nothing | Charles reads Spotify through Windows' media controls. If Windows' own media controls (the volume flyout) do not show Spotify either, quit Spotify from its tray icon and start it again; if that does not help, restart the computer once. |
 | Mail is not shown | Settings → Plugins → *Test connection*. Mail is checked every five minutes while Charles is open. |
 | Something looks broken after an update | Use `setup\Reset-Charles.cmd`. Your old data is backed up first. |
+
+## System monitor
+
+**Tools → System monitor** shows CPU, GPU and RAM. **Current**, **Average** and **Peak** change the big numbers; **1 min**, **5 min** and **1 hr** change the range of both the numbers and the charts. Charles measures once a second while the monitor is on screen and every 5 seconds behind it. Clear **Measure in the background** to measure only while it is open. Readings stay in memory for an hour and are not saved. A value Windows does not give shows as **No data**, never as 0.
+
+## Push to talk
+
+Turn it on in **Settings → Shortcuts → Push to talk**. It is off by default.
+
+| Action | Result |
+| --- | --- |
+| Hold Right Arrow and speak | Your words are typed at the cursor when you let go |
+| Press it twice quickly | Hands-free recording; press once more to finish |
+| Esc | Cancels the recording or the text on its way |
+| A short single press | The key’s normal job, about 0.2 seconds later |
+
+The key can be changed in the same place, to an arrow, navigation or function key alone, or to a combination with Ctrl, Alt, Shift or Win. Recordings can be up to two minutes long. Speech is processed by the local Whisper model; nothing is sent anywhere and no audio is kept. Enter is never pressed. If the keyboard moved to another place while you were speaking, the text waits in a small card with **Copy** and **Insert anyway**.
+
+## Dropping Charles on content
+
+1. Drag Charles (from the app window, the open island or the desktop) over a page, a document or an email and hold him still for a moment.
+2. A frame shows what he would read. Press **Esc** or move away to cancel.
+3. Let go. A card above the message box shows the title, the app and how much was read.
+4. Choose **Summarize**, **Key points** or **What I need to do**, or type a question. Nothing goes to an AI before this step.
+
+No browser extension is needed. Pages are read from the active tab only. PDFs opened from this computer and saved Word and PowerPoint files are read from the file; unsaved changes are not included. An app that shares no text is pictured as a single window, and the card says only the visible part was read. **×** removes the content from the chat; **Read again** reads the same window once more.
+
+## Moving the character
+
+Drag the character out of the app window or the open island. His place stays empty and everything else stays where it is. He keeps his moods and animations, stays out while you open or close the panel, and goes home with a double-click. From the closed island he comes out as the desktop pet, as before.
+
+## Right-click menu
+
+Select text in a message, a code block or a text box and right-click. **Copy** copies the selection, **Paste** works in text boxes, and **Ask Charles** puts the selection in the message box as a quote without sending it. The menu closes with Esc or a click elsewhere.
+
+## After an update
+
+A card says Charles was updated. Click it to read what changed; the notes are in English and come from your computer, so they work with no AI or quota. **Let Charles explain** sends them to your AI once. The card appears once after an update, and not after a first install or an ordinary start.

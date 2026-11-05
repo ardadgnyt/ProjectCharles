@@ -4,7 +4,7 @@ import { wakeTraining } from './voice/wake-training';
 import { pluginsUI } from './settings/plugins';
 import { shortcutsUI } from './settings/shortcuts';
 import { animationLoop } from './island/animation-loop';
-import { desktopPet } from './island/desktop-pet';
+import { desktopPet, petMirror, petIsOut, PET_RECT } from './island/desktop-pet';
 import { wardrobeUI } from './island/wardrobe';
 import { geminiLiveUI } from './voice/gemini-live';
 import { providersUI } from './settings/providers';
@@ -30,6 +30,7 @@ import { modelPicker } from './chat/model-picker';
 import { effortPicker, setModelEfforts, modelEfforts } from './chat/effort-picker';
 import { personalUI } from './settings/personal';
 import { voiceUI } from './voice/voice';
+import { dictationUI } from './voice/dictation';
 import { BotEngine } from './vendor/slime/engine';
 import { Sound } from './vendor/core/sound';
 import type { BotStateName } from './vendor/core/layout';
@@ -47,6 +48,9 @@ import { updatePage } from './settings/update-page';
 import { accountTab } from './settings/account-tab';
 import { islandShelf } from './island/shelf';
 import { textReaction, answerReaction } from './chat/reactions';
+import { contextMenu, quoteFor } from './ui/context-menu';
+import { contentContext } from './chat/content-context';
+import { releaseNotes } from './chat/release-notes';
 
 declare global {
   interface Window {
@@ -156,11 +160,12 @@ function animate(now: number) {
   bot.applyDance(ctx, 240, 240);
   bot.draw(ctx, 240, 240);
   ctx.restore();
+  petMirror(canvas);
 }
 animationLoop(
   animate,
   () =>
-    document.visibilityState === 'visible' && !document.body.classList.contains('hidden-island'),
+    petIsOut() || (document.visibilityState === 'visible' && !document.body.classList.contains('hidden-island')),
   () =>
     document.body.classList.contains('pet-dragging') ||
     busy ||
@@ -238,7 +243,7 @@ function queueCursor(point: { x: number; y: number }) {
 function onCursor(point: { x: number; y: number }) {
   pokeCheck(point);
   cursorPosition = point;
-  const rect = canvasBox();
+  const rect = petIsOut() ? PET_RECT : canvasBox();
   const dx = point.x - rect.x - rect.width / 2;
   const dy = point.y - rect.y - rect.height / 2;
   // Distance curves and vertical sign for following the cursor.
@@ -266,11 +271,11 @@ api.onCursor(queueCursor);
 // Desktop Slime: a fast cursor running into the body pokes it — it wobbles.
 function pokeCheck(point: { x: number; y: number }) {
   if (
-    !document.body.classList.contains('desktop-pet') ||
+    !(document.body.classList.contains('desktop-pet') || petIsOut()) ||
     document.body.classList.contains('pet-dragging')
   )
     return;
-  const rect = canvasBox();
+  const rect = petIsOut() ? PET_RECT : canvasBox();
   const over =
     Math.hypot(point.x - rect.x - rect.width / 2, point.y - rect.y - rect.height / 2 - 6) <=
     rect.width * 0.3;
@@ -296,7 +301,17 @@ api.onPetPhysics((e: any) => {
     if ((Number(e.strength) || 0) > 0.25) Sound.play('slap');
   }
 });
-document.addEventListener('pointermove', (event) => queueCursor({ x: event.clientX, y: event.clientY }));
+document.addEventListener('pointermove', (event) => {
+  // while he is out his window's own positions count (they come from the main process)
+  if (!petIsOut()) queueCursor({ x: event.clientX, y: event.clientY });
+});
+document.addEventListener('charles-pet-tap', () => {
+  touchCharacter();
+  if (quotaBlocked) return;
+  cancelHover();
+  bot.slap();
+  jelly.tap();
+});
 bot.onDizzy = () => {
   window.clearTimeout(reactionTimer);
   bot.interruptGreet();
@@ -1108,10 +1123,6 @@ function event(e: any) {
           stickToBottom(a.pre);
         }
       }
-      if (method === 'turn/diff/updated') {
-        $('diff').textContent = p.diff;
-        $('diff-box').hidden = !p.diff;
-      }
       if (method === 'turn/plan/updated') {
         const plan = (p.plan || [])
           .map((s: any) => `${s.status === 'completed' ? '✓' : '·'} ${s.step}`)
@@ -1253,7 +1264,6 @@ async function switchRoom(r: any) {
   splitAt.clear();
   activities.clear();
   activityGroup = null;
-  $('diff-box').hidden = true;
   roomBranches = r.branches || {};
   documentContext = !!r.documentContext;
   readingDocument = false;
@@ -1320,6 +1330,7 @@ document.addEventListener('charles-music', (e: any) => {
   if (musicPlaying && !quotaBlocked && (sleeping || idlePhase > 0)) touchCharacter();
 });
 const voice = voiceUI(api, notice, () => busy);
+dictationUI(api);
 geminiLiveUI(api, notice, () => busy || voice.active());
 providersUI(api, populateModels, notice);
 shortcutsUI(api, notice);
@@ -1487,8 +1498,6 @@ function clearConversation() {
   splitAt.clear();
   activities.clear();
   activityGroup = null;
-  $('diff-box').hidden = true;
-  $('diff').textContent = '';
   row(
     mode.value === 'chat'
       ? 'Yeni sohbet. Ne konuşalım?'
@@ -1562,6 +1571,7 @@ $('composer').addEventListener('submit', (e) => {
     if (busy || demo || voice.active()) return;
     const text = prompt.value.trim();
     if (!text) return;
+    await dropped.ensure();
     // Any new message closes the AI's open question cards.
     for (const c of feed.querySelectorAll<HTMLElement>('.ai-questions:not(.answered)')) {
       c.classList.add('answered');
@@ -1667,6 +1677,52 @@ api.onMailExplain((request: any) =>
     }
   }),
 );
+// v0.9.18: attachments Charles made (release notes) go out like a message the user asked for
+async function explainFiles(items: any[], text: string) {
+  if (voice.active()) throw Error('Önce sesli görüşmeyi bitir.');
+  if (busy || dispatching) throw Error('Önce çalışan iş bitsin.');
+  features.clear();
+  if (feed.querySelector('.message')) {
+    await switchRoom(await api.sessionNew());
+    mode.value = 'chat';
+    controls();
+  }
+  await features.addFiles(items);
+  prompt.value = text;
+  ($('composer') as HTMLFormElement).requestSubmit();
+}
+releaseNotes({ api, notice, explain: explainFiles });
+// v0.9.18: Charles dropped on a page, a document or a mail (chat/content-context.ts)
+const dropped = contentContext({
+  api,
+  notice,
+  features,
+  model,
+  submit: (text) => {
+    prompt.value = text;
+    ($('composer') as HTMLFormElement).requestSubmit();
+  },
+});
+api.onContentReading?.((on: boolean) => {
+  if (busy) return;
+  if (on) state('searching', 'İçeriği okuyorum…');
+  else state('idle', 'Hazırım.');
+});
+// v0.9.18: the right-click menu; "Charles'a sor" only puts the quote in the box, nothing is sent
+contextMenu({
+  api,
+  notice,
+  ask: (text, code) =>
+    void attempt(async () => {
+      if (!document.body.classList.contains('workspace')) await api.islandView('chat');
+      const before = prompt.value.replace(/\s+$/, '');
+      prompt.value = (before ? before + '\n\n' : '') + quoteFor(text, code);
+      prompt.dispatchEvent(new Event('input', { bubbles: true }));
+      prompt.focus();
+      prompt.selectionStart = prompt.selectionEnd = prompt.value.length;
+      prompt.scrollTop = prompt.scrollHeight;
+    }),
+});
 // Steering: extra instructions while the AI works (Enter or Ctrl+Enter).
 function markSteer(el: HTMLElement, on = true) {
   if (!on) return el;

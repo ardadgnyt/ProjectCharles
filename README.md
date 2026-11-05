@@ -3,19 +3,18 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.17%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.18%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
-  <img alt="Languages: English, Türkçe, Deutsch, Français, Español, 中文" src="https://img.shields.io/badge/UI-English%20%7C%20T%C3%BCrk%C3%A7e%20%7C%20Deutsch%20%7C%20Fran%C3%A7ais%20%7C%20Espa%C3%B1ol%20%7C%20%E4%B8%AD%E6%96%87-2b2f3a?style=flat-square">
+  <img alt="Interface languages: English, Turkish, German, French, Spanish, Chinese" src="https://img.shields.io/badge/UI-English%20%7C%20Turkish%20%7C%20German%20%7C%20French%20%7C%20Spanish%20%7C%20Chinese-2b2f3a?style=flat-square">
 </p>
 
 <p align="center">
   <a href="#install-and-update">Install</a> ·
-  <a href="#kurulum-ve-güncelleme">Kurulum</a> ·
-  <a href="#highlights--öne-çıkanlar">Highlights</a> ·
-  <a href="#modules--modüller">Modules</a> ·
-  <a href="#screenshots--ekran-görüntüleri">Screenshots</a> ·
+  <a href="#highlights">Highlights</a> ·
+  <a href="#modules">Modules</a> ·
+  <a href="#screenshots">Screenshots</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="docs/USER-GUIDE.md">User guide</a>
 </p>
@@ -26,74 +25,61 @@ into a chat and project workspace. Living on top of it all is **Slime**, a jelly
 who reacts to what you and the AI are doing: he thinks while the AI thinks, codes on a tiny
 laptop while it writes code, and gets dizzy if you shake him too hard.
 
-**Charles**, Windows için bir masaüstü yapay zekâ arkadaşıdır. Ekranın üstündeki küçük
-*adacıkta* yapay zekâ kotan, hava durumu, müziğin ve önemli e-postaların durur. Tıklayınca
-sohbet ve proje çalışma alanına açılır. Hepsinin üstünde yaşayan **Slime**, senin ve yapay
-zekânın yaptıklarına tepki veren jöle bir karakterdir: yapay zekâ düşünürken düşünür, kod
-yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
-
 > Charles’s design is inspired by **Charles** from Sam Green’s *Epic Minequest* series on
-> [YouTube](https://www.youtube.com/@SamGreen). · Charles’ın tasarımı Sam Green’in
-> *Epic Minequest* serisindeki **Charles**’tan esinlenmiştir.
+> [YouTube](https://www.youtube.com/@SamGreen).
 
 ---
 
-## What’s new · Yenilikler
+## What’s new
 
-| Version | What’s new | Yenilikler |
-| --- | --- | --- |
-| **v0.9.17** | Quick Share: a stale phone address is looked up again before giving up, with a clear message if the phone stays closed | Quick Share: telefonun eski adresi vazgeçmeden önce yeniden aranır, telefon kapalı kalırsa anlaşılır mesaj gösterilir |
-| **v0.9.16** | PowerPoint in the chat and the converter (.pptx, .ppt → PDF, Word, slide pictures, text) · File shelf: Ctrl+V adds a screenshot, previews on every row, a drag card with the file's name · Scrolling while an answer is written · Clearer Quick Share start errors, LocalSend works on its own · Fixes for the limit animation, the finished state and the taskbar | Sohbette ve dönüştürücüde PowerPoint (.pptx, .ppt → PDF, Word, slayt resimleri, metin) · Dosya Rafı: Ctrl+V ile ekran görüntüsü, satırlarda önizleme, sürüklerken dosya adlı kart · Yanıt yazılırken kaydırma · Quick Share başlatma hataları anlaşılır, LocalSend tek başına çalışır · Limit animasyonu, “Tamamlandı” ve görev çubuğu düzeltmeleri |
-| **v0.9.15** | File shelf: keep copies of files on the island, drag them out as real files, Ctrl+V adds a screenshot · Pictures in a sent message open at full size · Antigravity quota checks no longer flash a terminal window | Dosya Rafı: dosyaların kopyalarını adada sakla, gerçek dosya olarak dışarı sürükle, Ctrl+V ile ekran görüntüsü ekle · Gönderilen mesajdaki resimler tam boyutta açılır · Antigravity kota sorguları artık terminal penceresi açmaz |
-| **v0.9.14** | Island redesign: a big voice chat card (bars that move with the voice), the message box with dictation, a new Spotify card and the song on the closed island · **Tools**: color picker, timer (focus with breaks, countdown, stopwatch), reminders, calendar, emails, usage summary and smart home, plus module shortcuts · faster, HDR-correct screenshots and color picking · design polish | Adacık yenilendi: büyük sesli sohbet kartı (sese göre hareket eden çizgiler), dikteli mesaj kutusu, yeni Spotify kartı ve kapalı adacıkta çalan şarkı · **Araçlar**: renk seçici, zamanlayıcı (molalı odak, geri sayım, kronometre), hatırlatıcılar, takvim, e-postalar, kullanım özeti ve akıllı ev, modül kısayolları · daha hızlı, HDR’de doğru renkli ekran görüntüsü ve renk seçimi · tasarım cilası |
-| **v0.9.13** | Redesigned island home: Charles with an inline message box (mic, voice call), a new Spotify card and three expanding cards (Files · AI usage · Weather with hourly forecast) · quiet WhatsApp catch-up, muted/archived chats stay silent | Adacık ana sayfası yenilendi: satır içi mesaj kutulu Charles (mikrofon, sesli görüşme), yeni Spotify kartı ve açılır üç kart (Dosyalar · AI kullanımı · saatlik tahminli Hava durumu) · WhatsApp birikmiş mesajları sessiz, sessize alınmış/arşivlenmiş sohbetler bildirim vermiyor |
-| **v0.9.12** | Modules can save and open files (`files.save`, `files.pick`) through Windows’ own Save / Open window | Modüller Windows’un Kaydet / Aç penceresiyle dosya kaydedip açabiliyor (`files.save`, `files.pick`) |
-| **v0.9.11** | Long chats can be continued after a restart · Charles sleeps when you are away | Uzun sohbetler yeniden başlattıktan sonra sürdürülebiliyor · Charles sen yokken uyuyor |
-| **v0.9.10** | Smoother Slime (no waving in his sleep, no doubled cheeks) · durations in your language · tables with formulas and file citations render properly · the chat keeps its place | Daha akıcı Slime (uykuda el sallama yok, çift yanak yok) · süreler seçili dilde · formüllü tablolar ve dosya kaynakları düzgün görünüyor · sohbet yerini koruyor |
-| **v0.9.9** | Mail can’t steer Charles (prompt-injection guard) · app window fixes · Download tools included | Maille Charles yönlendirilemiyor (komut enjeksiyonu koruması) · uygulama penceresi düzeltmeleri · İndirme araçları pakette |
-| **v0.9.8** | No third hand · props change one at a time · movable app window · EVREN setup · Claude models by version | Üçüncü el yok · eşyalar sırayla değişiyor · taşınabilen pencere · EVREN kurulumu · sürümüyle Claude modelleri |
-| **v0.9.7** | Quick Share network permission fixed · menu arrows point the right way | Quick Share ağ izni düzeldi · menü okları doğru yöne bakıyor |
-| **v0.9.6** | Effort levels · EVREN account · Quick Share visible without opening the panel | Efor düzeyleri · EVREN hesabı · Quick Share panel açmadan görünür |
+| Version | What’s new |
+| --- | --- |
+| **v0.9.18** | System monitor for CPU, GPU and RAM · push to talk in any app · drop Charles on a page or document to ask about it · drag the character out of the panel · right-click menu for text · notifications stay visible with the app window open · a summary after each update |
+| **v0.9.17** | Quick Share: a stale phone address is looked up again before giving up, with a clear message if the phone stays closed |
+| **v0.9.16** | PowerPoint in the chat and the converter (.pptx, .ppt → PDF, Word, slide pictures, text) · File shelf: Ctrl+V adds a screenshot, previews on every row, a drag card with the file's name · Scrolling while an answer is written · Clearer Quick Share start errors, LocalSend works on its own · Fixes for the limit animation, the finished state and the taskbar |
+| **v0.9.15** | File shelf: keep copies of files on the island, drag them out as real files, Ctrl+V adds a screenshot · Pictures in a sent message open at full size · Antigravity quota checks no longer flash a terminal window |
+| **v0.9.14** | Island redesign: a big voice chat card (bars that move with the voice), the message box with dictation, a new Spotify card and the song on the closed island · **Tools**: color picker, timer (focus with breaks, countdown, stopwatch), reminders, calendar, emails, usage summary and smart home, plus module shortcuts · faster, HDR-correct screenshots and color picking · design polish |
+| **v0.9.13** | Redesigned island home: Charles with an inline message box (mic, voice call), a new Spotify card and three expanding cards (Files · AI usage · Weather with hourly forecast) · quiet WhatsApp catch-up, muted/archived chats stay silent |
+| **v0.9.12** | Modules can save and open files (`files.save`, `files.pick`) through Windows’ own Save / Open window |
+| **v0.9.11** | Long chats can be continued after a restart · Charles sleeps when you are away |
+| **v0.9.10** | Smoother Slime (no waving in his sleep, no doubled cheeks) · durations in your language · tables with formulas and file citations render properly · the chat keeps its place |
+| **v0.9.9** | Mail can’t steer Charles (prompt-injection guard) · app window fixes · Download tools included |
+| **v0.9.8** | No third hand · props change one at a time · movable app window · EVREN setup · Claude models by version |
+| **v0.9.7** | Quick Share network permission fixed · menu arrows point the right way |
+| **v0.9.6** | Effort levels · EVREN account · Quick Share visible without opening the panel |
 
-Details · Ayrıntılar: [CHANGELOG](CHANGELOG.md) · [File sharing / Dosya paylaşımı](docs/SHARING.md)
+Details: [CHANGELOG](CHANGELOG.md) · [File sharing](docs/SHARING.md)
 
-### The island · Adacık
+### The island
 
 A big **voice chat** card (tap and talk; its bars follow your voice and Charles’), a message box
 with dictation, Charles in the middle, the Spotify card, and four cards that open a panel below
 them: **Files**, **AI usage**, **Weather** and **Tools**. While music plays, the closed island
 shows the cover, the song and the artist.
 
-Büyük bir **sesli sohbet** kartı (dokun ve konuş; çizgileri senin ve Charles’ın sesiyle hareket
-eder), dikteli mesaj kutusu, ortada Charles, Spotify kartı ve altlarında panel açan dört kart:
-**Dosyalar**, **AI kullanımı**, **Hava durumu** ve **Araçlar**. Müzik çalarken kapalı adacıkta
-kapak, şarkı ve sanatçı görünür.
-
 <p align="center">
-  <img src="docs/images/island.png" alt="v0.9.14 island: the voice chat card, the message box, Charles, the Spotify card and the Files, AI usage, Weather and Tools cards" width="720">
+  <img src="docs/images/island.png" alt="The island: the voice chat card, the message box, Charles, the Spotify card and the Files, AI usage, Weather and Tools cards" width="720">
 </p>
 
-### Tools · Araçlar
+### Tools
 
-The **Tools** card opens seven tools and your installed modules. Reminders, Calendar, Emails and
+The **Tools** card opens eight tools and your installed modules. Reminders, Calendar, Emails and
 Smart home are the same cards as in the app window; Usage summary is the weekly summary from
 Settings.
 
-**Araçlar** kartı yedi aracı ve yüklü modüllerini açar. Hatırlatıcılar, Takvim, E-postalar ve
-Akıllı ev uygulama penceresindeki kartların aynısıdır; Kullanım özeti Ayarlar’daki haftalık özettir.
-
-| Tool · Araç | What it does | Ne yapar |
-| --- | --- | --- |
-| **Color picker · Renk seçici** | Pick a color anywhere on the screen with a magnifier (correct on HDR screens too), adjust it, copy it as HEX · RGB · HSL; four shades and your recent colors | Ekranın herhangi bir yerinden büyüteçle renk al (HDR ekranlarda da doğru), ayarla, HEX · RGB · HSL olarak kopyala; dört ton ve son renkler |
-| **Timer · Zamanlayıcı** | Focus sessions with a task name, a break you choose when the focus ends, countdown and stopwatch; it keeps running on the closed island and can mute notifications | Görev adlı odak oturumları, odak bitince seçilen mola, geri sayım ve kronometre; kapalı adacıkta çalışmaya devam eder, bildirimleri susturabilir |
-| **Reminders · Hatırlatıcılar** | Upcoming reminders, tick them off, add a new one; Charles can also add them by voice | Yaklaşan hatırlatıcılar, tamamlananı işaretle, yenisini ekle; Charles sesle de ekleyebilir |
-| **Calendar · Takvim** | The month with Google / Outlook events, reminders and holidays; the day’s list; Edit opens the full editor | Google / Outlook etkinlikleri, hatırlatıcılar ve tatillerle ay görünümü; günün listesi; Düzenle tam düzenleyiciyi açar |
-| **Emails · E-postalar** | Important emails (or the newest ones); a click lets Charles explain the email in the chat | Önemli (ya da en son) e-postalar; tıklayınca Charles e-postayı sohbette anlatır |
-| **Usage summary · Kullanım özeti** | This week or last week: computer time, active use, Charles’ work, sessions, files, commands and your most used apps | Bu hafta ya da geçen hafta: bilgisayar süresi, aktif kullanım, Charles’ın işleri, oturumlar, dosyalar, komutlar ve en çok kullandığın uygulamalar |
-| **Smart home · Akıllı ev** | Your Home Assistant lights, plugs, sensors and scenes; switch them on the tile | Home Assistant ışıkların, prizlerin, sensörlerin ve sahnelerin; kutucuktan aç / kapat |
+| Tool | What it does |
+| --- | --- |
+| **Color picker** | Pick a color anywhere on the screen with a magnifier (correct on HDR screens too), adjust it, copy it as HEX · RGB · HSL; four shades and your recent colors |
+| **Timer** | Focus sessions with a task name, a break you choose when the focus ends, countdown and stopwatch; it keeps running on the closed island and can mute notifications |
+| **Reminders** | Upcoming reminders, tick them off, add a new one; Charles can also add them by voice |
+| **Calendar** | The month with Google / Outlook events, reminders and holidays; the day’s list; Edit opens the full editor |
+| **Emails** | Important emails (or the newest ones); a click lets Charles explain the email in the chat |
+| **Usage summary** | This week or last week: computer time, active use, Charles’ work, sessions, files, commands and your most used apps |
+| **Smart home** | Your Home Assistant lights, plugs, sensors and scenes; switch them on the tile |
+| **System monitor** | Live CPU, GPU and RAM charts with Current, Average and Peak values |
 
 <p align="center">
-  <img src="docs/images/tools.png" alt="The Tools panel on the island: color picker, timer, reminders, calendar, emails, usage summary and smart home" width="720">
+  <img src="docs/images/tools.png" alt="The Tools panel on the island" width="720">
 </p>
 
 <p align="center">
@@ -112,45 +98,104 @@ Akıllı ev uygulama penceresindeki kartların aynısıdır; Kullanım özeti Ay
   <img src="docs/images/tool-usage.png" alt="Usage summary: this week's computer time, Charles' work and the most used apps" width="49%">
 </p>
 
-### Convert files on your desktop · Masaüstünde dosya dönüştür
+### System monitor
+
+Open **Tools → System monitor** to watch CPU, GPU and RAM side by side.
+
+- **Current, Average, Peak:** pick what the big numbers show. The chart keeps running and marks the average or the peak.
+- **1 min, 5 min, 1 hr:** the numbers and the chart always use the same range. A range that is not full yet says how long was really measured.
+- **Pause and reset:** stop measuring for a moment, or clear the history.
+- **Several GPUs:** a list lets you pick which one to follow.
+
+Charles measures once a second while the monitor is on screen and every 5 seconds behind it, so
+history is already there when you open it; **Measure in the background** turns that off. The last
+hour stays in memory. Nothing is written to disk or sent anywhere, and time the computer slept
+shows as a gap in the line.
+
+Values come from Windows performance counters, so no driver or extra tool is needed. GPU load is
+the busiest engine, as in Task Manager. GPU temperature and power appear when Windows reports them,
+and power is a percentage rather than watts. CPU temperature has no reliable source and shows
+**No data**. Tested on one NVIDIA GPU; several GPUs and other vendors have not been tested.
+
+<p align="center">
+  <img src="docs/images/system-monitor.png" alt="System monitor: CPU, GPU and RAM charts with the Average view selected, the 1 minute range and the background measuring switch. Real values from a test machine; the process list is hidden." width="640">
+</p>
+
+### Ask about what is on your screen
+
+Hold Charles over a web page, a document or an email for a moment. A frame shows what he would
+read. Let go, and only that one thing is read. A card above the message box then shows the title,
+the app and how much was read, with **Summarize**, **Key points** and **What I need to do**; you
+can also type your own question. Moving Charles without stopping is just a move, and **Esc** cancels.
+
+Dropping him sends nothing to an AI. Content goes out only when you press a button or send a
+question, and the card names the AI it goes to. While the card is open the content goes with each
+question; **×** removes it. Text from a page or a file is treated as data, so instructions hidden
+in it are not followed, and such a turn runs without tools.
+
+No browser extension is needed. Charles uses the Windows accessibility interface, so he reads what
+an app shares:
+
+| Where | What is read |
+| --- | --- |
+| Chrome and Edge pages | The loaded text of the page in the active tab (no other tabs); parts that load while scrolling are left out |
+| PDFs opened from this computer in Chrome or Edge | The whole file |
+| Word and PowerPoint (`.docx`, `.pptx`, `.ppt`) | The saved file, with slide numbers and notes; unsaved changes are not included, and the card says so |
+| Notepad and similar editors | The text in the window |
+| Adobe Acrobat, and apps that share no text | A picture of that window, marked as the visible part only |
+| Web mail | Read as a page |
+
+Other browsers and desktop mail apps depend on what they share and have not been tested. Password
+managers and windows with a password field in focus are not read.
+
+<p align="center">
+  <img src="docs/images/content-drop.png" alt="The card above the message box after Charles was dropped on a sample page: title, source, what was read, and the Summarize, Key points and What I need to do buttons. Real interface with sample content." width="560">
+</p>
+
+### Push to talk
+
+Type with your voice in any app. Turn it on in **Settings → Shortcuts → Push to talk**.
+
+- **Hold Right Arrow, speak, let go:** your words are typed at the cursor.
+- **Press it twice quickly:** hands-free recording; press it again to finish.
+- **Esc:** cancels the recording or the text that is on its way.
+
+You can choose another key or a combination in the same place. While the feature is on, a short
+press of the key still does its normal job, about 0.2 seconds later. Holding it no longer repeats
+the key, and three quick presses start a recording. It is off by default and steps aside for
+full-screen apps such as games.
+
+Speech is turned into text by the local Whisper model. Audio stays on your computer and no
+recording is kept. The clipboard is not used and Enter is never pressed. Password fields and apps
+running as administrator are not typed into, and if the focus moves while you speak, the text waits
+in a small card so you can copy it or insert it.
+
+### Convert files on your desktop
 
 Open **Files → Convert** (or drag a file onto the **Files** card: its Convert / Send tiles open
 by themselves), choose an output format, then press **Convert**. Images, audio, video, documents, presentations, data and archives stay on your computer.
 Supported formats depend on the selected file and the installed tools; image and video
 options include quality and output size. The result is saved beside the original.
 
-**Dosyalar → Dönüştür**’ü aç (ya da dosyayı **Dosyalar** kartının üstüne sürükle; Dönüştür / Gönder
-kutucukları kendiliğinden açılır), hedef biçimi seç ve **Dönüştür**’e bas. Görsel, ses, video, belge, sunum, veri ve arşiv işlemleri bilgisayarında yapılır.
-Seçenekler dosya türüne ve kurulu araçlara göre gösterilir; görsel ve videolarda kalite ve
-boyut seçebilirsin. Sonuç, orijinal dosyanın yanına kaydedilir.
-
 <p align="center">
   <img src="docs/images/converter.png" alt="Files → Convert with a sample PNG: grouped output formats, quality and size" width="720">
 </p>
 
-### File shelf · Dosya Rafı
+### File shelf
 
 Keep files on the island until you need them. Open **Files → File shelf**, then:
 
 - **Add files:** drag them onto the shelf. Charles keeps its own copy, so the original can move or disappear.
 - **Paste a screenshot:** with the shelf on screen, press **Ctrl+V**. A picture on the clipboard is saved as a PNG with a preview.
-- **Take them out:** drag a row to a folder or another program. It arrives as a real file.
+- **Take them out:** drag a row to a folder or another program. It arrives as a real file, and the file’s picture and name follow the pointer on a transparent background.
 
 Files stay on the shelf after a restart, until you remove them.
-
-Dosyaları ihtiyacın olana kadar adacıkta tut. **Dosyalar → Dosya Rafı**’nı aç:
-
-- **Dosya ekle:** dosyaları rafa sürükle. Charles kendi kopyasını saklar; asıl dosya taşınsa ya da silinse de raftaki durur.
-- **Ekran görüntüsü yapıştır:** raf ekrandayken **Ctrl+V**’ye bas. Panodaki resim önizlemesiyle birlikte PNG olarak kaydedilir.
-- **Dışarı al:** satırı bir klasöre ya da başka bir programa sürükle; gerçek dosya olarak bırakılır.
-
-Dosyalar, sen silene kadar rafta kalır; Charles yeniden başlasa da kaybolmaz.
 
 <p align="center">
   <img src="docs/images/file-shelf.png" alt="File shelf with sample files: each row shows a preview, the file name and its size" width="560">
 </p>
 
-### All Android devices with Quick Share · Tüm Android cihazlarda Quick Share
+### All Android devices with Quick Share
 
 Open **Files → Send**, drop or choose files, and press **Send** beside a nearby device. Quick Share supports
 two-way transfers between Android devices and computers on the same local
@@ -158,44 +203,30 @@ network. Charles remains discoverable while running when receiving is enabled, e
 the panel closed. An incoming request opens the accept/reject panel immediately.
 Quick Share must be available and enabled on the Android device.
 
-**Dosyalar → Gönder**’i aç, dosyanı bırak ya da seç ve yakındaki cihazın yanındaki **Gönder**’e bas. Quick Share ile aynı
-yerel ağdaki tüm Android cihazlar ve bilgisayarlar arasında iki yönlü aktarım
-yapabilirsin. Alım açıkken Charles çalıştığı sürece bilgisayarın görünür kalır; paneli açık
-tutman gerekmez. Gelen istek, kabul/ret panelini doğrudan açar.
-Android cihazda Quick Share özelliğinin bulunması ve açık olması gerekir.
-
 <p align="center">
   <img src="docs/images/sharing.png" alt="Files → Send with a sample picture, nearby devices with their own Send buttons, and the Receiving switch" width="720">
 </p>
 
-- **Receiving switch on / Dosya alımı anahtarı açık:** enabled at startup; every file still needs your approval. It stays on while Slime sleeps or the sharing panel is closed. / Açılışta etkindir; her dosya için onay ister. Slime uyusa veya paylaşım paneli kapansa da açık kalır.
-- **Switch off / Anahtar kapalı:** disables receiving and visibility until you enable it again or restart Charles. Sending remains available. / Yeniden açana veya Charles’ı yeniden başlatana kadar alımı ve görünürlüğü kapatır. Dosya göndermeye devam edebilirsin.
+- **Receiving switch on:** enabled at startup; every file still needs your approval. It stays on while Slime sleeps or the sharing panel is closed.
+- **Switch off:** disables receiving and visibility until you enable it again or restart Charles. Sending remains available.
 
 <p align="center">
   <img src="docs/images/sharing-receive.png" alt="Incoming file request with a matching PIN and Accept / Decline buttons" width="720">
 </p>
 
-Received files go to Downloads; an existing file with the same name is preserved. QR is no
-longer needed in this panel. Transfers have been tested successfully on Samsung and other Android brands.
-Apple devices (iPhone, iPad and Mac) use the **LocalSend app** to share files with Charles
-on the same local network. Native Apple AirDrop/AWDL is not supported on Windows.
+Received files go to Downloads; an existing file with the same name is preserved. Transfers have
+been tested successfully on Samsung and other Android brands. Apple devices (iPhone, iPad and Mac)
+use the **LocalSend app** to share files with Charles on the same local network. Native Apple
+AirDrop/AWDL is not supported on Windows.
 
-Alınan dosyalar İndirilenler’e kaydedilir; aynı adlı eski dosyanın üzerine yazılmaz. Bu panelde
-QR alanı kaldırıldı. Samsung ve farklı markalardaki Android telefonlarda aktarım başarıyla test edildi.
-**Apple cihazlarda (iPhone, iPad ve Mac) LocalSend uygulaması ile dosya paylaşımı desteklenir.**
-Apple cihazda LocalSend açık olmalı ve cihazlar aynı yerel ağa bağlı olmalıdır.
-Windows’ta yerel Apple AirDrop/AWDL desteklenmez.
+*Screenshots use sample file, device and status data.* [Sharing guide](docs/SHARING.md)
 
-*Screenshots use sample file, device and status data. / Ekran görüntülerindeki dosya, cihaz
-ve durum bilgileri tanıtım için örnektir.* [Sharing guide / Paylaşım rehberi](docs/SHARING.md)
-
-## Highlights · Öne çıkanlar
+## Highlights
 
 ### An assistant that does things
 
 - **Island:** a thin strip at the top of the screen (a small notch with music controls while
-  a song plays) opens into the home page (Charles with a message box, Spotify, and the Files ·
-  AI usage · Weather cards) and grows down into the chat.
+  a song plays) opens into the home page and grows down into the chat.
 - **Converter:** drop files on the island to turn them into other formats: pictures, audio,
   video, Word/Markdown/PDF text, CSV/JSON, subtitles, ZIP. Offline, saved next to the original.
 - **Your own AI accounts:** chat with **ChatGPT (Codex)**, **Claude**, **Antigravity**, **Cursor** or
@@ -204,6 +235,9 @@ ve durum bilgileri tanıtım için örnektir.* [Sharing guide / Paylaşım rehbe
 - **Projects:** chats in a project know each other. Charles sees the project’s instructions
   and what was said and decided in its other chats. Folders keep everything else tidy.
 - **Project mode:** pick a folder and let the AI write code in it, with your approval first.
+- **Right-click on text:** select text in a message, a code block or a text box and right-click
+  for **Copy**, **Paste** and **Ask Charles**. Ask Charles puts the selection in the message box as
+  a quote and waits for your question.
 - **WhatsApp in Charles** *(experimental)*: link WhatsApp once with a QR code. New messages
   appear under the island, with quick replies and a reply box; nothing is sent until you press
   send. Typed or spoken *“send Mom ‘I’m on my way’ on WhatsApp”* works too.
@@ -211,12 +245,17 @@ ve durum bilgileri tanıtım için örnektir.* [Sharing guide / Paylaşım rehbe
   and a microphone button that switches all listening off.
 - **Mail and calendar:** Gmail, Google Calendar, Outlook or any POP3/IMAP mailbox. Important
   mail appears as a bubble under the island and opens in its own chat.
+- **Notifications that stay visible:** WhatsApp, mail and reminder cards appear under the island,
+  beside a tall panel, or in the corner of the app window, without taking the keyboard from what
+  you are typing.
 - **App window:** chats with projects and folders, an overview you arrange yourself (Spotify,
   reminders, calendar, mail, smart home, usage, system, notes, quick commands, **modules**),
   and a side panel for files, code and terminal output.
 - **Modules:** add tools that open in their own window from a `.zip` (study planner, downloads,
   a game master…). Every ability goes through a permission you approve. Modules can use
   Charles’ own Slime, his reactions and accessories ([docs/MODULES.md](docs/MODULES.md)).
+- **Updates you can read:** after an update, a card opens what changed in that version. The notes
+  come from your computer, so they work with no AI; **Let Charles explain** is optional.
 - **Little things:** copy formulas as LaTeX or Word equations, add instructions while the AI is
   still working, reminders and focus timers, weather, screen capture, Home Assistant, and
   in-app updates from GitHub.
@@ -227,48 +266,12 @@ ve durum bilgileri tanıtım için örnektir.* [Sharing guide / Paylaşım rehbe
   magnifier, coding, drawing, getting an idea 💡 and more.
 - **Slime studio:** seven colours, a moustache, and hats, glasses and other accessories to mix
   and match. Seasonal hats come on their own.
-- **Desktop pet:** drag Slime onto your desktop, throw him and watch him bounce like jelly.
-- Interface in **English, Türkçe, Deutsch, Français, Español and 中文**.
+- **Desktop pet:** drag Slime onto your desktop, throw him and watch him bounce like jelly. From
+  the app window or the open island he leaves his place empty and everything else stays where it
+  is; double-click him to send him home.
+- Interface in **English, Turkish, German, French, Spanish and Chinese**.
 
-### İş yapan bir asistan
-
-- **Ada:** ekranın üstündeki ince şerit (şarkı çalarken müzik tuşlu küçük notch), ana sayfaya
-  (mesaj kutulu Charles, Spotify, Dosyalar · AI kullanımı · Hava durumu kartları) açılır ve aşağı uzayıp sohbete dönüşür.
-- **Dönüştürücü:** dosyaları adaya bırak, başka biçime çevir: görsel, ses, video, Word/Markdown/PDF
-  metni, CSV/JSON, altyazı, ZIP. İnternetsiz, sonuç orijinalin yanına kaydedilir.
-- **Kendi yapay zekâ hesapların:** **ChatGPT (Codex)**, **Claude**, **Antigravity**, **Cursor** ya da
-  **Abacus AI** ile sohbet et, modeli mesaj kutusundan değiştir. Görseller GPT, Claude ve
-  Antigravity ile çalışır. Uzun sohbetler geçmişin tamamını korur.
-- **Projeler:** bir projedeki sohbetler birbirini bilir; Charles projenin talimatlarını ve diğer
-  sohbetlerde konuşulup kararlaştırılanları görür. Klasörler de geri kalanını düzenli tutar.
-- **Proje modu:** bir klasör seç, yapay zekâ önce onayını alarak orada kod yazsın.
-- **WhatsApp Charles’ta** *(deneysel)*: WhatsApp’ı bir kez QR kodla bağla. Yeni mesajlar
-  adacığın altında, hızlı yanıtlar ve yanıt kutusuyla görünür; sen gönder’e basmadan hiçbir şey
-  gitmez. Yazılı ya da sesli *“WhatsApp’tan anneme ‘yoldayım’ mesajını at”* da çalışır.
-- **Ses:** **“Hey Charles”** de. Gerçek zamanlı konuşma için Gemini Live, dikte için yerel
-  Whisper ve tüm dinlemeyi kapatan mikrofon tuşu.
-- **E-posta ve takvim:** Gmail, Google Takvim, Outlook ya da herhangi bir POP3/IMAP kutusu.
-  Önemli e-postalar adacığın altında balon olarak görünür ve kendi sohbetinde açılır.
-- **Uygulama penceresi:** proje ve klasörlü sohbetler, kendin düzenlediğin genel bakış
-  (Spotify, hatırlatıcılar, takvim, e-posta, akıllı ev, kullanım, sistem, notlar, hızlı
-  komutlar, **modüller**) ve dosya, kod ve terminal çıktısı için yan panel.
-- **Modüller:** kendi penceresinde açılan araçları `.zip` ile ekle (ders planlayıcı, indirme,
-  oyun yöneticisi…). Her yetki senin onayladığın bir izinle gelir. Modüller Charles’ın Slime’ını,
-  tepkilerini ve aksesuarlarını kullanabilir.
-- **Küçük şeyler:** formülleri LaTeX ya da Word denklemi olarak kopyalama, yapay zekâ çalışırken
-  ek talimat, hatırlatıcılar ve odak sayacı, hava durumu, ekran yakalama, Home Assistant ve
-  GitHub’dan uygulama içi güncelleme.
-
-### Kişiliği olan bir karakter
-
-- 20’den fazla ifade ve çalışma animasyonu: âşık, başı dönen, uyuyan, büyüteçle araştıran, kod
-  yazan, çizen, fikir bulan 💡 ve daha fazlası.
-- **Slime stüdyosu:** yedi renk, bıyık ve birlikte takılabilen şapka, gözlük ve aksesuarlar.
-  Mevsimlik şapkalar kendiliğinden gelir.
-- **Masaüstü Slime:** Slime’ı masaüstüne sürükle, fırlat, jöle gibi sekmesini izle.
-- Arayüz **English, Türkçe, Deutsch, Français, Español ve 中文**.
-
-## Modules · Modüller
+## Modules
 
 <p align="center">
   <img src="docs/images/modules.png" alt="Three modules in their own windows: Study with Charles, FRP and Charles Download" width="100%">
@@ -288,40 +291,18 @@ keep its own files, show notifications, use Charles’ download engine, and draw
 accessories, reactions and cursor tracking — every ability behind a permission the user
 approves. See [docs/MODULES.md](docs/MODULES.md).
 
-Modüller Charles’a kendi penceresinde açılan yeni araçlar ekler: **Study with Charles** (dersler,
-kaynaklar, onları okuyan bir eğitmen, odak sayacı, sınav geri sayımı), **FRP** (Charles masaüstü
-rol yapma oyununu yönetir ya da GM’e yardım eder) ve **Charles Download** (video, ses ya da
-yalnızca istediğin bölüm). **Ayarlar → Modüller**’den `.zip` ile yüklenir; açılanlar genel
-bakıştaki **Modüller** kartından tek tıkla açılır.
-
-**Resmî modülleri indir:** [**Releases → Modules**](https://github.com/ardadgnyt/ProjectCharles/releases#release-Modules)
-
-**Kendi modülünü yap:** herkes modül geliştirebilir. Modül, `manifest.json` dosyası olan küçük bir
-web sayfasıdır; Charles üzerinden kullanıcının yapay zekâsına (görsellerle) soru sorabilir,
-görsel oluşturabilir, sesli okuyabilir, kendi dosyalarını tutabilir, bildirim gösterebilir,
-Charles’ın indirme altyapısını kullanabilir ve Slime’ı aksesuarları, tepkileri ve imleç
-takibiyle çizebilir. Her yetki, kullanıcının onayladığı bir izinle gelir.
-Ayrıntılar: [docs/MODULES.md](docs/MODULES.md).
-
-### AI usage & weather · AI kullanımı ve hava durumu
+### AI usage and weather
 
 **AI usage** shows every connected AI (Codex, Claude, Antigravity, Cursor, Abacus AI, EVREN)
 with its two windows and when they reset. **Weather** shows the current conditions, the next
 hours, today and the next five days; the location button changes the city.
-
-**AI kullanımı** bağlı bütün yapay zekâları iki halkası ve sıfırlanma süreleriyle gösterir.
-**Hava durumu** anlık durumu, önümüzdeki saatleri, bugünü ve sonraki beş günü gösterir; konum tuşu şehri değiştirir.
 
 <p align="center">
   <img src="docs/images/usage.png" alt="AI usage panel: Codex, Claude, Antigravity, Cursor, Abacus AI and EVREN with remaining-usage rings" width="49%">
   <img src="docs/images/weather.png" alt="Weather panel: current conditions, hourly forecast, today and the next five days" width="49%">
 </p>
 
-## Screenshots · Ekran görüntüleri
-
-<p align="center">
-  <img src="docs/images/island.png" alt="The v0.9.14 island" width="720">
-</p>
+## Screenshots
 
 <p align="center">
   <img src="docs/images/workspace.png" alt="The Charles app window: chats in folders and projects, and the Spotify, reminders, calendar, important emails and smart home cards" width="100%">
@@ -458,15 +439,12 @@ Sonra **Ayarlar → Yapay zekâ modelleri**’nden hesabınla giriş yap.
 | `setup/Reset-Charles.cmd` | Backs up and resets settings and chats (asks first) · Ayarları ve sohbetleri yedekleyip sıfırlar (önce sorar) |
 | `Start-Charles.cmd` | Starts Charles from its folder · Charles’ı klasöründen başlatır |
 
-## Running from source · Kaynaktan çalıştırma
+## Running from source
 
 The repository holds the source code and the download tools for Charles Download
 (`tools/download/`: yt-dlp and FFmpeg, see `licenses/download/`); `node_modules/`, `dist/`, the
 speech models and the other helper tools are created or downloaded on your machine. You need
-[Node.js](https://nodejs.org) 22 or newer. · Depo kaynak kodu ve Charles Download’un indirme
-araçlarını (`tools/download/`: yt-dlp ve FFmpeg, lisanslar `licenses/download/` içinde) içerir;
-`node_modules/`, `dist/`, ses modelleri ve diğer yardımcı araçlar bilgisayarında oluşturulur ya da
-indirilir. Node.js 22 veya üstü gerekir.
+[Node.js](https://nodejs.org) 22 or newer.
 
 ```cmd
 git clone https://github.com/HzPederPan/ProjectCharles.git
@@ -477,76 +455,70 @@ npm run build
 npm start
 ```
 
-| Command · Komut | Purpose · Amaç |
+| Command | Purpose |
 | --- | --- |
-| `npm run setup:voice` | Optional: whisper.cpp and the speech model (~500 MB) · İsteğe bağlı: whisper.cpp ve ses modeli |
-| `npm test` | Automated tests · Otomatik testler |
-| `npm run dev` | Build the interface and start Electron · Arayüzü derleyip Electron’u başlatır |
-| `python scripts/package.py <folder> <out.zip>` | `Charles.zip` for the installer · Kurulum için `Charles.zip` |
-| `npm run release:pack` | `charles-update-<version>.zip` + `.sha256` for in-place updates · Uygulama içi güncelleme paketi |
+| `npm run setup:voice` | Optional: whisper.cpp and the speech model (~500 MB) |
+| `npm test` | Automated tests |
+| `npm run dev` | Build the interface and start Electron |
+| `python scripts/package.py <folder> <out.zip>` | `Charles.zip` for the installer |
+| `npm run release:pack` | `charles-update-<version>.zip` + `.sha256` for in-place updates |
 
 The Antigravity and Cursor sign-in helpers come with the release package. Abacus AI
 uses its own `abacusai` command line tool
-([setup page](https://abacus.ai/help/abacusai-desktop/cli-installation)). · Antigravity ve Cursor
-giriş araçları kurulum paketiyle gelir; Abacus AI kendi `abacusai` aracını kullanır.
+([setup page](https://abacus.ai/help/abacusai-desktop/cli-installation)).
 
-## Your data and privacy · Verilerin ve gizlilik
+## Your data and privacy
 
 - Chats, memory, settings and **all keys and account connections** live in
-  **`%APPDATA%\Charles`**, never in the app folder; keys are encrypted with Windows (DPAPI). ·
-  Sohbetler, hafıza, ayarlar ve **tüm anahtarlar ve hesap bağlantıları** uygulama klasöründe
-  değil **`%APPDATA%\Charles`** içinde durur; anahtarlar Windows (DPAPI) ile şifrelenir.
+  **`%APPDATA%\Charles`**, never in the app folder; keys are encrypted with Windows (DPAPI).
 - Updates and new installs keep your data. **Settings → Account** opens this folder and can
-  remove connections or reset everything (it asks first and keeps a backup). · Güncellemeler ve
-  yeni kurulumlar verilerini korur. **Ayarlar → Hesap** bu klasörü açar; bağlantıları kaldırıp
-  her şeyi sıfırlayabilir (önce sorar ve yedek alır).
+  remove connections or reset everything (it asks first and keeps a backup).
 - Mail, calendar and Drive connections are **read-only**; incoming content never runs
-  commands. · E-posta, takvim ve Drive bağlantıları **salt okunurdur**; gelen içerik komut
-  çalıştıramaz.
+  commands.
 - **WhatsApp** messages stay in memory only. The open-source gateway is downloaded only when you
-  turn the feature on, checked against its SHA-256 and runs on this computer only. ·
-  **WhatsApp** mesajları yalnızca bellekte tutulur. Açık kaynaklı köprü yalnızca özelliği açınca
-  indirilir, SHA-256 ile doğrulanır ve yalnızca bu bilgisayarda çalışır.
-- The microphone button turns off Hey Charles, dictation and voice chat. Your messages go only
-  to the AI provider you choose. · Mikrofon tuşu Hey Charles’ı, dikteyi ve sesli sohbeti kapatır.
-  Mesajların yalnızca seçtiğin yapay zekâ sağlayıcısına gider.
+  turn the feature on, checked against its SHA-256 and runs on this computer only.
+- The microphone button turns off Hey Charles, dictation, push to talk and voice chat. Your
+  messages go only to the AI provider you choose.
+- **Push to talk** uses local speech recognition. **System monitor** readings stay in memory.
+  **Dropping Charles on content** reads it only at that moment, never in the background, and it
+  leaves your computer only when you send a question.
 
-## Project layout · Proje yapısı
+## Project layout
 
 ```text
 ProjectCharles/
-├── Start-Charles.cmd     start Charles from this folder · Charles’ı bu klasörden başlatır
-├── setup/                installer, shortcut, reset · kurulum, kısayol, sıfırlama
-├── app/                  Electron main process: AI, plugins, modules, voice · ana süreç
-├── src/                  interface (TypeScript) → dist/renderer.js · arayüz
-│   ├── vendor/slime/     the Slime character · Slime karakteri
-│   └── module-kit/       Slime for module windows · modül pencereleri için Slime
-├── public/               HTML, CSS, sounds, icons · HTML, CSS, sesler, simgeler
-├── scripts/              build, packaging, voice setup · derleme, paketleme
-├── test/                 automated tests · otomatik testler
-└── docs/                 guides and README images · rehberler ve görseller
+├── Start-Charles.cmd     start Charles from this folder
+├── setup/                installer, shortcut, reset
+├── app/                  Electron main process: AI, plugins, modules, voice
+├── src/                  interface (TypeScript) → dist/renderer.js
+│   ├── vendor/slime/     the Slime character
+│   └── module-kit/       Slime for module windows
+├── public/               HTML, CSS, sounds, icons
+├── scripts/              build, packaging, voice setup
+├── test/                 automated tests
+└── docs/                 guides and README images
 ```
 
-## Documentation · Belgeler
+## Documentation
 
-| Document · Belge | Contents · İçerik |
+| Document | Contents |
 | --- | --- |
-| [CHANGELOG.md](CHANGELOG.md) | What changed in every version (Turkish) · Her sürümde değişenler |
-| [DEVELOPMENT.md](DEVELOPMENT.md) | Code tour, data files, build and test (Turkish) · Kod turu, derleme, test |
-| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | Chat, project mode, voice, Slime, settings, shortcuts · Kullanım rehberi |
-| [docs/PLUGINS-SETUP.md](docs/PLUGINS-SETUP.md) | Google, Microsoft, mail, Home Assistant · Eklenti kurulumu |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the parts fit together · Mimari |
-| [docs/MODULES.md](docs/MODULES.md) | Writing modules: package, permissions, API, Slime kit · Modül yazma |
-| [docs/UPDATES.md](docs/UPDATES.md) | In-place updates from GitHub Releases · Uygulama içi güncellemeler |
+| [CHANGELOG.md](CHANGELOG.md) | What changed in every version (English from v0.9.18; older entries are in Turkish) |
+| [DEVELOPMENT.md](DEVELOPMENT.md) | Code tour, data files, build and test |
+| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | Chat, project mode, voice, Slime, settings, shortcuts |
+| [docs/SHARING.md](docs/SHARING.md) | Quick Share and LocalSend |
+| [docs/PLUGINS-SETUP.md](docs/PLUGINS-SETUP.md) | Google, Microsoft, mail, Home Assistant |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the parts fit together |
+| [docs/MODULES.md](docs/MODULES.md) | Writing modules: package, permissions, API, Slime kit |
+| [docs/UPDATES.md](docs/UPDATES.md) | In-place updates from GitHub Releases |
 
-## Credits · Teşekkürler
+## Credits
 
 - Charles’s design is inspired by **Charles** from the *Epic Minequest* series on
   [Sam Green’s YouTube channel](https://www.youtube.com/@SamGreen). Project Charles is a
-  fan-inspired, independent project, not affiliated with or endorsed by Sam Green. · Project
-  Charles hayran esinli, bağımsız bir projedir; Sam Green ile bağlantılı değildir.
+  fan-inspired, independent project, not affiliated with or endorsed by Sam Green.
 
-## License · Lisans
+## License
 
 Copyright © 2026 **HzPederPan**.
 
@@ -554,12 +526,8 @@ The source code is licensed under **GNU GPL v3 or later**. You may use, modify
 and redistribute it under that license, including commercially. Distributed
 builds include the corresponding Charles source and build scripts. Third-party
 components retain their notices. Artwork and names are described separately in
-[LICENSE-ASSETS.md](LICENSE-ASSETS.md).
-
-Kaynak kod **GNU GPL v3 veya sonraki sürümler** ile lisanslanmıştır. Lisans
-koşulları altında kullanım, değiştirme ve ticari kullanım dahil yeniden dağıtım
-serbesttir. Bkz. [LICENSE](LICENSE) ve [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+[LICENSE-ASSETS.md](LICENSE-ASSETS.md). See also [LICENSE](LICENSE) and
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 Charles is an independent project. It is not affiliated with OpenAI, Anthropic, Google,
-Cursor, Abacus AI or WhatsApp. · Charles bağımsız bir projedir; bu şirketlerle bağlantılı
-değildir.
+Cursor, Abacus AI or WhatsApp.

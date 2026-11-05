@@ -16,16 +16,22 @@ export function animationLoop(
       last = now;
       draw(now);
     }
-    frame = requestAnimationFrame(tick);
+    schedule();
   };
+  // a minimized window gets no animation frames; what still has to run (Charles outside it) goes
+  // on with a timer
+  const schedule = () => {
+    frame = document.visibilityState === 'visible' ? requestAnimationFrame(tick) : -window.setTimeout(() => tick(performance.now()), 50);
+  };
+  const cancel = () => (frame < 0 ? window.clearTimeout(-frame) : cancelAnimationFrame(frame));
   const refresh = () => {
     if (!active()) {
-      cancelAnimationFrame(frame);
+      cancel();
       frame = 0;
       last = 0;
     } else if (!frame) {
       last = 0;
-      frame = requestAnimationFrame(tick);
+      schedule();
     }
   };
   document.addEventListener('visibilitychange', refresh);
@@ -35,7 +41,7 @@ export function animationLoop(
     start: refresh,
     stop: () => {
       stopped = true;
-      cancelAnimationFrame(frame);
+      cancel();
       observer.disconnect();
       document.removeEventListener('visibilitychange', refresh);
     },

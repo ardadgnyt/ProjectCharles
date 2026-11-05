@@ -54,9 +54,6 @@ body.workspace .ws-chat-body #composer-bar #model-button {
   body.workspace .ws-chat-body #composer,
   body.workspace .ws-chat-body #requests,
   body.workspace .ws-chat-body #service-pills,
-  body.workspace .ws-chat-body #diff-box {
-    width: calc(100% - 28px);
-  }
 }
 @media (max-width: 900px) {
   #workspace:not(.side-shown) .ws-body {
