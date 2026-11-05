@@ -290,7 +290,8 @@ contextBridge.exposeInMainWorld('charles', {
   rackList: () => invoke('rack-list'),
   rackRemove: (id) => invoke('rack-remove', id),
   rackPaste: () => invoke('rack-paste'),
-  rackDrag: (id) => invoke('rack-drag', id),
+  rackThumb: (id) => invoke('rack-thumb', id),
+  rackDrag: (id, card, scale) => invoke('rack-drag', id, card, scale),
   onRackDrop: (cb) => {
     if (typeof cb === 'function') rackDropCallbacks.add(cb);
   },

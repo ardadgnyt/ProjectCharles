@@ -108,7 +108,8 @@ export function islandShelf({ api, notice, attempt }: Deps) {
         e.stopImmediatePropagation();
         void attempt(async () => {
           await api.islandView('chat');
-          if (open) window.setTimeout(() => b.click(), 260);
+          // v0.9.16: only once the chat is really there (else this click comes back here forever)
+          if (open) window.setTimeout(() => view === 'chat' && b.click(), 260);
         });
       },
       true,
@@ -934,6 +935,9 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   }
   function setView(next: View) {
     if (!['notch', 'shelf', 'chat'].includes(next)) return;
+    // v0.9.16: a modal <dialog> makes the rest of the page dead to clicks; left open behind the
+    // shelf or the closed island nothing would be clickable and nothing would show why
+    if (view === 'chat' && next !== 'chat') for (const d of document.querySelectorAll('dialog[open]')) (d as HTMLDialogElement).close();
     view = next;
     body.dataset.view = next;
     // v0.8.12: no bar button stays pressed/highlighted across a view change

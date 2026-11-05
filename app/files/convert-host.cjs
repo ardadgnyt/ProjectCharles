@@ -40,6 +40,7 @@ function createConverter({ electron, appRoot }) {
       show: false,
       width: 900,
       height: 1200,
+      paintWhenInitiallyHidden: true,
       webPreferences: { session: quietSession(), javascript, sandbox: true, contextIsolation: true, nodeIntegration: false, offscreen: false },
     });
     win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -71,6 +72,64 @@ function createConverter({ electron, appRoot }) {
       })`);
       return Buffer.from(String(data).split(',')[1] || '', 'base64');
     });
-  return new Converter({ ffmpeg: ff, nativeImage, rasterSVG, pdfText });
+  const slides = slideEngine({ withPage, rasterSVG });
+  return new Converter({ ffmpeg: ff, nativeImage, rasterSVG, pdfText, slides });
+}
+
+/** v0.9.16: presentations drawn in the same closed hidden page (no network, no scripts of theirs). */
+function slideEngine({ withPage, rasterSVG }) {
+  const { deckHtml, chartSvg } = require('./slides.cjs');
+  const powerpoint = require('./powerpoint-com.cjs');
+  async function builtinPdf(deck, target) {
+    const data = await withPage(deckHtml(deck), false, (wc) => wc.printToPDF({ preferCSSPageSize: true, printBackground: true, margins: { marginType: 'none' } }));
+    fs.writeFileSync(target, data);
+  }
+  async function pictures(deck, { width = 1920, only = null, signal, progress } = {}) {
+    const list = only ? deck.slides.filter((s) => only.includes(s.number)) : deck.slides;
+    const scale = width / (deck.width * (96 / 72));
+    const height = Math.round(deck.height * (96 / 72) * scale);
+    const out = [];
+    // a slide at a time: one hidden window is sized to the picture, paints it, and is read back
+    for (const [i, slide] of list.entries()) {
+      if (signal?.aborted) throw Object.assign(Error('İptal edildi.'), { cancelled: true });
+      out.push(await withPage(deckHtml(deck, { scale, only: [slide.number] }), false, async (wc) => {
+        wc.getOwnerBrowserWindow?.()?.setContentSize(Math.round(width), height);
+        await new Promise((r) => setTimeout(r, 150));
+        return (await wc.capturePage({ x: 0, y: 0, width: Math.round(width), height }, { stayHidden: true })).toPNG();
+      }));
+      progress?.((i + 1) / list.length);
+    }
+    return out;
+  }
+  async function pdf(source, deck, target, { signal, progress } = {}) {
+    if (await powerpoint.available()) {
+      try {
+        progress?.(0.3);
+        await powerpoint.toPdf(source, target, { signal });
+        return { engine: 'powerpoint' };
+      } catch (e) {
+        if (e.cancelled) throw e;
+        // the built-in drawing still gives a result
+        fs.rmSync(target, { force: true });
+      }
+    }
+    progress?.(0.5);
+    await builtinPdf(deck, target);
+    return { engine: 'builtin' };
+  }
+  async function chartPictures(deck) {
+    const out = new Map();
+    for (const slide of deck.slides)
+      for (const s of slide.shapes) {
+        if (s.kind !== 'chart' || s.layer !== 'slide') continue;
+        const w = Math.max(60, s.w), h = Math.max(40, s.h);
+        const svg = chartSvg(s, w, h).replace('<svg ', `<svg style="background:#fff" `).replace('width="100%" height="100%"', `width="${w * 2}" height="${h * 2}"`);
+        try {
+          out.set(s, await rasterSVG(svg, 1600));
+        } catch {}
+      }
+    return out;
+  }
+  return { pdf, pictures, chartPictures };
 }
 module.exports = { createConverter, findFFmpeg };

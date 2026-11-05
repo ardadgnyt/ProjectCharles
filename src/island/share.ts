@@ -292,6 +292,8 @@ export function shareSheet(d: any) {
       centerCol.append(head, list, hint);
     }
 
+    // v0.9.16: why Quick Share is not running (LocalSend goes on working without it)
+    if (state.engineError) centerCol.prepend(el("small", "share-firewall-error", state.engineError));
     root.replaceChildren(filesCol, centerCol);
     root.dispatchEvent(new Event("h13-resize", { bubbles: true }));
     const list = root.querySelector('.share-peers-list');

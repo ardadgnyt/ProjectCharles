@@ -66,9 +66,3 @@ export function answerReaction(text: string): Reaction | null {
   if (/\b(iyi geceler|dinlen)\b|😴/.test(s)) return 'yawn';
   return null;
 }
-
-export function isRateLimit(message: string) {
-  return /rate.?limit|usage.?limit|quota|too many requests|kullanim (?:siniri|limiti)|limit.{0,20}(?:dol|as)|429/i.test(
-    message.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ı/g, 'i'),
-  );
-}

@@ -137,6 +137,7 @@ let win,
   notchMusic = false,
   musicState = 'none',
   stripSince = 0,
+  stripAsleep = false,
   chosenCwd = null;
 let dialogOpen = false,
   dropHeldUntil = 0;
@@ -264,6 +265,7 @@ function moveView(to) {
 // v0.7.6: the taskbar showed a blank program icon for the app window. The window gets the
 // Slime icon as an image and Windows gets the app id + the .ico path for its taskbar button.
 const { APP_ID, launcher, iconResource, registerShortcuts, cleanOldHosts } = require('./core/windows-identity.cjs');
+const clip = require('./core/clipboard.cjs');
 let registeredTaskbarIcon = '';
 function taskbarIcon(w) {
   if (!w || w.isDestroyed()) return;
@@ -319,6 +321,7 @@ function createAppWindow() {
       sendWorkspace();
     });
   appWin.on('focus', () => {
+    attention.clear();
     taskbarIcon(appWin);
     if (activeWindow() === appWin && view && !view.webContents.isDestroyed()) view.webContents.focus();
   });
@@ -938,6 +941,10 @@ function expand(value, focus = false, chat = true) {
   }
   clearTimeout(blurTimer);
   hidden = false;
+  // v0.9.16: closed with the pointer on the top edge (the minimize button is right there): the
+  // strip under it counted as "resting on the island" and opened the shelf again 120 ms later.
+  // It wakes only after the pointer has been away.
+  if (!value) stripAsleep = true;
   const overBubble = Boolean(mailBubble?.contains(screen.getCursorScreenPoint()));
   win.setIgnoreMouseEvents(overBubble, overBubble ? { forward: true } : undefined);
   ignoringPointer = overBubble;
@@ -1004,6 +1011,8 @@ function saveFolder() {
 }
 // v0.7.7: before / after copies of the files Charles changes (app/core/change-review.cjs)
 const changeReview = new (require('./core/change-review.cjs').ChangeReview)();
+// v0.9.16: the taskbar (app/core/attention.cjs)
+const attention = require('./core/attention.cjs').createAttention(() => (workspace && appWin && !appWin.isDestroyed() ? appWin : null));
 function eventToUi(event) {
   if (event?.type === 'agent' && /^item\/(started|completed)$/.test(event.data?.method || ''))
     try {
@@ -1014,12 +1023,12 @@ function eventToUi(event) {
   if (event.type === 'request') {
     expand(true);
     win.showInactive();
-    win.flashFrame(true);
+    attention.ask('request:' + event.data?.id);
   }
   if (event.type === 'background-request') {
     expand(true);
     win.showInactive();
-    win.flashFrame(true);
+    attention.ask('background:' + event.data?.id);
   }
   if (
     hidden &&
@@ -1027,7 +1036,7 @@ function eventToUi(event) {
     ['turn/started', 'turn/completed'].includes(event.data.method)
   )
     expand(false);
-  if (event.type === 'resolved') win.flashFrame(false);
+  if (event.type === 'resolved') attention.clear();
 }
 if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
 let gotSingleLock = app.requestSingleInstanceLock({ root });
@@ -1673,7 +1682,7 @@ else {
         // v0.7.4: the panel opens so the reminder card is seen, and Windows shows it too
         if (!workspace) expand(true);
         else if (win.isMinimized()) win.restore();
-        win.flashFrame(true);
+        attention.ask('reminder:' + item.id);
         try {
           if (Notification.isSupported()) {
             const n = new Notification({
@@ -1925,7 +1934,7 @@ else {
       safeHandler('clipboard-copy', async (text, html) => {
         if (typeof text !== 'string' || text.length > 300000) throw Error('Metin çok uzun.');
         // v0.8.5: formulas also go as HTML with MathML, so Word / OneNote paste an equation
-        if (typeof html === 'string' && html.length <= 300000) clipboard.write({ text, html });
+        if (typeof html === 'string' && html.length <= 300000) await clip.writeRich(clipboard, require('electron').ClipboardItem, text, html);
         else await clipboard.writeText(text);
       });
       // Generated images (src/chat/image-card.ts): İndir → save dialog, Kopyala → clipboard.
@@ -1948,11 +1957,11 @@ else {
         await fs.promises.writeFile(r.filePath, bytes);
         return true;
       });
-      safeHandler('image-copy', (dataUrl) => {
+      safeHandler('image-copy', async (dataUrl) => {
         const { bytes } = imageData(dataUrl);
         const image = nativeImage.createFromBuffer(bytes);
         if (image.isEmpty()) throw Error('Görsel kopyalanamadı.');
-        clipboard.writeImage(image);
+        await clip.writePicture(clipboard, require('electron').ClipboardItem, image.toPNG());
         return true;
       });
       safeHandler('history-manage', (args) => agent.manage(args));
@@ -2305,21 +2314,52 @@ else {
       });
       safeHandler('rack-remove', (id) => rack.remove(id));
       // Read here, not from a paste event: a screenshot works with nothing to type in
-      safeHandler('rack-paste', () => {
-        const image = clipboard.readImage();
-        if (image.isEmpty()) throw Error('Panoda resim yok.');
-        const stamp = new Date().toLocaleString('sv-SE').replace(/:/g, '.');
-        const word = !v2?.data?.language || v2.data.language === 'tr' ? 'Ekran görüntüsü ' : 'Screenshot ';
-        return rack.addBytes(word + stamp + '.png', image.toPNG());
+      safeHandler('rack-paste', async () => {
+        const picture = await clip.readPicture(clipboard);
+        if (picture) {
+          // whatever format came in, the shelf keeps a PNG that opens anywhere
+          const image = nativeImage.createFromBuffer(picture.bytes);
+          const png = image.isEmpty() ? (picture.type === 'image/png' ? picture.bytes : null) : image.toPNG();
+          if (!png) throw Error('Panodaki resim okunamadı.');
+          const stamp = new Date().toLocaleString('sv-SE').replace(/:/g, '.');
+          const word = !v2?.data?.language || v2.data.language === 'tr' ? 'Ekran görüntüsü ' : 'Screenshot ';
+          return rack.addBytes(word + stamp + '.png', png);
+        }
+        // a file copied in Explorer
+        const copied = await clip.readCopiedFile(clipboard);
+        if (copied && path.isAbsolute(copied) && fs.existsSync(copied)) return rack.addPaths([copied]);
+        throw Error('Panoda resim yok.');
       });
-      // The file itself goes to the drag, so Explorer and other programs receive a real file
-      safeHandler('rack-drag', (id) => {
+      // v0.9.16: a picture of the file for its row (Windows' preview, else the type's icon)
+      const rackThumbs = new Map();
+      safeHandler('rack-thumb', async (id) => {
+        const file = rack.pathOf(id);
+        if (!rackThumbs.has(id)) {
+          let image = null;
+          try {
+            image = await nativeImage.createThumbnailFromPath(file, { width: 96, height: 96 });
+          } catch {}
+          if (!image || image.isEmpty()) image = await app.getFileIcon(file, { size: 'large' }).catch(() => null);
+          rackThumbs.set(id, image && !image.isEmpty() ? image.toDataURL() : null);
+          if (rackThumbs.size > 600) rackThumbs.delete(rackThumbs.keys().next().value);
+        }
+        return rackThumbs.get(id);
+      });
+      // The file itself goes to the drag, so Explorer and other programs receive a real file.
+      // `card` is the picture beside the pointer (name + preview: src/island/file-rack.ts).
+      safeHandler('rack-drag', (id, card, scale) => {
         const file = rack.pathOf(id);
         clearTimeout(blurTimer);
         dropHeldUntil = Date.now() + 1500;
         lastInside = Date.now();
-        const icon = nativeImage.createFromPath(path.join(root, 'public', 'icon.png'));
-        win.webContents.startDrag({ file, icon: icon.resize({ width: 32, height: 32 }) });
+        // drawn for this screen's scale: as a 1x picture it came out larger and was cut off
+        let icon = null;
+        if (typeof card === 'string' && card.length < 4000000 && card.startsWith('data:image/png;base64,')) {
+          icon = nativeImage.createEmpty();
+          icon.addRepresentation({ scaleFactor: Math.max(1, Math.min(4, Number(scale) || 1)), dataURL: card });
+        }
+        if (!icon || icon.isEmpty()) icon = nativeImage.createFromPath(path.join(root, 'public', 'icon.png')).resize({ width: 32, height: 32 });
+        win.webContents.startDrag({ file, icon });
         return true;
       });
       safeHandler('drop-active', (active) => {
@@ -2532,6 +2572,17 @@ else {
       // v0.8.10: Dönüştürücü (app/files/convert.cjs). Paths only come from a drop handled in
       // the preload or from the file dialog here; the page never names a file itself.
       let converter = null;
+      // v0.9.16: slide pictures for presentations added to a chat (files in the attachment inbox)
+      extras.slidePictures = async (deck, numbers) => {
+        const pngs = await getConverter().deps.slides.pictures(deck, { width: 1280, only: numbers });
+        const dir = path.join(extras.directory, 'inbox');
+        fs.mkdirSync(dir, { recursive: true });
+        return pngs.map((png) => {
+          const file = path.join(dir, require('node:crypto').randomUUID() + '.png');
+          fs.writeFileSync(file, png);
+          return file;
+        });
+      };
       const getConverter = () => (converter ||= require('./files/convert-host.cjs').createConverter({ electron: require('electron'), appRoot: root }));
       ipcMain.handle('convert-drop', async (event, paths) => {
         if (event.sender !== win.webContents || !event.senderFrame?.url.startsWith('charles://app/')) throw Error('Geçersiz arayüz.');
@@ -2584,11 +2635,12 @@ else {
             if (!win.isDestroyed()) win.webContents.send('share-state', st);
           });
           shareService.on('offer', (offer) => {
-            if (!workspace) expand(true, true, false);
+            // v0.9.16: an offer arrives while another app is in use: shown, never pulling the focus
+            if (!workspace) expand(true, false, false);
             shelfHeld = true;
             if (win.isMinimized()) win.restore();
-            win.show();
-            win.flashFrame(true);
+            win.showInactive();
+            attention.ask('offer:' + offer?.id);
             if (!win.isDestroyed()) win.webContents.send('share-offer', offer);
           });
           shareService.on('received', (entry) => {
@@ -3165,7 +3217,7 @@ else {
           effort: typeof args.effort === 'string' ? args.effort.slice(0, 24) : '',
           cwd: mode === 'chat' ? chatDir : chosenCwd,
           mode,
-          attachments: await extras.inputs(args.attachments || [], { textOnly: /^(gemini|claude|cursor|abacus|evren):/.test(args.model || '') }),
+          attachments: await extras.inputs(args.attachments || [], { textOnly: /^(gemini|claude|cursor|abacus|evren):/.test(args.model || ''), images: !/^(cursor|abacus|evren):/.test(args.model || '') }),
           displayAttachments: (args.attachments || []).map((id) => {
             const a = extras.attachments.get(id);
             if (!a) throw Error('Ek bulunamadı.');
@@ -3789,11 +3841,14 @@ else {
           ignoringPointer = ignore;
         }
         if (!inside || !hidden) stripSince = 0;
+        if (!inside) stripAsleep = false;
         if (workspace || onBubble || mailBubble?.active()) {
           lastInside = Date.now();
         } else if (inside) {
           lastInside = Date.now();
-          if (hidden && (notchMusic || notchTool)) {
+          if (stripAsleep) {
+            // the closing click's pointer is still here
+          } else if (hidden && (notchMusic || notchTool)) {
             // music playing or paused: the strip wakes into the music notch
             expand(false);
             win.webContents.send('character-peek');

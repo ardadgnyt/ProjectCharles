@@ -1745,4 +1745,12 @@ export const spanish: Record<string, string> = {
   "Folders cannot go on the shelf.": "Las carpetas no pueden ir en el estante.",
   "The shelf is full: 500 files at most.": "El estante está lleno: 500 archivos como máximo.",
   "The file is not on the shelf any more.": "El archivo ya no está en el estante.",
+  "Presentation": "Presentación",
+  "PowerPoint is not on this computer, so Charles drew the PDF. Fonts, effects and charts may look a little different.": "PowerPoint no está en este equipo, así que Charles dibujó el PDF. Las fuentes, los efectos y los gráficos pueden verse un poco distintos.",
+  "Word does not keep the slide layout: text stays editable, tables and pictures follow the slide order.": "Word no conserva el diseño de las diapositivas: el texto sigue siendo editable, y las tablas e imágenes siguen el orden de las diapositivas.",
+  "Quick Share could not open its network port. Another app may be using it, or Windows may have reserved it.": "Quick Share no pudo abrir su puerto de red. Quizá otra aplicación lo esté usando o Windows lo haya reservado.",
+  "Quick Share files are missing or damaged. Reinstalling with the Charles Setup package fixes this.": "Faltan archivos de Quick Share o están dañados. Reinstalar con el paquete Setup de Charles lo soluciona.",
+  "The Quick Share engine did not start within two minutes. A security scan may be slowing the computer down.": "El motor de Quick Share no se inició en dos minutos. Quizá un análisis de seguridad esté ralentizando el equipo.",
+  "Quick Share timed out while preparing the network. An adapter or VPN may not be responding.": "Quick Share agotó el tiempo al preparar la red. Quizá un adaptador o una VPN no respondan.",
+  "The picture on the clipboard could not be read.": "No se pudo leer la imagen del portapapeles.",
 };

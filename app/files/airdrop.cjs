@@ -550,6 +550,7 @@ class AirDropEngine extends EventEmitter {
     super();
     this.deviceName = opts.deviceName || os.hostname() || 'Charles PC';
     this.downloadDir = opts.downloadDir || path.join(os.homedir(), 'Downloads');
+    this.note = opts.note || (() => {});
     this.senderId = crypto.randomBytes(6).toString('hex');
     this.tls = generateSelfSignedCert(this.deviceName);
     this.server = null;
@@ -582,13 +583,18 @@ class AirDropEngine extends EventEmitter {
         });
       },
     );
-    await new Promise((resolve, reject) => {
-      this.server.once('error', reject);
-      this.server.listen(0, '0.0.0.0', () => {
-        this.port = this.server.address().port;
-        resolve();
+    try {
+      await new Promise((resolve, reject) => {
+        this.server.once('error', reject);
+        this.server.listen(0, '0.0.0.0', () => {
+          this.port = this.server.address().port;
+          resolve();
+        });
       });
-    });
+    } catch (error) {
+      this.server = null; // the next attempt starts over
+      throw error;
+    }
     this.#startDiscovery();
     return this.port;
   }
@@ -683,7 +689,7 @@ class AirDropEngine extends EventEmitter {
       const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true });
       sock.unref();
       this.mdns = sock;
-      sock.on('error', () => {});
+      sock.on('error', (e) => this.note('mdns-socket-error', e.code || e.message));
       sock.on('message', (msg, rinfo) => this.#onMdns(msg, rinfo));
       sock.bind(MDNS_PORT, '0.0.0.0', () => {
         if (this.mdns !== sock) return;
@@ -707,7 +713,7 @@ class AirDropEngine extends EventEmitter {
       const ls = dgram.createSocket({ type: 'udp4', reuseAddr: true });
       ls.unref();
       this.lsSocket = ls;
-      ls.on('error', () => {});
+      ls.on('error', (e) => this.note('localsend-socket-error', e.code || e.message));
       ls.on('message', (msg, rinfo) => this.#onLocalSendUdp(msg, rinfo));
       ls.bind(LOCALSEND_PORT, '0.0.0.0', () => {
         if (this.lsSocket !== ls) return;

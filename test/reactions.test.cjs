@@ -10,7 +10,7 @@ m._compile(
   transformSync(fs.readFileSync(file, 'utf8'), { loader: 'ts', format: 'cjs' }).code,
   file,
 );
-const { textReaction, isRateLimit } = m.exports;
+const { textReaction } = m.exports;
 test('All expressions have real Turkish message triggers', () => {
   const cases = {
     'Merhaba Charles': 'greet',
@@ -26,9 +26,4 @@ test('All expressions have real Turkish message triggers', () => {
     assert.equal(textReaction(message), reaction, message);
   assert.equal(textReaction('Bu dosyayı incele'), null);
 });
-test('Quota failures are distinguished from unrelated errors', () => {
-  for (const s of ['Usage limit reached', '429 Too many requests', 'Kullanım limitine ulaşıldı'])
-    assert.equal(isRateLimit(s), true, s);
-  for (const s of ['File not found', 'Network disconnected'])
-    assert.equal(isRateLimit(s), false, s);
-});
+

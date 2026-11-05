@@ -312,7 +312,7 @@ function waScript(cfg) {
 async function automateWhatsApp(cfg, { clipboard, run = (script) => runPowerShell(script, 45000), log = () => {} } = {}) {
   let old = null;
   try {
-    old = clipboard?.readText() ?? null;
+    old = (await clipboard?.readText()) ?? null;
   } catch {}
   const out = String(await run(waScript(cfg))).trim();
   const result = /\bsent\b/.test(out) ? 'sent' : /\btyped\b/.test(out) ? 'typed' : out.split(/\s+/).pop() || 'no-output';

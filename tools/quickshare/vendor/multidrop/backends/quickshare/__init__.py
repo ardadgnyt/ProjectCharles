@@ -53,7 +53,10 @@ class QuickShareBackend(Backend):
         try:
             self._server = await asyncio.start_server(handle, self.qs.bind, self.qs.port)
         except OSError as e:
-            if e.errno != errno.EADDRINUSE or not self.qs.port:
+            # Charles: WinError 10013 is what Windows gives for a port inside an excluded range
+            # (Hyper-V, WSL and Docker reserve such ranges), not "in use".
+            taken = e.errno == errno.EADDRINUSE or getattr(e, "winerror", None) == 10013
+            if not taken or not self.qs.port:
                 raise
             self._server = await asyncio.start_server(handle, self.qs.bind, 0)
             log.warning("Quick Share port %d is in use, using random port %d",
@@ -62,7 +65,12 @@ class QuickShareBackend(Backend):
         if self.qs.mdns:
             addresses = self._mdns_addresses()
             if addresses:
-                await self._publish(addresses)
+                # Charles: an announcement that fails must not take the receiver and sending
+                # down with it; the watcher below tries again every few seconds.
+                try:
+                    await self._publish(addresses)
+                except Exception as e:
+                    log.warning("Quick Share announcement failed [%s]", type(e).__name__)
             # Follow the network: no address yet (Wi-Fi still reconnecting, e.g.
             # right after an AirDrop session) or a new one after a switch.
             self._watch = asyncio.ensure_future(self._watch_address())

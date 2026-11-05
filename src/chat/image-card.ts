@@ -153,7 +153,11 @@ export function lightbox(
   };
   box.onclick = done;
   document.addEventListener('keydown', key, true);
-  document.body.append(box);
+  // v0.9.16: the island's shape is a mask on main.island, narrower than the page (its top "ears"
+  // and rounded corners). On <body> the dark layer covered the see-through rest of the window too:
+  // strips down the sides and square corners around the panel. Inside the island it has its shape.
+  const island = document.querySelector<HTMLElement>('main.island');
+  (island && !document.body.classList.contains('workspace') ? island : document.body).append(box);
   close.focus();
 }
 

@@ -413,6 +413,8 @@ class Bridge:
 
 
 async def main():
+    # Charles: the interpreter and its imports are up (tells a slow start from a slow network).
+    emit("booted")
     bridge = Bridge()
     queue = asyncio.Queue()
     loop = asyncio.get_running_loop()

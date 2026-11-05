@@ -493,7 +493,7 @@ export function extraUI(
     Sound.play('peek');
   });
   return {
-    hasDocument: () => files.some((f) => ['pdf', 'docx'].includes(f.kind)),
+    hasDocument: () => files.some((f) => ['pdf', 'docx', 'presentation'].includes(f.kind)),
     init,
     sessions,
     closeSettings,

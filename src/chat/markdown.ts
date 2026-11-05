@@ -5,6 +5,7 @@ import { highlightInto, LANGUAGE_NAMES } from './highlight';
 import { t } from '../settings/i18n';
 import { stickToBottom } from './follow';
 import { prepareAnswer, placeCitations } from './answer-text';
+import { morphChildren } from './morph';
 
 const markdown = new MarkdownIt({ html: false, linkify: true, breaks: true, typographer: false });
 markdown.use(mathPlugin);
@@ -40,8 +41,12 @@ export function setQuestionHandler(
 }
 const pending = new WeakSet<HTMLElement>();
 const renderedAt = new WeakMap<HTMLElement, number>();
+// answers still being written: their code boxes follow the text (a finished one opens at its top)
+const growing = new WeakSet<HTMLElement>();
 export function updateMarkdown(element: HTMLElement, text: string, replace = false) {
   sources.set(element, (replace ? text : (sources.get(element) || '') + text).slice(-300000));
+  if (replace) growing.delete(element);
+  else growing.add(element);
   if (pending.has(element)) return;
   pending.add(element);
   // v0.9.10: a long answer was rebuilt (Markdown, formulas, code colouring) on every frame while
@@ -60,8 +65,10 @@ export function updateMarkdown(element: HTMLElement, text: string, replace = fal
     const { visible, questions } = splitQuestions(sources.get(element) || '');
     // v0.9.10: file citations become chips; formulas with "|" no longer break tables
     const prepared = prepareAnswer(visible);
-    element.innerHTML = markdown.render(prepared.text);
-    placeCitations(element, prepared.citations);
+    // v0.9.16: built apart and then merged into the message (src/chat/morph.ts)
+    const draft = document.createElement('div');
+    draft.innerHTML = markdown.render(prepared.text);
+    placeCitations(draft, prepared.citations);
     const actions = document.createElement('div');
     actions.className = 'answer-tools';
     for (const [label, type] of [
@@ -76,10 +83,10 @@ export function updateMarkdown(element: HTMLElement, text: string, replace = fal
       b.dataset.answerAction = type;
       actions.append(b);
     }
-    element.append(actions);
+    draft.append(actions);
     // v0.7.2: code and text to copy sit in a box with a header (language, open in the side
     // panel, copy) like ChatGPT, Claude and Gemini
-    for (const pre of element.querySelectorAll('pre')) {
+    for (const pre of draft.querySelectorAll('pre')) {
       const code = pre.querySelector('code');
       const lang = (/language-([\w+#-]+)/.exec(code?.className || '')?.[1] || '').toLowerCase();
       const box = document.createElement('div');
@@ -113,6 +120,8 @@ export function updateMarkdown(element: HTMLElement, text: string, replace = fal
       box.append(head, pre);
       if (code && lang) highlightInto(code, code.textContent || '', lang);
     }
+    morphChildren(element, draft);
+    if (growing.has(element)) for (const pre of element.querySelectorAll<HTMLElement>('.code-block pre')) stickToBottom(pre);
     if (questions.length && questionHandler) {
       let card = cards.get(element);
       if (!card || card.dataset.count !== String(questions.length)) {

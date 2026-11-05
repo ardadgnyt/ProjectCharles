@@ -1,0 +1,84 @@
+/* v0.9.16: big picture inside the island's shape, file pictures on Dosya Rafı, narrow weather card */
+
+/* The island's mask cuts the viewer; it no longer reaches the see-through part of the window. */
+main.island > .image-lightbox {
+  position: absolute;
+  z-index: 1000;
+}
+/* app window: no mask around it, the page is the window */
+body.workspace .image-lightbox {
+  position: fixed;
+  inset: 0;
+}
+
+#shelf.shelf13 .rack-item-icon {
+  width: 30px;
+  height: 30px;
+  overflow: hidden;
+  border-radius: 7px;
+}
+#shelf.shelf13 .rack-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* --- Hava durumu follows the width it really has (app window card, island panel) ----------- */
+#shelf.shelf13 .h13-weather,
+.ws-tools13 .h13-weather {
+  container: weather / inline-size;
+  min-width: 0;
+}
+.ws-tools13 .h13-weather .weather-top {
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+}
+.ws-tools13 .h13-weather .weather-days {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+@container weather (max-width: 620px) {
+  .ws-tools13 .h13-weather .weather-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ws-tools13 .h13-weather .weather-days {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+@container weather (max-width: 470px) {
+  #shelf.shelf13 .h13-weather .weather-top,
+  .ws-tools13 .h13-weather .weather-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #shelf.shelf13 .h13-weather .weather-days,
+  .ws-tools13 .h13-weather .weather-days {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+/* the hours keep their width and slide sideways instead of squeezing into each other */
+@container weather (max-width: 330px) {
+  #shelf.shelf13 .h13-weather .weather-hours,
+  .ws-tools13 .h13-weather .weather-hours {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding-bottom: 2px;
+  }
+  #shelf.shelf13 .h13-weather .weather-hour,
+  .ws-tools13 .h13-weather .weather-hour {
+    flex: 0 0 44px;
+  }
+  #shelf.shelf13 .h13-weather .weather-days,
+  .ws-tools13 .h13-weather .weather-days {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #shelf.shelf13 .h13-weather .weather-details,
+  .ws-tools13 .h13-weather .weather-details {
+    flex-wrap: wrap;
+  }
+}
+
+/* the close button clears the island's curved top corner */
+main.island > .image-lightbox .image-lightbox-close {
+  top: 14px;
+  right: 28px;
+}

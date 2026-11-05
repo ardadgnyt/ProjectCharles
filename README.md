@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.15%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.16%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -42,6 +42,7 @@ yazarken minik dizüstünde kod yazar, çok sallarsan da başı döner.
 
 | Version | What’s new | Yenilikler |
 | --- | --- | --- |
+| **v0.9.16** | PowerPoint in the chat and the converter (.pptx, .ppt → PDF, Word, slide pictures, text) · File shelf: Ctrl+V adds a screenshot, previews on every row, a drag card with the file's name · Scrolling while an answer is written · Clearer Quick Share start errors, LocalSend works on its own · Fixes for the limit animation, the finished state and the taskbar | Sohbette ve dönüştürücüde PowerPoint (.pptx, .ppt → PDF, Word, slayt resimleri, metin) · Dosya Rafı: Ctrl+V ile ekran görüntüsü, satırlarda önizleme, sürüklerken dosya adlı kart · Yanıt yazılırken kaydırma · Quick Share başlatma hataları anlaşılır, LocalSend tek başına çalışır · Limit animasyonu, “Tamamlandı” ve görev çubuğu düzeltmeleri |
 | **v0.9.15** | File shelf: keep copies of files on the island, drag them out as real files, Ctrl+V adds a screenshot · Pictures in a sent message open at full size · Antigravity quota checks no longer flash a terminal window | Dosya Rafı: dosyaların kopyalarını adada sakla, gerçek dosya olarak dışarı sürükle, Ctrl+V ile ekran görüntüsü ekle · Gönderilen mesajdaki resimler tam boyutta açılır · Antigravity kota sorguları artık terminal penceresi açmaz |
 | **v0.9.14** | Island redesign: a big voice chat card (bars that move with the voice), the message box with dictation, a new Spotify card and the song on the closed island · **Tools**: color picker, timer (focus with breaks, countdown, stopwatch), reminders, calendar, emails, usage summary and smart home, plus module shortcuts · faster, HDR-correct screenshots and color picking · design polish | Adacık yenilendi: büyük sesli sohbet kartı (sese göre hareket eden çizgiler), dikteli mesaj kutusu, yeni Spotify kartı ve kapalı adacıkta çalan şarkı · **Araçlar**: renk seçici, zamanlayıcı (molalı odak, geri sayım, kronometre), hatırlatıcılar, takvim, e-postalar, kullanım özeti ve akıllı ev, modül kısayolları · daha hızlı, HDR’de doğru renkli ekran görüntüsü ve renk seçimi · tasarım cilası |
 | **v0.9.13** | Redesigned island home: Charles with an inline message box (mic, voice call), a new Spotify card and three expanding cards (Files · AI usage · Weather with hourly forecast) · quiet WhatsApp catch-up, muted/archived chats stay silent | Adacık ana sayfası yenilendi: satır içi mesaj kutulu Charles (mikrofon, sesli görüşme), yeni Spotify kartı ve açılır üç kart (Dosyalar · AI kullanımı · saatlik tahminli Hava durumu) · WhatsApp birikmiş mesajları sessiz, sessize alınmış/arşivlenmiş sohbetler bildirim vermiyor |
@@ -113,17 +114,39 @@ Akıllı ev uygulama penceresindeki kartların aynısıdır; Kullanım özeti Ay
 ### Convert files on your desktop · Masaüstünde dosya dönüştür
 
 Open **Files → Convert** (or drag a file onto the **Files** card: its Convert / Send tiles open
-by themselves), choose an output format, then press **Convert**. Images, audio, video, documents, data and archives stay on your computer.
+by themselves), choose an output format, then press **Convert**. Images, audio, video, documents, presentations, data and archives stay on your computer.
 Supported formats depend on the selected file and the installed tools; image and video
 options include quality and output size. The result is saved beside the original.
 
 **Dosyalar → Dönüştür**’ü aç (ya da dosyayı **Dosyalar** kartının üstüne sürükle; Dönüştür / Gönder
-kutucukları kendiliğinden açılır), hedef biçimi seç ve **Dönüştür**’e bas. Görsel, ses, video, belge, veri ve arşiv işlemleri bilgisayarında yapılır.
+kutucukları kendiliğinden açılır), hedef biçimi seç ve **Dönüştür**’e bas. Görsel, ses, video, belge, sunum, veri ve arşiv işlemleri bilgisayarında yapılır.
 Seçenekler dosya türüne ve kurulu araçlara göre gösterilir; görsel ve videolarda kalite ve
 boyut seçebilirsin. Sonuç, orijinal dosyanın yanına kaydedilir.
 
 <p align="center">
   <img src="docs/images/converter.png" alt="Files → Convert with a sample PNG: grouped output formats, quality and size" width="720">
+</p>
+
+### File shelf · Dosya Rafı
+
+Keep files on the island until you need them. Open **Files → File shelf**, then:
+
+- **Add files:** drag them onto the shelf. Charles keeps its own copy, so the original can move or disappear.
+- **Paste a screenshot:** with the shelf on screen, press **Ctrl+V**. A picture on the clipboard is saved as a PNG with a preview.
+- **Take them out:** drag a row to a folder or another program. It arrives as a real file.
+
+Files stay on the shelf after a restart, until you remove them.
+
+Dosyaları ihtiyacın olana kadar adacıkta tut. **Dosyalar → Dosya Rafı**’nı aç:
+
+- **Dosya ekle:** dosyaları rafa sürükle. Charles kendi kopyasını saklar; asıl dosya taşınsa ya da silinse de raftaki durur.
+- **Ekran görüntüsü yapıştır:** raf ekrandayken **Ctrl+V**’ye bas. Panodaki resim önizlemesiyle birlikte PNG olarak kaydedilir.
+- **Dışarı al:** satırı bir klasöre ya da başka bir programa sürükle; gerçek dosya olarak bırakılır.
+
+Dosyalar, sen silene kadar rafta kalır; Charles yeniden başlasa da kaybolmaz.
+
+<p align="center">
+  <img src="docs/images/file-shelf.png" alt="File shelf with sample files: each row shows a preview, the file name and its size" width="560">
 </p>
 
 ### All Android devices with Quick Share · Tüm Android cihazlarda Quick Share

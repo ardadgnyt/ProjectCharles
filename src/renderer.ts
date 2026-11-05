@@ -23,7 +23,7 @@ import { workspaceUI } from './settings/workspace';
 import { noNativeTooltips } from './ui/no-native-tooltips';
 import { profileTransferUI } from './settings/profile-transfer';
 import { statusScroll } from './chat/status-scroll';
-import { stickToBottom, following, restore as restoreFeed } from './chat/follow';
+import { stickToBottom, following, liveText, restore as restoreFeed } from './chat/follow';
 import { companionUI } from './island/companion';
 import { ActivityState } from './chat/activity';
 import { modelPicker } from './chat/model-picker';
@@ -46,7 +46,7 @@ import { modulesPage } from './settings/modules-page';
 import { updatePage } from './settings/update-page';
 import { accountTab } from './settings/account-tab';
 import { islandShelf } from './island/shelf';
-import { textReaction, answerReaction, isRateLimit } from './chat/reactions';
+import { textReaction, answerReaction } from './chat/reactions';
 
 declare global {
   interface Window {
@@ -185,6 +185,9 @@ let replaying = false;
 let dizzy = false;
 let reactionTimer: number | undefined;
 let quotaBlocked = false;
+// v0.9.16: the model that is answering: a limit error belongs to its AI, not to the one selected now
+let turnModel = '';
+let quota: ReturnType<typeof usageUI> = { limitError: () => false, answered: () => {} };
 let desiredState: BotStateName = 'idle';
 let desiredLabel = 'Senin küçük kod arkadaşın.';
 let cursorPosition: { x: number; y: number } | null = null;
@@ -347,8 +350,15 @@ $('sound').addEventListener('click', () => {
   if (Sound.enabled) Sound.play('blip');
   features.saveSound();
 });
-function state(name: BotStateName, label: string) {
-  if (name === 'ratelimit' && !replaying) quotaBlocked = true;
+// v0.9.16: "Tamamlandı" and an error are moments, not states to stay in. Their end has its own
+// clock: the idle check below stops while music plays and restarts at every click, which left the
+// green (or red) dot on Charles for as long as that went on.
+const SETTLE = { finished: 6000, error: 20000 } as Record<string, number>;
+let settleAt = 0;
+let settleLabel = 'Hazırım.';
+function state(name: BotStateName, label: string, afterwards = 'Hazırım.') {
+  settleAt = SETTLE[name] && !quotaBlocked ? Date.now() + SETTLE[name] : 0;
+  settleLabel = afterwards;
   if (quotaBlocked) {
     name = 'ratelimit';
     label = 'Kullanım limitine ulaşıldı';
@@ -391,6 +401,10 @@ function reactToText(text: string) {
   }
 }
 window.setInterval(() => {
+  if (settleAt && Date.now() >= settleAt && !busy && !requests.size) {
+    settleAt = 0;
+    if (desiredState === 'finished' || desiredState === 'error') state('idle', settleLabel);
+  }
   // v0.9.6: while music plays Charles dances: he neither yawns nor falls asleep, and music that
   // starts while he sleeps wakes him up
   if (musicPlaying && !quotaBlocked) {
@@ -419,10 +433,6 @@ window.setInterval(() => {
   ) {
     const pick = (['wink', 'happy', 'surprised', 'love'] as const)[Math.floor(Math.random() * 4)];
     bot.triggerEmote(pick, 1.6);
-  }
-  if (desiredState === 'finished' && elapsed > 6000) {
-    state('idle', 'Hazırım.');
-    return;
   }
   if (elapsed >= 180000 && idlePhase < 2 && !musicPlaying) {
     idlePhase = 2;
@@ -790,13 +800,15 @@ function activity(item: any) {
   stateLabel.className = 'activity-state';
   stateLabel.textContent = status === 'completed' ? 'Tamamlandı' : status === 'failed' ? 'Hata' : 'Çalışıyor';
   a.summary.replaceChildren(badge, title, preview, stateLabel);
-  a.pre.textContent =
+  const output =
     item.type === 'reasoning' ? (item.summary || []).map((s: any) => typeof s === 'string' ? s : s.text || '').join('\n') :
     item.type === 'commandExecution' ? [item.command, item.cwd && 'Klasör: ' + item.cwd, item.aggregatedOutput].filter(Boolean).join('\n\n').slice(-100000) :
     item.type === 'fileChange' ? (item.changes || []).map((c: any) => [c.path, c.diff].filter(Boolean).join('\n')).join('\n\n') :
     item.type === 'plan' ? String(item.steps || '') :
     item.type === 'webSearch' ? String(item.query || item.action?.query || '') :
     [item.command || item.tool, typeof item.result === 'string' ? item.result : item.result ? JSON.stringify(item.result, null, 2) : '', item.error?.message].filter(Boolean).join('\n\n').slice(-100000);
+  liveText(a.pre, output);
+  if (!replaying) stickToBottom(a.pre);
   if (!replaying) stickToBottom(feed);
   // v0.7.2: the app window's side panel shows written files and terminal output
   document.dispatchEvent(new CustomEvent('charles-activity', { detail: { item, replaying } }));
@@ -1007,7 +1019,6 @@ function event(e: any) {
       features.sessions(e.data);
       break;
     case 'background-request':
-      features.closeSettings();
       notice(`${e.data.name} oturumu onay bekliyor. Sağ üstteki oturum simgesinden seçebilirsin.`);
       Sound.play('approval');
       break;
@@ -1039,7 +1050,7 @@ function event(e: any) {
       $('connection-light').textContent = '● Bağlantı kapalı';
       for (const id of requests.keys()) removeRequest(id);
       notice(e.data);
-      state('error', 'Bağlantı kapandı');
+      state('error', 'Bağlantı kapandı', 'Bağlantı kapandı');
       controls();
       break;
     case 'request':
@@ -1092,7 +1103,10 @@ function event(e: any) {
       }
       if (method === 'item/commandExecution/outputDelta') {
         const a = activities.get(p.itemId);
-        if (a) a.pre.textContent = (a.pre.textContent + p.delta).slice(-100000);
+        if (a) {
+          liveText(a.pre, (a.pre.textContent + p.delta).slice(-100000));
+          stickToBottom(a.pre);
+        }
       }
       if (method === 'turn/diff/updated') {
         $('diff').textContent = p.diff;
@@ -1112,7 +1126,7 @@ function event(e: any) {
       if (method === 'error') {
         const message = p.error?.message || 'Bir hata oluştu.';
         notice(message);
-        if (isRateLimit(message)) state('ratelimit', 'Kullanım limitine ulaşıldı');
+        if (!replaying) quota.limitError(turnModel || model.value, message);
       }
       if (method === 'turn/completed') {
         for (const node of feed.querySelectorAll<HTMLElement>('.image-generating'))
@@ -1128,18 +1142,23 @@ function event(e: any) {
         const status = p.turn.status;
         if (!replaying) voice.completed(status === 'completed');
         if (status === 'failed') {
-          const limited = isRateLimit(p.turn.error?.message || '');
-          state(
-            limited ? 'ratelimit' : 'error',
-            limited ? 'Kullanım limitine ulaşıldı' : 'İş tamamlanamadı',
-          );
-          notice(p.turn.error?.message || 'Codex işi tamamlayamadı.');
+          // v0.9.16: an old chat being drawn again says nothing about now; a limit look comes from
+          // quota.limitError, for the AI that gave this answer only
+          if (replaying) state('idle', 'Hazırım.');
+          else {
+            // (a limit of another AI than the selected one leaves Charles ready, not "thinking")
+            if (quota.limitError(turnModel || model.value, p.turn.error?.message || '')) state('idle', 'Hazırım.');
+            else state('error', 'İş tamamlanamadı');
+            notice(p.turn.error?.message || 'Codex işi tamamlayamadı.');
+          }
         } else if (status === 'interrupted') {
           state('idle', 'İş durduruldu');
           row('İş durduruldu. Daha önce yapılan dosya değişiklikleri korunur.');
-        } else {
+        } else if (replaying) state('idle', 'Hazırım.');
+        else {
+          quota.answered(turnModel || model.value);
           state('finished', 'Tamamlandı!');
-          if (!replaying) {
+          {
             // React to the tone of the answer when it has one, otherwise a happy finish.
             const answer = [...feed.querySelectorAll('.message.agent')].at(-1)?.textContent || '';
             const tone = answerReaction(answer);
@@ -1568,6 +1587,7 @@ $('composer').addEventListener('submit', (e) => {
     voice.begin();
     busy = true;
     dispatching = true;
+    turnModel = model.value;
     controls();
     notice('');
     row(text, 'user', features.previews());
@@ -1848,7 +1868,7 @@ api.onSweat((w: any) => {
   notice(String(w?.text || ''));
 });
 
-usageUI(
+quota = usageUI(
   api,
   (value, celebrate = true) => {
     const changed = quotaBlocked !== value;

@@ -1745,4 +1745,12 @@ export const chinese: Record<string, string> = {
   "Folders cannot go on the shelf.": "文件夹不能放到文件架上。",
   "The shelf is full: 500 files at most.": "文件架已满：最多 500 个文件。",
   "The file is not on the shelf any more.": "该文件已不在文件架上。",
+  "Presentation": "演示文稿",
+  "PowerPoint is not on this computer, so Charles drew the PDF. Fonts, effects and charts may look a little different.": "此电脑未安装 PowerPoint，因此由 Charles 绘制 PDF。字体、效果和图表可能略有不同。",
+  "Word does not keep the slide layout: text stays editable, tables and pictures follow the slide order.": "Word 不保留幻灯片版式：文字可继续编辑，表格和图片按幻灯片顺序排列。",
+  "Quick Share could not open its network port. Another app may be using it, or Windows may have reserved it.": "Quick Share 无法打开其网络端口。可能有其他应用正在使用，或已被 Windows 保留。",
+  "Quick Share files are missing or damaged. Reinstalling with the Charles Setup package fixes this.": "Quick Share 文件缺失或损坏。使用 Charles 安装包重新安装即可修复。",
+  "The Quick Share engine did not start within two minutes. A security scan may be slowing the computer down.": "Quick Share 引擎未能在两分钟内启动。安全扫描可能正在拖慢电脑。",
+  "Quick Share timed out while preparing the network. An adapter or VPN may not be responding.": "Quick Share 准备网络时超时。网络适配器或 VPN 可能没有响应。",
+  "The picture on the clipboard could not be read.": "无法读取剪贴板中的图片。",
 };

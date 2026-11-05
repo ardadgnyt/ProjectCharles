@@ -1,5 +1,6 @@
 import { t } from '../settings/i18n';
 import { shortMinutes, percent } from '../settings/time-units';
+import { verifiedBlocked, limitErrorLasts } from './quota-state';
 // Remaining-quota gauges on the compact island.
 //
 // The gauges always describe the provider behind the model currently selected in the
@@ -116,8 +117,9 @@ export function usageUI(
   renew.onclick = () => void refresh(true);
 
   const selected = document.getElementById('model') as HTMLSelectElement;
-  const limits = new Map<Provider, boolean>();
   const lastValue = new Map<Provider, any>();
+  // v0.9.16: "limit" errors from an AI's own answers, per AI, with the time they stop counting
+  const limitErrors = new Map<Provider, number>();
   const warned = new Set<string>();
   const providerOf = (value: string): Provider =>
     /^(gemini|claude|cursor|abacus|evren):/.test(value) ? (value.split(':')[0] as Provider) : 'gpt';
@@ -177,10 +179,15 @@ export function usageUI(
     panel.title = v?.note ? t(v.note) : '';
     credit.textContent = v?.unavailable || '';
     credit.hidden = !credit.textContent;
-    if (typeof v?.blocked === 'boolean') {
-      limits.set(provider, v.blocked);
-      onLimit(v.blocked, true);
-    }
+    judge(v, true);
+  }
+
+  // The one place that decides the "limit reached" look, always for the AI in use.
+  function judge(v: any, celebrate: boolean) {
+    const verified = verifiedBlocked(v);
+    if (verified === false) limitErrors.delete(provider);
+    const errorUntil = limitErrors.get(provider) || 0;
+    onLimit(verified === true || Date.now() < errorUntil, celebrate && verified === false);
   }
 
   function schedule(delay: number | undefined) {
@@ -203,7 +210,8 @@ export function usageUI(
       if (id !== sequence || target !== provider) return; // the user switched meanwhile
       // A temporary failure keeps the last good numbers on screen instead of blanking them.
       const previous = lastValue.get(target);
-      if (v?.unavailable && !v.fiveHour && !v.weekly && previous?.fiveHour) v = previous;
+      // The numbers stay, but they are old now: they prove nothing about the limit (v0.9.16).
+      if (v?.unavailable && !v.fiveHour && !v.weekly && previous?.fiveHour) v = { ...previous, stale: true };
       lastValue.set(target, v);
       paint(v);
       for (const w of [v?.fiveHour, v?.weekly])
@@ -226,8 +234,9 @@ export function usageUI(
   function show(next: Provider) {
     if (next === provider && lastRead) return;
     provider = next;
-    paint(lastValue.get(next) || null);
-    onLimit(limits.get(next) === true, false);
+    const known = lastValue.get(next) || null;
+    paint(known);
+    judge(known, false);
     void refresh(false, true);
   }
 
@@ -266,6 +275,9 @@ export function usageUI(
   // Keep the "resets in" labels current between quota reads.
   setInterval(() => {
     resets(lastValue.get(provider));
+    // a window reset or an error's time ran out: nothing else tells the page (Antigravity is
+    // read only on demand)
+    judge(lastValue.get(provider), false);
   }, 30000);
   paint(null);
   // Start on the main AI's quota.
@@ -276,4 +288,19 @@ export function usageUI(
     })
     .catch(() => {});
   void refresh(true);
+  return {
+    /** An answer of `who` failed. True when the message is a limit error. */
+    limitError(who: string, message: string) {
+      const lasts = limitErrorLasts(message);
+      if (!lasts) return false;
+      limitErrors.set(providerOf(who), Date.now() + lasts);
+      judge(lastValue.get(provider), false);
+      return true;
+    },
+    /** An answer of `who` went through: its old limit error is over. */
+    answered(who: string) {
+      limitErrors.delete(providerOf(who));
+      judge(lastValue.get(provider), false);
+    },
+  };
 }

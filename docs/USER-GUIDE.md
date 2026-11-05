@@ -1,6 +1,6 @@
 # Charles — User Guide
 
-This guide covers Charles **v0.9.15 Beta** on Windows 10/11. For installation, see the
+This guide covers Charles **v0.9.16 Beta** on Windows 10/11. For installation, see the
 [README](../README.md#installation). For the full history of changes, see
 [CHANGELOG.md](../CHANGELOG.md) (Turkish).
 
@@ -80,7 +80,7 @@ menu has more tools:
 
 | Tool | What it does |
 | --- | --- |
-| Add photos and files | Attach up to five images, PDFs, documents or text files |
+| Add photos and files | Attach images, PDFs, Word and PowerPoint files, documents or text files |
 | Create image | Ask the AI to draw an image. A progress card shows the estimate, and the finished image can be downloaded, copied or enlarged |
 | Search the web | Answers from current web sources, with links |
 | Deep research | A longer, multi-source report |

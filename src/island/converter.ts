@@ -14,7 +14,7 @@ type Deps = {
   card: HTMLElement;
 };
 
-const KIND_ICON: Record<string, string> = { image: 'palette', audio: 'music', video: 'tv', document: 'file', data: 'chart', subtitle: 'tag', archive: 'folder', mixed: 'copy', other: 'file' };
+const KIND_ICON: Record<string, string> = { presentation: 'window', image: 'palette', audio: 'music', video: 'tv', document: 'file', data: 'chart', subtitle: 'tag', archive: 'folder', mixed: 'copy', other: 'file' };
 const GROUP_NAME: Record<string, string> = { image: 'Görsel', audio: 'Ses', video: 'Video', document: 'Belge', data: 'Veri', subtitle: 'Altyazı', archive: 'Arşiv', other: 'Diğer' };
 const LOSSY = ['jpg', 'webp', 'avif', 'mp3', 'm4a', 'ogg', 'opus', 'mp4', 'webm', 'mov', 'mkv', 'gif'];
 const IMAGE_SIZES: [number, string][] = [[0, 'Orijinal'], [3840, '3840 px'], [1920, '1920 px'], [1280, '1280 px'], [512, '512 px']];
@@ -222,7 +222,9 @@ export function converterSheet(d: Deps) {
     }
   }
 
-  function done(r: { outputs: string[]; failed: number }) {
+  function done(r: { outputs: string[]; failed: number; notes?: string[] }) {
+    // v0.9.16: what a format could not keep (a slide's layout in Word) is said, not hidden
+    if (r.notes?.length) d.notice(r.notes.join(' '));
     running = false;
     root.classList.remove('running');
     root.classList.add('done');

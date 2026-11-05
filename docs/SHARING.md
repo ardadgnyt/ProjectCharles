@@ -20,7 +20,7 @@ Telefonların bilgisayarı görebilmesi için Windows güvenlik duvarının Quic
 
 Dosya seçip yakındaki cihaza tıklamak gönderimi başlatır. Alıcı kabul ettikten sonra ilerleme gösterilir. Alınan dosyalar için **Klasörde göster** kullanılabilir. Aynı adlı dosyalar üzerine yazılmaz; yeni ad verilir. İptal edilen veya eksik aktarım başarılı gösterilmez ve yarım dosyası temizlenir. Windows'ta iPhone için LocalSend gerekir; Windows Wi-Fi sürücülerinde Apple AWDL desteği yoktur.
 
-Bağlantı aşamaları ve hatalar `%APPDATA%\Charles\logs\quickshare.log` dosyasına yazılır. Dosya içeriği, cihaz adları veya şifreleme anahtarları kaydedilmez.
+Quick Share ve LocalSend birbirinden bağımsız başlar: biri açılamazsa diğeri çalışmayı sürdürür ve neden paylaşım panelinde yazar. Bağlantı aşamaları ve hatalar `%APPDATA%\Charles\logs\quickshare.log` dosyasına yazılır (`start-failed`, `bridge-exit`, `bridge-stderr`; kullanıcı klasörleri çıkarılmış olarak). Dosya içeriği, cihaz adları veya şifreleme anahtarları kaydedilmez.
 
 ## Cihaz testi
 

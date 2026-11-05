@@ -518,3 +518,19 @@
      async def stop(self) -> None:
          if self._watch is not None:
              self._watch.cancel()
+--- a/multidrop/backends/quickshare/__init__.py
++++ b/multidrop/backends/quickshare/__init__.py
+@@ Charles v0.9.16 (start) @@
+-            if e.errno != errno.EADDRINUSE or not self.qs.port:
++            # Charles: WinError 10013 is what Windows gives for a port inside an excluded range
++            # (Hyper-V, WSL and Docker reserve such ranges), not "in use".
++            taken = e.errno == errno.EADDRINUSE or getattr(e, "winerror", None) == 10013
++            if not taken or not self.qs.port:
+@@ Charles v0.9.16 (start) @@
+-                await self._publish(addresses)
++                # Charles: an announcement that fails must not take the receiver and sending
++                # down with it; the watcher below tries again every few seconds.
++                try:
++                    await self._publish(addresses)
++                except Exception as e:
++                    log.warning("Quick Share announcement failed [%s]", type(e).__name__)

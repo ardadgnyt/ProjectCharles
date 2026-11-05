@@ -14,12 +14,19 @@ function watch(list: HTMLElement) {
   if (pinned.has(list)) return;
   pinned.set(list, true);
   gapFromEnd.set(list, 0);
+  let lastTop = list.scrollTop;
   list.addEventListener(
     'scroll',
     () => {
       if (!list.clientHeight) return; // hidden: its scroll position means nothing
-      const gap = list.scrollHeight - list.scrollTop - list.clientHeight;
-      pinned.set(list, gap < NEAR);
+      const top = list.scrollTop;
+      const gap = list.scrollHeight - top - list.clientHeight;
+      // v0.9.16: any step upwards is the user's (the code only moves down): follow stops at once,
+      // also inside the last few lines, where the next piece used to pull the list back. Coming
+      // back near the end follows again.
+      if (top < lastTop - 1 && gap > 1) pinned.set(list, false);
+      else if (gap < NEAR) pinned.set(list, true);
+      lastTop = top;
       gapFromEnd.set(list, Math.max(0, gap));
     },
     { passive: true },
@@ -47,6 +54,15 @@ export function stickToBottom(list: HTMLElement | null | undefined, force = fals
   watch(list);
   if (force) pinned.set(list, true);
   if (pinned.get(list)) list.scrollTop = list.scrollHeight;
+}
+
+/** v0.9.16: live output: only the new part is added, so a selection in it survives. */
+export function liveText(box: HTMLElement, text: string) {
+  const old = box.textContent || '';
+  if (old === text) return;
+  const last = box.lastChild;
+  if (old && text.startsWith(old) && last?.nodeType === Node.TEXT_NODE) (last as Text).appendData(text.slice(old.length));
+  else box.textContent = text;
 }
 
 /** Whether the list currently follows new content. */

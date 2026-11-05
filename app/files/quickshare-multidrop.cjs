@@ -13,6 +13,41 @@ const { parseMdnsPacket } = require('./mdns-wire.cjs');
 const { QuickShareNames } = require('./quickshare-names.cjs');
 const { migrateQuickShareRuntime } = require('./quickshare-runtime.cjs');
 
+// v0.9.16: how the engine ended, in words. On Windows a null exit code means Node itself ended the
+// process with child.kill() (any other ending has a number). That is what a failed start did, so
+// "motoru kapandı (null)" hid the real error: the only thing it ever said was "Charles stopped it".
+const NT_STATUS = {
+  0xc0000135: 'Bir sistem kitaplığı eksik.',
+  0xc0000142: 'Çalışma ortamı Windows tarafından başlatılamadı.',
+  0xc000007b: 'Çalışma ortamının dosyaları bozuk veya uyumsuz.',
+  0xc0000005: 'Çalışma ortamı beklenmedik biçimde durdu.',
+  0xc0000409: 'Çalışma ortamı beklenmedik biçimde durdu.',
+};
+function exitText(code, signal) {
+  if (code === 0) return 'Quick Share motoru beklenmedik biçimde kapandı.';
+  if (code === null) return `Quick Share motoru durduruldu (${signal || 'sinyal yok'}).`;
+  return `Quick Share motoru kapandı (kod ${code}). ${NT_STATUS[code >>> 0] || ''}`.trim();
+}
+/** The reason for the user; the technical part stays in quickshare.log. */
+function startProblem(error, { booted, stderr = '' } = {}) {
+  const text = `${error?.code || ''} ${error?.message || ''} ${stderr}`;
+  if (/^(ENOENT|EACCES|EPERM|UNKNOWN|EBUSY)\b/.test(text.trim()))
+    return 'Quick Share motoru çalıştırılamadı. Güvenlik yazılımı tools\\quickshare\\python\\python.exe dosyasını engelliyor olabilir ya da dosya eksik.';
+  if (/zaman aşımı/.test(text))
+    return booted
+      ? 'Quick Share ağ hazırlığı zaman aşımına uğradı. Ağ bağdaştırıcıları veya VPN yanıt vermiyor olabilir.'
+      : 'Quick Share motoru iki dakikada açılamadı. Güvenlik yazılımı taraması bilgisayarı yavaşlatıyor olabilir.';
+  if (/WinError 100(13|48)|EADDRINUSE|address already in use/i.test(text))
+    return 'Quick Share için ağ bağlantı noktası açılamadı. Başka bir uygulama kullanıyor veya Windows ayırmış olabilir.';
+  if (/ModuleNotFoundError|ImportError|DLL load failed/i.test(text))
+    return 'Quick Share çalışma dosyaları eksik veya bozuk. Charles Setup paketiyle yeniden kurmak bunu düzeltir.';
+  return error?.message || 'Quick Share başlatılamadı.';
+}
+/** stderr without user folders: Windows paths are cut down to the file name. */
+function scrub(text) {
+  return String(text).replace(/[A-Za-z]:\\[^\s"'<>|]*/g, (p) => '…\\' + p.split('\\').pop()).replace(/\/(?:Users|home)\/[^\s"']*/g, '…').slice(-1500);
+}
+
 class MultiDropEngine extends EventEmitter {
   constructor(opts = {}) {
     super();
@@ -117,19 +152,36 @@ class MultiDropEngine extends EventEmitter {
       const env = { ...process.env };
       delete env.PYTHONPATH;
       delete env.PYTHONHOME;
-      const child = this.spawnProcess(exe, ['-B', '-u', script], {
-        cwd: this.root, env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'],
-      });
+      let child;
+      try {
+        child = this.spawnProcess(exe, ['-B', '-u', script], {
+          cwd: this.root, env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'],
+        });
+      } catch (error) {
+        this.note('bridge-spawn-error', error.code || error.message);
+        throw Error(startProblem(error));
+      }
       this.child = child;
       this.ready = false;
+      const started = Date.now();
+      // what this start knows about itself; `ending` is set when Charles ends the process
+      const run = { booted: false, stderr: '', ending: '' };
+      this.note('bridge-spawn', JSON.stringify({ pid: child.pid ?? null }));
       const lines = readline.createInterface({ input: child.stdout });
       lines.on('line', line => {
         if (this.child !== child) return;
-        try { this.message(JSON.parse(line)); }
-        catch { this.note('bridge-invalid-message'); }
+        let message;
+        try { message = JSON.parse(line); }
+        catch { this.note('bridge-invalid-message'); return; }
+        if (message.event === 'booted') {
+          run.booted = true;
+          this.note('bridge-booted', `${Date.now() - started}ms`);
+        } else this.message(message);
       });
-      // Private stderr may contain a path: don't mirror it to persistent logs.
-      child.stderr.on('data', () => this.note('bridge-diagnostic'));
+      // v0.9.16: the tail is kept for the reason of a failure; only a scrubbed copy reaches the log
+      child.stderr.on('data', (data) => {
+        run.stderr = (run.stderr + data).slice(-4000);
+      });
       const failed = error => {
         if (this.child !== child) return;
         this.child = null;
@@ -146,10 +198,22 @@ class MultiDropEngine extends EventEmitter {
         this.offers.clear();
         lines.close();
         this.emit('peers', []);
-        if (!this.stopping) this.emit('transfer-error', { protocol: 'quickshare', error: error.message });
+        // a failed start reports its own reason through start()
+        if (!this.stopping && !run.ending) this.emit('transfer-error', { protocol: 'quickshare', error: error.message });
       };
-      child.on('error', error => failed(error));
-      child.on('exit', code => failed(Error(`Quick Share motoru kapandı (${code}).`)));
+      const gone = new Promise((resolve) => {
+        child.once('exit', resolve);
+        child.once('error', resolve);
+      });
+      child.on('error', error => {
+        this.note('bridge-spawn-error', error.code || error.message);
+        failed(error);
+      });
+      child.on('exit', (code, signal) => {
+        this.note('bridge-exit', JSON.stringify({ code, signal, by: run.ending || null, stopping: !!this.stopping, ms: Date.now() - started }));
+        if (run.stderr) this.note('bridge-stderr', scrub(run.stderr));
+        failed(Error(startProblem(Error(exitText(code, signal)), { booted: run.booted, stderr: run.stderr })));
+      });
       child.stdin.on('error', () => {});
       try {
         await this.request('init', {
@@ -161,7 +225,9 @@ class MultiDropEngine extends EventEmitter {
           receiving: this.receiveMode !== 'off',
           discovery: this.opts.discovery !== false,
           bind: this.opts.bind || '0.0.0.0', addresses: this.opts.addresses,
-        }, 30000);
+        // v0.9.16: this clock includes the interpreter's own start. Its files are read for the
+        // first time here, and on a slow disk with a virus scan 30 s was not always enough.
+        }, this.opts.initTimeout ?? 120000);
         if (generation !== this.generation) throw Error('Quick Share başlatma iptal edildi.');
         this.ready = true;
         // A mode change made while init was in flight must be applied before
@@ -169,9 +235,15 @@ class MultiDropEngine extends EventEmitter {
         await this.request('receiving', { enabled: this.receiveMode !== 'off' });
         return this.port;
       } catch (error) {
+        const reason = startProblem(error, { booted: run.booted, stderr: run.stderr });
+        this.note('start-failed', JSON.stringify({ code: error.code || null, booted: run.booted, reason: scrub(error.message) }));
+        run.ending = 'start-failed';
         child.stdin.end();
         child.kill();
-        throw error;
+        // the next attempt must not race this process for the port
+        await Promise.race([gone, new Promise((resolve) => setTimeout(resolve, 3000))]);
+        if (this.child === child) failed(Error(reason));
+        throw Error(reason);
       }
     })();
     try { return await this.startPromise; }

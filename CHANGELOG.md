@@ -4,6 +4,29 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.16 Beta — 5 Kasım 2026
+
+- **PowerPoint sohbette:** `.pptx` ve `.ppt` dosyaları sohbete eklenebilir (dosya seçici, sürükle-bırak; en fazla 100 MB). Charles slaytları sırası ve numarasıyla okur: metinler, tablolar, grafik değerleri, konuşmacı notları.
+  - Görsel, grafik veya diyagram içeren slaytların resmi GPT, Claude ve Antigravity’ye birlikte gider (sunum başına en fazla 12 slayt). Görüntü alamayan bağlantılarda ya da fazla slaytlarda yapay zekâya bu slaytları görmediği açıkça söylenir.
+  - Dosyanın ve notların içeriği talimat değil, dışarıdan gelen veri olarak iletilir.
+  - Parolalı, bozuk, boş veya çok büyük sunumlarda ne olduğu söylenir.
+- **PowerPoint dönüştürücüde:** `.pptx` ve `.ppt` → PDF, Word (.docx), slayt resimleri (PNG), TXT, Markdown, ZIP.
+  - PDF, bilgisayarda Microsoft PowerPoint varsa onunla çıkar (gizli slaytlar dahil). Yoksa Charles slaytları kendisi çizer; yazı tipi, efekt ve grafikler biraz farklı olabilir, sonuçta bu söylenir. Dosyalar hiçbir yere yüklenmez, kaynak dosya değişmez.
+  - Word çıktısı başlıklı, düzenlenebilir bir belgedir: slayt sırası, metinler, tablolar, görseller, grafik değerleri ve notlar aktarılır. Slayt düzeni birebir korunmaz; bu da sonuçta söylenir.
+- **Dosya Rafı:** Ctrl+V hiç çalışmıyordu; artık çalışıyor ve raf ekrandayken odak nerede olursa olsun panodaki resmi ekliyor. Satırlarda gerçek önizleme var; dışarı sürüklerken yol yerine dosya adı ve önizleme görünür. Windows’a gerçek dosya olarak bırakma aynı.
+- **Pano:** Electron 44’te pano işlevleri değişmişti. “Görseli kopyala”, formülleri Word’e kopyalama ve WhatsApp otomasyonundan sonra panoyu geri koyma da bu yüzden bozuktu; düzeltildi.
+- **Yanıt yazılırken kaydırma:** kod ve metin kutuları her parçada yeniden oluşturulduğu için konum başa dönüyor, seçim kayboluyordu. Artık yalnızca değişen kısım güncellenir: fare, kaydırma çubuğu ve klavye çalışır, seçim korunur. En alttaysan yeni metni izler; yukarı kaydırınca durur, alta dönünce devam eder. Yan panelin terminal ve dosya sekmeleri de konumunu korur.
+- **Limit animasyonu:** yalnızca kullanılan yapay zekânın doğrulanmış verisine bakar. Okunamayan, eski veya sıfırlanma süresi geçmiş kota “limit doldu” sayılmaz; başka bir yapay zekânın hatası etkilemez; geçmiş sohbet açmak animasyon başlatmaz. Geçici “çok fazla istek” hatası bir dakikada biter.
+- **“Tamamlandı” ve hata durumu:** yeşil veya kırmızı nokta takılı kalıyordu (müzik çalarken ya da panele tıkladıkça süre hiç dolmuyordu; hatanın hiç bitiş yolu yoktu). Yeşil 6, kırmızı 20 saniyede kendiliğinden kalkar.
+- **Quick Share ve LocalSend:** “Quick Share motoru kapandı (null)” aslında Charles’ın başarısız bir başlatmayı kapatmasıydı ve gerçek nedeni gizliyordu. Artık nedeni söylenir (engellenen program, bağlantı noktası, zaman aşımı, eksik dosya) ve `logs\quickshare.log` dosyasına yazılır.
+  - Quick Share açılamasa bile LocalSend çalışır; önceden biri düşünce ikisi de duruyordu.
+  - Windows’un ayırdığı port artık başlatmayı durdurmaz, duyuru hatası motoru kapatmaz. Yavaş açılışa daha çok süre tanınır, başarısız denemeler arası bekleme uzar, yeniden deneme için Charles’ı yeniden başlatmak gerekmez.
+- **Panel:** küçültünce imleç üst kenarda kaldığı için adacık hemen yeniden açılabiliyordu; artık imleç uzaklaşmadan açılmaz. Arkada açık kalan pencere paneli tıklanamaz bırakamaz; başka sohbetin onay isteği Ayarlar’ı kapatmaz.
+- **Görev çubuğu:** adacığın görev çubuğu düğmesi yok; onay, hatırlatma ve dosya isteklerinde yanıp sönme onu geçici olarak geri getiriyordu. Adacık modunda görev çubuğu yanıp sönmez (panel ve kartlar yine görünür); uygulama penceresi arkadayken olay başına bir kez yanıp söner. Gelen dosya isteği odağı çalmaz.
+- **Görsel görüntüleyici:** karartma adacığın şeklini izler; yan şeritler, kare köşeler ve kenar farkı kalmadı. Kapatma düğmesi köşeden içeri alındı.
+- **Hava durumu kartı:** dar kartta düzen tek sütuna iner, günler 3 ya da 2 sütun olur, saatler yana kayar; hiçbir şey taşmaz ya da üst üste binmez.
+- **README:** Dosya Rafı tanıtıldı.
+
 ## v0.9.15 Beta — 4 Kasım 2026
 
 - **Dosya Rafı:** Dosyalar’a üçüncü kutucuk olarak eklendi; Raf sekmesiyle de açılır.

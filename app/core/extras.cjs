@@ -20,6 +20,8 @@ const DEFAULTS = {
 const SERVICES = ['github', 'vercel', 'stripe', 'resend', 'notion', 'calcom', 'n8n'];
 // v0.8.5: all attachment text of one message together
 const MAX_ATTACHMENT_TEXT = 1000000;
+// v0.9.16: slide pictures that go with one presentation
+const MAX_SLIDE_PICTURES = 12;
 class Extras {
   constructor(directory, encryption, fetcher = fetch) {
     this.directory = directory;
@@ -256,8 +258,10 @@ class Extras {
   ingest(source, { untrusted = false } = {}) {
     const stat = fs.statSync(source);
     if (!stat.isFile()) throw Error('Yalnızca dosya eklenebilir.');
-    if (stat.size > 20 * 1024 * 1024) throw Error('Dosya en fazla 20 MB olabilir.');
     const ext = path.extname(source).toLowerCase();
+    // v0.9.16: presentations carry their pictures, so they get more room
+    const deckFile = ext === '.pptx' || ext === '.ppt';
+    if (stat.size > (deckFile ? 100 : 20) * 1024 * 1024) throw Error(`Dosya en fazla ${deckFile ? 100 : 20} MB olabilir.`);
     const images = ['.png', '.jpg', '.jpeg', '.webp'];
     const text = [
       '.txt',
@@ -284,11 +288,14 @@ class Extras {
       !text.includes(ext) &&
       ext !== '.pdf' &&
       ext !== '.docx' &&
-      ext !== '.gif'
+      ext !== '.gif' &&
+      !deckFile
     )
       throw Error(
-        'Desteklenenler: PDF, Word (DOCX), PNG/JPG/WebP/GIF, metin ve yaygın kod dosyaları.',
+        'Desteklenenler: PDF, Word (DOCX), PowerPoint (PPTX, PPT), PNG/JPG/WebP/GIF, metin ve yaygın kod dosyaları.',
       );
+    // v0.9.16: an unreadable presentation is told about now, not when the message goes out
+    if (deckFile) require('../files/slides.cjs').loadDeck(source);
     const dir = path.join(this.directory, 'inbox');
     fs.mkdirSync(dir, { recursive: true });
     for (const file of fs.readdirSync(dir)) {
@@ -314,7 +321,9 @@ class Extras {
               ? 'pdf'
               : ext === '.docx'
                 ? 'docx'
-                : 'text',
+                : deckFile
+                  ? 'presentation'
+                  : 'text',
       ...(untrusted ? { untrusted: true } : {}),
     };
     this.attachments.set(id, item);
@@ -324,22 +333,66 @@ class Extras {
   untrusted(ids) {
     return Array.isArray(ids) && ids.some((id) => !!this.attachments.get(id)?.untrusted);
   }
-  async inputs(ids, { textOnly = false } = {}) {
+  async inputs(ids, { textOnly = false, images = true } = {}) {
     if (!Array.isArray(ids) || ids.length > 50) throw Error('En fazla 50 dosya eklenebilir.');
     const result = [];
     // v0.8.5: up to 50 files, but the text sent with one message stays bounded (each PDF
     // may give up to 900 000 characters; 50 of them would not fit any model).
     let total = 0;
     for (const id of ids) {
-      const item = await this.input(id, textOnly);
-      if (item.type === 'text') {
-        total += item.text.length;
-        if (total > MAX_ATTACHMENT_TEXT)
-          throw Error('Eklerin metni bir mesaj için çok uzun (toplam en fazla 1.000.000 karakter). Daha az dosya ekle ya da belgeleri ayrı mesajlarda gönder.');
+      const found = this.attachments?.get(id);
+      const items = found?.kind === 'presentation' ? await this.presentationInput(found, images) : [await this.input(id, textOnly)];
+      for (const item of items) {
+        if (item.type === 'text') {
+          total += item.text.length;
+          if (total > MAX_ATTACHMENT_TEXT)
+            throw Error('Eklerin metni bir mesaj için çok uzun (toplam en fazla 1.000.000 karakter). Daha az dosya ekle ya da belgeleri ayrı mesajlarda gönder.');
+        }
+        result.push(item);
       }
-      result.push(item);
     }
     return result;
+  }
+  /**
+   * v0.9.16: a presentation goes as its text, in order and numbered, plus pictures of the slides
+   * that show something text cannot say. The text states which slides were really seen, so the
+   * model never claims to have looked at a picture that only its name reached.
+   */
+  async presentationInput(a, images) {
+    if (!fs.existsSync(a.path)) throw Error('Ek artık bulunamıyor; yeniden ekleyin.');
+    const slides = require('../files/slides.cjs');
+    const { fence } = require('./untrusted.cjs');
+    const deck = slides.loadDeck(a.path);
+    deck.name = a.name;
+    const text = slides.deckText(deck);
+    const visual = deck.slides.filter((s) => slides.visualsOf(s).any).map((s) => s.number);
+    const wanted = visual.slice(0, MAX_SLIDE_PICTURES);
+    let pictures = [];
+    let failed = false;
+    if (images && wanted.length && this.slidePictures) {
+      try {
+        pictures = await this.slidePictures(deck, wanted);
+      } catch {
+        failed = true;
+      }
+    }
+    const seen = pictures.length ? wanted : [];
+    const unseen = visual.filter((n) => !seen.includes(n));
+    const lines = [];
+    if (seen.length) lines.push(`Şu slaytların görüntüsü bu mesajda sırayla ekli: ${seen.join(', ')}.`);
+    if (unseen.length)
+      lines.push(`Şu slaytlardaki görsel, grafik veya diyagramlar GÖRÜLMEDİ, yalnızca metinleri okundu: ${unseen.join(', ')}${failed ? ' (görüntü oluşturulamadı)' : images ? '' : ' (bu bağlantı görüntü alamıyor)'}. Bunların içeriğini görmüş gibi anlatma; sorulursa kullanıcıya söyle.`);
+    const empty = !text.replace(/\[Slayt[^\]]*\]/g, '').trim();
+    if (empty && !seen.length) throw Error(`${a.name}: sunumda okunabilir metin yok.`);
+    const who = a.untrusted ? 'Charles’ın açtığı e-posta eki (gönderen yazdı, kullanıcı değil)' : 'Kullanıcının eklediği dosya';
+    return [
+      {
+        type: 'text',
+        text: `${who} · PowerPoint sunumu: ${a.name} (${deck.slides.length} slayt)\n` + (lines.length ? lines.join('\n') + '\n' : '') + fence('dosya_icerigi', text, { max: MAX_ATTACHMENT_TEXT }),
+        text_elements: [],
+      },
+      ...pictures.map((file) => ({ type: 'localImage', path: file })),
+    ];
   }
   async input(id, textOnly) {
       const a = this.attachments.get(id);

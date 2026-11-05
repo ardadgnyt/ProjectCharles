@@ -17,11 +17,12 @@ const KINDS = {
   audio: ['mp3', 'm4a', 'aac', 'wav', 'flac', 'ogg', 'oga', 'opus', 'wma', 'aiff', 'aif', 'amr'],
   video: ['mp4', 'mov', 'mkv', 'webm', 'avi', 'wmv', 'flv', 'mpeg', 'mpg', 'ts', 'm2ts', '3gp', 'ogv', 'm4v'],
   document: ['pdf', 'docx', 'md', 'markdown', 'txt', 'html', 'htm'],
+  presentation: ['pptx', 'ppt'],
   data: ['csv', 'tsv', 'json'],
   subtitle: ['srt', 'vtt'],
   archive: ['zip'],
 };
-const KIND_NAMES = { image: 'Görsel', audio: 'Ses', video: 'Video', document: 'Belge', data: 'Veri', subtitle: 'Altyazı', archive: 'Arşiv', other: 'Dosya' };
+const KIND_NAMES = { image: 'Görsel', audio: 'Ses', video: 'Video', document: 'Belge', presentation: 'Sunum', data: 'Veri', subtitle: 'Altyazı', archive: 'Arşiv', other: 'Dosya' };
 const LABELS = {
   png: 'PNG', jpg: 'JPG', webp: 'WEBP', bmp: 'BMP', tiff: 'TIFF', ico: 'ICO', gif: 'GIF', avif: 'AVIF', pdf: 'PDF',
   mp3: 'MP3', m4a: 'M4A', wav: 'WAV', flac: 'FLAC', ogg: 'OGG', opus: 'OPUS',
@@ -66,6 +67,7 @@ function targetsFor(file) {
     else if (ext !== 'svg') list.push('gif');
   } else if (kind === 'audio') list = ['mp3', 'm4a', 'wav', 'flac', 'ogg', 'opus'];
   else if (kind === 'video') list = ['mp4', 'webm', 'mov', 'mkv', 'gif', 'mp3', 'm4a', 'wav'];
+  else if (kind === 'presentation') list = ['pdf', 'docx', 'png', 'txt', 'md'];
   else if (ext === 'pdf') list = ['docx', 'txt'];
   else if (ext === 'docx') list = ['pdf', 'txt', 'html', 'md'];
   else if (ext === 'md' || ext === 'markdown') list = ['pdf', 'docx', 'html', 'txt'];
@@ -553,6 +555,8 @@ class Converter {
       return ff && enc(target);
     }
     if (kind === 'audio' || kind === 'video') return target === 'zip' || (ff && enc(target));
+    // v0.9.16: a target is listed only with an engine that can really make it
+    if (kind === 'presentation') return target === 'zip' || ['txt', 'md'].includes(target) || !!this.deps.slides;
     if (target === 'pdf') return !!this.fontFiles();
     return true;
   }
@@ -601,6 +605,7 @@ class Converter {
       quality: ['high', 'balanced', 'small'].includes(options.quality) ? options.quality : 'balanced',
       size: Math.max(0, Math.min(8192, Math.round(+options.size || 0))),
       merge: !!options.merge,
+      notes: [],
     };
     const controller = new AbortController();
     batch.controller = controller;
@@ -647,7 +652,7 @@ class Converter {
           onProgress({ index, progress: 1, done: true, error: e.message });
         }
       }
-      return { outputs: results, failed };
+      return { outputs: results, failed, notes: opts.notes };
     } finally {
       batch.controller = null;
     }
@@ -719,6 +724,59 @@ class Converter {
     if (Math.max(width, height) <= size) return img;
     return width >= height ? img.resize({ width: size, quality: 'best' }) : img.resize({ height: size, quality: 'best' });
   }
+  /**
+   * v0.9.16: .pptx / .ppt → PDF, Word, slide pictures, text, Markdown. The result is finished
+   * under a temporary name beside its place, so a failure or a cancel leaves nothing behind.
+   */
+  async presentation(f, target, opts, signal, progress) {
+    const slides = require('./slides.cjs');
+    const dir = path.dirname(f.path);
+    const base = path.basename(f.name, path.extname(f.name));
+    const cancelled = () => {
+      if (signal?.aborted) throw Object.assign(Error('İptal edildi.'), { cancelled: true });
+    };
+    progress(0.1);
+    const deck = slides.loadDeck(f.path);
+    cancelled();
+    const note = (text) => { if (opts.notes && !opts.notes.includes(text)) opts.notes.push(text); };
+    if (target === 'png') {
+      const out = uniquePath(dir, base + ' slaytları', '');
+      const tmp = out + '.part';
+      fs.mkdirSync(tmp, { recursive: true });
+      try {
+        const pictures = await this.deps.slides.pictures(deck, { width: opts.size || 1920, signal, progress: (p) => progress(0.2 + p * 0.75) });
+        pictures.forEach((png, i) => fs.writeFileSync(path.join(tmp, `Slayt ${String(deck.slides[i].number).padStart(2, '0')}.png`), png));
+        fs.renameSync(tmp, out);
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+      if (slides.undrawn(deck).length) note(`Şu slaytlardaki bazı görseller çizilemedi: ${slides.undrawn(deck).join(', ')}.`);
+      return out;
+    }
+    const out = uniquePath(dir, base, target);
+    // keeps its extension: PowerPoint adds one to a name that does not end in it
+    const tmp = `${out}.part.${target}`;
+    try {
+      if (target === 'pdf') {
+        const made = await this.deps.slides.pdf(f.path, deck, tmp, { signal, progress });
+        cancelled();
+        if (made.engine === 'builtin') {
+          note('PowerPoint bu bilgisayarda bulunamadı; PDF’yi Charles çizdi. Yazı tipleri, efektler ve grafikler PowerPoint’teki görünümden biraz farklı olabilir.');
+          if (slides.undrawn(deck).length) note(`Şu slaytlardaki bazı görseller çizilemedi: ${slides.undrawn(deck).join(', ')}.`);
+        }
+      } else if (target === 'docx') {
+        const charts = await this.deps.slides.chartPictures?.(deck);
+        fs.writeFileSync(tmp, slides.deckDocx(deck, { charts }));
+        note('Word çıktısı slayt düzenini birebir korumaz: metinler düzenlenebilir, tablolar ve görseller slayt sırasıyla aktarılır.');
+      } else if (target === 'txt') fs.writeFileSync(tmp, slides.deckText(deck) + '\n');
+      else if (target === 'md') fs.writeFileSync(tmp, slides.deckMarkdown(deck));
+      else throw Error('Bu biçime dönüştürülemiyor.');
+      fs.renameSync(tmp, out);
+      return out;
+    } finally {
+      fs.rmSync(tmp, { force: true });
+    }
+  }
   async one(f, target, opts, signal, progress) {
     const dir = path.dirname(f.path);
     const base = path.basename(f.name, path.extname(f.name));
@@ -730,6 +788,7 @@ class Converter {
       if (!n) throw Error('Arşivde çıkarılacak dosya yok.');
       return out;
     }
+    if (f.kind === 'presentation' && target !== 'zip') return this.presentation(f, target, opts, signal, progress);
     const out = uniquePath(dir, base, target);
     const write = (data) => { fs.writeFileSync(out, data); return out; };
     const readText = () => {

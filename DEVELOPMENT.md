@@ -83,7 +83,7 @@ Windows'un uygulama veri klasöründe tutulur: `%APPDATA%\Charles`
 | `app/voice/` | Ses | `voice.cjs` + `voice.ps1` (Whisper, Windows sesi), `gemini-live.cjs`, `live-computer.cjs`, `live-plugins.cjs`, `wake-profile.cjs` |
 | `app/personal/` | Kişisel veriler | `personal.cjs` (hafıza, hatırlatıcı, görünüm, erişim), `memory.cjs`, `profile-transfer.cjs`, `creator-profile.cjs`, `companion.cjs`, `weather.cjs`, `weather-chat.cjs` |
 | `app/system/` | Windows ile çalışan parçalar | `desktop.cjs` + `.ps1` (uygulama açma, Spotify), `media-worker.*`, `performance.*`, **`watchdog.cjs`** (sistem nöbetçisi: CPU/RAM/disk → Slime terler), `foreground.*`, `computer-time.cjs`, `weekly.cjs`, `capture.cjs` (ekrandan alan seçme), **`web-commands.cjs`** (“internetten arat”, “YouTube’dan aç” → varsayılan tarayıcı), **`whatsapp.cjs`** (v0.7.2: “WhatsApp’tan X’e … at” ayrıştırma, kayıtlı kişiler, WhatsApp Desktop’ı açma), **`open-with.cjs`** (yan panelden VS Code / GitHub Desktop / Notepad++ / Terminal) |
-| `app/files/` | Dosyalar | `library.cjs` (seçili klasörlerde arama), `docx.cjs`, `pdf-text.cjs`, **`file-rack.cjs`** (v0.9.15 Dosya Rafı: kopyalar `%APPDATA%\Charles\file-rack` içinde) |
+| `app/files/` | Dosyalar | `library.cjs` (seçili klasörlerde arama), `docx.cjs`, `pdf-text.cjs`, **`file-rack.cjs`** (v0.9.15 Dosya Rafı: kopyalar `%APPDATA%\Charles\file-rack` içinde), **`slides.cjs`** + `pptx-read.cjs`, `ppt-read.cjs`, `powerpoint-com.cjs` (v0.9.16 PowerPoint: okuma, çizim, Word çıktısı; varsa PowerPoint ile PDF) |
 
 Her dosyanın ilk satırında ne işe yaradığını anlatan kısa bir açıklama vardır.
 

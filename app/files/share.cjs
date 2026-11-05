@@ -41,11 +41,16 @@ class ShareService extends EventEmitter {
     this.ad = new AirDropEngine({
       deviceName: this.deviceName,
       downloadDir: this.downloadDir,
+      note: (stage, detail) => this.note(stage, detail),
     });
     // The two engines share UDP/5353. Windows may hand a unicast mDNS query to
     // only one socket, so let the Quick Share responder see every packet.
     this.ad.onMdnsPacket = (msg, rinfo) => this.qs.handleMdnsPacket(msg, rinfo);
 
+    // v0.9.16: why Quick Share is not running, shown in the panel until it runs
+    this.engineError = '';
+    this.retryAt = 0;
+    this.retryDelay = 10000;
     this.stagedFiles = [];
     this.transfer = null;
     this.activeAbort = null;
@@ -217,7 +222,8 @@ class ShareService extends EventEmitter {
     // A failed startup must recover without opening the share sheet.
     if (!this.retryTimer) {
       this.retryTimer = setInterval(() => {
-        if (!this.started && !this.startPromise) void this.start().catch(() => {});
+        // a machine where the engine cannot start is not hammered: 10 s, 20 s… up to 5 min
+        if (!this.started && !this.startPromise && Date.now() >= this.retryAt) void this.start();
         else if (this.started) void this.maintainReceiving().catch(() => {});
       }, 10000);
       this.retryTimer.unref?.();
@@ -227,32 +233,38 @@ class ShareService extends EventEmitter {
     this.startPromise = (async () => {
       this.qs.setReceiveMode(this.receiveMode);
       this.ad.setVisible(this.receiveMode !== 'off');
-      await Promise.all([
+      // v0.9.16: the two engines stand on their own. Quick Share's failed start used to stop here
+      // before LocalSend searched for devices, and every panel call and "send" awaited this
+      // promise first: one engine that could not start took LocalSend with it.
+      const [quickShare] = await Promise.allSettled([
         this.qs.start(),
-        this.ad.start().catch((error) =>
+        this.ad.start().catch((error) => {
+          this.note('localsend-start-failed', error.code || error.message);
           this.ad.emit('transfer-error', {
             protocol: 'airdrop',
             error: 'Dosya alımı başlatılamadı: ' + error.message,
-          }),
-        ),
+          });
+        }),
       ]);
       // Apply visibility again with live listeners, just as the receive-mode
       // control does. Use the current setting, including changes during startup.
       this.qs.setReceiveMode(this.receiveMode);
       this.ad.setVisible(this.receiveMode !== 'off');
       this.discover();
-      this.started = true;
+      if (quickShare.status === 'rejected') {
+        this.engineError = quickShare.reason?.message || 'Quick Share başlatılamadı.';
+        this.retryAt = Date.now() + this.retryDelay;
+        this.retryDelay = Math.min(this.retryDelay * 2, 5 * 60000);
+      } else {
+        this.engineError = '';
+        this.retryDelay = 10000;
+        this.started = true;
+      }
       this.emit('state', this.state());
       return this.state();
     })();
     try {
       return await this.startPromise;
-    } catch (error) {
-      this.qs.emit('transfer-error', {
-        protocol: 'quickshare',
-        error: 'Quick Share başlatılamadı: ' + error.message,
-      });
-      throw error;
     } finally {
       this.startPromise = null;
     }
@@ -284,7 +296,15 @@ class ShareService extends EventEmitter {
       this.receiveMode !== 'off' &&
       generation === this.receiveGeneration;
     this.maintenancePromise = (async () => {
-      await Promise.all([this.qs.start(), this.ad.start()]);
+      try {
+        await Promise.all([this.qs.start(), this.ad.start()]);
+      } catch (error) {
+        // the engine stopped and did not come back: say so instead of "Açık"
+        this.started = false;
+        this.engineError = error.message;
+        this.emit('state', this.state());
+        return;
+      }
       if (!current()) return;
       let repaired = false;
       if (this.qs.receiveMode !== this.receiveMode) {
@@ -362,6 +382,7 @@ class ShareService extends EventEmitter {
       adPort: this.ad.port,
       receiveMode: this.receiveMode,
       receiveStarting: this.receiveStarting,
+      engineError: this.engineError,
       // Ground truth for the UI: "Açık" must mean the backend is really
       // listening and announcing, not merely that the switch was set.
       health: {
@@ -411,6 +432,7 @@ class ShareService extends EventEmitter {
       this.cancelTransfer(this.transfer.id);
     try {
       await this.start();
+      if (enabled && this.engineError) throw Error(this.engineError);
       if (generation !== this.receiveGeneration) return this.state();
       await this.qs.modePromise;
       if (generation !== this.receiveGeneration) return this.state();

@@ -43,6 +43,8 @@ export function protectTableMath(line: string) {
 const UUID_FILE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z0-9]{1,8})?$/i;
 
 /** Puts the chips where the markers are (after Markdown rendering). */
+// v0.9.16: a redraw of a streaming answer must not put the generic name back
+const attachmentNames = new Map<string, string>();
 export function placeCitations(root: HTMLElement, citations: Citation[]) {
   if (!citations.length) return;
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -64,12 +66,14 @@ export function placeCitations(root: HTMLElement, citations: Citation[]) {
       const ext = (/\.([a-z0-9]{1,8})$/i.exec(c.name)?.[1] || '').toUpperCase();
       // Charles keeps attachments as <id>.pdf in its inbox: show the original name when known
       const id = UUID_FILE.test(c.name) ? c.name.replace(/\.[^.]+$/, '') : '';
-      chip.textContent = '📄 ' + (id ? 'Ekteki belge' + (ext ? ' · ' + ext : '') : c.name);
+      chip.textContent = '📄 ' + (id ? attachmentNames.get(id) || 'Ekteki belge' + (ext ? ' · ' + ext : '') : c.name);
       if (id) {
         chip.dataset.attachment = id;
         void (window as any).charles?.attachmentName?.(id)
           .then((name: string) => {
-            if (name) chip.textContent = '📄 ' + name;
+            if (!name) return;
+            attachmentNames.set(id, name);
+            chip.textContent = '📄 ' + name;
           })
           .catch(() => {});
       }

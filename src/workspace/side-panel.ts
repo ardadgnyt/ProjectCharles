@@ -3,6 +3,7 @@
 // with line numbers, copy and "open in" buttons (VS Code, the default app, the folder).
 import { el, icon, iconButton } from './icons';
 import { highlightInto, languageOfFile, LANGUAGE_NAMES } from '../chat/highlight';
+import { liveText, stickToBottom } from '../chat/follow';
 
 type Tab = {
   id: string;
@@ -20,6 +21,7 @@ export function sidePanel(d: SidePanelDeps) {
   const { api } = d;
   const tabs: Tab[] = [];
   let active = '';
+  let paintedTab = '';
   let codeCount = 0;
 
   const panel = el('aside', 'ws-panel');
@@ -182,6 +184,10 @@ export function sidePanel(d: SidePanelDeps) {
       }),
     );
     const t = current();
+    // v0.9.16: a redraw of the tab being read keeps its place
+    const same = t && t.id === paintedTab;
+    const top = body.scrollTop, left = body.scrollLeft;
+    paintedTab = t?.id || '';
     crumbs.replaceChildren();
     body.replaceChildren();
     toolbar.hidden = !t;
@@ -210,7 +216,9 @@ export function sidePanel(d: SidePanelDeps) {
       const pre = el('pre', 'ws-term');
       pre.textContent = t.text;
       body.append(pre);
-      pre.scrollTop = pre.scrollHeight;
+      // the panel body scrolls here (.ws-term has no scroll of its own)
+      if (same) body.scrollTop = top;
+      stickToBottom(body, !same);
       return;
     }
     // code with line numbers
@@ -224,6 +232,7 @@ export function sidePanel(d: SidePanelDeps) {
     const pre = el('pre', 'ws-code', code);
     pre.translate = false;
     body.append(el('div', 'ws-code-view', gutter, pre));
+    if (same) body.scrollTo(left, top);
   }
 
   async function copy() {
@@ -510,7 +519,12 @@ export function sidePanel(d: SidePanelDeps) {
       const was = tabs.find((t) => t.id === 'terminal');
       if (was) {
         was.text = terminal;
-        if (active === 'terminal' && !panel.hidden) paint();
+        // v0.9.16: running output is added in place; a redraw per line reset the scroll
+        const live = active === 'terminal' && !panel.hidden ? body.querySelector<HTMLElement>('.ws-term') : null;
+        if (live) {
+          liveText(live, terminal);
+          stickToBottom(body);
+        } else if (active === 'terminal' && !panel.hidden) paint();
       } else open({ id: 'terminal', kind: 'terminal', title: 'Terminal', language: '', text: terminal }, false);
     }
   });

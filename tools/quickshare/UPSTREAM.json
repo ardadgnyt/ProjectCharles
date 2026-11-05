@@ -165,7 +165,7 @@
     },
     "multidrop/backends/quickshare/__init__.py": {
       "originalSha256": "3b1776af1c0846c371148f5bf03510ec3f3dcd82340d773056ac88e94f48763e",
-      "sha256": "f6fe4c15957d2617357629f67fa4119610d47fa7f26bbbf8c89a8e13f1fb8629",
+      "sha256": "1f9f7df3c1175174d5291b9732b346cee5cc1ab0f1f7e071a9d74404aaa3a2d2",
       "modified": true
     },
     "multidrop/backends/__init__.py": {

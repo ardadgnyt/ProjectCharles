@@ -80,7 +80,7 @@ test('answers: file citations become chips, "|" inside formulas no longer breaks
     prepareAnswer('| Bileşen | $|Z_n|$ |\n|---|---:|\n| Temel | 15.259 Ω |').text,
   );
   assert.match(html, /<table>/);
-  assert.match(read('src/chat/markdown.ts'), /placeCitations\(element, prepared\.citations\);/);
+  assert.match(read('src/chat/markdown.ts'), /placeCitations\(draft, prepared\.citations\);/);
   assert.match(read('app/main.cjs'), /safeHandler\('attachment-name'/);
 });
 

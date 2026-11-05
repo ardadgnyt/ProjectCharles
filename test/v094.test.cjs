@@ -207,7 +207,7 @@ test('sharing retries failed startup without UI activity and stops its retry tim
   service.qs.start=async()=>{if(++starts===1)throw Error('adapter unavailable')};service.ad.start=async()=>{};
   service.qs.setReceiveMode=()=>{};service.ad.setVisible=()=>{};
   try {
-    await assert.rejects(service.start(),/adapter/);assert.equal(service.started,false);
+    await service.start();assert.equal(service.started,false);assert.match(service.state().engineError,/adapter/);service.retryAt=0;
     t.mock.timers.tick(15000);await service.startPromise;assert.equal(service.started,true);assert.equal(starts,2);
     service.stop();t.mock.timers.tick(30000);assert.equal(starts,2);
   } finally {service.stop();fs.rmSync(dir,{recursive:true,force:true});}

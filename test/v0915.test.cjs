@@ -148,11 +148,10 @@ test('the island wiring of Dosya Rafı', () => {
   for (const k of ['rackList:', 'rackRemove:', 'rackPaste:', 'rackDrag:', 'onRackDrop:']) assert.ok(pre.includes(k), k);
   const main = read('app/main.cjs');
   assert.match(main, /path\.join\(app\.getPath\('userData'\), 'file-rack'\)/);
-  assert.match(main, /startDrag\(\{ file,/);
+  assert.match(main, /startDrag\(\{ file, icon \}\)/);
   const rack = read('src/island/file-rack.ts');
-  // Ctrl+V is heard on the shelf only, never on the document
-  assert.match(rack, /root\.addEventListener\('keydown'/);
-  assert.doesNotMatch(rack, /document\.addEventListener|window\.addEventListener/);
+  // v0.9.16: Ctrl+V works while the shelf is on screen; text boxes keep their own paste
+  assert.match(rack, /if \(!onScreen\(\) \|\| typing\(e\.target\)\) return;/);
   // preventDefault on dragstart skips dragend; without this later outside drops are ignored
   assert.match(rack, /document\.dispatchEvent\(new Event\('dragend'\)\)/);
   assert.match(read('public/index.html'), /styles\/33-v0915\.css/);
