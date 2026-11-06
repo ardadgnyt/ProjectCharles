@@ -1,0 +1,66 @@
+/* v0.9.19: a sent message edited inside its own bubble */
+.message.user.editing {
+  width: min(100%, 560px);
+  max-width: 100%;
+}
+body #feed .message.user.editing > .user-text,
+body #feed .message.user.editing > .edit-message,
+body #feed .message.user.editing > .branch-switch {
+  display: none;
+}
+.message-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.message-edit textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 42px;
+  max-height: 42vh;
+  padding: 8px 10px;
+  overflow-y: auto;
+  resize: none;
+  border: 1px solid rgba(237, 201, 169, 0.35);
+  border-radius: 10px;
+  outline: 0;
+  background: rgba(0, 0, 0, 0.22);
+  color: inherit;
+  font: inherit;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.message-edit textarea:focus {
+  border-color: var(--accent);
+}
+.message-edit small {
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+.message-edit .message-edit-warn {
+  color: #e9c46a;
+}
+.message-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.message-edit-actions button {
+  padding: 5px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+}
+.message-edit-actions button.primary {
+  border-color: transparent;
+  background: #f1dcc4;
+  color: #161513;
+}
+.message-edit-actions button:disabled {
+  opacity: 0.45;
+}

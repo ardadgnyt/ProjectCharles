@@ -621,6 +621,8 @@ export const chinese: Record<string, string> = {
   "Try": "试试",
   "Panel": "面板",
   "Character": "角色",
+  "Charles island size": "Charles 岛大小",
+  "Large": "大",
   "Accent": "强调色",
   "Appearance saved.": "外观已保存。",
   "Default colors applied.": "已应用默认颜色。",
@@ -1802,4 +1804,9 @@ export const chinese: Record<string, string> = {
   "Measure in the background": "后台测量",
   "1 s while open, 5 s in the background · last hour kept in memory": "打开时 1 秒，后台 5 秒 · 内存中保留最近一小时",
   "Measured only while this screen is open": "仅在此界面打开时测量",
+  "When you send, this content goes once to:": "发送时，此内容只发送一次到：",
+  "Save or cancel the open edit first.": "请先保存或取消正在进行的编辑。",
+  "End the voice chat first.": "请先结束语音对话。",
+  "Charles answers again from this message. The earlier conversation stays one ‹ › away; file changes are not undone.": "Charles 会从这条消息重新回答。之前的对话可通过 ‹ › 查看；文件更改不会撤销。",
+  "These attachments are gone and will not be sent again:": "这些附件已不存在，不会重新发送：",
 };

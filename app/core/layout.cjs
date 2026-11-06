@@ -16,16 +16,20 @@ const SHELF_MIN = 220;
 const SHELF_MAX = 640;
 const shelfSize = (h) => ({ width: SHELF.width, height: Math.round(Math.min(SHELF_MAX, Math.max(SHELF_MIN, Number(h) || SHELF.height))) });
 const CHAT_WIDTH = 620;
+// v0.9.20: Ayarlar → Görünüm → Charles adacık boyutu. Both sizes come from the same base numbers,
+// so changing back and forth never adds up. The open panel keeps its size.
+const ISLAND_SMALL = 2 / 3;
+const fit = (s, island) => (island === 1 ? s : { width: Math.round(s.width * island), height: Math.round(s.height * island) });
 
-function size({ expanded, hidden, chat = true, height, scale = 1, music = true, shelf }) {
-  if (hidden) return HIDDEN;
-  if (!expanded) return music ? NOTCH : HIDDEN;
+function size({ expanded, hidden, chat = true, height, scale = 1, music = true, shelf, island = 1 }) {
+  if (hidden) return fit(HIDDEN, island);
+  if (!expanded) return fit(music ? NOTCH : HIDDEN, island);
   if (!chat) return shelfSize(shelf);
   return { width: Math.round(CHAT_WIDTH * scale), height };
 }
 
-function bounds(area, { expanded, hidden, side, height, scale = 1, chat = true, music = true, shelf }) {
-  const s = size({ expanded, hidden, chat, height, scale, music, shelf });
+function bounds(area, { expanded, hidden, side, height, scale = 1, chat = true, music = true, shelf, island = 1 }) {
+  const s = size({ expanded, hidden, chat, height, scale, music, shelf, island });
   const width = Math.min(s.width, area.width);
   return {
     x: Math.round(
@@ -54,4 +58,4 @@ function surfaceBounds(area, { side, height, scale = 1 }) {
     height: Math.max(chat.height, shelf.height),
   };
 }
-module.exports = { bounds, surfaceBounds, shelfSize, NOTCH, HIDDEN, SHELF, SHELF_MIN, SHELF_MAX };
+module.exports = { bounds, surfaceBounds, shelfSize, NOTCH, HIDDEN, SHELF, SHELF_MIN, SHELF_MAX, ISLAND_SMALL };

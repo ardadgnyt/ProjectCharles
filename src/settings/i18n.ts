@@ -20,6 +20,7 @@ import { english0914, patterns0914 } from './i18n-0914';
 import { english0915 } from './i18n-0915';
 import { english0916 } from './i18n-0916';
 import { english0918 } from './i18n-0918';
+import { english0919 } from './i18n-0919';
 import { german } from './lang/de';
 import { french } from './lang/fr';
 import { spanish } from './lang/es';
@@ -64,6 +65,8 @@ const english: Record<string, string> = {
   Sil: 'Delete',
   Yenile: 'Refresh',
   'Varsayılana dön': 'Reset to default',
+  'Charles adacık boyutu': 'Charles island size',
+  'Büyük': 'Large',
   'Bağlı değil': 'Not connected',
   'Bağlantı kayıtlı': 'Connection saved',
   'Giriş yapılmadı': 'Not signed in',
@@ -360,7 +363,7 @@ Object.assign(english, {
   'Kaydet düğmesine tıkla, ardından kısayol tuşlarına birlikte bas. Esc ile vazgeç.':
     'Click Record keys, then press the shortcut together. Press Esc to cancel.',
 });
-Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089, english0810, english0811, english0814, english0815, english092, english096, english0913, english0914, english0915, english0916, english0918);
+Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089, english0810, english0811, english0814, english0815, english092, english096, english0913, english0914, english0915, english0916, english0918, english0919);
 
 // v0.6.3: look-up that ignores line breaks/indentation from the HTML, then the patterns
 // (texts with numbers or names inside).

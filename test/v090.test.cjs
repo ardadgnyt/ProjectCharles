@@ -13,8 +13,7 @@ const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
 // MediaWorker with a stand-in PowerShell: answers each request line with the next prepared reply
 function fakeWorker(replies) {
   const spawned = [];
-  const childProcess = {
-    spawn: (exe, args) => {
+  const spawnHelper = () => {
       const child = new EventEmitter();
       child.stdout = new PassThrough();
       child.stdin = new PassThrough();
@@ -31,41 +30,30 @@ function fakeWorker(replies) {
           setImmediate(() => child.stdout.write(JSON.stringify(reply) + '\n'));
         }
       });
-      spawned.push({ exe, args, child });
+      spawned.push({ child });
       return child;
-    },
   };
-  const load = Module._load;
-  Module._load = function (request, ...rest) {
-    if (request === 'node:child_process') return childProcess;
-    return load.call(this, request, ...rest);
-  };
-  try {
-    const file = require.resolve('../app/system/media-worker.cjs');
-    delete require.cache[file];
-    const { MediaWorker } = require(file);
-    return { worker: new MediaWorker(), spawned };
-  } finally {
-    Module._load = load;
-  }
+  const { MediaWorker } = require('../app/system/media-worker.cjs');
+  return { worker: new MediaWorker({ spawnHelper }), spawned };
 }
 
 test('the media worker is the one that worked up to v0.8.11', () => {
-  const ps = read('app/system/media-worker.ps1');
+  const cs = read('setup/CharlesHelper.cs');
   // one session manager for the worker's whole life (not a new one on every status)
-  assert.match(ps, /if\(-not \$manager\)\{\$manager=Await-Result \(\$managerType::RequestAsync\(\)\) \$managerType\}/);
-  assert.match(ps, /\}catch\{\$manager=\$null;/);
-  assert.match(ps, /\$media=\$manager\.GetSessions\(\) \| Where-Object \{\$_\.SourceAppUserModelId -match '\(\?i\)spotify'\} \| Select-Object -First 1/);
-  assert.match(ps, /if\(-not \$task\.Wait\(3000\)\)\{throw 'Media timeout'\}/);
-  assert.doesNotMatch(ps, /Window-Answer|CharlesSpotifyWindow|-Optional/);
+  assert.match(cs, /if \(manager == null\) \{ manager = Wait\(GlobalSystemMediaTransportControlsSessionManager\.RequestAsync\(\)\);/);
+  assert.match(cs, /catch \{ Forget\(\); throw; \}/);
+  assert.match(cs, /IndexOf\("spotify", StringComparison\.OrdinalIgnoreCase\)/);
+  assert.match(cs, /const int WAIT = 3000;/);
+  assert.doesNotMatch(cs, /Window-Answer|CharlesSpotifyWindow/);
   // the one change: the cover's stream is closed after reading
-  assert.match(ps, /\$bytes=\[CharlesMediaArt\]::Read\(\$stream\)\r?\n[^\n]*\r?\n[^\n]*\r?\n\s*try\{\$stream\.Dispose\(\)\}catch\{\}/);
+  assert.match(cs, /try \{ bytes = ReadArt\(stream\); \} finally \{ try \{ stream\.Dispose\(\); \} catch \{\} \}/);
   assert.doesNotMatch(read('app/system/media-worker.cjs'), /'-Mta'|windowOnlyUntil/);
 });
 
-test('Spotify is asked every 3 s again (not every second)', () => {
+test('Spotify says when it changed, and is asked only now and then (not every second)', () => {
   const personal = read('src/settings/personal.ts');
-  assert.match(personal, /nextPoll = Date\.now\(\) \+ \(idle \? 30000 : 3000\);/);
+  assert.match(personal, /nextPoll = Date\.now\(\) \+ \(idle \? 60000 : 15000\);/);
+  assert.match(personal, /api\.onMediaChanged\?\.\(/);
   assert.match(personal, /void attempt\(\(\) => media\(\{ action: 'seek', position: Number\(progress\.value\) \}\)\);/);
 });
 

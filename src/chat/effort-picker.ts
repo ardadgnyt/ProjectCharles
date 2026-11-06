@@ -11,6 +11,7 @@
 // provider that keeps its id steady (GPT, Claude, EVREN) every row shares the one id and the
 // level travels with the message instead.
 import { clampMenu } from './model-picker';
+import { watchSelect } from '../ui/watch-select';
 export type Effort = { value: string; label: string; id: string };
 export type EffortModel = { id: string; effort?: string | null; efforts?: Effort[]; base?: string };
 
@@ -155,6 +156,6 @@ export function effortPicker(select: HTMLSelectElement) {
   new MutationObserver(sync).observe(select, { childList: true, subtree: true, attributes: true });
   select.addEventListener('change', sync);
   // Programmatic selection changes do not fire DOM events (session restore, default load).
-  window.setInterval(sync, 300);
+  watchSelect(select, sync);
   sync();
 }

@@ -1,0 +1,43 @@
+/* 37 · v0.9.20 — Ayarlar → Görünüm → Charles adacık boyutu: Küçük is 2/3 of the closed island.
+   The window and its click area come from app/core/layout.cjs; here the content follows with zoom,
+   which lays things out at the new size (a transform would leave the old boxes behind). The ears
+   and corners are on body variables, so they are set in their own right and not zoomed. */
+body.v10.island-small[data-view='notch']:not(.desktop-pet):not(.hidden-island) {
+  --ear-l: 9px;
+  --ear-r: 9px;
+  --r: 13px;
+  padding: 0 9px 1px;
+}
+body.v10.island-small.docked-left[data-view='notch']:not(.desktop-pet):not(.hidden-island) {
+  --ear-l: 0px;
+  padding-left: 0;
+}
+body.v10.island-small.docked-right[data-view='notch']:not(.desktop-pet):not(.hidden-island) {
+  --ear-r: 0px;
+  padding-right: 0;
+}
+body.v10.island-small[data-view='notch']:not(.desktop-pet):not(.hidden-island) #notch {
+  zoom: 0.6667;
+}
+/* words at 2/3 of 10 px could not be read: they keep a readable size in the smaller box */
+body.v10.island-small[data-view='notch'] .notch-track-title {
+  font-size: 15px;
+}
+body.v10.island-small[data-view='notch'] .notch-track-artist {
+  font-size: 13.5px;
+}
+body.v10.island-small[data-view='notch'] #resize-handle {
+  width: 54px;
+  height: 6px;
+}
+body.v10.island-small[data-view='notch'] #resize-handle::after {
+  top: 1px;
+  width: 30px;
+}
+body.v10.island-small[data-view='notch'] #resize-handle:hover::after {
+  width: 40px;
+}
+body.island-small.hidden-island:not(.desktop-pet) .island {
+  height: 4px;
+  border-radius: 0 0 5px 5px;
+}

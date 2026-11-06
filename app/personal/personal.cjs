@@ -27,7 +27,7 @@ class Personal {
       commands: [],
       memories: [],
       reminders: [],
-      appearance: { font: 13, scale: 1, accent: '#edc9a9', opacity: 1, pet: 1 },
+      appearance: { font: 13, scale: 1, accent: '#edc9a9', opacity: 1, pet: 1, island: 'large' },
     };
     const loaded = readStore(
       this.file,
@@ -192,6 +192,8 @@ class Personal {
         // v0.7.0: the opacity setting was removed; Charles is always fully opaque
         opacity: 1,
         accent: /^#[0-9a-f]{6}$/i.test(args.accent) ? args.accent : '#edc9a9',
+        // v0.9.20: the closed island; a value that is not one of the two keeps what was chosen
+        island: ['large', 'small'].includes(args.island) ? args.island : this.data.appearance.island,
       };
     } else throw Error('Geçersiz kişisel ayar.');
     this.save();

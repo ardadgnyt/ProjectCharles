@@ -3,11 +3,10 @@
 // v0.9.18: Bas-konuş. Hold a key in any app, speak, let go: the words are typed where the cursor
 // was. Speech is turned into text by the local Whisper model; nothing leaves the computer, no
 // command is run and no Enter is pressed. Off until the user turns it on (Ayarlar → Kısayollar).
-const { spawn } = require('node:child_process');
-const fs = require('node:fs');
 const path = require('node:path');
 const readline = require('node:readline');
 const { readStore, writeStore } = require('../core/store.cjs');
+const { bubbleSpot } = require('../plugins/mail-bubble.cjs');
 
 const DEFAULTS = { enabled: false, key: 'Right' };
 const MAX_WAVE = 3840044; // 120 s of 16 kHz mono
@@ -60,10 +59,21 @@ const WHY = {
   unknown: 'Hedef okunamadı; metin eklenmedi.',
 };
 
+const CLOSE_MS = 30000;
+
+/**
+ * v0.9.19: the indicator stands where notifications stand: under the island or panel, under the
+ * cards when some are showing, and beside or above where there is no room (bubbleSpot).
+ */
+function indicatorSpot(anchor, cards, area, width, height) {
+  return bubbleSpot(cards || anchor, area, width, height);
+}
+
 class Dictation {
   // voice: a Voice of its own; send(channel, value): to the page; mic: { blocked(), arm(), off() }
-  constructor({ dir, voice, send, mic, BrowserWindow, screen, clipboard, shortcuts = () => ({}), language = () => 'tr', spawnHelper = null, preload }) {
-    Object.assign(this, { voice, send, mic, BrowserWindow, screen, clipboard, shortcuts, language, spawnHelper, preload });
+  // anchor(): the island's bounds, as for the notification cards; cards(): the cards' bounds or null
+  constructor({ dir, voice, send, mic, BrowserWindow, screen, clipboard, shortcuts = () => ({}), language = () => 'tr', spawnHelper = null, preload, anchor = () => null, cards = () => null }) {
+    Object.assign(this, { voice, send, mic, BrowserWindow, screen, clipboard, shortcuts, language, spawnHelper, preload, anchor, cards });
     this.file = path.join(dir, 'dictation.json');
     const saved = readStore(this.file, (v) => v && typeof v === 'object').value || {};
     this.data = { enabled: saved.enabled === true, key: typeof saved.key === 'string' ? saved.key : DEFAULTS.key };
@@ -106,13 +116,7 @@ class Dictation {
 
   start() {
     if (this.child) return;
-    const child = this.spawnHelper
-      ? this.spawnHelper()
-      : spawn(
-          path.join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe'),
-          ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', fs.readFileSync(path.join(__dirname, '../system/dictation-keys.ps1'), 'utf8')],
-          { windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] },
-        );
+    const child = this.spawnHelper ? this.spawnHelper() : require('../system/helper-hub.cjs').open('keys');
     this.child = child;
     readline.createInterface({ input: child.stdout }).on('line', (line) => this.line(line));
     const closed = () => {
@@ -284,10 +288,8 @@ class Dictation {
     const send = () => !w.isDestroyed() && w.webContents.send('dictation-state', { ...value, language: this.language() });
     if (w.webContents.isLoading()) w.webContents.once('did-finish-load', send);
     else send();
-    const area = this.screen.getDisplayNearestPoint(this.screen.getCursorScreenPoint()).workArea;
-    const height = value.state === 'choice' ? 132 : 52;
-    const width = value.state === 'choice' ? 420 : 300;
-    w.setBounds({ x: Math.round(area.x + (area.width - width) / 2), y: area.y + area.height - height - 24, width, height });
+    this.size = value.state === 'choice' ? { width: 420, height: 132 } : { width: 300, height: 52 };
+    this.place();
     w.setIgnoreMouseEvents(value.state !== 'choice');
     w.setAlwaysOnTop(true, 'screen-saver');
     if (!w.isVisible()) w.showInactive();
@@ -295,7 +297,30 @@ class Dictation {
     if (['done', 'cancelled', 'error'].includes(value.state)) this.hideTimer = setTimeout(() => this.hide(), value.state === 'error' ? 5000 : 1600);
   }
 
+  /** Follows the island and the cards while it is on screen. */
+  place() {
+    const w = this.win;
+    if (!w || w.isDestroyed() || !this.size) return;
+    const a = this.anchor();
+    const point = a ? { x: Math.round(a.x + a.width / 2), y: Math.round(a.y) } : this.screen.getCursorScreenPoint();
+    const area = this.screen.getDisplayNearestPoint(point).workArea;
+    const width = Math.min(this.size.width, area.width);
+    const { height } = this.size;
+    // nothing to stand next to: the old place at the bottom of the screen
+    const spot = a ? indicatorSpot(a, this.cards(), area, width, height) : { x: area.x + (area.width - width) / 2, y: area.y + area.height - height - 24 };
+    const next = { x: Math.round(spot.x), y: Math.round(spot.y), width, height };
+    const now = w.getBounds?.();
+    if (!now || ['x', 'y', 'width', 'height'].some((k) => now[k] !== next[k])) w.setBounds(next);
+  }
+
+  /** After the island raised itself: all windows here share one topmost band. */
+  raise() {
+    const w = this.win;
+    if (w && !w.isDestroyed() && w.isVisible()) w.moveTop?.();
+  }
+
   window() {
+    clearTimeout(this.closeTimer);
     if (this.win && !this.win.isDestroyed()) return this.win;
     if (!this.BrowserWindow) return null;
     this.win = new this.BrowserWindow({
@@ -322,14 +347,23 @@ class Dictation {
 
   hide() {
     clearTimeout(this.hideTimer);
-    if (this.win && !this.win.isDestroyed()) this.win.hide();
+    if (!this.win || this.win.isDestroyed()) return;
+    this.win.hide();
+    // v0.9.19: a page of its own stays in memory only around a dictation, not for the whole day
+    clearTimeout(this.closeTimer);
+    this.closeTimer = setTimeout(() => {
+      if (this.phase === 'idle' && this.win && !this.win.isDestroyed()) this.win.destroy();
+      this.win = null;
+    }, CLOSE_MS);
+    this.closeTimer.unref?.();
   }
 
   destroy() {
     this.data = { ...this.data, enabled: false };
     this.stop();
+    clearTimeout(this.closeTimer);
     if (this.win && !this.win.isDestroyed()) this.win.destroy();
   }
 }
 
-module.exports = { Dictation, parseKey, canType, vkOf, DEFAULTS, MAX_WAVE };
+module.exports = { Dictation, indicatorSpot, parseKey, canType, vkOf, DEFAULTS, MAX_WAVE };

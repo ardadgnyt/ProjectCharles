@@ -621,6 +621,8 @@ export const french: Record<string, string> = {
   "Try": "Essayer",
   "Panel": "Panneau",
   "Character": "Personnage",
+  "Charles island size": "Taille de l’îlot Charles",
+  "Large": "Grande",
   "Accent": "Accent",
   "Appearance saved.": "Apparence enregistrée.",
   "Default colors applied.": "Couleurs par défaut appliquées.",
@@ -1802,4 +1804,9 @@ export const french: Record<string, string> = {
   "Measure in the background": "Mesurer en arrière-plan",
   "1 s while open, 5 s in the background · last hour kept in memory": "1 s à l’écran, 5 s en arrière-plan · dernière heure en mémoire",
   "Measured only while this screen is open": "Mesuré uniquement lorsque cet écran est ouvert",
+  "When you send, this content goes once to:": "À l’envoi, ce contenu part une seule fois vers :",
+  "Save or cancel the open edit first.": "Enregistre ou annule d’abord la modification ouverte.",
+  "End the voice chat first.": "Termine d’abord la conversation vocale.",
+  "Charles answers again from this message. The earlier conversation stays one ‹ › away; file changes are not undone.": "Charles répond de nouveau à partir de ce message. La conversation précédente reste accessible avec ‹ › ; les modifications de fichiers ne sont pas annulées.",
+  "These attachments are gone and will not be sent again:": "Ces pièces jointes n’existent plus et ne seront pas renvoyées :",
 };

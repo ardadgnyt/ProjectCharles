@@ -217,8 +217,19 @@ class MailBubble {
     });
   }
 
-  // Keeps the bubbles centred under the island; flips above it near the screen bottom.
+  /** v0.9.19: where the cards are now, or null when none is on screen. */
+  box() {
+    const w = this.window;
+    return w && !w.isDestroyed() && w.isVisible() ? w.getBounds() : null;
+  }
+
   place() {
+    this.placeCards();
+    this.onPlaced?.();
+  }
+
+  // Keeps the bubbles centred under the island; flips above it near the screen bottom.
+  placeCards() {
     const w = this.window;
     if (!w || w.isDestroyed()) return;
     if (!this.items.length || !this.height || this.suppressed || this.held) {

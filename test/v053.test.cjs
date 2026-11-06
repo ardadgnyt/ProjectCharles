@@ -111,14 +111,15 @@ test('deadline proposal adds reminders and writes the calendar file', async () =
     event: 'Staj başvurusu son gün',
     personal,
     dir,
-    open: (f) => opened.push(f),
+    open: (f) => (opened.push(f), ''),
   });
-  assert.match(p.text, /Takvime ekleyip/);
+  assert.match(p.text, /adacıktan hatırlatayım mı/);
   assert.deepEqual(
     p.actions.map((a) => a.id),
-    ['calendar', 'remind', 'no'],
+    ['remind', 'file', 'no'],
   );
-  const reply = await p.actions[0].run();
+  assert.equal(opened.length, 0, 'asking opens nothing');
+  const reply = await p.actions[1].run();
   assert.equal(added.length, 2);
   assert.ok(added.every((a) => a.action === 'reminder-add' && a.due > now));
   assert.equal(opened.length, 1);

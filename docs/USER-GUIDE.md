@@ -87,7 +87,10 @@ menu has more tools:
 
 You can also drop text or files onto Slime, or press **Ctrl + Shift + S** to capture an area of
 the screen and ask about it. To change a message after sending it, use the edit button on the
-message. The earlier conversation stays in history.
+message. It opens in its own bubble, and what you were writing in the message box stays there.
+**Save** (Enter; Shift+Enter starts a new line) sends it again from that point, and **Cancel** (Esc)
+leaves everything as it was. The earlier conversation stays one ‹ › away; file changes are not undone.
+While an answer is being written a message cannot be edited.
 
 When an AI is running low on quota, Charles offers to continue with another connected AI.
 
@@ -176,7 +179,7 @@ In the Turkish interface, Slime holds a Turkish flag on 19 May, 30 August, 29 Oc
 | --- | --- |
 | **General** | Language (Türkçe, English, Deutsch, Français, Español, 中文), start with Windows, sounds and volume, auto-hide and collapse, read aloud, Hey Charles, weather location (search a city or district and pick it from the list), welcome tour |
 | **AI models** | Sign in to ChatGPT/Codex, Claude, Antigravity and Cursor; add an EVREN API key. Every card has the same buttons: **Set up with Charles** · sign in (“✓ connected” once signed in) · **Check connection**. Default model; Gemini Live with its own connected state, voice and key settings |
-| **Appearance** | Text size, panel size, character size, screen choice, chat colours, Slime studio, try expressions |
+| **Appearance** | Text size, panel size, character size, **Charles island size** (Large is the usual size; Small is 2/3 of it, for a laptop screen), screen choice, chat colours, Slime studio, try expressions |
 | **Memory** | Things Charles should remember; **Get to know me from the AI I use**: pick ChatGPT, Claude or Antigravity, paste its answer and choose what to keep |
 | **Access** | How much the AI may do without asking (see [Project mode](#project-mode)) |
 | **Plugins** | Google (Gmail, Calendar, Drive), Microsoft (Outlook, Calendar), POP3/IMAP mail, Home Assistant, Google Calendar (add events), WhatsApp contacts (a connected account shows “✓ … connected”; after **Remove** you can sign in again); important-mail notifications and keywords. GitHub is listed as coming in a later version |
@@ -269,20 +272,22 @@ Turn it on in **Settings → Shortcuts → Push to talk**. It is off by default.
 | Esc | Cancels the recording or the text on its way |
 | A short single press | The key’s normal job, about 0.2 seconds later |
 
-The key can be changed in the same place, to an arrow, navigation or function key alone, or to a combination with Ctrl, Alt, Shift or Win. Recordings can be up to two minutes long. Speech is processed by the local Whisper model; nothing is sent anywhere and no audio is kept. Enter is never pressed. If the keyboard moved to another place while you were speaking, the text waits in a small card with **Copy** and **Insert anyway**.
+The status bubble (Listening, Turning speech into text…) appears right under the island or the open panel, below any notifications, and follows them when they move. The key can be changed in the same place, to an arrow, navigation or function key alone, or to a combination with Ctrl, Alt, Shift or Win. Recordings can be up to two minutes long. Speech is processed by the local Whisper model; nothing is sent anywhere and no audio is kept. Enter is never pressed. If the keyboard moved to another place while you were speaking, the text waits in a small card with **Copy** and **Insert anyway**.
 
 ## Dropping Charles on content
 
 1. Drag Charles (from the app window, the open island or the desktop) over a page, a document or an email and hold him still for a moment.
 2. A frame shows what he would read. Press **Esc** or move away to cancel.
-3. Let go. A card above the message box shows the title, the app and how much was read.
-4. Choose **Summarize**, **Key points** or **What I need to do**, or type a question. Nothing goes to an AI before this step.
+3. Let go. Charles goes back to where you took him from, and a card above the message box shows the title, the app and how much was read.
+4. Choose **Summarize**, **Key points** or **What I need to do**, or type a question. Nothing goes to an AI before this step. The content goes with that one message, and the card then leaves; what was sent stays in the chat. To ask about it in a new message, drop Charles on it again. If the message could not be sent, the card stays so you can try again.
+
+If the window cannot be read, or you press Esc, he goes back as well. Picked up again while reading, he stays in your hand, and the card arrives when you let go.
 
 No browser extension is needed. Pages are read from the active tab only. PDFs opened from this computer and saved Word and PowerPoint files are read from the file; unsaved changes are not included. An app that shares no text is pictured as a single window, and the card says only the visible part was read. **×** removes the content from the chat; **Read again** reads the same window once more.
 
 ## Moving the character
 
-Drag the character out of the app window or the open island. His place stays empty and everything else stays where it is. He keeps his moods and animations, stays out while you open or close the panel, and goes home with a double-click. From the closed island he comes out as the desktop pet, as before.
+Drag the character out of the app window or the open island. His place stays empty and everything else stays where it is. He keeps his moods and animations, stays out while you open or close the panel, and goes home with a double-click, or by himself after he has read something. From the closed island he comes out as the desktop pet, as before.
 
 ## Right-click menu
 

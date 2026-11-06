@@ -1,3 +1,4 @@
+import { watchSelect } from '../ui/watch-select';
 /** v0.9.6: an upward popup may reach past the top or a side edge of the window (long model
  *  lists on a short panel); nudge it back inside before it is shown. */
 export function clampMenu(menu: HTMLElement) {
@@ -244,6 +245,6 @@ export function modelPicker(select: HTMLSelectElement) {
   new MutationObserver(sync).observe(select, { childList: true, subtree: true, attributes: true });
   select.addEventListener('change', sync);
   // Programmatic selection changes do not fire DOM events (session restore, default load).
-  window.setInterval(sync, 300);
+  watchSelect(select, sync);
   sync();
 }

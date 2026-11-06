@@ -68,7 +68,7 @@ let startup,
   usageForeground;
 const { Preferences } = require('./core/preferences.cjs');
 const { Companion } = require('./personal/companion.cjs');
-const { bounds, surfaceBounds } = require('./core/layout.cjs');
+const { bounds, surfaceBounds, ISLAND_SMALL } = require('./core/layout.cjs');
 const { memoryCommand } = require('./personal/memory.cjs');
 const profileTransfer = require('./personal/profile-transfer.cjs');
 const { weatherReply } = require('./personal/weather-chat.cjs');
@@ -141,6 +141,10 @@ let win,
   chosenCwd = null;
 let dialogOpen = false,
   dropHeldUntil = 0;
+// v0.9.20: a shelf file is in the air. startDrag runs Windows' drag loop and Charles' timers go on
+// inside it; a timer that touches the window (click-through, topmost, taskbar, folding the panel)
+// could end the drag by itself, so they all wait. They cannot change anything the drag needs.
+let rackDragging = false;
 let blurTimer;
 let cursorTimer;
 let cursorQuota = null;
@@ -171,7 +175,11 @@ let petOut = false,
   petWin = null,
   petHover = false,
   contentDrop = null,
-  contentTarget = null;
+  contentTarget = null,
+  contentRun = 0,
+  contentWaiting = null, // v0.9.19: a card that waits for the drag in progress to end
+  petDragId = 0,
+  petFlight = null;
 let petDrag = null,
   detached = false,
   petPosition = null,
@@ -487,6 +495,7 @@ function setWorkspace(on) {
 /** v0.9.0: no taskbar button for the island and the notification cards (the app window keeps its). */
 let taskbarTimer = null;
 function offTaskbar() {
+  if (rackDragging) return;
   try {
     if (islandWin && !islandWin.isDestroyed()) islandWin.setSkipTaskbar(true);
     if (!workspace && appWin && !appWin.isDestroyed() && !appWin.isVisible()) appWin.setSkipTaskbar(true);
@@ -688,6 +697,8 @@ function startPetOut() {
 function endPetOut() {
   if (!petOut) return;
   petOut = false;
+  clearInterval(petFlight);
+  petFlight = null;
   stopPetPhysics();
   if (petDrag) petDrag = null;
   const w = petWin;
@@ -729,9 +740,64 @@ const petWindowOptions = () => {
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
   };
 };
-/** v0.9.18: Charles was dropped on a window: read it, then show the card in the chat. */
-async function readDropped(target, pick = -1) {
+/** v0.9.19: a short flight to `to` in his own window, then `done`. */
+function flyPet(to, done) {
+  clearInterval(petFlight);
+  petFlight = null;
+  if (!petOut || !petWin || petWin.isDestroyed()) return done();
+  const from = petWin.getBounds();
+  const started = Date.now();
+  const MS = 220;
+  petFlight = setInterval(() => {
+    if (!petOut || !petWin || petWin.isDestroyed()) {
+      clearInterval(petFlight);
+      petFlight = null;
+      return;
+    }
+    const k = Math.min(1, (Date.now() - started) / MS);
+    const e = 1 - (1 - k) ** 3;
+    petWin.setBounds({ x: Math.round(from.x + (to.x - from.x) * e), y: Math.round(from.y + (to.y - from.y) * e), width: from.width, height: from.height });
+    if (k < 1) return;
+    clearInterval(petFlight);
+    petFlight = null;
+    done();
+  }, 16);
+}
+/**
+ * v0.9.19: Charles goes back to where this drag took him from, without asking for anything to be
+ * read: his place on the panel or island, or the spot on the desktop he was left at before.
+ */
+function sendPetBack(origin) {
+  petPosition = origin.spot || origin.position;
+  if (petPosition) {
+    v2.data.petPosition = petPosition;
+    v2.save();
+  }
+  if (origin.spot) return petOut ? flyPet(origin.spot, () => {}) : detached && placePet(origin.spot);
+  if (detached) return detachPet(false);
+  if (!petOut) return;
+  if (workspace || !visibleBounds) return endPetOut();
+  const { PET_SIZE } = require('./core/desktop-pet.cjs');
+  flyPet({ x: Math.round(visibleBounds.x + visibleBounds.width / 2 - PET_SIZE / 2), y: Math.round(visibleBounds.y) }, endPetOut);
+}
+/** The chat opens with the card; Charles stays out of the panel if he is not going home. */
+function showContentCard(value) {
+  if (detached) {
+    detached = false;
+    win.webContents.send('ui-desktop-pet', false);
+    startPetOut();
+  }
+  if (!workspace) expand(true, true);
+  win.webContents.send('content-context', value);
+}
+/**
+ * v0.9.18: Charles was dropped on a window: read it, then show the card in the chat.
+ * v0.9.19: `drag` is the drag that brought him here: when the reading is over he goes back, unless
+ * he was picked up again meanwhile (a late answer never pulls him out of the user's hand).
+ */
+async function readDropped(target, pick = -1, drag = null) {
   contentTarget = target;
+  const run = ++contentRun;
   win.webContents.send('content-reading', true);
   let value;
   try {
@@ -741,14 +807,18 @@ async function readDropped(target, pick = -1) {
   } catch (e) {
     value = { error: e.message };
   }
+  if (run !== contentRun) return; // a newer drop took over; its card is the one that counts
   win.webContents.send('content-reading', false);
-  if (detached) {
-    detached = false;
-    win.webContents.send('ui-desktop-pet', false);
-    startPetOut();
+  finishDrop(value, drag);
+}
+function finishDrop(value, drag) {
+  if (petDrag) {
+    // in the user's hand: the card waits for the release (expand() would end the drag)
+    contentWaiting = value;
+    return;
   }
-  if (!workspace) expand(true, true);
-  win.webContents.send('content-context', value);
+  if (drag && drag.id === petDragId) sendPetBack(drag.origin);
+  showContentCard(value);
 }
 function contentAttachment(r) {
   const { target, text, image, file: saved, ...card } = r;
@@ -887,7 +957,7 @@ function raisePet() {
   if (!fullscreenOther) petWin.moveTop();
 }
 function applyTopmost() {
-  if (!win || win.isDestroyed()) return;
+  if (!win || win.isDestroyed() || rackDragging) return;
   raisePet();
   if (workspace || fullscreenOther) {
     clearInterval(petTopTimer);
@@ -899,12 +969,14 @@ function applyTopmost() {
   clearInterval(petTopTimer);
   win.moveTop();
   mailBubble?.raise();
+  dictation?.raise();
   raisePet();
   if (strong) {
     petTopTimer = setInterval(() => {
-      if ((detached || panelPinned || petOut) && !fullscreenOther && !win.isDestroyed()) {
+      if ((detached || panelPinned || petOut) && !fullscreenOther && !rackDragging && !win.isDestroyed()) {
         win.moveTop();
         mailBubble?.raise();
+        dictation?.raise();
         raisePet();
       }
     }, 2500);
@@ -912,17 +984,21 @@ function applyTopmost() {
 }
 // v0.9.6: watches the foreground window (Windows). A newly activated app may put itself above
 // the island (or Windows may drop the island's topmost flag): the island is raised again; a
-// full-screen app makes it step back.
+// full-screen app makes it step back. v0.9.20: the helper reports each change as it happens; the
+// slow timer only looks at the topmost flag, which no event reports.
 let topGuard = null,
   topForeground = null,
   lastForegroundWindow = 0;
+// v0.9.19: the guard and the usage statistics each kept a PowerShell for the same question
+let sharedForeground = null;
+function foregroundReader() {
+  return (sharedForeground ||= new (require('./system/foreground.cjs').Foreground)());
+}
 function startTopGuard() {
   if (process.platform !== 'win32' || topGuard || demo) return;
-  topForeground = new (require('./system/foreground.cjs').Foreground)();
-  topGuard = setInterval(async () => {
-    if (!win || win.isDestroyed() || workspace) return;
-    const fg = await topForeground.read().catch(() => null);
-    if (!fg || !win || win.isDestroyed() || workspace) return;
+  topForeground = foregroundReader();
+  const check = (fg) => {
+    if (!fg || !win || win.isDestroyed() || workspace || rackDragging) return;
     const ours = Number(fg.pid) === process.pid;
     const full = !!fg.full && !ours;
     if (full !== fullscreenOther) {
@@ -937,7 +1013,9 @@ function startTopGuard() {
     // and put the island back on top
     if ((Number(fg.window) !== lastForegroundWindow && !ours) || !win.isAlwaysOnTop()) applyTopmost();
     lastForegroundWindow = Number(fg.window) || 0;
-  }, 1500);
+  };
+  topForeground.watch(check);
+  topGuard = setInterval(async () => check(await topForeground.read().catch(() => null)), 5000);
   topGuard.unref?.();
 }
 function finishLayout(id) {
@@ -976,6 +1054,7 @@ function position(animate = false) {
     height: v2?.data.height || 620,
     scale,
     shelf: shelfHeight,
+    island: personal?.data.appearance.island === 'small' ? ISLAND_SMALL : 1,
   });
   // Keep the transparent native surface stable across notch/shelf/chat/hidden states.
   // Only moving displays, docking or explicitly resizing changes the native bounds.
@@ -1489,7 +1568,8 @@ else {
             event,
             personal,
             dir: path.join(app.getPath('userData'), 'calendar'),
-            open: (file) => void shell.openPath(file),
+            open: (file) => shell.openPath(file),
+            calendar: plugins.calendarWriter(),
           });
           if (p) proposals.add(p);
         },
@@ -1599,7 +1679,7 @@ else {
       );
       const sampleComputer = () =>
         computerTime.sample(Date.now(), powerMonitor.getSystemIdleState(300));
-      usageForeground = new (require('./system/foreground.cjs').Foreground)();
+      usageForeground = foregroundReader();
       let samplingComputer = false;
       const sampleApplications = async () => {
         if (samplingComputer) return;
@@ -1708,7 +1788,7 @@ else {
           : { action: 'deny' },
       );
       win.webContents.on('did-create-window', (w) => petWindowOpened(w));
-      contentDrop = new (require('./system/content-drop.cjs').ContentDrop)({ BrowserWindow, screen, globalShortcut, temp: app.getPath('temp') });
+      contentDrop = new (require('./system/content-drop.cjs').ContentDrop)({ BrowserWindow, screen, globalShortcut: demo ? { register: () => true, unregister: () => {} } : globalShortcut, temp: app.getPath('temp') });
       win.webContents.on('render-process-gone', () => {
         voiceHeld = false;
         micArmedUntil = 0;
@@ -2020,9 +2100,14 @@ else {
               ? origin
               : now;
           stopPetPhysics();
+          clearInterval(petFlight);
+          petFlight = null;
           const b = (petOut && petWin && !petWin.isDestroyed() ? petWin : win).getBounds();
           const { PET_SIZE } = require('./core/desktop-pet.cjs');
           petDrag = {
+            id: ++petDragId,
+            // where a reading sends him back to: his place, or the spot he was already left at
+            origin: { position: petPosition && { ...petPosition }, spot: detached || petOut ? { x: b.x, y: b.y } : null },
             start: p,
             moved: false,
             samples: [],
@@ -2035,14 +2120,21 @@ else {
           const drag = petDrag;
           petDrag = null;
           const target = contentDrop?.end();
-          if (drag?.moved && (detached || petOut)) {
-            if (target) void readDropped(target);
-            else releasePet(drag.samples);
-          }
-          if ((detached || petOut) && petPosition) {
+          const waiting = contentWaiting;
+          contentWaiting = null;
+          if ((detached || petOut) && petPosition && drag?.moved) {
             v2.data.petPosition = petPosition;
             v2.save();
           }
+          if (drag?.moved && (detached || petOut)) {
+            if (target?.cancelled) sendPetBack(drag.origin);
+            else if (target?.refused) finishDrop(target.refused, drag);
+            else if (target) void readDropped(target, -1, drag);
+            else {
+              releasePet(drag.samples);
+              if (waiting) showContentCard(waiting);
+            }
+          } else if (waiting) showContentCard(waiting);
         }
         return true;
       });
@@ -2181,6 +2273,10 @@ else {
         return panelPinned;
       });
       let mediaNote = '';
+      // v0.9.20: Windows says when the player changed, so the page need not keep asking
+      desktop.onMediaChange(() => {
+        if (win && !win.isDestroyed()) win.webContents.send('media-changed');
+      });
       safeHandler('media-control', async (action) => {
         require('./system/media-request.cjs').mediaRequest(action);
         const r = await desktop.media(action);
@@ -2528,7 +2624,6 @@ else {
       safeHandler('rack-drag', (id, card, scale) => {
         const file = rack.pathOf(id);
         clearTimeout(blurTimer);
-        dropHeldUntil = Date.now() + 1500;
         lastInside = Date.now();
         // drawn for this screen's scale: as a 1x picture it came out larger and was cut off
         let icon = null;
@@ -2537,7 +2632,16 @@ else {
           icon.addRepresentation({ scaleFactor: Math.max(1, Math.min(4, Number(scale) || 1)), dataURL: card });
         }
         if (!icon || icon.isEmpty()) icon = nativeImage.createFromPath(path.join(root, 'public', 'icon.png')).resize({ width: 32, height: 32 });
-        win.webContents.startDrag({ file, icon });
+        // it returns when the file has been dropped or the drag was cancelled
+        rackDragging = true;
+        dropHeldUntil = Number.MAX_SAFE_INTEGER;
+        try {
+          win.webContents.startDrag({ file, icon });
+        } finally {
+          rackDragging = false;
+          dropHeldUntil = Date.now() + 1500;
+          lastInside = Date.now();
+        }
         return true;
       });
       safeHandler('drop-active', (active) => {
@@ -2550,12 +2654,7 @@ else {
       });
       // v0.9.14: Araçlar → Renk seçici → "Ekrandan seç"
       colorPick = new ColorPick(win, () => v2?.data?.language || 'tr');
-      // v0.9.14: the screen picture helper starts ahead of time (the picker opens at once)
-      if (!demo) {
-        const grab = require('./system/screen-grab.cjs');
-        setTimeout(() => grab.warm(), 6000);
-        app.once('before-quit', () => grab.stopGrabber());
-      }
+      if (!demo) app.once('before-quit', () => require('./system/screen-grab.cjs').stopGrabber());
       safeHandler('color-pick', async () => {
         if (demo) return null;
         try {
@@ -2636,7 +2735,10 @@ else {
         shortcuts: shortcutNames,
         language: () => v2?.data?.language || 'tr',
         preload: path.join(__dirname, 'voice/dictation-preload.cjs'),
+        anchor: () => bubbleAnchor(),
+        cards: () => mailBubble?.box() || null,
       });
+      mailBubble.onPlaced = () => dictation.place();
       ipcMain.on('dictation-action', (event, name) => {
         if (dictation.win && event.sender === dictation.win.webContents) void dictation.action(String(name)).catch(() => {});
       });
@@ -2666,6 +2768,11 @@ else {
         return { shortcut: captureShortcut };
       });
       safeHandler('message-edit', (index) => agent.editMessage(index));
+      safeHandler('message-edit-info', (index) => {
+        const info = agent.editInfo(index);
+        return { ...info, attachments: info.attachments.map((a) => ({ ...a, available: !!extras.revive(a) })) };
+      });
+      safeHandler('message-edit-undo', (fork, from) => agent.undoEdit(fork, from));
       async function pickFolder() {
         dialogOpen = true;
         clearTimeout(blurTimer);
@@ -3482,7 +3589,7 @@ else {
                 } catch {}
               }
             }
-            return { name: a.name, kind: a.kind, thumbnail, preview };
+            return { id, name: a.name, kind: a.kind, thumbnail, preview };
           }),
           memory:
             personal.memory() +
@@ -4084,7 +4191,7 @@ else {
       }
       function watchCursor() {
         cursorTimer = setTimeout(watchCursor, petDrag ? 16 : hidden ? 150 : detached || workspace ? 33 : 16);
-        if (!win || win.isDestroyed() || !win.isVisible() || win.isMinimized()) return;
+        if (!win || win.isDestroyed() || !win.isVisible() || win.isMinimized() || rackDragging) return;
         const point = screen.getCursorScreenPoint();
         if (petDrag && !pluginGuide) {
           movePetDrag(point);
@@ -4207,6 +4314,8 @@ else {
         });
       for (const event of ['resume', 'unlock-screen'])
         powerMonitor.on(event, () => {
+          // v0.9.20: event hooks and the media connection are set up again, each exactly once
+          require('./system/helper-hub.cjs').hub().refresh();
           computerTime.sample(Date.now(), powerMonitor.getSystemIdleState(300));
           win.webContents.send('ui-power-paused', false);
         });
@@ -4268,6 +4377,7 @@ else {
     liveVoice?.stop();
     wakeVoice?.stop();
     desktop.stop();
+    require('./system/helper-hub.cjs').hub().stop();
     agent?.stop();
   });
   app.on('window-all-closed', () => app.quit());

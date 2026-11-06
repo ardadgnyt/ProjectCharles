@@ -2,8 +2,13 @@
 //
 // Mail triage (mail-triage.cjs) also returns a deadline for each important mail. Charles then
 // asks in the chat whether to put it in the calendar. Accepting adds two Charles reminders
-// before the last day (they pop up as island bubbles) and, if wanted, opens an .ics file so
-// Windows Takvim / Outlook can add the event to the user's own calendar.
+// before the last day (they pop up as island bubbles).
+//
+// v0.9.20: no program is opened unasked. Opening the .ics file was what started Outlook: Windows
+// hands the file to its default calendar app, which stays open, and the event exists only once the
+// user presses Save there. With a calendar Charles can write to (Google Takvim) the event is added
+// directly; without one, the file is a button of its own that says what it does.
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -57,14 +62,14 @@ const icsText = (s) =>
     .slice(0, 300);
 
 // A minimal single-event iCalendar file (local "floating" time).
-function icsFile({ title, at, allDay, note = '' }, now = Date.now()) {
+function icsFile({ title, at, allDay, note = '', uid = '' }, now = Date.now()) {
   const start = new Date(at);
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//ProjectCharles//Takvim//TR',
     'BEGIN:VEVENT',
-    `UID:${at}-${Math.random().toString(36).slice(2)}@charles`,
+    `UID:${uid || `${at}-${Math.random().toString(36).slice(2)}`}@charles`,
     `DTSTAMP:${icsTime(new Date(now))}`,
   ];
   if (allDay) {
@@ -86,8 +91,9 @@ function icsFile({ title, at, allDay, note = '' }, now = Date.now()) {
 }
 
 // Builds the chat proposal for one important mail with a date.
-// personal: Personal instance; dir: where .ics files go; open(file): opens it in Windows.
-function deadlineProposal({ mail, deadline, event, personal, dir, open, now = Date.now() }) {
+// personal: Personal instance; dir: where .ics files go; open(file): opens it in Windows, resolves
+// to an error text or ''. calendar: { name, add(event) } when a calendar can be written, else null.
+function deadlineProposal({ mail, deadline, event, personal, dir, open, calendar = null, now = Date.now() }) {
   const parsed = parseDeadline(deadline, now);
   if (!parsed) return null;
   const title = String(event || mail.title || 'E-postadaki tarih')
@@ -96,15 +102,22 @@ function deadlineProposal({ mail, deadline, event, personal, dir, open, now = Da
     .slice(0, 120);
   const text =
     `📅 “${String(mail.title || 'Konusuz').slice(0, 120)}” e-postasında bir tarih yakaladım: ` +
-    `**${title}** — ${when(parsed)}. Takvime ekleyip son günden önce adacıktan hatırlatayım mı?`;
+    `**${title}** — ${when(parsed)}. ` +
+    (calendar
+      ? `${calendar.name}’e ekleyip son günden önce adacıktan hatırlatayım mı?`
+      : 'Son günden önce adacıktan hatırlatayım mı?');
+  // the same mail and date give the same id: answering twice never makes a second event
+  const uid = crypto
+    .createHash('sha1')
+    .update([mail.id || mail.title || '', title, parsed.at].join('|'))
+    .digest('hex');
   const remind = () => {
     const times = reminderTimes(parsed, Date.now());
-    for (const due of times)
-      personal.edit('reminder-add', {
-        title: `📅 ${title} — ${when(parsed)}`,
-        due,
-        kind: 'reminder',
-      });
+    const name = `📅 ${title} — ${when(parsed)}`;
+    for (const due of times) {
+      if (personal.data?.reminders?.some((r) => r.title === name && r.due === due)) continue;
+      personal.edit('reminder-add', { title: name, due, kind: 'reminder' });
+    }
     return times;
   };
   const describe = (times) =>
@@ -120,15 +133,34 @@ function deadlineProposal({ mail, deadline, event, personal, dir, open, now = Da
           )
           .join(' ve ')} tarihinde adacıktan hatırlatacağım.`
       : 'Son tarih çok yakın; hatırlatma kuramadım.';
+  const toCalendar = {
+    id: 'calendar',
+    label: `${calendar?.name || 'Takvim'}’e ekle + hatırlat`,
+    primary: true,
+    run: async () => {
+      // a calendar that refuses leaves nothing half done, and the question stays for a new try
+      const added = await calendar.add({
+        title,
+        start: parsed.at,
+        allDay: parsed.allDay,
+        description: 'Kaynak e-posta: ' + (mail.title || ''),
+        reminder: 1440,
+        uid,
+      });
+      const first = added?.existed ? `Bu etkinlik ${calendar.name}’de zaten var.` : `${calendar.name}’e ekledim.`;
+      return first + ' ' + describe(remind());
+    },
+  };
   return {
     text,
     actions: [
+      ...(calendar ? [toCalendar] : []),
+      { id: 'remind', label: calendar ? 'Sadece hatırlat' : 'Hatırlat', primary: !calendar, run: () => describe(remind()) },
       {
-        id: 'calendar',
-        label: 'Takvime ekle + hatırlat',
-        primary: true,
-        run: () => {
-          const times = remind();
+        // the only path that opens a program, and only on this button
+        id: 'file',
+        label: 'Takvim dosyasını aç (Outlook açılabilir)',
+        run: async () => {
           fs.mkdirSync(dir, { recursive: true });
           const name =
             title
@@ -138,16 +170,16 @@ function deadlineProposal({ mail, deadline, event, personal, dir, open, now = Da
           const file = path.join(dir, name + '.ics');
           fs.writeFileSync(
             file,
-            icsFile({ title, ...parsed, note: 'Kaynak e-posta: ' + (mail.title || '') }),
+            icsFile({ title, ...parsed, uid, note: 'Kaynak e-posta: ' + (mail.title || '') }),
           );
-          open(file);
+          const error = await open(file);
+          if (error) throw Error('Takvim dosyası açılamadı: ' + error);
           return (
-            describe(times) +
-            ' Takvim dosyasını da açtım; Windows Takvim veya Outlook’ta **Kaydet** demen yeterli.'
+            describe(remind()) +
+            ' Takvim dosyasını açtım. Etkinlik, açılan uygulamada **Kaydet** dediğinde takvimine eklenir.'
           );
         },
       },
-      { id: 'remind', label: 'Sadece hatırlat', run: () => describe(remind()) },
       { id: 'no', label: 'Gerek yok', run: () => 'Peki, eklemedim.' },
     ],
   };

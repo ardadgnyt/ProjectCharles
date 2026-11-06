@@ -213,7 +213,7 @@ test('the island stays on top unless another app is full screen', () => {
   const main = read('app/main.cjs');
   assert.match(main, /if \(workspace \|\| fullscreenOther\) \{/);
   assert.match(main, /startTopGuard\(\);/);
-  assert.match(read('app/system/foreground.ps1'), /full=\[CharlesForeground\]::FullScreen\(\$handle\)/);
+  assert.match(read('setup/CharlesHelper.cs'), /var h = GetForegroundWindow\(\); var full = FullScreen\(h\);/);
 });
 
 test('no yawning or sleeping while music plays (he dances instead)', () => {

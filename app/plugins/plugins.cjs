@@ -906,10 +906,15 @@ class Plugins {
     delete this.cache.calendar;
     return true;
   }
+  /** The calendar Charles can write to, if one is connected (Outlook's connection reads only). */
+  calendarWriter() {
+    return this.data.tokens.gcal ? { name: 'Google Takvim', add: (ev) => this.calendarAdd(ev) } : null;
+  }
   async calendarAdd(ev) {
     if (!this.data.tokens.gcal)
       throw Error('Etkinlik eklemek için Ayarlar → Eklentiler → Google Takvim’i bağla.');
     const body = this.eventBody(ev);
+    if (typeof ev.uid === 'string' && /^[a-v0-9]{5,1024}$/.test(ev.uid)) body.id = ev.uid;
     const r = await this.json('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
       method: 'POST',
       headers: {
@@ -917,8 +922,13 @@ class Plugins {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+    }).catch((e) => {
+      // v0.9.20: Google already has this id: an answer that was lost, or the same mail twice
+      if (body.id && /HTTP 409/.test(e.message)) return null;
+      throw e;
     });
     delete this.cache.calendar;
+    if (!r) return { id: body.id, existed: true };
     return { id: r.id, title: r.summary, date: r.start?.dateTime || r.start?.date, link: r.htmlLink || null };
   }
   async homeAction(entity, action, signal) {

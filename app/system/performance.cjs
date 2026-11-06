@@ -1,8 +1,8 @@
 // CPU / RAM / GPU usage history (SQLite).
 const path = require('node:path'),
   fs = require('node:fs'),
-  os = require('node:os');
-const { execFile } = require('node:child_process');
+  os = require('node:os'),
+  readline = require('node:readline');
 const { normalize } = require('./desktop.cjs');
 // Local shortcuts must not capture narrative text or ordinary technical questions.
 function performanceIntent(prompt) {
@@ -38,7 +38,10 @@ function performanceIntent(prompt) {
   return { metric, text };
 }
 class PerformanceHistory {
-  constructor(dir) {
+  constructor(dir, { spawnHelper = null } = {}) {
+    this.spawnHelper = spawnHelper;
+    this.child = null;
+    this.waiter = null;
     const { DatabaseSync } = require('node:sqlite');
     this.db = new DatabaseSync(path.join(dir, 'resource-history.sqlite'));
     this.db.exec(
@@ -84,31 +87,7 @@ class PerformanceHistory {
     if (this.running || !this.enabled) return;
     this.running = true;
     try {
-      const value = await new Promise((resolve, reject) =>
-        execFile(
-          path.join(
-            process.env.SystemRoot || 'C:\\Windows',
-            'System32/WindowsPowerShell/v1.0/powershell.exe',
-          ),
-          [
-            '-NoLogo',
-            '-NoProfile',
-            '-NonInteractive',
-            '-Command',
-            fs.readFileSync(path.join(__dirname, 'performance.ps1'), 'utf8'),
-          ],
-          { windowsHide: true, timeout: 20000, maxBuffer: 5e6 },
-          (e, out) => {
-            if (e) reject(e);
-            else
-              try {
-                resolve(JSON.parse(out.replace(/^\uFEFF/, '')));
-              } catch (e) {
-                reject(e);
-              }
-          },
-        ),
-      );
+      const value = await this.ask();
       if (this.enabled) {
         this.record(value);
         this.lastError = '';
@@ -119,6 +98,43 @@ class PerformanceHistory {
     } finally {
       this.running = false;
     }
+  }
+  /** One reading through the helper's usage channel (v0.9.20: no shell per sample). */
+  channel() {
+    if (this.child) return this.child;
+    const child = this.spawnHelper ? this.spawnHelper() : require('./helper-hub.cjs').open('usage');
+    this.child = child;
+    readline.createInterface({ input: child.stdout }).on('line', (line) => {
+      let value = null;
+      try {
+        value = JSON.parse(line);
+      } catch {}
+      this.settle(value && !value.failed ? value : null);
+    });
+    const gone = () => {
+      if (this.child !== child) return;
+      this.child = null;
+      this.settle(null);
+    };
+    child.on('error', gone);
+    child.on('exit', gone);
+    child.stdin.on('error', gone);
+    return child;
+  }
+  settle(value) {
+    const w = this.waiter;
+    this.waiter = null;
+    if (!w) return;
+    clearTimeout(w.timer);
+    if (value) w.resolve(value);
+    else w.reject(Error('no reading'));
+  }
+  ask() {
+    return new Promise((resolve, reject) => {
+      const child = this.channel();
+      this.waiter = { resolve, reject, timer: setTimeout(() => this.settle(null), 20000) };
+      child.stdin.write('usage\n');
+    });
   }
   record(value, now = Date.now()) {
     const elapsed = (now - this.last) / 1000,
@@ -252,6 +268,10 @@ class PerformanceHistory {
   stop() {
     clearInterval(this.timer);
     this.enabled = false; /* pending helper can finish without writing */
+    const c = this.child;
+    this.child = null;
+    this.settle(null);
+    c?.kill();
   }
 }
 module.exports = { PerformanceHistory, performanceIntent };

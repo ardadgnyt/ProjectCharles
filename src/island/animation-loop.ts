@@ -20,8 +20,21 @@ export function animationLoop(
   };
   // a minimized window gets no animation frames; what still has to run (Charles outside it) goes
   // on with a timer
+  // v0.9.19: between two frames it sleeps. Asking for every display refresh only to skip most of
+  // them woke the page (and with it the compositor) 144 times a second for 30 drawn frames.
   const schedule = () => {
-    frame = document.visibilityState === 'visible' ? requestAnimationFrame(tick) : -window.setTimeout(() => tick(performance.now()), 50);
+    if (document.visibilityState !== 'visible') {
+      frame = -window.setTimeout(() => tick(performance.now()), 50);
+      return;
+    }
+    const sleep = last ? 1000 / fps() - (performance.now() - last) - 6 : 0;
+    if (sleep < 4) {
+      frame = requestAnimationFrame(tick);
+      return;
+    }
+    frame = -window.setTimeout(() => {
+      frame = requestAnimationFrame(tick);
+    }, sleep);
   };
   const cancel = () => (frame < 0 ? window.clearTimeout(-frame) : cancelAnimationFrame(frame));
   const refresh = () => {

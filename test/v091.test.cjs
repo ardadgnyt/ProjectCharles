@@ -45,7 +45,7 @@ test('low quota: no warning when Codex has credits, for an old window, or before
 
 test('pictures sent in the chat open large on a click', () => {
   const main = read('app/main.cjs');
-  assert.match(main, /return \{ name: a\.name, kind: a\.kind, thumbnail, preview \};/);
+  assert.match(main, /return \{ id, name: a\.name, kind: a\.kind, thumbnail, preview \};/);
   assert.match(main, /preview = storeImage\(dir, data\);/);
   assert.match(main, /\/\^\[0-9a-f\]\{40\}\\\.\(png\|jpg\|webp\|gif\)\$\//);
   const renderer = read('src/renderer.ts');
@@ -62,9 +62,9 @@ test('pictures sent in the chat open large on a click', () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('version 0.9.18', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.9.18-beta.1');
-  assert.match(read('public/index.html'), /v0\.9\.18 Beta/);
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.9\.18 Beta'/);
-  assert.match(read('CHANGELOG.md'), /## v0\.9\.18 Beta/);
+test('version 0.9.20', () => {
+  assert.equal(JSON.parse(read('package.json')).version, '0.9.20-beta.1');
+  assert.match(read('public/index.html'), /v0\.9\.20 Beta/);
+  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.9\.20 Beta'/);
+  assert.match(read('CHANGELOG.md'), /## v0\.9\.20 Beta/);
 });

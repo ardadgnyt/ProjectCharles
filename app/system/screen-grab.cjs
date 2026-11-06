@@ -4,53 +4,13 @@
 // comes out over-saturated ("cırtlak") and its colours are wrong. GDI (Graphics.CopyFromScreen)
 // gets the desktop as SDR applications see it, which is what the user sees for normal windows.
 //
-// Speed: starting PowerShell and compiling its helper takes a second or two, so one PowerShell
-// is started ahead of time (warm()) and kept waiting; each picture is one line on its stdin
-// ("x y w h") and comes back on stdout as raw BGRA pixels behind an 8-byte header (width,
+// Speed and size: v0.9.20: charles-helper.exe --grab starts in moments, takes pictures on request
+// and goes after REST_MS; nothing waits while no picture is wanted. Each picture is one line on its
+// stdin ("x y w h") and comes back on stdout as raw BGRA pixels behind an 8-byte header (width,
 // height) — no PNG encoding, nothing written to disk. Anywhere other than Windows, or if the
 // helper fails, desktopCapturer is used as before.
 const { desktopCapturer, nativeImage, screen } = require('electron');
-const { spawn } = require('node:child_process');
-
-const HELPER = `
-$ErrorActionPreference = 'Stop'
-Add-Type -AssemblyName System.Drawing
-Add-Type -TypeDefinition @'
-using System; using System.Runtime.InteropServices;
-public static class CharlesDpi {
-  [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr v);
-  [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
-}
-'@
-try { if (-not [CharlesDpi]::SetProcessDpiAwarenessContext([IntPtr](-4))) { [CharlesDpi]::SetProcessDPIAware() | Out-Null } } catch { [CharlesDpi]::SetProcessDPIAware() | Out-Null }
-$out = [Console]::OpenStandardOutput()
-[Console]::Out.Write("ready\`n"); [Console]::Out.Flush()
-while ($true) {
-  $line = [Console]::In.ReadLine()
-  if ($null -eq $line -or $line -eq 'quit') { break }
-  $p = $line.Split(' ')
-  $x = [int]$p[0]; $y = [int]$p[1]; $w = [int]$p[2]; $h = [int]$p[3]
-  try {
-    $bmp = New-Object System.Drawing.Bitmap $w, $h, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
-    $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.CopyFromScreen($x, $y, 0, 0, (New-Object System.Drawing.Size $w, $h), [System.Drawing.CopyPixelOperation]::SourceCopy)
-    $g.Dispose()
-    $rect = New-Object System.Drawing.Rectangle 0, 0, $w, $h
-    $data = $bmp.LockBits($rect, [System.Drawing.Imaging.ImageLockMode]::ReadOnly, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
-    # 32 bpp rows have no padding: one copy (a per-pixel PowerShell loop took seconds)
-    $bytes = New-Object byte[] ($w * $h * 4)
-    [System.Runtime.InteropServices.Marshal]::Copy($data.Scan0, $bytes, 0, $bytes.Length)
-    $bmp.UnlockBits($data); $bmp.Dispose()
-    $head = [BitConverter]::GetBytes([int]$w) + [BitConverter]::GetBytes([int]$h)
-    $out.Write($head, 0, 8); $out.Write($bytes, 0, $bytes.Length); $out.Flush()
-  } catch {
-    $zero = [BitConverter]::GetBytes([int]0) + [BitConverter]::GetBytes([int]0)
-    $out.Write($zero, 0, 8); $out.Flush()
-  }
-}
-`;
-// kept for the tests and as a one-off fallback description
-const SCRIPT = (x, y, w, h) => `CopyFromScreen(${x}, ${y}, 0, 0) SetProcessDpiAwarenessContext ${w}x${h}`;
+const REST_MS = 60000;
 
 /** The display's rectangle in physical screen pixels (what GDI uses). */
 function physicalRect(display) {
@@ -59,9 +19,9 @@ function physicalRect(display) {
   return { x: Math.round(display.bounds.x * f), y: Math.round(display.bounds.y * f), width: Math.round(display.bounds.width * f), height: Math.round(display.bounds.height * f) };
 }
 
-/** One waiting PowerShell that takes pictures on request. */
+/** The helper in its picture mode, for as long as pictures are being taken. */
 class Grabber {
-  constructor(spawnImpl = spawn) {
+  constructor(spawnImpl = () => require('./helper-hub.cjs').startHelper(['--grab'])) {
     this.spawn = spawnImpl;
     this.child = null;
     this.ready = null;
@@ -77,9 +37,7 @@ class Grabber {
     this.ready = new Promise((resolve, reject) => {
       let child;
       try {
-        // the script goes in as -EncodedCommand, so stdin is free for the requests
-        const encoded = Buffer.from(HELPER, 'utf16le').toString('base64');
-        child = this.spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded], { windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] });
+        child = this.spawn();
       } catch (e) {
         this.ready = null;
         return reject(e);
@@ -87,6 +45,7 @@ class Grabber {
       this.child = child;
       let started = false;
       const fail = (e) => {
+        if (this.child && this.child !== child) return; // an older helper going away
         this.child = null;
         this.ready = null;
         this.buf = Buffer.alloc(0);
@@ -160,8 +119,15 @@ class Grabber {
     this.waiting = null;
     w.resolve({ width, height, pixels });
   }
+  /** Keeps the helper for a while yet; with nothing asked it goes, and comes back when needed. */
+  keep() {
+    clearTimeout(this.rest);
+    this.rest = setTimeout(() => !this.waiting && this.stop(), REST_MS);
+    this.rest.unref?.();
+  }
   grab(r) {
     const job = this.queue.then(async () => {
+      this.keep();
       await this.start();
       return new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
@@ -180,6 +146,7 @@ class Grabber {
     return job;
   }
   stop() {
+    clearTimeout(this.rest);
     try {
       this.child?.stdin.write('quit\n');
       this.child?.kill();
@@ -192,12 +159,6 @@ class Grabber {
 }
 let grabber = null;
 const getGrabber = () => (grabber ||= new Grabber());
-
-/** Starts the helper ahead of time, so the first picture is quick (Windows only). */
-function warm(platform = process.platform) {
-  if (platform !== 'win32') return;
-  getGrabber().start().catch(() => {});
-}
 
 async function gdi(display) {
   const r = physicalRect(display);
@@ -233,4 +194,4 @@ async function grabDisplay(display, { platform = process.platform } = {}) {
 function stopGrabber() {
   grabber?.stop();
 }
-module.exports = { grabDisplay, physicalRect, warm, stopGrabber, Grabber, SCRIPT, HELPER };
+module.exports = { grabDisplay, physicalRect, stopGrabber, Grabber };

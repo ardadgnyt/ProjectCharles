@@ -15,6 +15,20 @@ body {
   border-radius: 10px;
   background: rgba(237, 201, 169, 0.07);
 }
+#frame.open {
+  animation: frame-open 170ms ease-out both;
+}
+@keyframes frame-open {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #frame.open {
+    animation: none;
+  }
+}
 #frame.off {
   border-color: rgba(245, 238, 229, 0.45);
   border-style: dashed;

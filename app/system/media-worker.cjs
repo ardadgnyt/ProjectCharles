@@ -1,10 +1,10 @@
-// Long-lived PowerShell worker for Windows media session (Spotify) status and control.
-const { spawn } = require('node:child_process');
-const fs = require('node:fs'),
-  path = require('node:path'),
-  readline = require('node:readline');
+// Windows media session (Spotify) status and control, through the helper's media channel
+// (setup/CharlesHelper.cs). v0.9.20: the helper also says when the session changed (onChange).
+const readline = require('node:readline');
 class MediaWorker {
-  constructor() {
+  constructor({ spawnHelper = null, onChange = null } = {}) {
+    this.spawnHelper = spawnHelper;
+    this.onChange = onChange;
     this.child = null;
     this.waiter = null;
     this.queue = Promise.resolve();
@@ -22,27 +22,15 @@ class MediaWorker {
   }
   start() {
     if (this.child) return;
-    const exe = path.join(
-      process.env.SystemRoot || 'C:\\Windows',
-      'System32/WindowsPowerShell/v1.0/powershell.exe',
-    );
-    const child = spawn(
-      exe,
-      [
-        '-NoLogo',
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        fs.readFileSync(path.join(__dirname, 'media-worker.ps1'), 'utf8'),
-      ],
-      { windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] },
-    );
+    const child = this.spawnHelper ? this.spawnHelper() : require('./helper-hub.cjs').open('media');
     this.child = child;
     const lines = readline.createInterface({ input: child.stdout });
     lines.on('line', (line) => {
-      if (this.child !== child || !this.waiter) return;
+      if (this.child !== child) return;
       try {
         const value = JSON.parse(line.replace(/^\uFEFF/, ''));
+        if (value?.changed) return void this.onChange?.();
+        if (!this.waiter) return;
         const w = this.waiter;
         this.waiter = null;
         clearTimeout(w.timer);

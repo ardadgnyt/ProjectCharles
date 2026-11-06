@@ -11,7 +11,7 @@ Charles is an Electron app with three parts: the **main process** (Node.js, `app
  │ ai/             Codex app-server (JSON-RPC), Claude Code, Antigravity, Cursor; chat rooms │
  │ plugins/        Gmail/Calendar/Drive, Outlook, POP3/IMAP, Home Assistant, services   │
  │ voice/          Hey Charles wake word, Whisper dictation, Gemini Live                │
- │ system/         foreground app, media, performance, capture (PowerShell workers)     │
+ │ system/         foreground app, media, performance, capture (charles-helper.exe)     │
  │ personal/       memory, reminders, weather, accessories, first-run profile           │
  │ core/           durable JSON store, preferences, policy, desktop-pet physics         │
  └──────────────────────────────▲────────────────────────────────────▲─────────────────┘

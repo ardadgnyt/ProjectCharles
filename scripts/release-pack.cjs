@@ -34,6 +34,7 @@ function collect(rel, out) {
 function pack({ outDir = path.join(ROOT, 'release'), extra = [] } = {}) {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   if (!fs.existsSync(path.join(ROOT, 'Charles.exe'))) throw Error('Charles.exe missing: build the release on Windows.');
+  if (!fs.existsSync(path.join(ROOT, 'app', 'system', 'charles-helper.exe'))) throw Error('charles-helper.exe missing: run scripts/build-helper.ps1.');
   if (!fs.existsSync(path.join(ROOT, 'dist', 'renderer.js')))
     throw Error('dist/ is missing: run `npm run build` first. / dist/ yok: önce `npm run build` çalıştır.');
   // v0.9.9: never ship a dist/ built before the version was raised (v0.9.8 showed "v0.9.7 Beta")

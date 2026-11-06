@@ -80,13 +80,40 @@ Windows’ application data folder: `%APPDATA%\Charles`. See section 6.
 | `app/plugins/` | Accounts and notifications | `plugins.cjs`, `pop3.cjs`, `plugin-commands.cjs`, `home-climate.cjs`, `mail-search.cjs`, `oauth-setup.cjs`, `mail-triage.cjs`, `mail-alerts.cjs`, `mail-bubble.cjs` + `bubble-preload.cjs`, `deadlines.cjs`, `whatsapp-live.cjs` |
 | `app/voice/` | Voice | `voice.cjs` + `voice.ps1` (Whisper, Windows speech), `dictation.cjs` + `dictation-preload.cjs` (push to talk), `gemini-live.cjs`, `live-computer.cjs`, `live-plugins.cjs`, `wake-profile.cjs` |
 | `app/personal/` | Personal data | `personal.cjs`, `memory.cjs`, `profile-transfer.cjs`, `creator-profile.cjs`, `companion.cjs`, `weather.cjs`, `weather-chat.cjs` |
-| `app/system/` | Windows helpers | `desktop.cjs` + `.ps1`, `media-worker.*`, `performance.*`, `live-metrics.cjs` + `.ps1` (system monitor), `content-drop.cjs` + `content-reader.ps1` (what Charles reads when dropped), `dictation-keys.ps1` (push-to-talk key hook and typing), `watchdog.cjs`, `foreground.*`, `computer-time.cjs`, `weekly.cjs`, `capture.cjs`, `web-commands.cjs`, `whatsapp.cjs`, `open-with.cjs` |
+| `app/system/` | Windows helpers | `helper-hub.cjs` + `charles-helper.exe` (the one helper process; source `setup/CharlesHelper.cs`), `desktop.cjs` + `.ps1`, `media-worker.cjs`, `performance.cjs`, `live-metrics.cjs` (system monitor), `content-drop.cjs` + `content-reader.ps1` (what Charles reads when dropped), `watchdog.cjs`, `foreground.cjs`, `computer-time.cjs`, `weekly.cjs`, `capture.cjs`, `web-commands.cjs`, `whatsapp.cjs`, `open-with.cjs` |
 | `app/files/` | Files | `library.cjs`, `docx.cjs`, `pdf-text.cjs`, `file-rack.cjs`, `slides.cjs` + `pptx-read.cjs`, `ppt-read.cjs`, `powerpoint-com.cjs`, `convert.cjs`, `share.cjs` |
 
 Every file starts with a short description line.
 
-**Rule:** `.ps1` helpers stay in the same folder as the `.cjs` that runs them. Long-running helpers
-read one line per request instead of starting a shell per sample.
+**Rule:** work that runs all day goes in the helper (`setup/CharlesHelper.cs`), not in a PowerShell
+process. `.ps1` helpers are for occasional work and stay in the same folder as the `.cjs` that runs
+them.
+
+### The helper (`charles-helper.exe`)
+One small program built by `scripts/build-helper.ps1` (`npm run build` runs it when the source
+changed) with the .NET Framework compiler and WinRT metadata that come with Windows. It needs no SDK
+and no install, and it is tracked like `Charles.exe`. `helper-hub.cjs` starts it with the first
+channel and ends it with the last; each channel behaves like a child process of its own, so
+`Foreground`, `MediaWorker`, `LiveMetrics`, `PerformanceHistory` and `Dictation` use it the way they
+used their own process.
+
+| Channel | Thread | What it does |
+| --- | --- | --- |
+| `fg` | message loop | foreground window; reports changes through WinEvent hooks, no polling |
+| `media` | queue | Spotify session; `{"changed":true}` when it changes, then the page asks |
+| `metrics` | queue | counters for the system monitor |
+| `usage` | queue | per-program usage, once a minute |
+| `keys` | queue + hook thread | push to talk; the hook has its own thread and is removed on `off` |
+
+Messages are `<channel>\t<payload>` lines. The channels and their requests are a fixed list: nothing
+runs a command. `--grab` (pictures of the screen; goes after a minute's rest) and `--static`
+(processor and memory names, once) are short-lived modes of the same file.
+
+The helper ends when stdin closes, so it cannot outlive Charles, and Windows removes its hooks with
+it. After sleep or unlock `hub.refresh()` sets hooks and the media connection up again, replacing the
+old ones. After four falls within a minute it is not started for five minutes. The classes that use
+a channel handle a failed channel as they handled a failed process. Keep the file to C# 5 (the
+compiler Windows ships).
 
 ---
 
@@ -114,7 +141,7 @@ read one line per request instead of starting a shell per sample.
 | `capture.html/.css/.js` | Screen region selection layer |
 | `pet.html/.css` | Charles outside the panel (drawn by the page’s own engine) |
 | `drop-target.html/.css/.js` | The frame around what Charles would read |
-| `dictation.html/.css/.js` | The push-to-talk indicator |
+| `dictation.html/.css/.js` | The push-to-talk indicator, under the island |
 | `styles/*.css` | Styles, loaded in order; a later file overrides an earlier one |
 
 Colours come from the `:root` variables in `5-design-system.css` (`--sb-*`) and `6-acrylic.css`
@@ -180,17 +207,61 @@ island the older mode (`detached`) shrinks the whole page to him.
 
 ### Dropping Charles on content
 `content-drop.cjs` arms only after the pointer stayed still (`holdStep`). `content-reader.ps1` finds
-the first window under the point, skipping Charles’ own, through UI Automation. A saved Word or
-PowerPoint file and a local PDF in a browser are attached as files; other text becomes an attachment
-with `untrusted: 'content'`, so the turn runs without tools and the text is fenced as data.
+the first window under the point, skipping Charles’ own and windows that show nothing, from the
+window list alone (`probe`, milliseconds); the exact area comes after from UI Automation (`refine`),
+which may take seconds on a large page and never holds the frame back. The frame's window is drawn
+before it is shown and closes a few seconds after the drag. A saved Word or PowerPoint file and a
+local PDF in a browser are attached as files; other text becomes an attachment with
+`untrusted: 'content'`, so the turn runs without tools and the text is fenced as data.
+
+`pet-drag` notes where the drag began (`origin`). When the reading ends `finishDrop()` sends him
+back with `sendPetBack()`, unless a newer drag has begun (`petDragId`); a result that arrives during
+a drag waits for the release. A newer drop drops an older result (`contentRun`).
+`src/chat/content-context.ts` holds the card: `sent(ids)` removes it once the chat took a message
+with that attachment; a message the chat refused leaves it.
+
+### Dates in mail
+`deadlineProposal()` in `app/plugins/deadlines.cjs` asks in the chat. With Google Takvim connected
+(`plugins.calendarWriter()`) the event is added directly, under an id made from the mail and date, so
+answering twice makes one event. Microsoft's connection reads only (`Calendars.Read`). No program is
+opened unasked: the `.ics` file is a button of its own, because Windows hands it to the default
+calendar app (often Outlook) and the event only exists once the user saves it there. A failed answer
+leaves the question open (`Proposals.answer`).
+
+### Dragging a file off the shelf
+`dragCard()` in `src/island/file-rack.ts` draws the picture and name in real pixels, as under a
+desktop icon, and `rack-drag` hands it to Electron's `startDrag`, which is Windows' drag and drop in
+Charles' own process. Electron writes the file's path in whatever room is left beside the picture and
+that cannot be turned off, so the picture is kept wide, with clear sides. Starting the drag from the
+helper was tried in v0.9.20 and does not work: the mouse belongs to Charles' window while the button
+is down, so a drag in another process either never ends or ends at once.
+
+### Island size
+`appearance.island` is `large` or `small` (Settings → Appearance). `layout.cjs` makes the closed island
+and its strip 2/3 from the same base numbers, so the window and click area shrink; `37-v0920.css` zooms
+the content. The open panel does not change.
+
+### Sending a message
+`sendMessage()` in `src/renderer.ts` is the one way out. Called with no argument it takes the message
+box; with `{ text, attachments? }` (an edited bubble, a button on the content card) it leaves the box
+and its draft alone. It resolves true once `api.send` accepted the message.
+
+### Editing a message
+`src/chat/message-editor.ts` edits inside the bubble and changes nothing until Save. Save branches
+with `editMessage`, switches to the branch and sends. If the message is refused, `undoEdit` removes
+the branch and the editor reopens with the text and the reason. `editInfo` tells the editor which
+attachments can go again; a history entry keeps the attachment's `id`, and `extras.revive()` finds the
+file in the inbox (seven days).
 
 ### Push to talk
-`dictation-keys.ps1` holds a low-level keyboard hook that looks at one key; the gestures live in its
-`PushToTalk` class. Text is typed with `SendInput` as Unicode, marked so the hook ignores it.
-`dictation.cjs` compares the target before and after with `canType()`.
+The helper's `keys` channel holds a low-level keyboard hook that looks at one key; the gestures live
+in its `PushToTalk` class. Text is typed with `SendInput` as Unicode, marked so the hook ignores it.
+`dictation.cjs` compares the target before and after with `canType()`. The indicator uses
+`bubbleSpot()` too, from the island or from the cards when they show, and follows them through
+`mailBubble.onPlaced`. Its window closes 30 seconds after it was last hidden.
 
 ### System monitor
-`live-metrics.cjs` keeps one helper running and an hour of samples: every second while the monitor
+`live-metrics.cjs` uses the helper's `metrics` channel and keeps an hour of samples: every second while the monitor
 is on screen, every 5 seconds otherwise. GPU load per adapter is the sum per engine across processes,
 then the busiest engine; engines are never added together.
 

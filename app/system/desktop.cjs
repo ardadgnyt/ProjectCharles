@@ -131,6 +131,10 @@ class Desktop {
   stop() {
     this.mediaWorker?.stop();
   }
+  /** fn() when Windows says the player changed: a new song, play or pause, Spotify opened or closed. */
+  onMediaChange(fn) {
+    if (this.mediaWorker) this.mediaWorker.onChange = fn;
+  }
   async media(action) {
     if (typeof action === 'object') return this.mediaWorker.request(action);
     let r = await this.helper(action);

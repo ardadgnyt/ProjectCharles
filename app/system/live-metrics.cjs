@@ -4,10 +4,8 @@
 // second while the monitor is on screen, every 5 seconds behind it (this can be turned off). The
 // last hour stays in memory; nothing goes to disk or anywhere else. Sleep or a closed Charles shows
 // as a gap in the line, never as a joined line.
-const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
-const path = require('node:path');
 const readline = require('node:readline');
 const { stats, series } = require('../core/metric-stats.cjs');
 
@@ -43,13 +41,7 @@ class LiveMetrics {
 
   helper() {
     if (this.child) return this.child;
-    const child = this.spawnHelper
-      ? this.spawnHelper()
-      : spawn(
-          path.join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe'),
-          ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', fs.readFileSync(path.join(__dirname, 'live-metrics.ps1'), 'utf8')],
-          { windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] },
-        );
+    const child = this.spawnHelper ? this.spawnHelper() : require('./helper-hub.cjs').open('metrics');
     this.child = child;
     readline.createInterface({ input: child.stdout }).on('line', (line) => this.line(line));
     child.on('error', () => this.closed(child));
@@ -109,11 +101,23 @@ class LiveMetrics {
     } catch {}
   }
 
+  /** Processor and memory names: asked once, by a process that ends at once (v0.9.20). */
+  details() {
+    if (this.spawnHelper || this.detailed) return;
+    this.detailed = true;
+    try {
+      const child = require('./helper-hub.cjs').startHelper(['--static']);
+      child.on('error', () => {});
+      readline.createInterface({ input: child.stdout }).on('line', (line) => this.line(line));
+    } catch {}
+  }
+
   /** The monitor came on screen (true) or left it (false). */
   watch(on) {
     on = !!on;
     if (on === this.watching) return this.view();
     this.watching = on;
+    if (on) this.details();
     this.schedule();
     return this.view();
   }

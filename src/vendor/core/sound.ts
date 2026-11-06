@@ -47,6 +47,7 @@ class SoundEngine {
   private buffers = new Map<string, AudioBuffer>();
   private loading: Promise<void> | null = null;
   private idleTimer: number | null = null;
+  sounding = 0;
 
   /** Creates the context and decodes every WAV. Safe to call more than once. */
   preload(): Promise<void> {
@@ -74,6 +75,7 @@ class SoundEngine {
           }
         }),
       );
+      this.idle();
     })();
     return this.loading;
   }
@@ -84,7 +86,7 @@ class SoundEngine {
       window.clearTimeout(this.idleTimer);
       this.idleTimer = null;
     }
-    void this.ctx?.resume();
+    void this.ctx?.resume()?.then(() => this.idle());
   }
 
   /**
@@ -96,7 +98,7 @@ class SoundEngine {
    * would clip it — and `play()` resumes the context on its own.
    */
   idle() {
-    if (!this.ctx || this.ctx.state !== 'running' || this.idleTimer != null) return;
+    if (!this.ctx || this.ctx.state !== 'running' || this.idleTimer != null || this.sounding > 0) return;
     this.idleTimer = window.setTimeout(() => {
       this.idleTimer = null;
       void this.ctx?.suspend();
@@ -127,6 +129,13 @@ class SoundEngine {
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.connect(master);
+    // v0.9.19: idle() ran only when the island folded: a sound in the panel, or one played while
+    // it was folded, left the audio service running for hours with nothing to play
+    this.sounding++;
+    src.onended = () => {
+      this.sounding--;
+      this.idle();
+    };
     src.start();
   }
 }

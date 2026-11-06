@@ -42,6 +42,11 @@ await build({
 if (process.platform === 'win32') {
   const { execFileSync } = await import('node:child_process');
   execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/build-launcher.ps1'], { stdio: 'inherit', windowsHide: true });
+  // v0.9.20: the helper is rebuilt when its source changed; the same source gives the same program
+  const { existsSync, statSync } = await import('node:fs');
+  const helper = 'app/system/charles-helper.exe';
+  if (!existsSync(helper) || statSync(helper).mtimeMs < statSync('setup/CharlesHelper.cs').mtimeMs)
+    execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/build-helper.ps1'], { stdio: 'inherit', windowsHide: true });
 }
 console.log('Masaüstü arayüzü hazır.');
 

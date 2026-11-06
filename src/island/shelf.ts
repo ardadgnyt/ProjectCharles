@@ -997,8 +997,12 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     } else notchArt.removeAttribute('src');
   });
   // v0.8.12: the notch's progress line follows the song directly (no slow fill after a seek)
+  let barWidth = '';
   const paintBar = () => {
-    notchBar.style.width = (music.fraction() * 100).toFixed(2) + '%';
+    const width = (music.fraction() * 100).toFixed(2) + '%';
+    if (width === barWidth) return;
+    barWidth = width;
+    notchBar.style.width = width;
   };
   window.setInterval(paintBar, 250);
   document.addEventListener('charles-media-state', paintBar);
@@ -1081,7 +1085,7 @@ function musicCard(attempt: Deps['attempt'], api: any) {
     }
   };
   function tick() {
-    if (!last?.ok || seeking) return;
+    if (last?.state !== 'Playing' || !last.ok || seeking) return; // paint() draws everything else
     const p = position();
     range.value = String(p);
     range.style.setProperty('--fill', (last.duration > 0 ? (p / last.duration) * 100 : 0).toFixed(2) + '%');

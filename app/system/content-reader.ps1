@@ -18,6 +18,8 @@ using System.Text;
 using System.Windows.Automation;
 public static class CharlesContent {
  [DllImport("user32.dll")] static extern bool SetProcessDpiAwarenessContext(IntPtr v);
+ [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
+ [DllImport("user32.dll")] static extern bool GetLayeredWindowAttributes(IntPtr h, out uint key, out byte alpha, out uint flags);
  [DllImport("user32.dll")] static extern IntPtr GetDesktopWindow();
  [DllImport("user32.dll")] static extern IntPtr GetTopWindow(IntPtr h);
  [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr h, uint c);
@@ -36,7 +38,7 @@ public static class CharlesContent {
  static readonly HashSet<string> Docs = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "winword", "wordpad", "notepad", "notepad++", "acrobat", "acrord32", "sumatrapdf", "powerpnt", "soffice", "code" };
  static readonly HashSet<string> Mail = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "outlook", "olk", "thunderbird", "hxoutlook" };
  static readonly HashSet<string> Secret = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "1password", "keepass", "keepassxc", "bitwarden", "lastpass", "dashlane", "credentialuibroker", "consent" };
- public static void Init() { SetProcessDpiAwarenessContext(new IntPtr(-4)); }
+ public static void Init() { if (!SetProcessDpiAwarenessContext(new IntPtr(-4))) SetProcessDPIAware(); }
  static string Text(IntPtr h) { var s = new StringBuilder(512); GetWindowText(h, s, 512); return s.ToString(); }
  static string Class(IntPtr h) { var s = new StringBuilder(128); GetClassName(h, s, 128); return s.ToString(); }
  static RECT Frame(IntPtr h) { RECT r; if (DwmRect(h, 9, out r, Marshal.SizeOf(typeof(RECT))) != 0) GetWindowRect(h, out r); return r; }
@@ -49,8 +51,16 @@ public static class CharlesContent {
    uint p; GetWindowThreadProcessId(h, out p); if (p == own) continue;
    var ex = GetLongPtr(h, -20).ToInt64();
    if ((ex & 0x20) != 0) continue; // WS_EX_TRANSPARENT: overlays that take no input
+   // v0.9.19: what looks like nothing on screen is not the target: a fully transparent layered
+   // window, or a nameless popup (a browser's hover card, tooltip or drag shadow)
+   if ((ex & 0x80000) != 0) { uint key, flags; byte alpha; if (GetLayeredWindowAttributes(h, out key, out alpha, out flags) && (flags & 2) != 0 && alpha == 0) continue; }
+   // A window nobody can activate is no target, whatever its name: the NVIDIA overlay is one, as big
+   // as the screen, invisible over the wallpaper, and a Chromium page inside, so the desktop read
+   // as a web page. WS_EX_NOACTIVATE; a layered or nameless WS_EX_TOOLWINDOW is the same kind of thing.
+   if ((ex & 0x08000000) != 0) continue;
+   if ((ex & 0x80) != 0 && ((ex & 0x80000) != 0 || Text(h).Length == 0)) continue;
    int cloaked; if (DwmGetWindowAttribute(h, 14, out cloaked, 4) == 0 && cloaked != 0) continue;
-   var r = Frame(h); if (x < r.L || x >= r.R || y < r.T || y >= r.B) continue;
+   var r = Frame(h); if (x < r.L || x >= r.R || y < r.T || y >= r.B || r.R - r.L < 2 || r.B - r.T < 2) continue;
    pid = p; return h;
   }
   return IntPtr.Zero;
@@ -105,7 +115,12 @@ public static class CharlesContent {
   var app = ProcessName(pid);
   t["found"] = true; t["hwnd"] = h.ToInt64(); t["app"] = app; t["title"] = Text(h); t["kind"] = Kind(app);
   t["rect"] = RectOf(Frame(h)); t["blocked"] = Secret.Contains(app);
-  if (Secret.Contains(app)) return t;
+  return t;
+ }
+ /** v0.9.19: the exact area, from UI Automation; the slow half of what Probe used to do. */
+ public static Hashtable Refine(long handle, int x, int y) {
+  var t = new Hashtable(); var h = new IntPtr(handle);
+  if (!IsWindow(h)) return t;
   try {
    var docs = Documents(h); t["documents"] = docs.Count;
    var d = Pick(docs, x, y, -1);
@@ -210,6 +225,7 @@ while($null -ne ($line=[Console]::ReadLine())) {
   $c=$line|ConvertFrom-Json
   $r=$null
   if($c.cmd -eq 'probe'){$r=[CharlesContent]::Probe([int]$c.x,[int]$c.y,[uint32]$c.own)}
+  elseif($c.cmd -eq 'refine'){$r=[CharlesContent]::Refine([int64]$c.hwnd,[int]$c.x,[int]$c.y)}
   else{
    $saved=OfficeFile ([int64]$c.hwnd)
    if($saved -and $saved.file -match '^[A-Za-z]:\\' -and (Test-Path -LiteralPath $saved.file)){$r=@{file=$saved.file;unsaved=$saved.unsaved;app=[CharlesContent]::AppOf([int64]$c.hwnd);title=[IO.Path]::GetFileName($saved.file);kind='document'}}

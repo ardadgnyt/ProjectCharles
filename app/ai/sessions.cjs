@@ -240,6 +240,25 @@ class Sessions extends EventEmitter {
     this.save();
     return this.snapshot();
   }
+  /** v0.9.19: what the in-place editor needs; reading only, nothing changes before Save. */
+  editInfo(index) {
+    const r = this.current;
+    const users = r.events.filter((e) => e.type === 'history-user');
+    if (!Number.isInteger(index) || !users[index]) throw Error('Mesaj bulunamadı.');
+    return { text: users[index].data, attachments: users[index].attachments || [], later: r.events.length - 1 - r.events.indexOf(users[index]) };
+  }
+  /** v0.9.19: the edited message was refused: the branch made for it goes, the chat is as it was. */
+  undoEdit(fork, from) {
+    const r = this.rooms.get(fork);
+    const old = this.rooms.get(from);
+    if (!r || !old || this.active !== fork) throw Error('Sohbet bulunamadı.');
+    if (r.agent.busy || r.agent.requests.size) throw Error('Önce çalışan işi durdur.');
+    r.agent.stop();
+    this.rooms.delete(fork);
+    this.active = from;
+    this.save();
+    return this.snapshot();
+  }
   editMessage(index) {
     if (this.busy || this.requests.size) throw Error('Önce çalışan işi durdur.');
     const old = this.current;
@@ -272,7 +291,7 @@ class Sessions extends EventEmitter {
     r.branches[index] = { group, variant: r.id };
     this.active = r.id;
     this.save();
-    return { room: this.snapshot(), text };
+    return { room: { ...this.snapshot(), id: r.id }, text, from: old.id };
   }
   summary(today = false) {
     const rooms = today

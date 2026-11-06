@@ -99,9 +99,10 @@ test('home page row: voice call card, Charles in the middle, the song on the mus
 });
 
 test('screen pictures through GDI on Windows (HDR)', async () => {
-  const { grabDisplay, SCRIPT } = require('../app/system/screen-grab.cjs');
-  assert.match(SCRIPT(0, 0, 10, 10), /CopyFromScreen\(0, 0, 0, 0/);
-  assert.match(SCRIPT(0, 0, 10, 10), /SetProcessDpiAwarenessContext/);
+  const { grabDisplay } = require('../app/system/screen-grab.cjs');
+  const helper = read('setup/CharlesHelper.cs');
+  assert.match(helper, /BitBlt\(mem, 0, 0, w, h, screen, x, y, 0x00CC0020\)/);
+  assert.match(helper, /SetProcessDpiAwarenessContext\(new IntPtr\(-4\)\)/);
   assert.match(read('app/system/capture.cjs'), /await grabDisplay\(display\)/);
   assert.match(read('app/system/color-pick.cjs'), /await grabDisplay\(display\)/);
   assert.equal(typeof grabDisplay, 'function');

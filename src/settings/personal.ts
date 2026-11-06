@@ -18,8 +18,9 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
     document.documentElement.style.setProperty('--accent', a.accent);
     document.documentElement.style.setProperty('--chat-font', a.font + 'px');
     $('slime').style.transform = `scale(${a.pet})`;
-    for (const k of ['font', 'scale', 'pet', 'accent'])
+    for (const k of ['font', 'scale', 'pet', 'accent', 'island'])
       ($('look-' + k) as HTMLInputElement).value = String(a[k]);
+    document.body.classList.toggle('island-small', a.island === 'small');
     ($('look-opacity') as HTMLInputElement).value = '1';
     $('memories').replaceChildren();
     for (const m of data.memories) {
@@ -53,14 +54,14 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
   $('look-save').onclick = () =>
     attempt(async () => {
       const args = Object.fromEntries(
-        ['font', 'scale', 'opacity', 'pet', 'accent'].map((k) => [k, value('look-' + k)]),
+        ['font', 'scale', 'opacity', 'pet', 'accent', 'island'].map((k) => [k, value('look-' + k)]),
       );
       paint(await api.personalEdit('appearance', args));
       notice('Görünüm kaydedildi.');
     });
   // v0.5.1: appearance changes apply while you move the sliders / pick the colour.
   let lookTimer: ReturnType<typeof setTimeout> | undefined;
-  for (const k of ['font', 'scale', 'opacity', 'pet', 'accent'])
+  for (const k of ['font', 'scale', 'opacity', 'pet', 'accent', 'island'])
     $('look-' + k).addEventListener('input', () => {
       clearTimeout(lookTimer);
       lookTimer = setTimeout(
@@ -70,7 +71,7 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
               await api.personalEdit(
                 'appearance',
                 Object.fromEntries(
-                  ['font', 'scale', 'opacity', 'pet', 'accent'].map((n) => [n, value('look-' + n)]),
+                  ['font', 'scale', 'opacity', 'pet', 'accent', 'island'].map((n) => [n, value('look-' + n)]),
                 ),
               ),
             ),
@@ -88,6 +89,7 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
           opacity: 1,
           pet: 1,
           accent: '#edc9a9',
+          island: 'large',
         }),
       ),
     );
@@ -260,10 +262,16 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
       times.textContent = time(pos) + ' / ' + time(lastMedia.duration);
     }
     if (Date.now() >= nextPoll) {
-      nextPoll = Date.now() + (idle ? 30000 : 3000);
+      // v0.9.20: a change is reported at once (onMediaChanged); this only keeps the position honest
+      nextPoll = Date.now() + (idle ? 60000 : 15000);
       void media().catch(() => {});
     }
   }, 1000);
+  let mediaChange = 0;
+  api.onMediaChanged?.(() => {
+    window.clearTimeout(mediaChange);
+    mediaChange = window.setTimeout(() => void media().catch(() => {}), 120);
+  });
   api.onHidden((v: boolean) => {
     if (!v) nextPoll = 0;
   });

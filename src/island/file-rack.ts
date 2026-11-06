@@ -12,45 +12,67 @@ type Deps = {
   attempt: (fn: () => Promise<any>) => Promise<void>;
 };
 
+// v0.9.20: the measures of a desktop icon, side by side with Windows': a 48 px picture over a
+// column of about eleven letters. The picture stays this wide and clear at the sides on purpose:
+// Electron's startDrag writes the file's path in whatever room is left beside it, and this leaves
+// none (it cannot be turned off).
 const GHOST_W = 180;
-const GHOST_H = 112;
-const dragScale = () => Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+const ICON = 48;
+const ICON_TOP = 2;
+const NAME_W = 74;
+const LINE = 16;
+const MAX_LINES = 6;
+const dragScale = () => Math.max(1, Math.min(4, window.devicePixelRatio || 1));
 
 /**
- * The name in up to two lines, broken between words; what still does not fit goes from the middle
- * of the second line, so its end (the extension, a date) stays.
+ * The name as Windows writes it under a desktop icon: broken at a space when one is near, otherwise
+ * between any two letters, so a long name with no spaces is read in full. Only a name too long for
+ * MAX_LINES loses its middle, and its end (the extension) stays.
  */
-function nameLines(x: CanvasRenderingContext2D, name: string, width: number) {
-  if (x.measureText(name).width <= width) return [name];
-  let cut = name.length;
-  while (cut > 1 && x.measureText(name.slice(0, cut)).width > width) cut--;
-  const space = name.lastIndexOf(' ', cut);
-  if (space > cut * 0.45) cut = space;
-  const first = name.slice(0, cut).trimEnd();
-  const rest = name.slice(cut).trimStart();
-  if (x.measureText(rest).width <= width) return [first, rest];
-  let tail = rest;
-  while (tail.length > 1 && x.measureText('…' + tail).width > width) tail = tail.slice(1);
-  return [first, '…' + tail.trimStart()];
+export function nameLines(measure: (text: string) => number, name: string, width: number, max = MAX_LINES) {
+  const lines: string[] = [];
+  let rest = name.trim();
+  while (rest && lines.length < max) {
+    if (measure(rest) <= width) {
+      lines.push(rest);
+      rest = '';
+      break;
+    }
+    let cut = 1;
+    while (cut < rest.length && measure(rest.slice(0, cut + 1)) <= width) cut++;
+    const space = rest.lastIndexOf(' ', cut);
+    if (space > cut * 0.5) cut = space;
+    lines.push(rest.slice(0, cut).trimEnd());
+    rest = rest.slice(cut).trimStart();
+  }
+  if (!rest) return lines;
+  // too long even so: the last line ends with the end of the name
+  const whole = name.trim();
+  let tail = 1;
+  while (tail < whole.length && measure('…' + whole.slice(-(tail + 1))) <= width) tail++;
+  lines[lines.length - 1] = '…' + whole.slice(-tail);
+  return lines;
 }
 
 /**
  * What follows the pointer, in the look of a file dragged from the desktop: the picture on nothing,
- * its name under it in white with a soft shadow. v0.9.18: no card behind them any more, everything
- * around the picture and the name is fully transparent.
- * Electron's startDrag writes the file's whole path beside the picture it is given and cuts it to
- * "C:\Users\User\..." (it cannot be turned off); a picture this wide leaves that text no room.
+ * its name under it in white with a soft shadow, and fully transparent around them.
+ * v0.9.20: the name breaks in a narrow column as under a desktop icon, and the picture is as tall as
+ * the name needs. In a wider column it reached the sides and was cut there.
  */
 function dragCard(name: string, thumb: HTMLImageElement | null) {
   const scale = dragScale();
   const canvas = document.createElement('canvas');
-  canvas.width = Math.round(GHOST_W * scale);
-  canvas.height = Math.round(GHOST_H * scale);
   const x = canvas.getContext('2d');
   if (!x) return '';
-  x.scale(scale, scale);
-  const box = 76;
-  const top = 2;
+  const font = '12px "Segoe UI Variable Text", "Segoe UI", sans-serif';
+  x.font = font;
+  const lines = nameLines((t) => x.measureText(t).width, name, NAME_W);
+  const box = ICON;
+  const top = ICON_TOP;
+  canvas.width = Math.round(GHOST_W * scale);
+  canvas.height = Math.round((top + box + 9 + lines.length * LINE) * scale);
+  x.scale(scale, scale); // setting the canvas size cleared the context
   if (thumb?.complete && thumb.naturalWidth) {
     const k = Math.min(box / thumb.naturalWidth, box / thumb.naturalHeight);
     const w = thumb.naturalWidth * k;
@@ -62,14 +84,14 @@ function dragCard(name: string, thumb: HTMLImageElement | null) {
     x.drawImage(thumb, (GHOST_W - w) / 2, top + (box - h) / 2, w, h);
     x.restore();
   }
-  x.font = '12px "Segoe UI Variable Text", "Segoe UI", sans-serif';
+  x.font = font;
   x.textAlign = 'center';
   x.textBaseline = 'alphabetic';
   x.fillStyle = '#ffffff';
   x.shadowColor = 'rgba(0, 0, 0, 0.9)';
   x.shadowBlur = 3;
   x.shadowOffsetY = 1;
-  nameLines(x, name, GHOST_W - 8).forEach((line, i) => x.fillText(line, GHOST_W / 2, top + box + 16 + i * 15));
+  lines.forEach((line, i) => x.fillText(line, GHOST_W / 2, top + box + 15 + i * LINE));
   return canvas.toDataURL('image/png');
 }
 

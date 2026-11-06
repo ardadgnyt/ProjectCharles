@@ -4,6 +4,30 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.20 Beta — November 6, 2026
+
+- **Charles island size:** Settings → Appearance has a new choice. **Large** is the size you know and stays the default; **Small** is 2/3 of it, for a laptop screen. It changes at once and stays after a restart. The closed island, its strip, Charles on it and its click area all shrink; the open panel, the chat and other windows stay as they are.
+- **Mail dates and Outlook:** adding a date from a mail no longer opens Outlook by itself. The old button opened a calendar file, which Windows gave to Outlook, and Outlook stayed open.
+  - With Google Calendar connected, the event is added directly and Charles says so only once it is really there. If that fails nothing is half done and the question stays, so you can try again. The same mail cannot add the same event twice.
+  - Charles's Outlook connection can only read the calendar, so without Google Calendar the first button is **Remind**. **Open calendar file** is a separate button: it opens your calendar app, and the event exists once you save it there.
+- **File shelf:** a file dragged off the shelf now looks like a file on your desktop: its picture at desktop-icon size, with its name under it in a narrow column, broken across lines so all of it can be read and none of it is cut at the sides. Only a very long name loses its middle, and its extension stays. The panel stays open until you let go, and the shelf keeps its copy.
+- **Less running in the background:** five separate PowerShell processes (foreground app, media, push to talk, system monitor, screen pictures) were replaced by one small helper, and the usage statistics no longer start PowerShell every minute. On the computer tested, with the island idle, Charles went from 15 processes to 8 and from about 342 MB to about 215 MB of private memory. Your numbers depend on what you have turned on.
+
+## v0.9.19 Beta — November 6, 2026
+
+- **Charles goes back by himself:** after reading a page or document he returns to where you took him from: his place on the panel, his place on the island, or the spot on the desktop where you had left him. The card and its buttons stay. A failed or protected read tells you why and he goes back as well, Esc does the same, and picked up again while reading he stays in your hand. Double-click still sends him home, and ordinary moves on the desktop are not affected.
+- **Target frame:** the cream frame could fail to appear. A large page could take the helper past its time limit, the helper was then stopped and had to start again, and the next hold had to wait for all of that. The window is now found at once, the exact area follows, and a slow page holds nothing back. The frame is also drawn before it is shown, so it never opens empty.
+- **The desktop is not a page:** an invisible full-screen window, such as the NVIDIA overlay, was treated as a target, so the wallpaper looked like a web page. Windows that cannot be activated are now skipped, and dropping on the desktop is an ordinary move.
+- **Dropped content is for one message:** Summarize, Key points, What I need to do or a typed question send the content once. The card and its buttons then leave, and what was sent stays in the chat. A second click sends nothing more. If the message could not be sent, the card stays so you can try again. To ask again, drop Charles on the page again. These buttons no longer use the message box, so a draft stays where it is, and while an answer is running they tell you to wait.
+- **Editing a message:** the edit button now opens the message in its own bubble with Save and Cancel, and the message box and your draft stay as they are. Enter saves, Shift+Enter starts a new line and Esc cancels. Nothing changes before Save. The earlier conversation stays one ‹ › away, as before. If the message cannot be sent, the text stays in the bubble with the reason and no new version is left behind. Attachments now go with the edited message; one that no longer exists is named before you save. Attachments of messages sent before this version cannot be sent again.
+- **Push to talk:** the status bubble now appears right under the island or panel, like notifications, below any cards showing, and follows them. Near a screen edge it moves beside or above. Recording, keys, Esc and typing did not change.
+- **Performance:**
+  - While the open panel is not in focus and Charles is only breathing he draws 20 frames a second (30 when you are at the panel, 60 when he moves or works). The page no longer wakes on every display refresh to skip most of them, and the previews in Settings no longer run while hidden. On the computer tested, the open panel without focus went from about 18% to about 11% of one core. With the panel in focus the gain was small (about 13% to 12%).
+  - The frame's window and the push-to-talk bubble's window now close after use; they used to stay for the whole session and kept memory in the graphics process. In the same test, Charles' memory after a drag went from about 890 MB to about 780 MB, and repeatedly opening and closing the panel and monitor no longer left memory behind (52 MB to 2 MB after 40 rounds).
+  - The always-on-top guard and the usage statistics share one helper instead of each keeping a PowerShell process, and a helper started for a drag no longer stays when nothing was asked of it. The screen picture helper now starts when the panel opens and rests after 3 minutes, so the first screenshot after a rest takes about half a second longer.
+  - The audio service rests between sounds. It used to stop only when the island folded.
+  - The model and effort pickers no longer check their value three times a second.
+
 ## v0.9.18 Beta — November 5, 2026
 
 Release notes are written in English from this version on.

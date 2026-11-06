@@ -2,7 +2,8 @@
 // question in the chat with a few buttons. Slime shows the question-mark face while it waits.
 //
 // The main process keeps what each button does; the renderer only gets the text and the
-// button labels and answers with (id, action). An answer is accepted once.
+// button labels and answers with (id, action). An answer is accepted once. v0.9.20: one that failed
+// leaves the question open for a new try; while one runs, a second is refused.
 const { randomUUID } = require('node:crypto');
 
 class Proposals {
@@ -31,8 +32,15 @@ class Proposals {
     if (!item) throw Error('Bu öneri artık geçerli değil.');
     const action = item.actions.find((a) => a.id === actionId);
     if (!action) throw Error('Geçersiz seçim.');
-    this.items.delete(id);
-    return { reply: action.run ? String((await action.run()) || '') : '' };
+    if (item.running) throw Error('Bu seçim işleniyor.');
+    item.running = true;
+    try {
+      const reply = action.run ? String((await action.run()) || '') : '';
+      this.items.delete(id);
+      return { reply };
+    } finally {
+      item.running = false;
+    }
   }
 }
 

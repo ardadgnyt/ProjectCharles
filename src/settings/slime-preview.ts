@@ -9,6 +9,7 @@ import {
   type Accessories,
 } from '../vendor/slime/wardrobe';
 import { parseLook } from '../vendor/slime/shape';
+import { animationLoop } from '../island/animation-loop';
 
 const TALL = ['partyHat', 'witchHat', 'santaHat', 'bunnyEars', 'fedora'];
 
@@ -53,12 +54,9 @@ export function slimePreview(label: string) {
   let resetTimer: ReturnType<typeof setTimeout> | undefined;
 
   // Draw only while visible (settings page open); otherwise idle at no cost.
+  // v0.9.19: truly none: its frame loop ran for ever, at every display refresh, to find that out.
+  let onScreen = false;
   const frame = (now: number) => {
-    requestAnimationFrame(frame);
-    if (!canvas.getClientRects().length) {
-      last = now;
-      return;
-    }
     engine.update(Math.min((now - last) / 1000, 0.05));
     last = now;
     ctx.clearRect(0, 0, 240, 240);
@@ -70,7 +68,16 @@ export function slimePreview(label: string) {
     engine.draw(ctx, 240, 240);
     ctx.restore();
   };
-  requestAnimationFrame(frame);
+  const loop = animationLoop(
+    frame,
+    () => onScreen,
+    () => 30,
+  );
+  new IntersectionObserver(([entry]) => {
+    onScreen = entry.isIntersecting;
+    last = performance.now();
+    loop.start();
+  }).observe(canvas);
 
   return {
     element: box,

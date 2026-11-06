@@ -57,6 +57,7 @@ test('Appearance range validation and reset', () => {
       pet: 0.8,
       opacity: 1, // v0.7.0: opacity is no longer adjustable
       accent: '#edc9a9',
+      island: 'large',
     });
   } finally {
     f.close();

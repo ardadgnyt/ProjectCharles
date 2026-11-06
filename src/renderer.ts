@@ -50,6 +50,7 @@ import { islandShelf } from './island/shelf';
 import { textReaction, answerReaction } from './chat/reactions';
 import { contextMenu, quoteFor } from './ui/context-menu';
 import { contentContext } from './chat/content-context';
+import { messageEditor } from './chat/message-editor';
 import { releaseNotes } from './chat/release-notes';
 
 declare global {
@@ -173,7 +174,9 @@ animationLoop(
     jelly.active ||
     (bot.outfit !== 'none' && bot.busy)
       ? 60
-      : document.body.classList.contains('compact')
+      : // v0.9.19: nearly all of an open panel's cost is these frames: when nobody is at the panel
+        // and Charles is only breathing, he breathes at the pace the compact island always had
+        document.body.classList.contains('compact') || !document.hasFocus()
         ? 20
         : 30,
 ).start();
@@ -531,17 +534,7 @@ function row(text: string, className = '', attachments: any[] = []) {
     edit.setAttribute('aria-label', 'Mesajı düzenle');
     edit.innerHTML =
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4 5 5-11 11H4v-5ZM13 6l5 5"/></svg>';
-    edit.onclick = () =>
-      attempt(async () => {
-        if (busy) throw Error('Önce çalışan işi durdur.');
-        const r = await api.editMessage(Number(el.dataset.userIndex));
-        await switchRoom(r.room);
-        prompt.value = r.text;
-        prompt.focus();
-        notice(
-          'Mesajı düzenleyip gönder. Önceki konuşma geçmişte korunur; dosya değişiklikleri geri alınmaz.',
-        );
-      });
+    edit.onclick = () => void editor.start(el, text);
     el.replaceChildren(copy, edit);
     if (attachments.length) {
       const gallery = document.createElement('div');
@@ -1554,24 +1547,35 @@ setQuestionHandler((element, questions) => {
   }
   return card;
 });
-$('composer').addEventListener('submit', (e) => {
-  e.preventDefault();
-  void attempt(async () => {
-    // v0.7.0: while the AI is working, a message is an extra instruction (see chat/steer.ts)
-    if (busy && !dispatching && !demo && !voice.active() && prompt.value.trim()) {
-      await steer.send(prompt.value);
-      return;
+/**
+ * v0.9.19: everything that sends a message comes through here. `out` is a message that does not
+ * come from the box (an edited bubble, a button on the content card): the box and its draft are
+ * left alone then. Resolves true once the chat accepted the message; what happens to the answer
+ * after that is the chat's business, and it can be retried there.
+ */
+type Outgoing = { text: string; attachments?: { id?: string; name: string; kind?: string; thumbnail?: string }[] };
+async function sendMessage(out?: Outgoing): Promise<boolean> {
+  {
+    if (!out) {
+      // v0.7.0: while the AI is working, a message is an extra instruction (see chat/steer.ts)
+      if (busy && !dispatching && !demo && !voice.active() && prompt.value.trim()) {
+        await steer.send(prompt.value);
+        return false;
+      }
+      // v0.7.1 SpecialBeta: while the previous message is still being sent, keep this one
+      // (it used to be ignored silently).
+      if (busy && dispatching && !demo && prompt.value.trim()) {
+        steer.hold(prompt.value);
+        return false;
+      }
     }
-    // v0.7.1 SpecialBeta: while the previous message is still being sent, keep this one
-    // (it used to be ignored silently).
-    if (busy && dispatching && !demo && prompt.value.trim()) {
-      steer.hold(prompt.value);
-      return;
-    }
-    if (busy || demo || voice.active()) return;
-    const text = prompt.value.trim();
-    if (!text) return;
-    await dropped.ensure();
+    if (busy || demo || voice.active()) return false;
+    const text = out ? out.text : prompt.value.trim();
+    if (!text) return false;
+    const own = out?.attachments;
+    if (!own) await dropped.ensure();
+    const sentIds: string[] = own ? own.map((a) => a.id!) : features.ids();
+    const hasDocument = own ? own.some((a) => ['pdf', 'docx', 'presentation'].includes(String(a.kind))) : features.hasDocument();
     // Any new message closes the AI's open question cards.
     for (const c of feed.querySelectorAll<HTMLElement>('.ai-questions:not(.answered)')) {
       c.classList.add('answered');
@@ -1580,45 +1584,49 @@ $('composer').addEventListener('submit', (e) => {
     }
     // A short answer ("evet", "hayır", "sadece hatırlat") to Charles' open question
     // (calendar / quota) is answered by Charles himself, with the question as context.
-    if (!features.hasDocument() && !$('composer').dataset.task) {
+    if (!out && !features.hasDocument() && !$('composer').dataset.task) {
       const reply = await proposals.typed(text).catch(() => null);
       if (reply !== null) {
         row(text, 'user');
         prompt.value = '';
         updateMarkdown(row('', 'agent'), reply, true);
         state('finished', 'Tamamlandı!');
-        return;
+        return true;
       }
     }
     readingDocument =
-      features.hasDocument() ||
+      hasDocument ||
       (documentContext && /belge|pdf|word|metin|rapor|bunu|bu |sayfa|devam/i.test(text));
-    documentContext = documentContext || features.hasDocument();
+    documentContext = documentContext || hasDocument;
     voice.begin();
     busy = true;
     dispatching = true;
     turnModel = model.value;
     controls();
     notice('');
-    row(text, 'user', features.previews());
-    prompt.value = '';
+    row(text, 'user', own || features.previews());
+    if (!out) prompt.value = '';
     state('thinking', readingDocument ? 'Belgeyi okuyorum 📖' : 'Düşünüyorum…');
     reactToText(text);
     try {
       const result = await api.send({
         prompt: text,
-        task: $('composer').dataset.task || '',
+        task: out ? '' : $('composer').dataset.task || '',
         model: model.value || null,
         // v0.9.6: the level the effort panel picked ('' = Otomatik). It rides beside the model
         // id — a provider that spells the level in the id sends both consistently.
         effort: model.selectedOptions[0]?.dataset.effort || '',
         mode: mode.value,
-        attachments: features.ids(),
-        hasDocument: features.hasDocument(),
+        attachments: sentIds,
+        hasDocument,
       });
-      features.clear();
-      $('composer').dataset.task = '';
-      $('composer-task').hidden = true;
+      if (!own) for (const id of sentIds) features.remove(id);
+      // v0.9.19: handed to the chat: the card of the content that went with it has done its job
+      dropped.sent(sentIds);
+      if (!out) {
+        $('composer').dataset.task = '';
+        $('composer-task').hidden = true;
+      }
       if (result?.localAction) {
         updateMarkdown(row('', 'agent'), result.message, true);
         if (result.search) {
@@ -1632,16 +1640,57 @@ $('composer').addEventListener('submit', (e) => {
         state('finished', 'Tamamlandı!');
         window.setTimeout(sendQueued, 300);
       }
+      return true;
     } catch (e) {
       busy = false;
       controls();
-      prompt.value = text;
+      if (!out) prompt.value = text;
+      // the row drawn for it above was not accepted
+      if (out) [...feed.querySelectorAll('.message.user')].at(-1)?.remove();
+      if (out) userOrdinal--;
       throw e;
     } finally {
       dispatching = false;
       controls();
     }
+  }
+}
+$('composer').addEventListener('submit', (e) => {
+  e.preventDefault();
+  void attempt(async () => {
+    await sendMessage();
   });
+});
+// v0.9.19: the message goes out, and an error stays on screen; false: it did not go
+async function sendQuietly(out: Outgoing) {
+  let accepted = false;
+  await attempt(async () => {
+    accepted = await sendMessage(out);
+  });
+  return accepted;
+}
+const editor = messageEditor({
+  api,
+  feed,
+  notice,
+  blocked: () => (busy || dispatching ? 'Önce çalışan işi durdur.' : voice.active() ? 'Önce sesli görüşmeyi bitir.' : ''),
+  // Saved means: the chat branched and took the edited message. Until then nothing has changed, and
+  // if the message is refused, the branch made for it goes away again.
+  save: async (index, text, attachments) => {
+    const r = await api.editMessage(index);
+    await switchRoom(r.room);
+    if (await sendQuietly({ text, attachments })) return true;
+    const message = $('notice').textContent || '';
+    await switchRoom(await api.editUndo(r.room.id, r.from));
+    const el = feed.querySelector<HTMLElement>('.message.user[data-user-index="' + index + '"]');
+    if (el) await editor.start(el, r.text, text, message);
+    else {
+      // an old message that is no longer drawn: the text waits in the box instead of being lost
+      prompt.value = prompt.value.trim() ? prompt.value + '\n\n' + text : text;
+      notice(message);
+    }
+    return false;
+  },
 });
 // A click on an important-mail bubble: the mail arrives as a text attachment and
 // Charles is asked to explain it, exactly as if the user had typed the request.
@@ -1698,10 +1747,8 @@ const dropped = contentContext({
   notice,
   features,
   model,
-  submit: (text) => {
-    prompt.value = text;
-    ($('composer') as HTMLFormElement).requestSubmit();
-  },
+  blocked: () => (busy || dispatching ? 'Önce çalışan iş bitsin.' : voice.active() ? 'Önce sesli görüşmeyi bitir.' : ''),
+  submit: (text) => sendQuietly({ text }),
 });
 api.onContentReading?.((on: boolean) => {
   if (busy) return;

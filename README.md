@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.18%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.20%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -34,6 +34,8 @@ laptop while it writes code, and gets dizzy if you shake him too hard.
 
 | Version | What’s new |
 | --- | --- |
+| **v0.9.20** | One small helper instead of several PowerShell processes · mail dates no longer open Outlook by themselves · shelf files drag like files on the desktop · a Small size for the island |
+| **v0.9.19** | Charles goes back by himself after reading · content goes with one message · edit a message in its own bubble · the push-to-talk bubble sits under the island · a more reliable target frame that leaves the desktop alone · less memory and CPU |
 | **v0.9.18** | System monitor for CPU, GPU and RAM · push to talk in any app · drop Charles on a page or document to ask about it · drag the character out of the panel · right-click menu for text · notifications stay visible with the app window open · a summary after each update |
 | **v0.9.17** | Quick Share: a stale phone address is looked up again before giving up, with a clear message if the phone stays closed |
 | **v0.9.16** | PowerPoint in the chat and the converter (.pptx, .ppt → PDF, Word, slide pictures, text) · File shelf: Ctrl+V adds a screenshot, previews on every row, a drag card with the file's name · Scrolling while an answer is written · Clearer Quick Share start errors, LocalSend works on its own · Fixes for the limit animation, the finished state and the taskbar |
@@ -168,7 +170,8 @@ full-screen apps such as games.
 Speech is turned into text by the local Whisper model. Audio stays on your computer and no
 recording is kept. The clipboard is not used and Enter is never pressed. Password fields and apps
 running as administrator are not typed into, and if the focus moves while you speak, the text waits
-in a small card so you can copy it or insert it.
+in a small card so you can copy it or insert it. The status bubble appears right under the island,
+where notifications appear, and takes neither the keyboard nor the focus.
 
 ### Convert files on your desktop
 
@@ -268,7 +271,7 @@ AirDrop/AWDL is not supported on Windows.
   and match. Seasonal hats come on their own.
 - **Desktop pet:** drag Slime onto your desktop, throw him and watch him bounce like jelly. From
   the app window or the open island he leaves his place empty and everything else stays where it
-  is; double-click him to send him home.
+  is; double-click him to send him home. After reading a page or document he goes back by himself.
 - Interface in **English, Turkish, German, French, Spanish and Chinese**.
 
 ## Modules

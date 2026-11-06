@@ -329,6 +329,23 @@ class Extras {
     this.attachments.set(id, item);
     return { id, name: item.name, size: item.size, kind: item.kind };
   }
+  /**
+   * v0.9.19: an attachment of a sent message, for sending it again after an edit. The inbox keeps
+   * files for a week; one that comes back after a restart counts as outside content, because
+   * whether it was is not known any more.
+   */
+  revive(attachment) {
+    const id = attachment?.id;
+    if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) return null;
+    if (this.attachments.has(id)) return this.attachments.get(id);
+    const dir = path.join(this.directory, 'inbox');
+    const file = fs.existsSync(dir) ? fs.readdirSync(dir).find((f) => f.startsWith(id + '.')) : null;
+    if (!file) return null;
+    const stat = fs.statSync(path.join(dir, file));
+    const item = { id, name: String(attachment.name || file), path: path.join(dir, file), size: stat.size, kind: String(attachment.kind || 'text'), untrusted: 'content' };
+    this.attachments.set(id, item);
+    return item;
+  }
   /** v0.9.9: whether any of these attachments came from outside (a mail Charles opened). */
   untrusted(ids) {
     return Array.isArray(ids) && ids.some((id) => !!this.attachments.get(id)?.untrusted);

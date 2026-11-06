@@ -621,6 +621,8 @@ export const german: Record<string, string> = {
   "Try": "Ausprobieren",
   "Panel": "Panel",
   "Character": "Figur",
+  "Charles island size": "Charles-Inselgröße",
+  "Large": "Groß",
   "Accent": "Akzent",
   "Appearance saved.": "Darstellung gespeichert.",
   "Default colors applied.": "Standardfarben angewendet.",
@@ -1802,4 +1804,9 @@ export const german: Record<string, string> = {
   "Measure in the background": "Im Hintergrund messen",
   "1 s while open, 5 s in the background · last hour kept in memory": "1 s bei geöffneter Ansicht, 5 s im Hintergrund · letzte Stunde im Speicher",
   "Measured only while this screen is open": "Wird nur gemessen, solange dieser Bildschirm offen ist",
+  "When you send, this content goes once to:": "Wird beim Senden einmal hierhin geschickt:",
+  "Save or cancel the open edit first.": "Speichere oder verwirf zuerst die offene Bearbeitung.",
+  "End the voice chat first.": "Beende zuerst das Sprachgespräch.",
+  "Charles answers again from this message. The earlier conversation stays one ‹ › away; file changes are not undone.": "Charles antwortet ab dieser Nachricht neu. Das frühere Gespräch bleibt über ‹ › erreichbar; Dateiänderungen werden nicht rückgängig gemacht.",
+  "These attachments are gone and will not be sent again:": "Diese Anhänge sind nicht mehr vorhanden und werden nicht erneut gesendet:",
 };

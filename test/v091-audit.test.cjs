@@ -82,8 +82,7 @@ const { PassThrough } = require('node:stream');
 /** MediaWorker with a stand-in PowerShell whose answers the test writes itself. */
 function worker() {
   const spawned = [];
-  const cp = {
-    spawn: () => {
+  const spawnHelper = () => {
       const child = new EventEmitter();
       child.stdout = new PassThrough();
       child.stdin = new PassThrough();
@@ -98,19 +97,8 @@ function worker() {
       child.say = (line) => child.stdout.write(line + '\n');
       spawned.push(child);
       return child;
-    },
   };
-  const load = Module._load;
-  Module._load = function (request, ...rest) {
-    return request === 'node:child_process' ? cp : load.call(this, request, ...rest);
-  };
-  try {
-    const file = require.resolve('../app/system/media-worker.cjs');
-    delete require.cache[file];
-    return { w: new (require(file).MediaWorker)(), spawned };
-  } finally {
-    Module._load = load;
-  }
+  return { w: new (require('../app/system/media-worker.cjs').MediaWorker)({ spawnHelper }), spawned };
 }
 const tick = () => new Promise((r) => setImmediate(r));
 
@@ -168,9 +156,9 @@ test('MED-06: BOM, broken JSON, an early exit and a late answer from a stopped w
   w.stop();
 });
 
-test('MED-02: Spotify is asked every 3 s (30 s while Slime is out on the desktop), not every second', () => {
+test('MED-02: Spotify reports its changes; it is asked every 15 s (60 s while Slime is out on the desktop)', () => {
   const personal = read('src/settings/personal.ts');
-  assert.match(personal, /nextPoll = Date\.now\(\) \+ \(idle \? 30000 : 3000\);/);
+  assert.match(personal, /nextPoll = Date\.now\(\) \+ \(idle \? 60000 : 15000\);/);
   assert.doesNotMatch(personal, /\? 1000 : 3000/);
 });
 
