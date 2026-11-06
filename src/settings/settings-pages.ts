@@ -278,6 +278,14 @@ export function settingsPages(api: any) {
   };
   text.addEventListener('input', size);
   composer.addEventListener('submit', () => setTimeout(size, 0));
+  // v0.9.23: the box changes width and font between the island and the app window: the same draft
+  // takes another height there
+  let width = 0;
+  new ResizeObserver(() => {
+    if (!text.clientWidth || text.clientWidth === width) return;
+    width = text.clientWidth;
+    size();
+  }).observe(text);
   // Preserve screen capture and speech playback under General without cluttering +.
   const speech = document.createElement('section');
   speech.className = 'setting-section';

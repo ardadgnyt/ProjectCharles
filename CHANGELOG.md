@@ -4,6 +4,15 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.23 Beta — November 7, 2026
+
+- **Links in the chat:** links are now a light grey with an underline in your messages and in Charles's answers, in the island and in the app window. On the old cream bubble they could hardly be read. Long addresses wrap inside the message.
+- **One message style:** the app window now uses the island's dark bubble instead of the cream one, and your messages stand against the right edge. The time moved to the left of the message.
+- **Attachments in the app window:** the layout from v0.9.22 did not apply there: pictures and files sat on a cream block. Pictures and file cards now stand alone above the text, as on the island. In a low window the cards get smaller so the chat keeps its room.
+- **Pictures on the right:** a sent picture stood away from the right edge. It now lines up with the text and file cards under it, on the island too.
+- **Files without text:** a message with only attachments no longer shows an empty bubble under them.
+- **Charles card in the app window:** the status text and the coloured light under Charles are gone.
+
 ## v0.9.22 Beta — November 7, 2026
 
 - **Push to talk on Right + Up:** the default is now the Right and Up arrow keys held together, in either order. Each arrow still works on its own, a moment later, and the pair does not move the cursor in the app you are typing in. Hold the pair to record and let go to finish. Two quick presses of the pair start hands-free recording, one more ends it, and Esc cancels. If you never chose a key, you move to the new default by yourself; a key you chose stays.

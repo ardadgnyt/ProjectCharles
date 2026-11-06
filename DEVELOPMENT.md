@@ -262,6 +262,11 @@ the content. The open panel does not change.
 box; with `{ text, attachments? }` (an edited bubble, a button on the content card) it leaves the box
 and its draft alone. It resolves true once `api.send` accepted the message.
 
+### Message style
+The user's bubble has one definition, the `--ch-bubble*` variables in `10-noir.css`. The island, the app
+window (`39-v0923.css`) and the text of a message with files (`38-v0922.css`) all read them. `body.workspace`
+rules in `9-special.css` use `!important`, so a rule for the shared chat must be checked in both places.
+
 ### Attachments
 `src/chat/attachment-card.ts` draws both forms: the card in the message box (`attachmentCard`) and the
 file in a sent message (`sentFile`; a picture there is only the picture). `title` is removed from every

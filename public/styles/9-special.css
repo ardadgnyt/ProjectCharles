@@ -356,14 +356,6 @@ body.workspace .ws-pet-slot #slime {
   color: var(--ws-muted);
   font-size: 13px;
 }
-.ws-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  color: var(--ws-body);
-  font-size: 13px;
-}
 .ws-dot {
   display: inline-block;
   width: 9px;
@@ -1493,18 +1485,14 @@ body.workspace #feed .message {
   font-size: 15px;
   line-height: 1.6;
 }
-/* user: accent bubble on the right, with the time beside it */
+/* user: against the right edge, the time on its left; its colours are the island's (39-v0923.css) */
 body.workspace #feed .message.user {
   position: relative;
   width: fit-content !important;
   margin-left: auto !important;
-  margin-right: 52px !important;
+  margin-right: 0 !important;
   max-width: min(72%, 680px) !important;
   padding: 12px 18px !important;
-  border: 0 !important;
-  border-radius: 16px 16px 4px 16px !important;
-  background: var(--ws-accent) !important;
-  color: var(--ws-accent-ink) !important;
   box-shadow: none !important;
   overflow: visible !important;
   /* content-visibility: auto (4-polish.css) clips paint to the bubble: the time and the
@@ -1528,7 +1516,7 @@ body.workspace #feed .message.user .edit-message:focus-visible {
 body.workspace #feed .message.user[data-ws-meta]::after {
   content: attr(data-ws-meta);
   position: absolute;
-  right: -46px;
+  right: calc(100% + 42px);
   top: 12px;
   color: var(--ws-muted);
   font-size: 12px;

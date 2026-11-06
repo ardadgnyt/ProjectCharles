@@ -86,4 +86,4 @@ body #feed .markdown .math-display.copied .math-copy { opacity: 1; color: #8fdc9
   font-weight: 650;
   cursor: pointer;
 }
-body.workspace #feed .steer-pending { margin-right: 52px; }
+body.workspace #feed .steer-pending { margin-right: 0; }

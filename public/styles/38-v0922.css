@@ -380,14 +380,12 @@ body.workspace #settings-panel[open] #settings-categories button[aria-pressed='t
 .message.user.with-files > .user-text {
   max-width: 100%;
   padding: 13px 16px;
-  border: 1px solid rgba(238, 210, 178, 0.18);
-  border-top-color: rgba(238, 210, 178, 0.26);
-  border-radius: 18px 18px 5px 18px;
-  background:
-    linear-gradient(180deg, rgba(238, 210, 178, 0.15), rgba(238, 210, 178, 0.08)),
-    rgba(var(--ac-base), 0.45);
+  border: 1px solid var(--ch-bubble-line);
+  border-top-color: var(--ch-bubble-top);
+  border-radius: var(--ch-bubble-radius);
+  background: var(--ch-bubble);
 }
-.message.user.with-files > .user-text:empty {
+.message.user.with-files > .user-text[hidden] {
   display: none;
 }
 .message.user.with-files > .edit-message {
@@ -398,16 +396,18 @@ body.workspace #settings-panel[open] #settings-categories button[aria-pressed='t
   justify-content: flex-end;
   margin: 0;
 }
+/* the frame is as wide as the picture shown: wider, and the picture stood away from the right edge */
 .message-attachments figure {
-  max-width: 100%;
+  max-width: min(240px, 100%);
 }
 .message-attachments figure:has(.sent-file) {
   display: flex;
   flex: 0 0 100%;
   justify-content: flex-end;
+  max-width: 100%;
 }
 .message-attachments img {
-  max-width: min(240px, 100%);
+  max-width: 100%;
   max-height: 220px;
   border-radius: 16px;
 }

@@ -23,6 +23,12 @@
   --ac-edge-top: rgba(255, 236, 214, 0.14);
   --ac-warm: rgba(238, 210, 178, 0.06);
   --ac-cool: rgba(238, 210, 178, 0.025);
+  /* the user's bubble, in the island and the app window alike */
+  --ch-bubble: linear-gradient(180deg, rgba(238, 210, 178, 0.15), rgba(238, 210, 178, 0.08)), rgba(var(--ac-base), 0.45);
+  --ch-bubble-line: rgba(238, 210, 178, 0.18);
+  --ch-bubble-top: rgba(238, 210, 178, 0.26);
+  --ch-bubble-radius: 18px 18px 6px 18px;
+  --ch-bubble-text: #e9e9ed;
 }
 
 /* ── Island: warm black glass, still slightly see-through ─────────────────────── */
@@ -43,11 +49,9 @@ body:not(.desktop-pet):not(.hidden-island) .island {
     rgba(var(--ac-base), 0.6);
 }
 .message.user {
-  background:
-    linear-gradient(180deg, rgba(238, 210, 178, 0.15), rgba(238, 210, 178, 0.08)),
-    rgba(var(--ac-base), 0.45);
-  border-color: rgba(238, 210, 178, 0.18);
-  border-top-color: rgba(238, 210, 178, 0.26);
+  background: var(--ch-bubble);
+  border-color: var(--ch-bubble-line);
+  border-top-color: var(--ch-bubble-top);
 }
 #settings-panel,
 #sessions-panel,

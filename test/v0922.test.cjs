@@ -173,7 +173,6 @@ test('a long chat: the translator reads only what changed, and nothing in Turkis
 });
 
 test('this version', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.9.22-beta.1');
   const { notes } = require('../app/core/release-notes.cjs');
   const v = notes(root, '0.9.22-beta.1');
   assert.match(v.title, /^v0\.9\.22 Beta — November/);

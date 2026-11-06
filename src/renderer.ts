@@ -531,6 +531,7 @@ function row(text: string, className = '', attachments: any[] = []) {
     const copy = document.createElement('span');
     copy.innerHTML = renderMarkdown(text);
     copy.className = 'user-text markdown';
+    copy.hidden = !text.trim(); // files sent with no words: no empty bubble under them
     const edit = document.createElement('button');
     edit.className = 'edit-message';
     edit.title = 'Mesajı düzenle';

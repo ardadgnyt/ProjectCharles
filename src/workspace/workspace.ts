@@ -103,15 +103,12 @@ export function workspaceUI(d: WorkspaceDeps) {
 
   // left column
   const petSlot = el('div', 'ws-pet-slot');
-  const statusDot = el('i', 'ws-dot');
-  const statusText = el('span', '', 'Hazır');
   const profile = el(
     'section',
     'ws-card ws-profile',
     petSlot,
     el('strong', 'ws-name', 'Charles'),
     el('small', 'ws-version', d.version),
-    el('span', 'ws-status', statusDot, statusText),
   );
   const sidebar = workspaceSidebar({ api, notice: d.notice, opened: () => showChat() });
   const side = el('aside', 'ws-side', profile, sidebar.element);
@@ -413,18 +410,6 @@ export function workspaceUI(d: WorkspaceDeps) {
   }
   api.onPersonal?.((p: any) => on && void avatar(p));
 
-  // Status of the AI connection and Charles himself
-  const status = $('status');
-  const paintStatus = () => {
-    const text = (status.textContent || '').trim();
-    statusText.textContent = text && text.length < 40 ? text : 'Hazır';
-    const account = ($('account').textContent || '').trim();
-    const ok = !/Bağlı değil|Not connected/i.test(account);
-    statusDot.classList.toggle('off', !ok);
-  };
-  new MutationObserver(paintStatus).observe(status, { childList: true, characterData: true, subtree: true });
-  new MutationObserver(paintStatus).observe($('account'), { childList: true, characterData: true, subtree: true });
-
   // ── Settings: a roomier window with a side menu ───────────────────────────
   function decorateSettings() {
     const nav = document.getElementById('settings-categories');
@@ -513,7 +498,6 @@ export function workspaceUI(d: WorkspaceDeps) {
       void avatar();
       petSlot.append(pet);
       chatBody.append(content);
-      paintStatus();
       void sidebar.refresh();
       showHome();
     } else {

@@ -1,0 +1,76 @@
+/* v0.9.23 */
+
+/* --- Links in the chat ---------------------------------------------------------------------------
+   Cream on a cream bubble could not be read. One light grey on every message background. */
+:root {
+  --ch-link: #dcdad6;
+  --ch-link-hover: #ffffff;
+}
+#feed .markdown a,
+#feed .markdown a:visited {
+  color: var(--ch-link);
+  text-decoration: underline;
+  text-decoration-color: rgba(220, 218, 214, 0.6);
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+#feed .markdown a:hover {
+  color: var(--ch-link-hover);
+  text-decoration-color: currentColor;
+}
+#feed .markdown a:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* --- The same message in both places: only what the app window's width asks for differs ---------- */
+body.workspace #feed .message.user {
+  border: 1px solid var(--ch-bubble-line) !important;
+  border-top-color: var(--ch-bubble-top) !important;
+  border-radius: var(--ch-bubble-radius) !important;
+  background: var(--ch-bubble) !important;
+  color: var(--ch-bubble-text) !important;
+}
+body.workspace #feed .message.user.with-files {
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+}
+body.workspace #feed .message.user.with-files > .user-text {
+  padding: 12px 18px;
+}
+#feed .message.user.with-files.editing {
+  align-items: stretch;
+}
+body.workspace #feed .message.user.editing {
+  width: min(100%, 560px) !important;
+  max-width: 100% !important;
+}
+
+/* the box's corners are rounder here: the cards keep clear of them */
+body.workspace .ws-chat-body #attachments:not(:empty),
+body.workspace .ws-chat-body #drop-actions:not([hidden]) {
+  margin-right: 14px;
+  margin-left: 14px;
+}
+body.workspace .ws-chat-body #attachments:not(:empty) {
+  margin-top: 6px;
+}
+
+/* a low app window: the cards get smaller before the chat gives way */
+@media (max-height: 640px) {
+  body.workspace .ws-chat-body #drop-actions,
+  body.workspace .ws-composer-hint {
+    display: none;
+  }
+  body.workspace .ws-chat-body .attachment-card {
+    grid-template-rows: 46px auto;
+  }
+  body.workspace .ws-chat-body #composer .attachment-preview {
+    height: 46px;
+  }
+  body.workspace .ws-chat-body .attachment-name {
+    -webkit-line-clamp: 1;
+  }
+}

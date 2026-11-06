@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.22%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.23%20beta-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -34,6 +34,7 @@ laptop while it writes code, and gets dizzy if you shake him too hard.
 
 | Version | What’s new |
 | --- | --- |
+| **v0.9.23** | Readable links in the chat · the app window uses the island's dark message style, with your messages on the right · attachments in the app window match the island · sent pictures line up on the right · no status line under Charles in the app window |
 | **v0.9.22** | Push to talk on Right + Up, and the key can be changed again · attachments on cards inside the message box · one black theme for Settings and Review changes · no shadow under Charles on the desktop · long chats open without freezing |
 | **v0.9.21** | Settings open every time in the app window · dropping a shelf file on a name that already exists no longer freezes the mouse · Quick Share asks in the app window too |
 | **v0.9.20** | One small helper instead of several PowerShell processes · mail dates no longer open Outlook by themselves · shelf files drag like files on the desktop · a Small size for the island |
