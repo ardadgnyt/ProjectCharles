@@ -1,3 +1,4 @@
+import { attachmentCard, attachmentNames } from '../chat/attachment-card';
 import { paintSoundButton } from '../ui/sound-button';
 import { historyFolders } from '../chat/history-folders';
 import { setRoomActions } from '../workspace/bridge';
@@ -92,35 +93,30 @@ export function extraUI(
     attributes: true,
     attributeFilter: ['open'],
   });
+  const hideName = attachmentNames($('attachments'));
   function attachments() {
+    hideName();
     $('drop-actions').hidden = !files.length;
-    $('attachments').replaceChildren();
-    for (const file of files) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'attachment-chip';
-      b.title = 'Eki kaldır: ' + file.name;
-      b.setAttribute('aria-label', b.title);
-      if (file.thumbnail) {
-        const img = document.createElement('img');
-        img.src = file.thumbnail;
-        img.alt = file.name;
-        img.className = 'attachment-thumbnail';
-        b.append(img);
-      }
-      const name = document.createElement('span');
-      name.textContent = file.name;
-      const remove = document.createElement('span');
-      remove.textContent = '×';
-      remove.className = 'attachment-remove';
-      b.append(name, remove);
-      b.onclick = () => {
-        files = files.filter((f) => f.id !== file.id);
-        attachments();
-      };
-      $('attachments').append(b);
-    }
+    $('attachments').replaceChildren(
+      ...files.map((file) =>
+        attachmentCard(api, file, () => {
+          files = files.filter((f) => f.id !== file.id);
+          attachments();
+        }),
+      ),
+    );
   }
+  // the cards stand in one line: the wheel moves along it
+  $('attachments').addEventListener(
+    'wheel',
+    (e) => {
+      const box = e.currentTarget as HTMLElement;
+      if (box.scrollWidth <= box.clientWidth || !e.deltaY) return;
+      box.scrollLeft += e.deltaY;
+      e.preventDefault();
+    },
+    { passive: false },
+  );
   async function addFiles(next: any[]) {
     if (files.length + next.length > 50) throw Error('Bir mesajda en fazla 50 ek olabilir.');
     const prepared = [];

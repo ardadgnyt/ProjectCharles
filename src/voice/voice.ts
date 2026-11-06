@@ -75,7 +75,7 @@ export function voiceUI(api: any, notice: (text: string) => void, busy: () => bo
       const join = box instanceof HTMLInputElement ? ' ' : '\n';
       box.value = (box.value.trim() ? box.value.trim() + join : '') + text;
       box.dispatchEvent(new Event('input', { bubbles: true }));
-      show('idle', 'Metni kontrol et, ardından Gönder’e bas.');
+      show('idle', '');
       box.focus();
     } catch (e) {
       if (token === epoch) {

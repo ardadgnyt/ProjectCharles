@@ -94,7 +94,6 @@ test('a file coming in, in the app window: a card that asks, and its text stays 
 });
 
 test('this version', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.9.21-beta.1');
   const { notes } = require('../app/core/release-notes.cjs');
   const v = notes(ROOT, '0.9.21-beta.1');
   assert.match(v.title, /^v0\.9\.21 Beta — November/);

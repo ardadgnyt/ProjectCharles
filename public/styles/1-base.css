@@ -1586,33 +1586,6 @@ body.compact .identity small {
   flex-wrap: wrap;
   gap: 8px;
 }
-#attachments .attachment-chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 260px;
-  padding: 6px;
-  background: #ffffff06;
-  border-radius: 12px;
-}
-#attachments .attachment-chip > span:first-of-type {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 11px;
-}
-#attachments .attachment-thumbnail {
-  width: 56px;
-  height: 42px;
-  object-fit: cover;
-  border-radius: 7px;
-  flex-shrink: 0;
-}
-.attachment-remove {
-  font-size: 17px;
-  color: var(--muted);
-  padding: 0 4px;
-}
 #mini-music button:disabled {
   opacity: 0.35;
 }

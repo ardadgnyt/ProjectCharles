@@ -1,0 +1,462 @@
+/* v0.9.22 */
+
+/* --- One black for Settings and the app window's large panels ---------------------------------
+   Both had stayed on the blue-grey of v0.7. These names come from the app window's own colours
+   (10-noir.css); Settings, the panels and their controls take them from here and from nowhere else. */
+:root {
+  --ch-surface: #060606;
+  --ch-rail: #030303;
+  --ch-card: #0c0b0a;
+  --ch-field: #131211;
+  --ch-field-hover: #1a1816;
+  --ch-control: rgba(255, 236, 214, 0.055);
+  --ch-control-hover: rgba(255, 236, 214, 0.1);
+  --ch-scroll: rgba(255, 236, 214, 0.16);
+}
+#settings-panel,
+#settings-categories,
+.settings-body,
+.ws-modal,
+.ws-modal-body,
+.ws-review-list,
+.ws-review-view {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ch-scroll) transparent;
+}
+body.workspace #settings-panel[open],
+.ws-modal {
+  border-color: var(--sb-line-strong) !important;
+  background: var(--ch-surface) !important;
+}
+body.workspace #settings-panel::backdrop,
+.ws-modal-back {
+  background: rgba(0, 0, 0, 0.62);
+}
+body.workspace #settings-panel[open] > .settings-heading {
+  border-bottom-color: var(--sb-line);
+}
+body.workspace #settings-panel[open] #settings-categories {
+  border-right-color: var(--sb-line) !important;
+  background: var(--ch-rail) !important;
+}
+body.workspace #settings-panel[open] #settings-categories button {
+  color: var(--sb-muted) !important;
+}
+body.workspace #settings-panel[open] #settings-categories button:hover {
+  background: var(--ch-control) !important;
+  color: var(--sb-text) !important;
+}
+body.workspace #settings-panel[open] #settings-categories button[aria-pressed='true'] {
+  background: var(--sb-accent-soft) !important;
+  color: var(--sb-accent) !important;
+}
+
+/* cards */
+#settings-panel .settings-page .settings-card,
+#settings-panel .settings-page .setting-section,
+#settings-panel .ptt-card {
+  border-color: var(--sb-line);
+  background: var(--ch-card);
+  box-shadow: none;
+}
+#settings-panel .slime-preview,
+#settings-panel details.evren-key,
+#settings-panel details.evren-terms,
+#settings-panel #live-key-settings,
+#settings-panel .weekly-period,
+#settings-panel .studio-tabs,
+#settings-panel .wa-live,
+#settings-panel .coming-soon {
+  background: var(--ch-rail);
+}
+
+/* fields */
+#settings-panel input:not([type='checkbox']):not([type='range']):not([type='color']),
+#settings-panel select,
+#settings-panel textarea {
+  border-color: var(--sb-line-strong);
+  background: var(--ch-field);
+  color: var(--sb-text);
+}
+#settings-panel input:not([type='checkbox']):not([type='range']):not([type='color']):hover,
+#settings-panel select:hover,
+#settings-panel textarea:hover {
+  background: var(--ch-field-hover);
+}
+#settings-panel input::placeholder,
+#settings-panel textarea::placeholder {
+  color: var(--sb-muted);
+}
+#settings-panel input:disabled,
+#settings-panel select:disabled,
+#settings-panel textarea:disabled {
+  color: var(--sb-muted);
+  opacity: 0.6;
+}
+#settings-panel input[readonly] {
+  color: var(--sb-text);
+}
+#settings-panel option,
+#settings-panel optgroup {
+  background: var(--ch-field);
+  color: var(--sb-text);
+}
+#settings-panel input[type='checkbox']:not(:checked) {
+  background: var(--ch-field-hover);
+  box-shadow: inset 0 0 0 1px var(--sb-line-strong);
+}
+#settings-panel input[type='range'] {
+  background: transparent;
+  accent-color: var(--sb-accent);
+}
+#settings-panel input[type='color'],
+#settings-panel #look-accent,
+#settings-panel #color-badge,
+#settings-panel #color-send,
+#settings-panel #color-user,
+#settings-panel #color-agent {
+  background: var(--ch-field);
+}
+
+/* buttons keep their own see-through fill, so colour swatches and cream buttons stay as they are */
+#settings-panel .settings-page button:disabled {
+  color: var(--sb-muted);
+  opacity: 0.55;
+}
+#settings-panel button:focus-visible,
+#settings-panel input:focus-visible,
+#settings-panel select:focus-visible,
+#settings-panel textarea:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 1px;
+}
+
+/* the app window's large panels */
+.ws-modal-head,
+.ws-modal-foot {
+  border-color: var(--sb-line);
+  background: var(--ch-surface);
+}
+.ws-modal-body {
+  background: var(--ch-surface);
+}
+#workspace .ws-modal button:not(.ws-primary):not(.ws-card-option):not(.ws-review-item):not(.ws-review-undo.confirm):hover {
+  border-color: var(--sb-line-strong);
+}
+
+/* Review changes */
+.ws-review-list {
+  border-right-color: var(--sb-line);
+  background: var(--ch-rail);
+}
+.ws-review-head {
+  border-bottom-color: var(--sb-line);
+  background: var(--ch-surface);
+}
+.ws-review-view {
+  background: var(--ch-surface);
+}
+#workspace .ws-modal button.ws-review-item {
+  background: transparent !important;
+}
+#workspace .ws-modal button.ws-review-item:hover {
+  background: var(--ch-control) !important;
+}
+#workspace .ws-modal button.ws-review-item.on {
+  background: var(--sb-accent-soft) !important;
+}
+#workspace .ws-modal button.ws-review-undo {
+  border-color: var(--sb-line-strong) !important;
+  background: var(--ch-control) !important;
+}
+#workspace .ws-modal button.ws-review-undo:hover {
+  background: var(--ch-control-hover) !important;
+}
+#workspace .ws-modal button.ws-review-undo.confirm {
+  border-color: rgba(255, 138, 122, 0.5) !important;
+  background: rgba(255, 138, 122, 0.14) !important;
+}
+.ws-review-icon {
+  background: var(--ch-control);
+  color: var(--sb-accent);
+}
+.ws-review-tag {
+  background: var(--ch-control-hover);
+}
+.ws-diff-n {
+  color: rgba(255, 236, 214, 0.3);
+}
+.ws-diff-skip {
+  background: var(--ch-card);
+}
+.ws-diff-line.add {
+  background: rgba(74, 222, 128, 0.12);
+}
+.ws-diff-line.del {
+  background: rgba(255, 120, 100, 0.12);
+}
+.ws-diff code {
+  color: var(--sb-text);
+}
+.ws-diff-line.add code {
+  color: #b9f5cc;
+}
+.ws-diff-line.del code {
+  color: #ffc4bb;
+}
+.ws-diff ::selection,
+.ws-paras ::selection {
+  background: rgba(238, 210, 178, 0.28);
+}
+.ws-para {
+  border-color: var(--sb-line);
+  background: var(--ch-card);
+}
+
+/* --- Bas-konuş: what happened to the chosen key stands in the card ------------------------------ */
+.ptt-status {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--sb-muted);
+}
+.ptt-status[hidden] {
+  display: none;
+}
+.ptt-status[data-kind='error'] {
+  color: var(--sb-danger);
+}
+.ptt-status[data-kind='ok'] {
+  color: var(--sb-ok);
+}
+
+/* --- Attachments: a band of their own at the top of the message box ----------------------------- */
+#attachments:not(:empty) {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: 0 -2px 6px;
+  padding: 3px 2px 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
+  border-bottom: 1px solid var(--sb-line);
+}
+#attachments::-webkit-scrollbar {
+  height: 6px;
+}
+#attachments::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: var(--ch-scroll);
+}
+#attachments::-webkit-scrollbar-button {
+  display: none;
+}
+.attachment-card {
+  position: relative;
+  display: grid;
+  flex: 0 0 96px;
+  grid-template-rows: 68px auto;
+  gap: 5px;
+  width: 96px;
+  min-width: 0;
+}
+#composer .attachment-preview {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 68px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: 12px;
+  background: var(--ch-card);
+  color: var(--sb-muted);
+  box-shadow: none;
+}
+#composer button.attachment-preview {
+  cursor: zoom-in;
+}
+#composer button.attachment-preview:hover {
+  border-color: rgba(238, 210, 178, 0.35);
+}
+.attachment-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#composer .attachment-file {
+  align-content: center;
+  gap: 2px;
+}
+.attachment-file svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.attachment-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.attachment-file[data-kind='pdf'] .attachment-badge {
+  color: var(--sb-danger);
+}
+#composer .attachment-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.74);
+  color: #f5eee5;
+  font-size: 14px;
+  line-height: 1;
+}
+#composer .attachment-remove:hover {
+  background: var(--sb-danger);
+  color: #1b0c09;
+}
+#composer .attachment-remove:focus-visible,
+#composer .attachment-preview:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 1px;
+}
+.attachment-tip {
+  position: absolute;
+  z-index: 40;
+  bottom: calc(100% + 6px);
+  left: 0;
+  max-width: min(320px, 100%);
+  padding: 6px 9px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: 9px;
+  background: var(--ch-field);
+  color: var(--sb-text);
+  font-size: 11px;
+  line-height: 15px;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.attachment-tip[hidden] {
+  display: none;
+}
+.attachment-name {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--sb-text);
+  font-size: 11px;
+  line-height: 14px;
+  overflow-wrap: anywhere;
+}
+#drop-actions:not([hidden]) {
+  margin-bottom: 6px;
+}
+
+/* --- A sent message: pictures and file cards stand alone, the text keeps its bubble ------------- */
+#feed .message.user.with-files {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.message.user.with-files > .user-text {
+  max-width: 100%;
+  padding: 13px 16px;
+  border: 1px solid rgba(238, 210, 178, 0.18);
+  border-top-color: rgba(238, 210, 178, 0.26);
+  border-radius: 18px 18px 5px 18px;
+  background:
+    linear-gradient(180deg, rgba(238, 210, 178, 0.15), rgba(238, 210, 178, 0.08)),
+    rgba(var(--ac-base), 0.45);
+}
+.message.user.with-files > .user-text:empty {
+  display: none;
+}
+.message.user.with-files > .edit-message {
+  margin-top: -3px;
+}
+.message.user.with-files .message-attachments {
+  align-items: flex-end;
+  justify-content: flex-end;
+  margin: 0;
+}
+.message-attachments figure {
+  max-width: 100%;
+}
+.message-attachments figure:has(.sent-file) {
+  display: flex;
+  flex: 0 0 100%;
+  justify-content: flex-end;
+}
+.message-attachments img {
+  max-width: min(240px, 100%);
+  max-height: 220px;
+  border-radius: 16px;
+}
+.sent-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 260px;
+  max-width: 100%;
+  padding: 10px 16px 10px 10px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: 18px;
+  background: var(--ch-card);
+}
+.sent-file-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--ch-rail);
+  color: var(--sb-muted);
+}
+.sent-file[data-kind='pdf'] .sent-file-icon {
+  color: var(--sb-danger);
+}
+.sent-file-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.sent-file-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.sent-file-text strong {
+  overflow: hidden;
+  color: var(--sb-text);
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sent-file-text small {
+  color: var(--sb-muted);
+  font-size: 11.5px;
+}

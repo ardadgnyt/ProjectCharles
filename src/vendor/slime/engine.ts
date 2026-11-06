@@ -315,6 +315,8 @@ export class BotEngine {
   isMini = false;
   /** Solid body colour for mini bots / integration pills (null = Slime gradient). */
   bodyColor: RGB | null = null;
+  /** The soft shadow under the jelly; off while he is out on the desktop (v0.9.22). */
+  contactShadow = true;
 
   // Animated state (BotEngine `s`)
   yaw = 0;
@@ -1274,7 +1276,7 @@ export class BotEngine {
       const tb = performance.now() / 1000;
       const j = 0.012 * Math.sin(tb * 2.1) * (1 - this.morph);
       x.scale(1 + j, 1 - j);
-      this.drawSlimeShadow(x, rx, ry);
+      if (this.contactShadow) this.drawSlimeShadow(x, rx, ry);
     }
     const body = this.bodyPath(rx, ry, R);
     if (slime) this.drawSlimeBody(x, body, R, rx, ry);

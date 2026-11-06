@@ -631,6 +631,61 @@ class PushToTalk {
  }
 }
 
+/**
+ * Two ordinary keys used together (Right + Up): each still works alone. The first one is held back
+ * for a moment, because once the app has it the cursor has moved. The gestures above stay the same:
+ * "pressed" is the two keys joining and "released" is the first of them letting go.
+ */
+class Chord {
+ public int A, B, Waiting;
+ public bool DownA, DownB, TookA, TookB, Joined;
+ public PushToTalk M;
+ public Action<int, bool, bool> Send = delegate { }; // key, press, release
+ public Action Wait = delegate { };
+ public Action Go = delegate { };
+ public bool On { get { return B != 0; } }
+ public void Set(int a, int b) { Go(); A = a; B = b; Waiting = 0; DownA = DownB = TookA = TookB = Joined = false; }
+ void Take(int k, bool v) { if (k == A) TookA = v; else TookB = v; }
+ bool Took(int k) { return k == A ? TookA : TookB; }
+ /** The key goes through (false) or stays with Charles (true). */
+ public bool Down(int k, bool plain) {
+  var first = k == A; var other = first ? B : A;
+  if (first ? DownA : DownB) return Took(k); // key repeat: never a second press
+  if (first) DownA = true; else DownB = true;
+  var idle = M.Paused && M.State == PushToTalk.S.Idle;
+  if (!(DownA && DownB)) {
+   if (!plain || idle) return false; // Shift + Right selects, as always
+   Waiting = k; Take(k, true); Wait();
+   return true;
+  }
+  if (!plain || idle) { Flush(); return false; }
+  if (Waiting == other) { Go(); Waiting = 0; }
+  else if (!Took(other)) Send(other, false, true); // it reached the app first: the app sees it let go
+  Take(other, true); Take(k, true);
+  Joined = true;
+  M.Down();
+  return true;
+ }
+ public bool Up(int k) {
+  if (k == A) DownA = false; else DownB = false;
+  var took = Took(k);
+  Take(k, false);
+  if (Waiting == k) { Go(); Waiting = 0; Send(k, true, true); return true; } // a tap: it was only ever this key
+  if (Joined) { Joined = false; M.Up(); }
+  return took;
+ }
+ /** The key waited long enough, or another key came: it goes to the app now, in its order. */
+ public bool Flush() {
+  if (Waiting == 0) return false;
+  Go();
+  var k = Waiting;
+  Waiting = 0;
+  Take(k, false);
+  Send(k, true, false);
+  return true;
+ }
+}
+
 static class Keys {
  [StructLayout(LayoutKind.Sequential)] struct KB { public uint vk, scan, flags, time; public IntPtr extra; }
  [StructLayout(LayoutKind.Sequential)] struct KEYBDINPUT { public ushort wVk, wScan; public uint dwFlags, time; public IntPtr extra; public uint a, b; }
@@ -656,21 +711,34 @@ static class Keys {
  [StructLayout(LayoutKind.Sequential)] struct GUI { public int size; public uint flags; public IntPtr active, focus, capture, menu, move, caret; public RC rc; }
  static readonly IntPtr Mark = new IntPtr(0x43484C53); // what Charles itself types: passes the hook
  static PushToTalk M = new PushToTalk();
- static Proc keep; static Timer timer; static uint hookThread; static QueueWorker owner;
+ static Chord J = new Chord { M = M };
+ const int JOIN_MS = 100, DOUBLE_MS = 220, DOUBLE_CHORD_MS = 340;
+ static Proc keep; static Timer timer, joinTimer; static uint hookThread; static QueueWorker owner;
  static int key; static bool ctrl, alt, shift, win, tapBack; static readonly object Lock = new object();
  static void Line(string s) { var w = owner; if (w != null) w.Emit(s); }
- static void Config(int vk, bool c, bool a, bool s, bool w) {
-  lock (Lock) { key = vk; ctrl = c; alt = a; shift = s; win = w; tapBack = !(c || a || s || w); M.Reset(); M.State = PushToTalk.S.Idle; }
+ static void Config(int vk, int vk2, bool c, bool a, bool s, bool w) {
+  lock (Lock) {
+   J.Flush();
+   key = vk2 != 0 ? 0 : vk; ctrl = c; alt = a; shift = s; win = w; tapBack = vk2 == 0 && !(c || a || s || w);
+   J.Set(vk2 != 0 ? vk : 0, vk2);
+   M.Reset(); M.State = PushToTalk.S.Idle;
+  }
  }
  static bool D(int vk) { return (GetAsyncKeyState(vk) & 0x8000) != 0; }
- static void Key(int vk) {
+ static void Key(int vk, bool press, bool release) {
   var scan = (ushort)MapVirtualKey((uint)vk, 0);
   uint ext = (vk >= 0x21 && vk <= 0x2E) ? 1u : 0u;
-  var i = new INPUT[2];
-  i[0].type = i[1].type = 1;
-  i[0].k.wVk = i[1].k.wVk = (ushort)vk; i[0].k.wScan = i[1].k.wScan = scan;
-  i[0].k.dwFlags = ext; i[1].k.dwFlags = ext | 2; i[0].k.extra = i[1].k.extra = Mark;
-  SendInput(2, i, Marshal.SizeOf(typeof(INPUT)));
+  var i = new INPUT[(press ? 1 : 0) + (release ? 1 : 0)];
+  var n = 0;
+  if (press) { i[n].type = 1; i[n].k.wVk = (ushort)vk; i[n].k.wScan = scan; i[n].k.dwFlags = ext; i[n].k.extra = Mark; n++; }
+  if (release) { i[n].type = 1; i[n].k.wVk = (ushort)vk; i[n].k.wScan = scan; i[n].k.dwFlags = ext | 2; i[n].k.extra = Mark; n++; }
+  SendInput((uint)n, i, Marshal.SizeOf(typeof(INPUT)));
+ }
+ /** A key that came while another was held back: it goes after that one, as it was pressed. */
+ static void Again(KB k) {
+  var i = new INPUT[1];
+  i[0].type = 1; i[0].k.wVk = (ushort)k.vk; i[0].k.wScan = (ushort)k.scan; i[0].k.dwFlags = k.flags & 1u; i[0].k.extra = Mark;
+  SendInput(1, i, Marshal.SizeOf(typeof(INPUT)));
  }
  static IntPtr OnKey(int code, IntPtr w, IntPtr l) {
   if (code < 0) return CallNextHookEx(IntPtr.Zero, code, w, l);
@@ -680,22 +748,34 @@ static class Keys {
   var swallow = false;
   lock (Lock) {
    var vk = (int)k.vk;
-   if (vk == 0x1B) swallow = M.Esc(down);
+   var chord = J.On && (vk == J.A || vk == J.B);
+   var flushed = down && !chord && J.Flush();
+   if (chord) {
+    var plain = !(D(0x11) || D(0x12) || D(0x10) || D(0x5B) || D(0x5C));
+    if (up) swallow = J.Up(vk);
+    else if (down) swallow = J.Down(vk, plain);
+   }
+   else if (vk == 0x1B) swallow = M.Esc(down);
    else if (vk == key) {
     var c = D(0x11); var a = D(0x12); var s = D(0x10); var v = D(0x5B) || D(0x5C);
     var active = M.State != PushToTalk.S.Idle;
     if (up) swallow = M.Up();
     else if (down && (active || (c == ctrl && a == alt && s == shift && v == win))) swallow = M.Down();
    } else if (down && vk != 0x10 && vk != 0x11 && vk != 0x12 && vk != 0xA0 && vk != 0xA1 && vk != 0xA2 && vk != 0xA3 && vk != 0xA4 && vk != 0xA5) M.Other();
+   if (flushed && !swallow) { Again(k); swallow = true; }
   }
   return swallow ? new IntPtr(1) : CallNextHookEx(IntPtr.Zero, code, w, l);
  }
- static void Fire(object which) { lock (Lock) M.Fire((string)which); }
+ static void Fire(object which) { lock (Lock) { if ((string)which == "join") J.Flush(); else M.Fire((string)which); } }
  static void Wire() {
   M.Emit = (e) => Line("{\"e\":\"" + e + "\"}");
-  M.Inject = () => { if (tapBack) Key(key); };
-  M.Start = (which) => { if (timer != null) timer.Dispose(); timer = new Timer(Fire, which, which == "hold" ? 260 : 220, Timeout.Infinite); };
+  M.Inject = () => { if (tapBack) Key(key, true, true); };
+  // no key waits for the end of a chord's tap, so its second press can have more time
+  M.Start = (which) => { if (timer != null) timer.Dispose(); timer = new Timer(Fire, which, which == "hold" ? 260 : J.On ? DOUBLE_CHORD_MS : DOUBLE_MS, Timeout.Infinite); };
   M.Stop = () => { if (timer != null) { timer.Dispose(); timer = null; } };
+  J.Send = Key;
+  J.Wait = () => { if (joinTimer != null) joinTimer.Dispose(); joinTimer = new Timer(Fire, "join", JOIN_MS, Timeout.Infinite); };
+  J.Go = () => { if (joinTimer != null) { joinTimer.Dispose(); joinTimer = null; } };
  }
  static void On() {
   Off();
@@ -720,13 +800,20 @@ static class Keys {
   if (hookThread == 0) return;
   Native.PostThreadMessage(hookThread, Native.WM_QUIT, IntPtr.Zero, IntPtr.Zero);
   hookThread = 0;
-  lock (Lock) { if (timer != null) { timer.Dispose(); timer = null; } M.State = PushToTalk.S.Idle; }
+  lock (Lock) { if (timer != null) { timer.Dispose(); timer = null; } J.Flush(); J.Set(J.A, J.B); M.State = PushToTalk.S.Idle; }
  }
  static void Sim(string op) {
   M.Emit = (e) => Line("{\"e\":\"" + e + "\"}");
   M.Inject = () => Line("{\"e\":\"inject\"}");
   M.Start = (w) => Line("{\"timer\":\"" + w + "\"}");
   M.Stop = () => { };
+  J.Send = (k, p, r) => Line("{\"send\":\"" + k + (p ? " press" : "") + (r ? " release" : "") + "\"}");
+  J.Wait = () => Line("{\"timer\":\"join\"}");
+  J.Go = () => { };
+  if (op == "chord") J.Set(0x27, 0x26);
+  else if (op == "a+" || op == "b+" || op == "a!" || op == "b!") Line("{\"swallow\":" + Json.B(J.Down(op[0] == 'a' ? J.A : J.B, op[1] == '+')) + "}");
+  else if (op == "a-" || op == "b-") Line("{\"swallow\":" + Json.B(J.Up(op[0] == 'a' ? J.A : J.B)) + "}");
+  else if (op == "join") J.Flush();
   if (op == "down") Line("{\"swallow\":" + Json.B(M.Down()) + "}");
   else if (op == "up") Line("{\"swallow\":" + Json.B(M.Up()) + "}");
   else if (op == "hold" || op == "tap") M.Fire(op);
@@ -787,7 +874,7 @@ static class Keys {
   switch (Json.Str(c, "cmd")) {
    case "on": On(); break;
    case "off": Off(); break;
-   case "config": Config((int)(Json.Num(c, "vk") ?? 0), Json.Bool(c, "ctrl"), Json.Bool(c, "alt"), Json.Bool(c, "shift"), Json.Bool(c, "win")); break;
+   case "config": Config((int)(Json.Num(c, "vk") ?? 0), (int)(Json.Num(c, "vk2") ?? 0), Json.Bool(c, "ctrl"), Json.Bool(c, "alt"), Json.Bool(c, "shift"), Json.Bool(c, "win")); break;
    case "set": Set(Json.Str(c, "what"), Json.Bool(c, "value")); break;
    case "sim": Sim(Json.Str(c, "op")); break;
    case "target": w.Emit("{\"r\":" + Target() + "}"); break;

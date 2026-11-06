@@ -63,8 +63,8 @@ test('release notes of this version are in English and ship with Charles', () =>
   assert.doesNotMatch(v.body, /[ğışİ]/);
 });
 
-test('push to talk: Right Arrow by default, keys that would break typing are refused', () => {
-  assert.equal(DEFAULTS.key, 'Right');
+test('push to talk: keys that would break typing are refused', () => {
+  assert.equal(DEFAULTS.key, 'Right+Up'); // v0.9.22
   assert.equal(parseKey('Right').vk, 0x27);
   assert.deepEqual(parseKey('Ctrl+Alt+Space'), { vk: 0x20, ctrl: true, alt: true, shift: false, win: false });
   assert.equal(parseKey('F8').vk, 0x77);

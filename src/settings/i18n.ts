@@ -1,3 +1,4 @@
+import { english0922, patterns0922 } from './i18n-0922';
 import { english063, englishPatterns } from './i18n-063';
 import { english070 } from './i18n-070';
 import { english071 } from './i18n-071';
@@ -217,7 +218,6 @@ const english: Record<string, string> = {
   'Bağlantı başarılı. Gemini Live sesli görüşmeye hazır.':
     'Connection successful. Gemini Live is ready.',
   'Sesi durdur': 'Stop audio',
-  'Metni kontrol et, ardından Gönder’e bas.': 'Review the text, then press Send.',
   'Konuşman bilgisayarında yazıya çevriliyor…': 'Transcribing locally…',
   'Mikrofon hazırlanıyor…': 'Preparing microphone…',
   'Sohbet geçmişi': 'Chat history',
@@ -363,22 +363,35 @@ Object.assign(english, {
   'Kaydet düğmesine tıkla, ardından kısayol tuşlarına birlikte bas. Esc ile vazgeç.':
     'Click Record keys, then press the shortcut together. Press Esc to cancel.',
 });
-Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089, english0810, english0811, english0814, english0815, english092, english096, english0913, english0914, english0915, english0916, english0918, english0919);
+Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089, english0810, english0811, english0814, english0815, english092, english096, english0913, english0914, english0915, english0916, english0918, english0919, english0922);
 
 // v0.6.3: look-up that ignores line breaks/indentation from the HTML, then the patterns
 // (texts with numbers or names inside).
 const collapsed = new Map<string, string>();
 for (const [k, v] of Object.entries(english)) collapsed.set(k.replace(/\s+/g, ' ').trim(), v);
+const allPatterns = [...englishPatterns, ...specialPatterns, ...patterns072, ...patterns077, ...patterns080, ...patterns085, ...patterns087, ...patterns088, ...patterns0810, ...patterns092, ...patterns096, ...patterns0913, ...patterns0914, ...patterns0922];
+// v0.9.22: a pattern is a short interface text with a number or a name in it. Without this limit
+// every line of a command's output went through all of them.
+const PATTERN_MAX = 600;
+const patternResults = new Map<string, string | undefined>();
 function toEnglish(source: string): string | undefined {
   const key = source.replace(/\s+/g, ' ').trim();
   if (!key) return undefined;
   const hit = english[source.trim()] ?? collapsed.get(key);
   if (hit !== undefined) return hit;
-  for (const [re, fn] of [...englishPatterns, ...specialPatterns, ...patterns072, ...patterns077, ...patterns080, ...patterns085, ...patterns087, ...patterns088, ...patterns0810, ...patterns092, ...patterns096, ...patterns0913, ...patterns0914]) {
+  if (key.length > PATTERN_MAX) return undefined;
+  if (patternResults.has(key)) return patternResults.get(key);
+  let result: string | undefined;
+  for (const [re, fn] of allPatterns) {
     const m = key.match(re);
-    if (m) return fn(...(m as unknown as string[]));
+    if (m) {
+      result = fn(...(m as unknown as string[]));
+      break;
+    }
   }
-  return undefined;
+  if (patternResults.size >= 4000) patternResults.clear();
+  patternResults.set(key, result);
+  return result;
 }
 
 // v0.7.2: German, French, Spanish and Chinese translate from the English text. A text with
@@ -464,11 +477,11 @@ export function languageUI(api: any) {
   label.append(select);
   panel.append(label);
   document.querySelector('.settings-page[data-category=general]')!.prepend(panel);
+  // what people, tools and the AI wrote is not interface text (`#feed pre`: a command's output)
+  const NOT_INTERFACE = '#feed .message,#feed pre,#requests,.plugin-results,.history-entry,[translate="no"],textarea,script,style';
   function translate(root: Node) {
     // (a text box's own text is never translated, but its placeholder is — see below)
-    const skipText =
-      root instanceof Element &&
-      !!root.closest('#feed .message,#requests,.plugin-results,.history-entry,[translate="no"],textarea,script,style');
+    const skipText = root instanceof Element && !!root.closest(NOT_INTERFACE);
     const nodes: Node[] = [];
     const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     if (!skipText) {
@@ -479,9 +492,7 @@ export function languageUI(api: any) {
       const parent = node.parentElement;
       if (
         !parent ||
-        parent.closest(
-          '#feed .message,#requests,.plugin-results,.history-entry,[translate="no"],textarea,script,style',
-        )
+        parent.closest(NOT_INTERFACE)
       )
         continue;
       const current = node.textContent || '',
@@ -523,24 +534,28 @@ export function languageUI(api: any) {
     translate(document.body);
     document.dispatchEvent(new CustomEvent('charles-language', { detail: language }));
   }
-  const observer = new MutationObserver((records) => {
-    observer.disconnect();
-    for (const r of records) translate(r.target);
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-      attributes: true,
-      attributeFilter: ['aria-label', 'placeholder', 'title'],
-    });
-  });
-  observer.observe(document.body, {
+  const watching = {
     childList: true,
     subtree: true,
     characterData: true,
     attributes: true,
     attributeFilter: ['aria-label', 'placeholder', 'title'],
+  };
+  // v0.9.22: each added message used to walk the whole chat again (the record's target is the list
+  // it was added to), so opening a long chat froze the panel for seconds. Only what changed is
+  // read now, and in Turkish nothing has to be done: the page is written in it.
+  const observer = new MutationObserver((records) => {
+    if (language === 'tr') return;
+    observer.disconnect();
+    const changed = new Set<Node>();
+    for (const r of records) {
+      if (r.type === 'childList') for (const n of r.addedNodes) changed.add(n);
+      else changed.add(r.target);
+    }
+    for (const n of changed) if (n.isConnected) translate(n);
+    observer.observe(document.body, watching);
   });
+  observer.observe(document.body, watching);
   select.onchange = () =>
     void api.companionSave({ language: select.value }).then(() => apply(select.value));
   void api.companionRead().then((v: any) => apply(v.language || v.preferences?.language || 'tr'));

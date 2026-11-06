@@ -262,6 +262,16 @@ the content. The open panel does not change.
 box; with `{ text, attachments? }` (an edited bubble, a button on the content card) it leaves the box
 and its draft alone. It resolves true once `api.send` accepted the message.
 
+### Attachments
+`src/chat/attachment-card.ts` draws both forms: the card in the message box (`attachmentCard`) and the
+file in a sent message (`sentFile`; a picture there is only the picture). `title` is removed from every
+element (`ui/no-native-tooltips.ts`), so the whole name is shown by `attachmentNames`.
+
+### Language
+`languageUI` in `src/settings/i18n.ts` watches the page. It reads only the nodes that changed, does
+nothing in Turkish, and skips what people, tools and the AI wrote (`NOT_INTERFACE`). Walking the whole
+chat for each added message froze a long chat for seconds.
+
 ### Editing a message
 `src/chat/message-editor.ts` edits inside the bubble and changes nothing until Save. Save branches
 with `editMessage`, switches to the branch and sends. If the message is refused, `undoEdit` removes
@@ -270,8 +280,13 @@ attachments can go again; a history entry keeps the attachment's `id`, and `extr
 file in the inbox (seven days).
 
 ### Push to talk
-The helper's `keys` channel holds a low-level keyboard hook that looks at one key; the gestures live
-in its `PushToTalk` class. Text is typed with `SendInput` as Unicode, marked so the hook ignores it.
+The helper's `keys` channel holds a low-level keyboard hook that looks at one key or at a chord of
+two (`vk2`, default Right + Up); the gestures live in its `PushToTalk` class. `Chord` sits in front
+of them: the first key waits up to 100 ms, because once the app has it the cursor has moved, and it is
+sent on if the second one does not come or another key does. "Pressed" is the two keys joining and
+"released" is the first of them letting go. `dictation.json` carries `keyScheme`: a file without it
+that says `Right` held the old default, not a choice, and moves to `Right+Up`. Testing with real key
+events while an installed Charles runs: its hook sees every key the test's hook lets through. Text is typed with `SendInput` as Unicode, marked so the hook ignores it.
 `dictation.cjs` compares the target before and after with `canType()`. The indicator uses
 `bubbleSpot()` too, from the island or from the cards when they show, and follows them through
 `mailBubble.onPlaced`. Its window closes 30 seconds after it was last hidden.

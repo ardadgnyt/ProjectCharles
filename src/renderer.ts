@@ -16,6 +16,7 @@ import { micPrivacyUI } from './ui/mic-button';
 import { Jelly } from './island/jelly';
 import { onboardingUI } from './island/onboarding';
 import { showGenerating, showImage, showFailed, lightbox, closeLightbox } from './chat/image-card';
+import { sentFile } from './chat/attachment-card';
 import { expressionsUI } from './settings/expressions';
 import { panelMotion } from './island/panel-motion';
 import { settingsPages } from './settings/settings-pages';
@@ -159,6 +160,8 @@ function animate(now: number) {
     ctx.scale(0.76, 0.76);
   } else ctx.translate(0, 8);
   bot.applyDance(ctx, 240, 240);
+  // v0.9.22: the shadow belongs to his place on the panel; out on the desktop nothing is under him
+  bot.contactShadow = !petIsOut() && !document.body.classList.contains('desktop-pet');
   bot.draw(ctx, 240, 240);
   ctx.restore();
   petMirror(canvas);
@@ -573,12 +576,11 @@ function row(text: string, className = '', attachments: any[] = []) {
             }
           };
           figure.append(img);
-        }
-        const caption = document.createElement('figcaption');
-        caption.textContent = file.name;
-        figure.append(caption);
+        } else figure.append(sentFile(file));
         gallery.append(figure);
       }
+      // v0.9.22: pictures and file cards stand by themselves above the text, without a bubble
+      el.classList.add('with-files');
       el.prepend(gallery);
     }
     const versions = roomBranches[el.dataset.userIndex!];
@@ -1193,6 +1195,17 @@ function event(e: any) {
 api.onEvent(event);
 const TAIL_MESSAGES = 20;
 let roomToken = 0;
+/** Where the last TAIL_MESSAGES user messages begin; 0 when there are no more than that. */
+function tailStart(events: any[]) {
+  let users = 0;
+  for (let i = events.length - 1; i >= 0; i--) if (events[i].type === 'history-user' && ++users === TAIL_MESSAGES) return i;
+  return 0;
+}
+const countUsers = (events: any[], end: number) => {
+  let n = 0;
+  for (let i = 0; i < end; i++) if (events[i].type === 'history-user') n++;
+  return n;
+};
 /** The "older messages" row at the top of a long chat; they are drawn when it comes into view. */
 function olderMessages(head: any[], token: number) {
   const more = document.createElement('button');
@@ -1204,6 +1217,9 @@ function olderMessages(head: any[], token: number) {
     observer.disconnect();
     if (token !== roomToken || !more.isConnected) return;
     more.remove();
+    // v0.9.22: a page at a time; the whole rest of a very long chat at once froze the list too
+    const cut = tailStart(head);
+    const page = cut ? head.slice(cut) : head;
     // the drawn messages step aside while the older ones are added in front of them
     const keep = document.createDocumentFragment();
     keep.append(...Array.from(feed.childNodes));
@@ -1212,16 +1228,17 @@ function olderMessages(head: any[], token: number) {
     const ordinal = userOrdinal;
     const group = activityGroup;
     activityGroup = null;
-    userOrdinal = 0;
+    userOrdinal = countUsers(head, cut);
     replaying = true;
     try {
-      for (const e of head) event(e);
+      for (const e of page) event(e);
     } finally {
       replaying = false;
       activityGroup = group;
       userOrdinal = ordinal;
       feed.append(keep);
     }
+    if (cut) olderMessages(head.slice(0, cut), token);
     feed.scrollTop = feed.scrollHeight - height + top;
   };
   more.onclick = draw;
@@ -1271,16 +1288,8 @@ async function switchRoom(r: any) {
   // are drawn at once; older ones come when the list is scrolled to the top.
   const token = ++roomToken;
   const events: any[] = r.events || [];
-  let cut = 0;
-  if (!r.busy) {
-    let users = 0;
-    for (let i = events.length - 1; i >= 0; i--)
-      if (events[i].type === 'history-user' && ++users === TAIL_MESSAGES) {
-        cut = i;
-        break;
-      }
-  }
-  userOrdinal = events.slice(0, cut).filter((e) => e.type === 'history-user').length;
+  const cut = r.busy ? 0 : tailStart(events);
+  userOrdinal = countUsers(events, cut);
   replaying = true;
   try {
     for (const e of cut ? events.slice(cut) : events) event(e);
@@ -1645,9 +1654,9 @@ async function sendMessage(out?: Outgoing): Promise<boolean> {
       busy = false;
       controls();
       if (!out) prompt.value = text;
-      // the row drawn for it above was not accepted
-      if (out) [...feed.querySelectorAll('.message.user')].at(-1)?.remove();
-      if (out) userOrdinal--;
+      // the row drawn for it above was not accepted; text and attachments are back in the box
+      [...feed.querySelectorAll('.message.user')].at(-1)?.remove();
+      userOrdinal--;
       throw e;
     } finally {
       dispatching = false;

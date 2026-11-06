@@ -4,6 +4,17 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.22 Beta — November 7, 2026
+
+- **Push to talk on Right + Up:** the default is now the Right and Up arrow keys held together, in either order. Each arrow still works on its own, a moment later, and the pair does not move the cursor in the app you are typing in. Hold the pair to record and let go to finish. Two quick presses of the pair start hands-free recording, one more ends it, and Esc cancels. If you never chose a key, you move to the new default by yourself; a key you chose stays.
+- **Choosing the key:** a key that could not be used looked as if nothing had happened, because the reason appeared behind the Settings window, and two keys together could not be chosen at all. The answer now stands in the card, two keys pressed together can be recorded, and the new key works at once without a restart.
+- **Message box:** the "check the text, then press Send" line is gone. Dictated text still waits in the box until you send it.
+- **Attachments:** files and pictures now sit on cards inside the message box, above the text, with the name under each one. Point at a card for the whole name, click a picture to see it large, and use × to remove it. In a sent message a picture stands alone without its name, and other files are a small card with their icon, name and type.
+- **A refused message:** a message that could not be sent no longer leaves a copy in the chat; the text and attachments stay in the box.
+- **Charles on the desktop:** the small shadow under him is gone while he is out of his place. It is still there on the island and the panel.
+- **One black theme:** Settings and Review changes in the app window, and the app window's other large panels, moved from grey to the black of the rest of Charles, including their cards, fields, scroll bars and code colours.
+- **Long chats open quickly:** opening a long chat from the history could freeze the panel for seconds. On a 24 MB test history the freeze went from about 4.6 seconds to under 0.1 seconds. Older messages now arrive a page at a time as you scroll up.
+
 ## v0.9.21 Beta — November 6, 2026
 
 - **Settings in the app window:** the Settings button could do nothing in the app window. It depended on what the island showed before: entered from the card shelf, the click waited for a chat view that never came. It now opens every time.

@@ -8,7 +8,11 @@ const readline = require('node:readline');
 const { readStore, writeStore } = require('../core/store.cjs');
 const { bubbleSpot } = require('../plugins/mail-bubble.cjs');
 
-const DEFAULTS = { enabled: false, key: 'Right' };
+// v0.9.22: Right + Up means the two arrow keys together, each still an arrow key alone
+const DEFAULTS = { enabled: false, key: 'Right+Up' };
+// dictation.json from before v0.9.22 kept the old default as if it had been chosen
+const OLD_DEFAULT = 'Right';
+const KEY_SCHEME = 2;
 const MAX_WAVE = 3840044; // 120 s of 16 kHz mono
 const VK = { Left: 0x25, Up: 0x26, Right: 0x27, Down: 0x28, Space: 0x20, Enter: 0x0d, Tab: 0x09, Insert: 0x2d, Home: 0x24, End: 0x23, PageUp: 0x21, PageDown: 0x22, Pause: 0x13, ScrollLock: 0x91, CapsLock: 0x14 };
 // a key that types or confirms something cannot work alone: its tap would only be delayed
@@ -22,23 +26,43 @@ function vkOf(name) {
   return f ? 0x6f + Number(f[1]) : 0;
 }
 
-/** 'Down', 'F8', 'Ctrl+Alt+Space' → what the hook needs; throws a message the user can act on. */
+const MODS = { ctrl: 'ctrl', control: 'ctrl', commandorcontrol: 'ctrl', alt: 'alt', shift: 'shift', super: 'win', win: 'win', meta: 'win' };
+const quiet = (key) => ALONE.has(key) || /^F\d+$/.test(key);
+
+/**
+ * 'Down', 'F8', 'Ctrl+Alt+Space', 'Right+Up' → what the hook needs; throws a message the user can
+ * act on. Two keys with no modifier are a chord: they must be pressed together (vk and vk2).
+ */
 function parseKey(value, others = {}) {
   const parts = String(value || '').split('+').map((p) => p.trim()).filter(Boolean);
-  const key = parts.pop();
   const mods = { ctrl: false, alt: false, shift: false, win: false };
+  const keys = [];
   for (const p of parts) {
-    const m = { ctrl: 'ctrl', control: 'ctrl', commandorcontrol: 'ctrl', alt: 'alt', shift: 'shift', super: 'win', win: 'win', meta: 'win' }[p.toLowerCase()];
-    if (!m) throw Error('Geçersiz kısayol: ' + value);
-    mods[m] = true;
+    const m = MODS[p.toLowerCase()];
+    if (m) mods[m] = true;
+    else keys.push(p);
   }
-  const vk = key ? vkOf(key) : 0;
-  if (!vk) throw Error('Geçersiz kısayol: ' + value);
-  if (!parts.length && !ALONE.has(key) && !/^F\d+$/.test(key))
-    throw Error('Bu tuş tek başına kullanılamaz; yazmayı bozardı. Ok, F veya Ctrl/Alt ile bir birleşim seç.');
+  const held = Object.values(mods).some(Boolean);
+  if (!keys.length || keys.some((k) => !vkOf(k))) throw Error('Bu tuş desteklenmiyor. Ok, F veya Ctrl/Alt ile bir birleşim seç.');
+  if (keys.length > 2) throw Error('Bir kısayolda en fazla iki tuş olabilir.');
+  if (keys.length === 2) {
+    if (held) throw Error('İki tuşlu birleşime Ctrl, Alt veya Shift eklenemez.');
+    if (keys[0] === keys[1] || !keys.every(quiet)) throw Error('İki tuşlu birleşimde yalnızca ok, gezinme ve F tuşları kullanılabilir.');
+  } else if (!held && !quiet(keys[0])) throw Error('Bu tuş tek başına kullanılamaz; yazmayı bozardı. Ok, F veya Ctrl/Alt ile bir birleşim seç.');
   for (const [name, other] of Object.entries(others))
     if (other && norm(other) === norm(value)) throw Error(`Bu kısayol zaten kullanılıyor: ${name}. Başka bir tuş seç.`);
-  return { vk, ...mods };
+  return keys.length === 2 ? { vk: vkOf(keys[0]), vk2: vkOf(keys[1]), ...mods } : { vk: vkOf(keys[0]), ...mods };
+}
+
+/** Up+Right and Right+Up are one chord; it is kept and shown in one order. */
+function keyName(value) {
+  const parts = String(value || '').split('+').map((p) => p.trim()).filter(Boolean);
+  if (parts.length !== 2 || parts.some((p) => MODS[p.toLowerCase()])) return parts.join('+');
+  const rank = (k) => {
+    const i = ['Left', 'Right', 'Up', 'Down'].indexOf(k);
+    return i < 0 ? 4 : i;
+  };
+  return [...parts].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).join('+');
 }
 
 /** Whether the words may be typed now, or must wait for the user's choice. */
@@ -76,7 +100,10 @@ class Dictation {
     Object.assign(this, { voice, send, mic, BrowserWindow, screen, clipboard, shortcuts, language, spawnHelper, preload, anchor, cards });
     this.file = path.join(dir, 'dictation.json');
     const saved = readStore(this.file, (v) => v && typeof v === 'object').value || {};
-    this.data = { enabled: saved.enabled === true, key: typeof saved.key === 'string' ? saved.key : DEFAULTS.key };
+    const chosen = typeof saved.key === 'string' && !(saved.keyScheme !== KEY_SCHEME && saved.key === OLD_DEFAULT);
+    this.data = { enabled: saved.enabled === true, key: chosen ? saved.key : DEFAULTS.key, keyScheme: KEY_SCHEME };
+    // only a file that exists is brought up to date; on or off stays what it was
+    if (Object.keys(saved).length && saved.keyScheme !== KEY_SCHEME) writeStore(this.file, this.data);
     this.phase = 'idle';
     this.ticket = 0;
     this.target = null;
@@ -92,13 +119,16 @@ class Dictation {
   }
 
   save(value) {
-    const next = { enabled: value?.enabled === true, key: String(value?.key || this.data.key) };
+    const next = { enabled: value?.enabled === true, key: keyName(value?.key || this.data.key), keyScheme: KEY_SCHEME };
     const parsed = parseKey(next.key, this.shortcuts());
     this.data = next;
+    this.error = '';
     writeStore(this.file, next);
     if (next.enabled) {
       this.start();
+      // one hook, one key: the running hook takes the new key and the old one is an ordinary key again
       this.configure(parsed);
+      if (this.mic.blocked()) this.pause(true);
     } else this.stop();
     return this.read();
   }
@@ -366,4 +396,4 @@ class Dictation {
   }
 }
 
-module.exports = { Dictation, indicatorSpot, parseKey, canType, vkOf, DEFAULTS, MAX_WAVE };
+module.exports = { Dictation, indicatorSpot, parseKey, keyName, canType, vkOf, DEFAULTS, MAX_WAVE };

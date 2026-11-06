@@ -267,12 +267,12 @@ Turn it on in **Settings → Shortcuts → Push to talk**. It is off by default.
 
 | Action | Result |
 | --- | --- |
-| Hold Right Arrow and speak | Your words are typed at the cursor when you let go |
-| Press it twice quickly | Hands-free recording; press once more to finish |
+| Hold Right Arrow + Up Arrow together and speak | Your words are typed at the cursor when you let go; either key can go first |
+| Press the pair twice quickly | Hands-free recording; press once more to finish |
 | Esc | Cancels the recording or the text on its way |
-| A short single press | The key’s normal job, about 0.2 seconds later |
+| One of the keys alone | The key’s normal job, a moment later |
 
-The status bubble (Listening, Turning speech into text…) appears right under the island or the open panel, below any notifications, and follows them when they move. The key can be changed in the same place, to an arrow, navigation or function key alone, or to a combination with Ctrl, Alt, Shift or Win. Recordings can be up to two minutes long. Speech is processed by the local Whisper model; nothing is sent anywhere and no audio is kept. Enter is never pressed. If the keyboard moved to another place while you were speaking, the text waits in a small card with **Copy** and **Insert anyway**.
+The status bubble (Listening, Turning speech into text…) appears right under the island or the open panel, below any notifications, and follows them when they move. The shortcut can be changed in the same place: an arrow, navigation or function key alone, two of those pressed together, or a combination with Ctrl, Alt, Shift or Win. A shortcut that cannot be used says why in the same card and the old one stays. Recordings can be up to two minutes long. Speech is processed by the local Whisper model; nothing is sent anywhere and no audio is kept. Enter is never pressed. If the keyboard moved to another place while you were speaking, the text waits in a small card with **Copy** and **Insert anyway**.
 
 ## Dropping Charles on content
 

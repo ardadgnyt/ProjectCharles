@@ -2767,7 +2767,8 @@ else {
       safeHandler('dictation-read', () => dictation.read());
       safeHandler('dictation-save', (value) => dictation.save(value));
       safeHandler('dictation-pause', (on) => {
-        dictation.pause(on);
+        // Settings is done with the key: what kept it quiet before (microphone off, a game) still does
+        dictation.pause(on || micBlocked() || fullscreenOther);
         return true;
       });
       safeHandler('dictate-audio', (ticket, bytes) => dictation.audio(ticket, bytes));
