@@ -2623,6 +2623,7 @@ else {
       // `card` is the picture beside the pointer (name + preview: src/island/file-rack.ts).
       safeHandler('rack-drag', (id, card, scale) => {
         const file = rack.pathOf(id);
+        if (rackDragging) return false; // one drag at a time
         clearTimeout(blurTimer);
         lastInside = Date.now();
         // drawn for this screen's scale: as a 1x picture it came out larger and was cut off
@@ -2635,12 +2636,33 @@ else {
         // it returns when the file has been dropped or the drag was cancelled
         rackDragging = true;
         dropHeldUntil = Number.MAX_SAFE_INTEGER;
+        // v0.9.21: the island's native surface is much larger than what shows. While the timers wait
+        // it would keep the mouse: a drop under it would land on nothing, and if Windows' "Replace or
+        // Skip" comes up there, a frozen Charles takes its clicks. Only the panel is a window now.
+        const island = !workspace && visibleBounds && islandWin && !islandWin.isDestroyed() ? islandWin : null;
+        if (island) {
+          const at = island.getBounds();
+          island.setShape([{ x: visibleBounds.x - at.x, y: visibleBounds.y - at.y, width: visibleBounds.width, height: visibleBounds.height }]);
+        }
+        const carrier = activeWindow();
+        const guard = require('./files/drag-guard.cjs').watch({ window: Number(carrier.getNativeWindowHandle().readBigUInt64LE(0)) });
+        const settled = () => {
+          if (rackDragging || !win || win.isDestroyed()) return;
+          win.setIgnoreMouseEvents(ignoringPointer, ignoringPointer ? { forward: true } : undefined);
+          applyTopmost();
+        };
         try {
           win.webContents.startDrag({ file, icon });
         } finally {
+          guard.stop();
+          if (island && !island.isDestroyed()) island.setShape([]);
           rackDragging = false;
+          ignoringPointer = false;
           dropHeldUntil = Date.now() + 1500;
           lastInside = Date.now();
+          settled();
+          // a guard already on its way lands after this; it is put right again
+          setTimeout(settled, 200);
         }
         return true;
       });
@@ -2966,12 +2988,39 @@ else {
             // name beside the real Charles would confuse the phones on the network
             offline: demo,
           });
+          // v0.9.21: in the app window the island's panel is not on screen, so the offer is a card
+          const cards = require('./files/share-card.cjs');
+          let askedCard = null,
+            receivingShown = false;
+          mailBubble.onChoice = (item, choice) => {
+            if (!item.shareOffer) return;
+            const accept = choice === 'accept';
+            askedCard = null;
+            getShare().respondOffer(item.shareOffer.id, accept);
+            if (accept) {
+              receivingShown = true;
+              mailBubble.upsert(cards.receivingCard(item.shareOffer));
+            }
+          };
           shareService.on('state', (st) => {
             if (!win.isDestroyed()) win.webContents.send('share-state', st);
+            // answered on the panel, timed out, or the phone gave up: the question goes with it
+            if (askedCard && st.offer?.id !== askedCard) {
+              mailBubble.remove(cards.askId(askedCard));
+              askedCard = null;
+            }
+            if (receivingShown && st.transfer?.status !== 'receiving') {
+              mailBubble.remove(cards.RECEIVING);
+              receivingShown = false;
+            }
           });
           shareService.on('offer', (offer) => {
             // v0.9.16: an offer arrives while another app is in use: shown, never pulling the focus
             if (!workspace) expand(true, false, false);
+            else {
+              askedCard = offer.id;
+              mailBubble.upsert({ ...cards.offerCard(offer), shareOffer: offer });
+            }
             shelfHeld = true;
             if (win.isMinimized()) win.restore();
             win.showInactive();
@@ -2980,6 +3029,11 @@ else {
           });
           shareService.on('received', (entry) => {
             if (!win.isDestroyed()) win.webContents.send('share-received', entry);
+            if (receivingShown) {
+              mailBubble.remove(cards.RECEIVING);
+              receivingShown = false;
+            }
+            if (workspace) mailBubble.upsert(cards.receivedCard(entry, app.getPath('downloads')));
           });
         }
         return shareService;

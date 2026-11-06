@@ -61,6 +61,14 @@ class MailBubble {
     ipcMain.on('bubble-dismiss', (event, id) => {
       if (own(event)) this.dismiss(id);
     });
+    // v0.9.21: a card that asks something (item.choices); only the choices it offered are accepted
+    ipcMain.on('bubble-choice', (event, id, choice) => {
+      if (!own(event)) return;
+      const item = this.items.find((i) => i.id === id);
+      if (!item?.choices?.some((c) => c.id === choice)) return;
+      this.remove(id);
+      this.onChoice?.(item, choice);
+    });
     // v0.8.8: WhatsApp cards. "focus" lets the card take the keyboard while a reply is typed
     // (the bubble window never takes focus otherwise).
     // v0.9.2: keep the window focusable so Windows never drops input routing or topmost z-order

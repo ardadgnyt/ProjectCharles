@@ -2,7 +2,7 @@
 
 When Charles starts, **File receiving is on** and it stays on in the background even if the sharing panel is never opened. Being on does not mean files are accepted automatically: every incoming transfer asks for approval. The Quick Share engine uses its own bundled Windows runtime (`tools/quickshare`, based on [MultiDrop](https://github.com/digitaldanis/multidrop)); third-party license and copyright notices are in `THIRD-PARTY-NOTICES.md`.
 
-- **On:** the incoming file’s name, size and matching code are shown; choose Accept or Decline.
+- **On:** the incoming file’s name, size and matching code are shown; choose Accept or Decline. On the island this is on the Send card. With the app window open it is a card in the window’s top right corner, which also shows the transfer and, when it is done, opens the file’s folder on a click.
 - **Off:** the device announcement and incoming transfers stop.
 
 Android devices are supported through built-in Quick Share, and Apple devices through the LocalSend app. If a phone hides its name, the name learned during a connection is remembered for the session; unknown phones appear as **Android device**.

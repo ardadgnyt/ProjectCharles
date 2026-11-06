@@ -104,6 +104,7 @@ used their own process.
 | `metrics` | queue | counters for the system monitor |
 | `usage` | queue | per-program usage, once a minute |
 | `keys` | queue + hook thread | push to talk; the hook has its own thread and is removed on `off` |
+| `guard` | queue | a shelf drag: frees the screen if Charles is frozen after the button was released (`app/files/drag-guard.cjs`) |
 
 Messages are `<channel>\t<payload>` lines. The channels and their requests are a fixed list: nothing
 runs a command. `--grab` (pictures of the screen; goes after a minute's rest) and `--static`
@@ -235,6 +236,21 @@ Charles' own process. Electron writes the file's path in whatever room is left b
 that cannot be turned off, so the picture is kept wide, with clear sides. Starting the drag from the
 helper was tried in v0.9.20 and does not work: the mouse belongs to Charles' window while the button
 is down, so a drag in another process either never ends or ends at once.
+
+`startDrag` blocks the main thread for the whole drag. Timers run inside it and those that touch the
+window wait on `rackDragging`. Explorer's Drop is one synchronous call: with a name that already exists
+it lasts until "Replace or Skip" is answered, and nothing in Charles runs meanwhile. Two things keep
+the screen usable. Before the drag `setShape` cuts the window down to the visible panel, so the large
+transparent surface neither takes drops nor covers what Windows opens. If the button is up and the
+drag has not ended after 260 ms, the helper's `guard` channel makes the window click-through and takes
+it out of the topmost band from outside. The `finally` around `startDrag` puts both back, and again
+200 ms later for a guard that was on its way.
+
+### A file coming in
+`share.cjs` emits `offer`. On the island the panel opens (`src/island/share.ts`). In the app window that
+panel is not on screen, so `main.cjs` shows a card from `app/files/share-card.cjs`: `item.choices` in
+`mail-bubble.cjs` draws buttons and answers through `onChoice`. The `state` event removes the question
+when it was answered elsewhere, timed out or the phone gave up.
 
 ### Island size
 `appearance.island` is `large` or `small` (Settings → Appearance). `layout.cjs` makes the closed island

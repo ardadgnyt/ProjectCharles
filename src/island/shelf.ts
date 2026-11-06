@@ -104,13 +104,22 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     b.addEventListener(
       'click',
       (e) => {
-        if (view !== 'shelf') return;
+        // v0.9.21: the app window has no shelf, and `view` keeps what the island last showed. Entered
+        // from the shelf, every click here waited for a chat view that never came, so Ayarlar did
+        // nothing there; entered from the chat it worked.
+        if (view !== 'shelf' || body.classList.contains('workspace')) return;
         e.preventDefault();
         e.stopImmediatePropagation();
         void attempt(async () => {
           await api.islandView('chat');
           // v0.9.16: only once the chat is really there (else this click comes back here forever)
-          if (open) window.setTimeout(() => view === 'chat' && b.click(), 260);
+          // v0.9.21: a tall panel or a busy moment may take longer than one wait
+          const once = (tries: number) =>
+            window.setTimeout(() => {
+              if (view === 'chat') b.click();
+              else if (tries > 1) once(tries - 1);
+            }, 260);
+          if (open) once(5);
         });
       },
       true,

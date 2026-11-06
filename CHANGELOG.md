@@ -4,6 +4,12 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.21 Beta — November 6, 2026
+
+- **Settings in the app window:** the Settings button could do nothing in the app window. It depended on what the island showed before: entered from the card shelf, the click waited for a chat view that never came. It now opens every time.
+- **File shelf:** dropping a file where the same name already exists froze Charles until Windows' "Replace or Skip" was answered, and with that window under Charles' invisible surface the drag pointer stayed on screen and nothing could be clicked. That surface now steps aside during a drag and while Windows waits, and the panel no longer covers Windows' question. Charles itself still waits for your answer, then goes on as before. A file dropped under the invisible part of the island reaches what is really there.
+- **Quick Share in the app window:** a file sent to you while you worked in the app window went unnoticed, because the question appeared on the island's panel, which is not on screen there. It now comes up as a card in the window's corner with who is sending, the files and the PIN, with **Accept** and **Decline**. A card shows while the file arrives, and when it is done a click opens its folder. This also covers AirDrop and LocalSend.
+
 ## v0.9.20 Beta — November 6, 2026
 
 - **Charles island size:** Settings → Appearance has a new choice. **Large** is the size you know and stays the default; **Small** is 2/3 of it, for a laptop screen. It changes at once and stays after a restart. The closed island, its strip, Charles on it and its click area all shrink; the open panel, the chat and other windows stay as they are.

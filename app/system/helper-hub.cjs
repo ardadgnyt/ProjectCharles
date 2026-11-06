@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 'use strict';
 // v0.9.20: the one helper process (setup/CharlesHelper.cs → charles-helper.exe). Each user of it
-// (foreground, media, system monitor, usage statistics, push to talk) opens a channel and
+// (foreground, media, system monitor, usage statistics, push to talk, drag guard) opens a channel and
 // gets something that behaves like a child process of its own: stdin.write(line), stdout, kill(),
 // 'exit'. The real process is shared, starts with the first channel and ends with the last.
 //
@@ -13,7 +13,7 @@ const path = require('node:path');
 const readline = require('node:readline');
 const { PassThrough } = require('node:stream');
 
-const CHANNELS = new Set(['fg', 'media', 'metrics', 'usage', 'keys']);
+const CHANNELS = new Set(['fg', 'media', 'metrics', 'usage', 'keys', 'guard']);
 const CRASH_LIMIT = 4;
 const CRASH_WINDOW_MS = 60000;
 const CRASH_REST_MS = 5 * 60000;
@@ -142,7 +142,7 @@ class Hub {
 
   /** After sleep or a locked screen: hooks and the media connection are set up again, once. */
   refresh() {
-    for (const name of this.channels.keys()) if (name !== 'metrics' && name !== 'usage') this.write(name, '!refresh');
+    for (const name of this.channels.keys()) if (['fg', 'media', 'keys'].includes(name)) this.write(name, '!refresh');
   }
 
   /** Charles is closing. */

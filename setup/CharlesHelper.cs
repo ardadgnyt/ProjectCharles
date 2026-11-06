@@ -12,6 +12,7 @@
 //   metrics  system monitor: CPU, GPU, RAM counters
 //   usage    per-program usage for the statistics, once a minute
 //   keys     push to talk: a keyboard hook that looks at one key, and typing as Unicode input
+//   guard    a shelf drag: frees the screen if Charles is frozen after the button was released
 //
 // Each channel has its own thread, so a slow answer on one (a program that does not answer UI
 // Automation, say) never holds another up, and the keyboard hook has a thread of its own.
@@ -166,6 +167,7 @@ static class Hub {
    case "metrics": return new QueueWorker(name, (w, l) => { if (l == "top") w.Emit("{\"top\":" + Metrics.Top() + "}"); else if (l == "sample") w.Emit(Metrics.Sample()); }, "{\"ok\":false}", ApartmentState.MTA, null);
    case "usage": return new QueueWorker(name, (w, l) => { if (l == "usage") w.Emit(Metrics.Usage()); }, "{\"failed\":true}", ApartmentState.MTA, null);
    case "keys": return Keys.Open();
+   case "guard": return new QueueWorker(name, Guard.Handle, null, ApartmentState.MTA, null);
    default: return null;
   }
  }
@@ -802,6 +804,39 @@ static class Keys {
 
 [StructLayout(LayoutKind.Sequential)] struct BITMAPINFOHEADER {
  public int biSize, biWidth, biHeight; public short biPlanes, biBitCount; public int biCompression, biSizeImage, biXPelsPerMeter, biYPelsPerMeter, biClrUsed, biClrImportant;
+}
+
+// ── While a shelf file is dropped ─────────────────────────────────────────────────────────────
+/**
+ * Explorer's Drop may hold Charles' main thread until "Replace or Skip" is answered. A frozen window
+ * takes the clicks and leaves the drag pointer on screen, and that dialog may be under it, so from
+ * outside, on the one window Charles named and only if it is Charles': it lets clicks through and
+ * leaves the topmost band. Charles undoes both as soon as it runs again.
+ */
+static class Guard {
+ [DllImport("user32.dll")] static extern bool IsWindow(IntPtr h);
+ [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint p);
+ [DllImport("user32.dll")] static extern short GetAsyncKeyState(int vk);
+ [DllImport("user32.dll")] static extern int GetSystemMetrics(int i);
+ [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] static extern IntPtr GetLong(IntPtr h, int i);
+ [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")] static extern IntPtr SetLong(IntPtr h, int i, IntPtr v);
+ [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int w, int t, uint f);
+ const int GRACE_MS = 260, STEP_MS = 20, GWL_EXSTYLE = -20;
+ const long TRANSPARENT = 0x20, LAYERED = 0x80000;
+ const uint NOSIZE = 1, NOMOVE = 2, NOACTIVATE = 0x10, ASYNC = 0x4000;
+ public static void Handle(QueueWorker w, string line) {
+  var c = Json.Flat(line);
+  var window = new IntPtr((long)(Json.Num(c, "window") ?? 0)); var pid = (uint)(Json.Num(c, "pid") ?? 0);
+  uint owner = 0;
+  if (window == IntPtr.Zero || !IsWindow(window) || GetWindowThreadProcessId(window, out owner) == 0 || owner != pid) return;
+  var button = GetSystemMetrics(23) != 0 ? 2 : 1;
+  while (!w.Closed && (GetAsyncKeyState(button) & 0x8000) != 0) Thread.Sleep(STEP_MS);
+  for (var t = 0; t < GRACE_MS && !w.Closed; t += STEP_MS) Thread.Sleep(STEP_MS);
+  if (w.Closed) return;
+  SetLong(window, GWL_EXSTYLE, new IntPtr(GetLong(window, GWL_EXSTYLE).ToInt64() | TRANSPARENT | LAYERED));
+  SetWindowPos(window, new IntPtr(-2), 0, 0, 0, 0, NOSIZE | NOMOVE | NOACTIVATE | ASYNC);
+  w.Emit("{\"freed\":true}");
+ }
 }
 
 // ── Pictures of the screen (a process of its own, while pictures are being taken) ─────────────

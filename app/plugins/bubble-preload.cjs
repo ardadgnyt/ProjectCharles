@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('bubble', {
   onItems: (cb) => ipcRenderer.on('bubble-items', (_e, value) => cb(value)),
   open: (id) => ipcRenderer.send('bubble-open', String(id)),
   dismiss: (id) => ipcRenderer.send('bubble-dismiss', String(id)),
+  choice: (id, value) => ipcRenderer.send('bubble-choice', String(id), String(value)),
   resize: (height) => ipcRenderer.send('bubble-size', Number(height)),
   // v0.8.8: WhatsApp cards
   wa: async (action, args) => {

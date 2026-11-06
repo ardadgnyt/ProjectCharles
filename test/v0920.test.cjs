@@ -337,8 +337,8 @@ test('shelf drag name: broken like a desktop icon, never cut in the middle of th
   assert.match(src, /const NAME_W = 74;/);
   const main = read('app/main.cjs');
   assert.match(main, /win\.webContents\.startDrag\(\{ file, icon \}\)/);
-  assert.match(main, /rackDragging = true;\s+dropHeldUntil = Number\.MAX_SAFE_INTEGER;\s+try \{\s+win\.webContents\.startDrag/, 'the panel stays and timers wait');
-  assert.match(main, /finally \{\s+rackDragging = false;/, 'and they go on after it, whatever happened');
+  assert.match(main, /rackDragging = true;\s+dropHeldUntil = Number\.MAX_SAFE_INTEGER;[\s\S]{0,1400}?try \{\s+win\.webContents\.startDrag/, 'the panel stays and timers wait');
+  assert.match(main, /finally \{[\s\S]{0,160}?rackDragging = false;/, 'and they go on after it, whatever happened');
   for (const place of [/function offTaskbar\(\) \{\s+if \(rackDragging\) return;/, /function applyTopmost\(\) \{\s+if \(!win \|\| win\.isDestroyed\(\) \|\| rackDragging\) return;/, /win\.isMinimized\(\) \|\| rackDragging\) return;/, /workspace \|\| rackDragging\) return;/]) assert.match(main, place);
 });
 
@@ -388,8 +388,6 @@ test('island size: a setting of its own, Large unless chosen, and old settings k
 });
 
 test('this version', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.9.20-beta.1');
-  assert.match(read('setup/install.ps1'), /\$Version = 'v0\.9\.20 Beta'/);
   const { notes } = require('../app/core/release-notes.cjs');
   const v = notes(ROOT, '0.9.20-beta.1');
   assert.match(v.title, /^v0\.9\.20 Beta — November/);
