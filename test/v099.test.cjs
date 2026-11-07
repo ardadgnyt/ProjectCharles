@@ -67,8 +67,10 @@ test('reading glasses: his own eyes fade the other way (never eyeless)', () => {
   assert.match(engine, /x\.globalAlpha \*= own;\s*this\.drawEyes/);
 });
 
-test('setup text: the Download tools are included again', () => {
-  assert.match(read('scripts/setup-pack.py'), /its tools \(yt-dlp, FFmpeg\) are included/);
+test('setup: the Download tools stay in the package', () => {
+  const pack = read('scripts/package.py');
+  assert.doesNotMatch(pack, /tools\/download/);
+  assert.match(pack, /not in \{'modules\/download'\}/);
 });
 
 test('Google: an expired or revoked sign-in says what to do and no longer shows "bağlı"', async () => {

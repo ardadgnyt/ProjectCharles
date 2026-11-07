@@ -349,7 +349,7 @@ contextBridge.exposeInMainWorld('charles', {
   models: () => invoke('models'),
   chooseFolder: () => invoke('choose-folder'),
   send: (args) => invoke('send', args),
-  steer: (text) => invoke('steer', text),
+  steer: (text, attachments) => invoke('steer', text, attachments),
   // v0.7.1 SpecialBeta: workspace window
   workspace: (on) => invoke('workspace', on),
   workspaceWindow: (action, value) => invoke('workspace-window', action, value),

@@ -17,15 +17,20 @@ const SHELF_MAX = 640;
 const shelfSize = (h) => ({ width: SHELF.width, height: Math.round(Math.min(SHELF_MAX, Math.max(SHELF_MIN, Number(h) || SHELF.height))) });
 const CHAT_WIDTH = 620;
 // v0.9.20: Ayarlar → Görünüm → Charles adacık boyutu. Both sizes come from the same base numbers,
-// so changing back and forth never adds up. The open panel keeps its size.
+// so changing back and forth never adds up.
+// v0.9.24: it is the whole island: closed, its card shelf and the tall chat. Only the closed
+// island shrank before, and that is on screen only while music plays, so with nothing playing the
+// choice seemed to do nothing. The app window, Charles' own window and module windows stay as they are.
 const ISLAND_SMALL = 2 / 3;
-const fit = (s, island) => (island === 1 ? s : { width: Math.round(s.width * island), height: Math.round(s.height * island) });
+// The width stays even: a centred island with an odd one sits on half a pixel, and the desktop showed
+// through thin lines between its tiles.
+const fit = (s, island) => (island === 1 ? s : { width: 2 * Math.round((s.width * island) / 2), height: Math.round(s.height * island) });
 
 function size({ expanded, hidden, chat = true, height, scale = 1, music = true, shelf, island = 1 }) {
   if (hidden) return fit(HIDDEN, island);
   if (!expanded) return fit(music ? NOTCH : HIDDEN, island);
-  if (!chat) return shelfSize(shelf);
-  return { width: Math.round(CHAT_WIDTH * scale), height };
+  if (!chat) return fit(shelfSize(shelf), island);
+  return fit({ width: Math.round(CHAT_WIDTH * scale), height }, island);
 }
 
 function bounds(area, { expanded, hidden, side, height, scale = 1, chat = true, music = true, shelf, island = 1 }) {

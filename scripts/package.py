@@ -17,7 +17,7 @@ import sys
 import time
 import zipfile
 
-SKIP_DIRS = {'.git', '_to_delete', '_update', 'release', 'modules-bundled', '__pycache__', '.qa', '.mimocode', 'alpha-backups', '.codex', '.agents', 'graphify-out', '.claude'}
+SKIP_DIRS = {'.git', '_to_delete', '_update', '_setup', 'release', 'modules-bundled', '__pycache__', '.qa', '.mimocode', 'alpha-backups', '.codex', '.agents', 'graphify-out', '.claude', 'dist-setup'}
 # personal / machine-local files never go into an installer
 SKIP_FILES = {
     'Charles.zip',
@@ -95,7 +95,8 @@ def main(src, out):
         for rel in files:
             path = os.path.join(src, rel)
             size = os.path.getsize(path)
-            store = size > 50e6 or rel.lower().endswith(STORE) or rel.startswith('models/')
+            # v0.9.24: large programs are compressed too: they are the setup's biggest saving
+            store = rel.lower().endswith(STORE) or rel.startswith('models/')
             info = zipfile.ZipInfo.from_file(path, rel)
             info.compress_type = zipfile.ZIP_STORED if store else zipfile.ZIP_DEFLATED
             digest, total, head = hashlib.sha256(), 0, b''

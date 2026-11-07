@@ -179,11 +179,11 @@ test('subscription attachments: Claude and Gemini take images, Cursor and Abacus
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('Claude: images go to stdin as one stream-json message with base64 blocks', () => {
+test('Claude: images go to stdin as one stream-json message with base64 blocks', async () => {
   const dir = tmp();
   const png = path.join(dir, 'a.png');
   fs.writeFileSync(png, PNG);
-  const loaded = images.loadImages([{ type: 'localImage', path: png }]);
+  const loaded = await images.loadImages([{ type: 'localImage', path: png }]);
   assert.deepEqual(loaded, [{ mime: 'image/png', data: PNG.toString('base64') }]);
   const line = images.claudeInput('Ne görüyorsun?', loaded);
   assert.ok(line.endsWith('\n'));
@@ -195,8 +195,8 @@ test('Claude: images go to stdin as one stream-json message with base64 blocks',
   // too large: shrunk when possible, refused otherwise
   const big = path.join(dir, 'big.jpg');
   fs.writeFileSync(big, Buffer.alloc(images.MAX_IMAGE_BYTES + 1, 1));
-  assert.throws(() => images.loadImages([{ path: big }]), /çok büyük/);
-  const small = images.loadImages([{ path: big }], () => ({ data: Buffer.from('jpg'), mime: 'image/jpeg' }));
+  await assert.rejects(images.loadImages([{ path: big }]), /çok büyük/);
+  const small = await images.loadImages([{ path: big }], () => ({ data: Buffer.from('jpg'), mime: 'image/jpeg' }));
   assert.equal(small[0].mime, 'image/jpeg');
   // the CLI reads stream-json only when there are images; tools stay off in chat mode
   const plain = launchPlan({ provider: 'claude', model: 'sonnet', mode: 'chat', access: 'ask', workspace: dir });
@@ -208,18 +208,18 @@ test('Claude: images go to stdin as one stream-json message with base64 blocks',
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('Gemini: images are copied to a per-message folder it may only read, then removed', () => {
+test('Gemini: images are copied to a per-message folder it may only read, then removed', async () => {
   const ws = tmp();
   const src = tmp();
   const a = path.join(src, 'Gizli Ad.JPG');
   fs.writeFileSync(a, PNG);
-  const staged = images.stageGeminiImages(ws, 'abc-123', [{ path: a }]);
+  const staged = await images.stageGeminiImages(ws, 'abc-123', [{ path: a }]);
   assert.equal(staged.dir, path.join(ws, '.charles-images', 'abc-123'));
   assert.deepEqual(staged.files, [path.join(staged.dir, 'image-1.jpg')]);
   assert.ok(fs.existsSync(staged.files[0]));
   assert.match(images.geminiImagePrompt(staged.files), /read_file/);
   assert.doesNotMatch(images.geminiImagePrompt(staged.files), /Gizli Ad/);
-  assert.throws(() => images.stageGeminiImages(ws, '../x', [{ path: a }]), /Geçersiz/);
+  await assert.rejects(images.stageGeminiImages(ws, '../x', [{ path: a }]), /Geçersiz/);
   const plan = launchPlan({ provider: 'gemini', model: 'flash', mode: 'chat', access: 'ask', workspace: ws, images: true, imageDir: staged.dir });
   assert.ok(plan.cli.includes('--add-dir') && plan.cli[plan.cli.indexOf('--add-dir') + 1] === staged.dir);
   assert.equal(plan.cli[plan.cli.indexOf('--mode') + 1], 'plan');

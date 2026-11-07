@@ -105,7 +105,15 @@ interrupted.
 in the message box and press **Ctrl + Enter** (or Enter). GPT receives the instruction inside
 the running task. Claude, Antigravity, Cursor and EVREN answer in one go, so the message waits in a small
 *Queued* row above the box and is sent as soon as the answer is done; click it to edit, or ×
-to remove it.
+to remove it. You can add pictures and files to an extra instruction, even with no text. In the
+queue they wait with it, and clicking the row brings the text and the files back to the box.
+
+**Attachments.** Add files with **+**, drag them in, or paste a picture. A file has no size limit,
+and one message can carry 1000 files. A GIF can be up to 256 MB and a presentation up to 500 MB. An AI
+reads at most 1,000,000 characters of file text in one message. If a long file does not fit, Charles
+sends the part that fits, tells the AI, and names the file for you. Claude takes up to 600 pictures
+in a message and Antigravity up to 1000. With many pictures, each one is sent smaller. The limits of
+your AI account still apply. Cursor, Abacus and EVREN take no pictures.
 
 Past chats are listed in **History** (the list button at the top left). There you can search
 chats, sort them into folders, rename them and reopen them.
@@ -179,7 +187,7 @@ In the Turkish interface, Slime holds a Turkish flag on 19 May, 30 August, 29 Oc
 | --- | --- |
 | **General** | Language (Türkçe, English, Deutsch, Français, Español, 中文), start with Windows, sounds and volume, auto-hide and collapse, read aloud, Hey Charles, weather location (search a city or district and pick it from the list), welcome tour |
 | **AI models** | Sign in to ChatGPT/Codex, Claude, Antigravity and Cursor; add an EVREN API key. Every card has the same buttons: **Set up with Charles** · sign in (“✓ connected” once signed in) · **Check connection**. Default model; Gemini Live with its own connected state, voice and key settings |
-| **Appearance** | Text size, panel size, character size, **Charles island size** (Large is the usual size; Small is 2/3 of it, for a laptop screen), screen choice, chat colours, Slime studio, try expressions |
+| **Appearance** | Text size, panel size, character size, **Charles island size** (Large is the usual size; Small shows the whole island at 2/3 of its width and height, for a laptop screen; the app window keeps its size), screen choice, chat colours, Slime studio, try expressions |
 | **Memory** | Things Charles should remember; **Get to know me from the AI I use**: pick ChatGPT, Claude or Antigravity, paste its answer and choose what to keep |
 | **Access** | How much the AI may do without asking (see [Project mode](#project-mode)) |
 | **Plugins** | Google (Gmail, Calendar, Drive), Microsoft (Outlook, Calendar), POP3/IMAP mail, Home Assistant, Google Calendar (add events), WhatsApp contacts (a connected account shows “✓ … connected”; after **Remove** you can sign in again); important-mail notifications and keywords. GitHub is listed as coming in a later version |

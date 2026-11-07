@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.23%20beta-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.24%20release%20candidate-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -34,6 +34,7 @@ laptop while it writes code, and gets dizzy if you shake him too hard.
 
 | Version | What’s new |
 | --- | --- |
+| **v0.9.24 RC** | Add pictures and files to an extra instruction · no size limit on attachments, up to 1000 files in one message · CharlesSetup.exe with language choice, license screen and an uninstaller · the island size setting now changes the whole island · Charles shows as Charles in Task Manager · a lighter idle chat · the time stays on one line beside many attachments · the welcome card fits on the island |
 | **v0.9.23** | Readable links in the chat · the app window uses the island's dark message style, with your messages on the right · attachments in the app window match the island · sent pictures line up on the right · no status line under Charles in the app window |
 | **v0.9.22** | Push to talk on Right + Up, and the key can be changed again · attachments on cards inside the message box · one black theme for Settings and Review changes · no shadow under Charles on the desktop · long chats open without freezing |
 | **v0.9.21** | Settings open every time in the app window · dropping a shelf file on a name that already exists no longer freezes the mouse · Quick Share asks in the app window too |
@@ -326,122 +327,169 @@ hours, today and the next five days; the location button changes the city.
 
 ## Install and update
 
-**Download:** the latest **ProjectCharles-vX.X.X-Beta-Setup.zip** from
-[**Releases**](../../releases). Windows 10 or 11 (64-bit), no administrator rights needed.
-Already using Charles? **Settings → General → Updates** updates it in place — the in-app
-updater works reliably from **v0.8.2** on. · Charles zaten kurulu mu? **Ayarlar → Genel →
-Güncellemeler** yerinde günceller; uygulama içi güncelleme **v0.8.2**’den itibaren kararlı
-çalışır.
+Download **CharlesSetup.exe** from [**Releases**](../../releases). There is no zip to unpack and no
+command window: the setup is one program.
 
 <table>
 <tr><td width="50%" valign="top">
 
 #### 🇬🇧 English
 
-1. Download **ProjectCharles-vX.X.X-Beta-Setup.zip** and extract the whole folder.
-2. Double-click **Install.cmd** and press Enter.
+1. Download **CharlesSetup.exe** from [**Releases**](../../releases) and double-click it.
+2. Choose English or Turkish, read and accept the license, choose a folder, then press **Install**.
+3. Start Charles and sign in with your AI account in **Settings → AI models**.
 
-Requires Windows 10 or 11 (64-bit). No administrator rights needed. If SmartScreen warns you,
-choose **More info → Run anyway**.
+**Requirements:** Windows 10 or 11 (64-bit) and about 3 GB of free space. No administrator rights
+needed.
 
-**Updating from an older version:** use the update option inside Charles — no need to deal
-with GitHub — or simply install vX.X.X with the steps above. The in-app update works reliably
-from v0.8.2 on; on older versions use the setup once. Your chats, settings and keys stay in
-`%APPDATA%\Charles`.
+**Windows warning:** the setup is not code-signed yet, so Windows SmartScreen may warn you. If you
+trust where the file came from, choose **More info → Run anyway**.
+
+**Where it goes:** a new install goes to `%LOCALAPPDATA%\Programs\Charles`; if the setup finds your
+Charles folder, it offers that one. It creates Start menu and Desktop shortcuts. The setup opens in
+Turkish on a Turkish Windows and in English otherwise; Charles keeps its own language setting.
+
+**Updating:** use **Settings → General → Updates** inside Charles, or run CharlesSetup.exe on your
+Charles folder. The in-app update works reliably from v0.8.2 on; on older versions use the setup once.
+
+**Removing:** use **Windows Settings → Apps → Charles**. Your data stays unless you tick the separate
+box to delete it. Your chats, settings and keys are kept in `%APPDATA%\Charles`.
 
 </td><td width="50%" valign="top">
 
 #### 🇹🇷 Türkçe <a id="kurulum-ve-güncelleme"></a>
 
-1. **ProjectCharles-vX.X.X-Beta-Setup.zip** dosyasını indirin ve içindeki tüm klasörü dışa aktarın.
-2. **Install.cmd** dosyasına çift tıklayın ve Enter tuşuna basın.
+1. **CharlesSetup.exe** dosyasını [**Releases**](../../releases) sayfasından indirin ve çift tıklayın.
+2. Türkçe veya İngilizce seçin, lisansı okuyup kabul edin, klasörü seçin ve **Kur** düğmesine basın.
+3. Charles’ı başlatın ve **Ayarlar → Yapay zekâ modelleri** bölümünden yapay zekâ hesabınızla giriş yapın.
 
-Windows 10 veya 11 (64-bit) gerektirir. Yönetici izni gerekmez. Windows SmartScreen bir
-uyarı verirse **Daha fazla bilgi → Yine de çalıştır** seçeneğini belirleyin.
+**Gereksinimler:** Windows 10 veya 11 (64-bit) ve yaklaşık 3 GB boş alan. Yönetici izni gerekmez.
 
-**Daha eski bir sürümden güncelleme:** Charles içindeki güncelleme seçeneğiyle GitHub ile
-uğraşmadan güncelleyebilir ya da vX.X.X sürümünü yukarıdaki adımlarla kurabilirsiniz.
-Uygulama içi güncelleme v0.8.2’den itibaren kararlı çalışır; daha eski sürümlerde bir kez
-kurulumu kullanın.
-Sohbetleriniz, ayarlarınız ve anahtarlarınız `%APPDATA%\Charles` dizininde korunur.
+**Windows uyarısı:** kurulum henüz kod imzalı değildir, bu yüzden Windows SmartScreen uyarı verebilir.
+Dosyanın kaynağına güveniyorsanız **Daha fazla bilgi → Yine de çalıştır** seçeneğini belirleyin.
+
+**Nereye kurulur:** yeni kurulum `%LOCALAPPDATA%\Programs\Charles` klasörüne yapılır; kurulum Charles
+klasörünüzü bulursa onu önerir. Başlat menüsü ve Masaüstü kısayolları oluşturur. Kurulum, Windows’unuz
+Türkçeyse Türkçe, değilse İngilizce açılır; Charles kendi dil ayarını korur. Lisans metinleri
+İngilizcedir, onaylanmış bir Türkçe çevirisi yoktur.
+
+**Güncelleme:** Charles içinde **Ayarlar → Genel → Güncellemeler** bölümünü kullanın ya da
+CharlesSetup.exe dosyasını Charles klasörünüzde çalıştırın. Uygulama içi güncelleme v0.8.2’den itibaren
+kararlı çalışır; daha eski sürümlerde bir kez kurulumu kullanın.
+
+**Kaldırma:** **Windows Ayarları → Uygulamalar → Charles** bölümünü kullanın. Verileriniz, ayrıca
+işaretlemediğiniz sürece silinmez. Sohbetleriniz, ayarlarınız ve anahtarlarınız
+`%APPDATA%\Charles` dizininde durur.
 
 </td></tr>
 <tr><td valign="top">
 
 #### 🇩🇪 Deutsch
 
-1. Lade **ProjectCharles-vX.X.X-Beta-Setup.zip** herunter und entpacke den gesamten Ordner.
-2. Doppelklicke auf **Install.cmd** und drücke die Eingabetaste (Enter).
+1. Lade **CharlesSetup.exe** unter [**Releases**](../../releases) herunter und doppelklicke darauf.
+2. Wähle Englisch oder Türkisch, lies und akzeptiere die Lizenz, wähle einen Ordner und klicke auf **Install**.
+3. Starte Charles und melde dich unter **Einstellungen → KI-Modelle** mit deinem KI-Konto an.
 
-Erfordert Windows 10 oder 11 (64-Bit). Es sind keine Administratorrechte erforderlich. Falls
-eine SmartScreen-Warnung erscheint, wähle **Weitere Informationen → Trotzdem ausführen**.
+**Voraussetzungen:** Windows 10 oder 11 (64-Bit) und etwa 3 GB freier Speicherplatz. Es sind keine
+Administratorrechte erforderlich.
 
-**Aktualisierung von einer älteren Version:** Du kannst das Update direkt über die
-entsprechende Option in Charles durchführen – ohne den Umweg über GitHub – oder einfach
-Version vX.X.X mit den Schritten oben installieren. Das In-App-Update funktioniert ab v0.8.2
-zuverlässig; bei älteren Versionen nutze einmal das Setup. Deine Chats, Einstellungen und Schlüssel
-bleiben in `%APPDATA%\Charles` erhalten.
+**Windows-Warnung:** Das Setup ist noch nicht codesigniert, daher kann Windows SmartScreen warnen.
+Wenn du der Quelle der Datei vertraust, wähle **Weitere Informationen → Trotzdem ausführen**.
+
+**Speicherort:** Eine neue Installation landet in `%LOCALAPPDATA%\Programs\Charles`; findet das Setup
+deinen Charles-Ordner, schlägt es diesen vor. Es legt Verknüpfungen im Startmenü und auf dem Desktop
+an. Das Setup selbst gibt es nur auf Englisch und Türkisch; Charles behält seine eigene
+Spracheinstellung.
+
+**Aktualisieren:** Nutze **Einstellungen → Allgemein → Updates** in Charles oder führe CharlesSetup.exe
+für deinen Charles-Ordner aus. Das In-App-Update funktioniert ab v0.8.2 zuverlässig; bei älteren
+Versionen nutze einmal das Setup.
+
+**Entfernen:** Nutze **Windows-Einstellungen → Apps → Charles**. Deine Daten bleiben erhalten, solange
+du nicht das separate Kästchen zum Löschen ankreuzt. Chats, Einstellungen und Schlüssel liegen in
+`%APPDATA%\Charles`.
 
 </td><td valign="top">
 
 #### 🇫🇷 Français
 
-1. Téléchargez **ProjectCharles-vX.X.X-Beta-Setup.zip** et extrayez le contenu du dossier.
-2. Double-cliquez sur **Install.cmd** et appuyez sur la touche Entrée.
+1. Téléchargez **CharlesSetup.exe** depuis [**Releases**](../../releases) et double-cliquez dessus.
+2. Choisissez l’anglais ou le turc, lisez et acceptez la licence, choisissez un dossier et cliquez sur **Install**.
+3. Lancez Charles et connectez-vous à votre compte d’IA dans **Réglages → Modèles d’IA**.
 
-Nécessite Windows 10 ou 11 (64 bits). Aucun droit d’administrateur n’est requis. Si
-SmartScreen affiche un avertissement, sélectionnez **Informations complémentaires → Exécuter
-quand même**.
+**Configuration requise :** Windows 10 ou 11 (64 bits) et environ 3 Go d’espace libre. Aucun droit
+d’administrateur n’est requis.
 
-**Mise à jour depuis une version antérieure :** utilisez l’option de mise à jour dans
-Charles — sans passer par GitHub — ou installez simplement la version vX.X.X avec les étapes
-ci-dessus. La mise à jour intégrée fonctionne de façon fiable depuis la v0.8.2 ; sur les
-versions plus anciennes, utilisez une fois l’installateur. Vos discussions, paramètres et clés sont conservés dans `%APPDATA%\Charles`.
+**Avertissement de Windows :** l’installateur n’est pas encore signé, Windows SmartScreen peut donc
+afficher un avertissement. Si vous faites confiance à la provenance du fichier, sélectionnez
+**Informations complémentaires → Exécuter quand même**.
+
+**Emplacement :** une nouvelle installation va dans `%LOCALAPPDATA%\Programs\Charles` ; si
+l’installateur trouve votre dossier Charles, il le propose. Il crée des raccourcis dans le menu
+Démarrer et sur le Bureau. L’installateur existe seulement en anglais et en turc ; Charles garde son
+propre réglage de langue.
+
+**Mise à jour :** utilisez **Réglages → Général → Mises à jour** dans Charles, ou lancez
+CharlesSetup.exe sur votre dossier Charles. La mise à jour intégrée fonctionne de façon fiable depuis
+la v0.8.2 ; sur les versions plus anciennes, utilisez une fois l’installateur.
+
+**Désinstallation :** utilisez **Paramètres Windows → Applications → Charles**. Vos données restent
+en place, sauf si vous cochez la case distincte pour les supprimer. Vos discussions, paramètres et
+clés se trouvent dans `%APPDATA%\Charles`.
 
 </td></tr>
 <tr><td valign="top">
 
 #### 🇪🇸 Español
 
-1. Descarga **ProjectCharles-vX.X.X-Beta-Setup.zip** y extrae todo el contenido de la carpeta.
-2. Haz doble clic en **Install.cmd** y pulsa Enter.
+1. Descarga **CharlesSetup.exe** desde [**Releases**](../../releases) y haz doble clic en él.
+2. Elige inglés o turco, lee y acepta la licencia, elige una carpeta y pulsa **Install**.
+3. Inicia Charles y entra con tu cuenta de IA en **Ajustes → Modelos de IA**.
 
-Requiere Windows 10 u 11 (64 bits). No se necesitan privilegios de administrador. Si aparece
-una advertencia de SmartScreen, selecciona **Más información → Ejecutar de todas formas**.
+**Requisitos:** Windows 10 u 11 (64 bits) y unos 3 GB de espacio libre. No se necesitan privilegios de
+administrador.
 
-**Actualización desde una versión anterior:** usa la opción de actualización dentro de
-Charles —sin recurrir a GitHub— o instala la versión vX.X.X con los pasos de arriba. La
-actualización integrada funciona de forma estable desde la v0.8.2; en versiones anteriores usa
-el instalador una vez. Tus
-chats, configuraciones y claves se conservan en `%APPDATA%\Charles`.
+**Aviso de Windows:** el instalador aún no tiene firma de código, así que Windows SmartScreen puede
+mostrar un aviso. Si confías en el origen del archivo, selecciona **Más información → Ejecutar de
+todas formas**.
+
+**Ubicación:** una instalación nueva va a `%LOCALAPPDATA%\Programs\Charles`; si el instalador encuentra
+tu carpeta de Charles, la propone. Crea accesos directos en el menú Inicio y en el Escritorio. El
+instalador solo está en inglés y turco; Charles conserva su propio ajuste de idioma.
+
+**Actualizar:** usa **Ajustes → General → Actualizaciones** dentro de Charles, o ejecuta
+CharlesSetup.exe sobre tu carpeta de Charles. La actualización integrada funciona de forma estable
+desde la v0.8.2; en versiones anteriores usa el instalador una vez.
+
+**Desinstalar:** usa **Configuración de Windows → Aplicaciones → Charles**. Tus datos se conservan
+salvo que marques la casilla aparte para borrarlos. Tus chats, ajustes y claves están en
+`%APPDATA%\Charles`.
 
 </td><td valign="top">
 
 #### 🇨🇳 简体中文
 
-1. 下载 **ProjectCharles-vX.X.X-Beta-Setup.zip** 并解压整个文件夹。
-2. 双击 **Install.cmd**，然后按回车键 (Enter)。
+1. 从 [**Releases**](../../releases) 下载 **CharlesSetup.exe** 并双击运行。
+2. 选择英语或土耳其语，阅读并接受许可协议，选择文件夹，然后点击 **Install**。
+3. 启动 Charles，在 **设置 → AI 模型** 中登录您的 AI 账户。
 
-需使用 Windows 10 或 11（64 位）系统。无需管理员权限。如果出现 SmartScreen 提示，请选择
-“更多信息” (More info) → “仍要运行” (Run anyway)。
+**系统要求：** Windows 10 或 11（64 位），约 3 GB 可用空间。无需管理员权限。
 
-**从旧版本更新：** 您可以通过 Charles 软件内的更新选项直接更新（无需访问 GitHub），或者按照上面的
-步骤安装 vX.X.X 版本。应用内更新自 v0.8.2 起可稳定使用；更早的版本请先用安装包安装一次。您的聊天记录、设置和密钥均保存在 `%APPDATA%\Charles` 目录下，不会丢失。
+**Windows 提示：** 安装程序尚未进行代码签名，因此 Windows SmartScreen 可能会显示警告。如果您信任文件来源，请选择“更多信息” (More info) → “仍要运行” (Run anyway)。
+
+**安装位置：** 全新安装的目录为 `%LOCALAPPDATA%\Programs\Charles`；如果安装程序找到您的 Charles 文件夹，会建议使用该文件夹。它会创建开始菜单和桌面快捷方式。安装程序只有英语和土耳其语界面；Charles 保留自己的语言设置。
+
+**更新：** 在 Charles 中打开 **设置 → 常规 → 更新**，或在您的 Charles 文件夹上运行 CharlesSetup.exe。应用内更新自 v0.8.2 起可稳定使用；更早的版本请先用安装程序安装一次。
+
+**卸载：** 打开 **Windows 设置 → 应用 → Charles**。除非您勾选单独的删除选项，否则数据会保留。您的聊天记录、设置和密钥保存在 `%APPDATA%\Charles` 目录下。
 
 </td></tr>
 </table>
 
-The installer asks for its language first (English by default), copies Charles to
-`C:\ProjectCharles vX.X.X Beta` (you can pick another folder), creates Desktop and Start menu
-shortcuts and starts Charles. Then sign in with your AI account in **Settings → AI models**.
-· Kurulum önce dilini sorar, Charles’ı `C:\ProjectCharles vX.X.X Beta` klasörüne kopyalar
-(başka bir klasör seçebilirsin), Masaüstü ve Başlat kısayollarını oluşturup Charles’ı açar.
-Sonra **Ayarlar → Yapay zekâ modelleri**’nden hesabınla giriş yap.
-
 | File · Dosya | What it does · Ne yapar |
 | --- | --- |
-| `setup/Install.cmd` | Installs Charles · Charles’ı kurar |
-| `setup/install.ps1` | The installer itself · Kurulumun kendisi |
+| `CharlesSetup.exe` | Installs Charles · Charles’ı kurar |
+| `Uninstall Charles.exe` | Removes Charles (also in Windows Settings → Apps) · Charles’ı kaldırır (Windows Ayarları → Uygulamalar’da da var) |
 | `setup/Create-Desktop-Shortcut.vbs` | Desktop shortcut for this folder · Bu klasör için masaüstü kısayolu |
 | `setup/Reset-Charles.cmd` | Backs up and resets settings and chats (asks first) · Ayarları ve sohbetleri yedekleyip sıfırlar (önce sorar) |
 | `Start-Charles.cmd` | Starts Charles from its folder · Charles’ı klasöründen başlatır |
@@ -467,7 +515,7 @@ npm start
 | `npm run setup:voice` | Optional: whisper.cpp and the speech model (~500 MB) |
 | `npm test` | Automated tests |
 | `npm run dev` | Build the interface and start Electron |
-| `python scripts/package.py <folder> <out.zip>` | `Charles.zip` for the installer |
+| `python scripts/setup-pack.py <folder>` | `CharlesSetup.exe` + `.sha256` |
 | `npm run release:pack` | `charles-update-<version>.zip` + `.sha256` for in-place updates |
 
 The Antigravity and Cursor sign-in helpers come with the release package. Abacus AI

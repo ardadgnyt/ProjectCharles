@@ -114,14 +114,18 @@ test('old charles-host copies are removed, the running one stays', () => {
   assert.match(read('app/main.cjs'), /cleanOldHosts\(root\)/);
 });
 
-test('attachments: 50 files, but at most 1 000 000 characters of text per message', async () => {
+test('attachments: 1000 files, and at most 1 000 000 characters of their text in one message', async () => {
   const { Extras, MAX_ATTACHMENT_TEXT } = require('../app/core/extras.cjs');
   assert.equal(MAX_ATTACHMENT_TEXT, 1000000);
-  const fake = { input: async (id) => ({ type: 'text', text: 'x'.repeat(300000), id }) };
+  const fake = { input: async (id) => ({ type: 'text', text: 'x'.repeat(300000) }) };
   const ok = await Extras.prototype.inputs.call(fake, ['a', 'b', 'c']);
   assert.equal(ok.length, 3);
-  await assert.rejects(Extras.prototype.inputs.call(fake, ['a', 'b', 'c', 'd']), /toplam en fazla 1\.000\.000/);
-  await assert.rejects(Extras.prototype.inputs.call(fake, new Array(51).fill('a')), /En fazla 50/);
+  // v0.9.24: the fourth stays out with a note for the model and its name for the user
+  const four = await Extras.prototype.inputs.call(fake, ['a', 'b', 'c', 'd']);
+  assert.equal(four.length, 4);
+  assert.match(four[3].text, /sığmadı/);
+  assert.deepEqual(four.cut, ['d']);
+  await assert.rejects(Extras.prototype.inputs.call(fake, new Array(1001).fill('a')), /En fazla 1000/);
 });
 
 // ── formulas ─────────────────────────────────────────────────────────────────
@@ -154,7 +158,7 @@ test('a mail opened while Charles works goes to a new chat', () => {
 test('extra instructions stay where they were sent', () => {
   const r = read('src/renderer.ts');
   assert.match(r, /function splitAfterSteer\(\)/);
-  assert.match(r, /markSteer\(row\(text, 'user'\)\);\s*splitAfterSteer\(\);/);
+  assert.match(r, /markSteer\(row\(text, 'user', files\)\);\s*splitAfterSteer\(\);/);
   assert.match(r, /running: \(\) => busy && !dispatching,\s*feed,/);
   assert.match(read('src/chat/steer.ts'), /box\.className = 'steer-pending';/);
 });
@@ -171,18 +175,18 @@ test('release: Setup ships tools/download, the update ships download-tools/', ()
 
 test('version agrees everywhere', () => {
   const v = JSON.parse(read('package.json')).version;
-  assert.match(v, /^0\.\d+\.\d+-beta\.\d+$/);
+  assert.match(v, /^0\.\d+\.\d+-(beta|rc)\.\d+$/);
   assert.equal(JSON.parse(read('package-lock.json')).version, v);
-  const label = 'v' + v.replace(/-beta\.\d+$/, '') + ' Beta';
+  const label = require('../app/core/updater.cjs').label(v);
   assert.ok(read('public/index.html').includes(label));
   assert.ok(read('setup/install.ps1').includes(`$Version = '${label}'`));
-  for (const m of read('setup/Create-Desktop-Shortcut.vbs').match(/v0\.\d+\.\d+ Beta/g)) assert.equal(m, label);
+  for (const m of read('setup/Create-Desktop-Shortcut.vbs').match(/v0\.\d+\.\d+ [A-Z][A-Za-z ]+?(?=["\.])/g)) assert.equal(m, label);
   assert.match(read('CHANGELOG.md'), /## v0\.8\.5 Beta/);
 });
 
 test('translations: the new texts and the 0.8.1–0.8.4 ones', () => {
   const { englishFor } = bundle('src/settings/i18n.ts');
-  for (const s of ['Formül kopyalandı.', 'Ek talimat · sırada', 'Kotayı okumak için yenile', 'Güncelleyici başlatılamadı; Charles açık bırakıldı.', 'İşlem', 'En fazla 50 dosya seçin.'])
+  for (const s of ['Formül kopyalandı.', 'Ek talimat · sırada', 'Kotayı okumak için yenile', 'Güncelleyici başlatılamadı; Charles açık bırakıldı.', 'İşlem', 'En fazla 1000 dosya seçin.'])
     assert.ok(englishFor(s), s);
   assert.equal(englishFor('rapor.pdf: PDF okunamadı; dosya bozuk veya parola korumalı olabilir.'), 'rapor.pdf: the PDF could not be read; it may be damaged or password-protected.');
 });

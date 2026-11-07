@@ -407,7 +407,8 @@ export function islandShelf({ api, notice, attempt }: Deps) {
       if (view !== 'shelf') return;
       const bar = document.getElementById('island-bar');
       // the shelf's own height (its content is drawn smaller with CSS zoom: see 29-v0913.css)
-      const h = Math.ceil((bar?.offsetHeight || 40) + shelf.offsetHeight + 17);
+      // v0.9.24: the welcome card asks for room of its own (src/island/onboarding.ts)
+      const h = Math.max(Math.ceil((bar?.offsetHeight || 40) + shelf.offsetHeight + 17), Number(body.dataset.tourHeight) || 0);
       if (Math.abs(h - sentHeight) < 2) return;
       sentHeight = h;
       void Promise.resolve(api.shelfHeight?.(h)).catch(() => {});

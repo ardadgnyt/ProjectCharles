@@ -12,8 +12,9 @@ using System.ComponentModel;
 [assembly: AssemblyTitle("Charles")]
 [assembly: AssemblyProduct("ProjectCharles")]
 [assembly: AssemblyDescription("Charles desktop assistant")]
-[assembly: AssemblyVersion("0.8.4.0")]
-[assembly: AssemblyFileVersion("0.8.4.0")]
+[assembly: AssemblyCompany("HzPederPan")]
+[assembly: AssemblyVersion("0.9.24.0")]
+[assembly: AssemblyFileVersion("0.9.24.0")]
 static class CharlesLauncher {
   static string Quote(string value) {
     var b = new StringBuilder("\""); int slashes = 0;
@@ -76,9 +77,50 @@ static class CharlesLauncher {
         foreach (IntPtr name in groups)
           if (!UpdateResource(update,new IntPtr(14),name,1033,bytes,(uint)bytes.Length)) throw new Win32Exception();
       }
+      // v0.9.24: Task Manager shows a process by the file description of its program, and that was
+      // still Electron's. Only this generated copy changes; the Electron file stays as it came.
+      byte[] info=VersionInfo();
+      if (!UpdateResource(update,new IntPtr(16),new IntPtr(1),1033,info,(uint)info.Length)) throw new Win32Exception();
       if (!EndUpdateResource(update,false)) throw new Win32Exception();
       update=IntPtr.Zero;
     } finally { if (update!=IntPtr.Zero) EndUpdateResource(update,true); }
+  }
+  // A version resource is a tree of blocks: length, value length, type, key, padding, value, children.
+  static void Align(MemoryStream s) { while (s.Length % 4 != 0) s.WriteByte(0); }
+  static byte[] Block(string key, byte[] value, ushort valueLength, ushort type, params byte[][] children) {
+    using (var s = new MemoryStream())
+    using (var w = new BinaryWriter(s)) {
+      w.Write((ushort)0); w.Write(valueLength); w.Write(type);
+      w.Write(Encoding.Unicode.GetBytes(key + "\0")); w.Flush(); Align(s);
+      if (value != null) { w.Write(value); w.Flush(); }
+      foreach (byte[] child in children) { Align(s); w.Write(child); w.Flush(); }
+      byte[] all = s.ToArray();
+      BitConverter.GetBytes((ushort)all.Length).CopyTo(all, 0);
+      return all;
+    }
+  }
+  static byte[] Text(string key, string value) {
+    return Block(key, Encoding.Unicode.GetBytes(value + "\0"), (ushort)(value.Length + 1), 1);
+  }
+  static byte[] VersionInfo() {
+    Version v = Assembly.GetExecutingAssembly().GetName().Version;
+    string version = v.Major + "." + v.Minor + "." + v.Build + "." + v.Revision;
+    using (var f = new MemoryStream())
+    using (var w = new BinaryWriter(f)) {
+      w.Write(0xFEEF04BDu); w.Write(0x00010000u);
+      w.Write((uint)(v.Major << 16 | v.Minor)); w.Write((uint)(v.Build << 16 | v.Revision));
+      w.Write((uint)(v.Major << 16 | v.Minor)); w.Write((uint)(v.Build << 16 | v.Revision));
+      w.Write(0x3Fu); w.Write(0u); w.Write(0x00040004u); w.Write(1u); w.Write(0u); w.Write(0u); w.Write(0u);
+      w.Flush();
+      byte[] table = Block("040904B0", null, 0, 1,
+        Text("CompanyName", "HzPederPan"), Text("FileDescription", "Charles"), Text("FileVersion", version),
+        Text("InternalName", "Charles"), Text("LegalCopyright", "Copyright (c) 2026 HzPederPan"),
+        Text("OriginalFilename", "Charles.exe"), Text("ProductName", "Charles"), Text("ProductVersion", version));
+      byte[] strings = Block("StringFileInfo", null, 0, 1, table);
+      byte[] translation = Block("Translation", new byte[] { 0x09, 0x04, 0xB0, 0x04 }, 4, 0);
+      byte[] vars = Block("VarFileInfo", null, 0, 1, translation);
+      return Block("VS_VERSION_INFO", f.ToArray(), 52, 0, strings, vars);
+    }
   }
   static string Runtime(string root, string original) {
     byte[] ico=File.ReadAllBytes(Path.Combine(root,"public","charles.ico"));
@@ -86,7 +128,7 @@ static class CharlesLauncher {
     string key;
     using (var hash=SHA256.Create()) {
       // Runtime replacement and logo updates each get a new Shell cache identity.
-      string stamp="host-v2:"+info.Length+":"+info.LastWriteTimeUtc.Ticks+":"+Hex(hash.ComputeHash(ico));
+      string stamp="host-v3:"+info.Length+":"+info.LastWriteTimeUtc.Ticks+":"+Hex(hash.ComputeHash(ico));
       key=Hex(hash.ComputeHash(Encoding.UTF8.GetBytes(stamp))).Substring(0,24);
     }
     string target=Path.Combine(info.DirectoryName,"charles-host-"+key+".exe");
@@ -111,6 +153,8 @@ static class CharlesLauncher {
         WorkingDirectory = root, UseShellExecute = false, CreateNoWindow = true
       };
       start.EnvironmentVariables.Remove("ELECTRON_RUN_AS_NODE");
+      // app/main.cjs: a host started any other way (an older updater's restart) comes back through here
+      start.EnvironmentVariables["CHARLES_HOST"] = "3";
       Process.Start(start); return 0;
     } catch (Exception e) { MessageBox.Show(e.Message, "Charles", MessageBoxButtons.OK, MessageBoxIcon.Error); return 1; }
   }

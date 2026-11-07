@@ -41,7 +41,7 @@ test('no status under Charles in the app window; the status itself stays', () =>
 });
 
 test('this version', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '0.9.23-beta.1');
+  assert.match(JSON.parse(read('package.json')).version, /^0\.9\.2[3-9]/);
   const { notes } = require('../app/core/release-notes.cjs');
   const v = notes(root, '0.9.23-beta.1');
   assert.match(v.title, /^v0\.9\.23 Beta — November/);

@@ -4,6 +4,21 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.24 Release Candidate — November 7, 2026
+
+- **Island size:** Settings → Appearance → Charles island size now changes the whole island: Small shows the closed island, the card shelf and the tall chat at 2/3 of their width and height, at once and after a restart. Before, only the closed island with music changed, so the choice seemed to do nothing. The app window and Charles on the desktop keep their size.
+- **Charles in Task Manager:** Charles now shows as Charles instead of Electron, with his own icon. An update starts the new program by itself.
+- **Chat | Project switch:** in the app window the chosen word was white on the cream button. It is now black, as on the island, and the other word uses the island's colour too.
+- **Time beside a message:** in the app window the time of a message with many attachments no longer falls into a thin column. It stays on one line.
+- **Welcome card:** the card at the first start was cut off on the card shelf, along with its buttons. The island now makes room for it and stays open while it is on screen.
+- **CharlesSetup.exe:** the setup is now one program instead of a zip to unpack. It asks for English or Turkish, shows the licenses, needs your acceptance, lets you choose the folder, and finds an existing Charles. If it fails or you cancel, your old files stay. Charles can now be removed from Windows Settings; your chats and settings stay unless you tick a separate box.
+- **Lighter when idle:** Charles draws fewer frames while he only breathes and the pointer rests, and no longer waits on every display refresh between frames. He goes back to full speed as soon as you move the pointer or type.
+- **Files with an extra instruction:** you can now add pictures and files while Charles is working. With GPT they join the running answer, even without any text. With Claude, Antigravity, Cursor and EVREN they wait in the queue with the instruction and go out when the answer ends. Click a queued instruction and its text and files come back to the message box.
+- **No size limit on attachments:** the 20 MB limit is gone, along with the limits on Word files, text files and pasted pictures. One message can carry 1000 files, up from 50, and large files no longer stop the app while they are copied.
+- **Very long texts:** a message can carry 1,000,000 characters of text from its files. A long file no longer stops the message: Charles sends what fits, tells the AI that it saw only part of it, and tells you which files did not fully fit.
+- **Large pictures:** in the app window the big picture view lay under the window buttons along with its close button, and a tall picture ran past the bottom of the window. The view now stands under the title bar and the whole picture fits, on the island too.
+- **Pictures per message:** Claude takes up to 600 pictures in one message and Antigravity up to 1000. With many pictures, each one is made smaller so that they all fit in one request. Cursor, Abacus and EVREN still take no pictures. A GIF can be up to 256 MB and a presentation up to 500 MB.
+
 ## v0.9.23 Beta — November 7, 2026
 
 - **Links in the chat:** links are now a light grey with an underline in your messages and in Charles's answers, in the island and in the app window. On the old cream bubble they could hardly be read. Long addresses wrap inside the message.

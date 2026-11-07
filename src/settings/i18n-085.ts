@@ -19,8 +19,11 @@ export const english085: Record<string, string> = {
   "İşlem": "Step",
   "Bir seferde tek çalışma klasörü belirt; diğer klasörü ayrı bir mesajda seçebilirsin.": "Name one working folder at a time; you can choose the other folder in a separate message.",
   "PDF içinde okunabilir metin yok. Taranmış belgede önce OCR kullan veya sayfaları görsel olarak GPT’ye ekle.": "The PDF has no readable text. For a scanned document use OCR first, or add the pages to GPT as images.",
-  "En fazla 50 dosya seçin.": "Choose at most 50 files.",
-  "En fazla 50 dosya eklenebilir.": "At most 50 files can be attached.",
+  "En fazla 1000 dosya seçin.": "Choose at most 1000 files.",
+  "Eklediğim dosyalara da bak.": "Look at the files I attached too.",
+  "Bu dosyaların metni bu mesaja tam sığmadı:": "The text of these files did not fully fit in this message:",
+  "GIF en fazla 256 MB olabilir.": "A GIF can be at most 256 MB.",
+  "En fazla 1000 dosya eklenebilir.": "At most 1000 files can be attached.",
   "Bu modülün “İndirme” izni yok (manifest.json → permissions).": "This module does not have the “Download” permission (manifest.json → permissions).",
 };
 export const patterns085: [RegExp, (...m: string[]) => string][] = [

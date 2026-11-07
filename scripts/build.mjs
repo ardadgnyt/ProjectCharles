@@ -11,7 +11,7 @@ await cp('public', 'dist', { recursive: true });
   const { readFileSync, writeFileSync } = await import('node:fs');
   const version = JSON.parse(readFileSync('package.json', 'utf8')).version;
   const [, num, tag] = /^(\d+\.\d+\.\d+)(?:-([a-z]+))?/i.exec(version) || [];
-  const label = 'v' + num + (tag ? ' ' + tag[0].toUpperCase() + tag.slice(1) : '');
+  const label = 'v' + num + (tag === 'rc' ? ' Release Candidate' : tag ? ' ' + tag[0].toUpperCase() + tag.slice(1) : '');
   const html = readFileSync('dist/index.html', 'utf8');
   const next = html.replace(/(<small class="version-label">)[^<]*(<\/small>)/, `$1${label}$2`);
   if (next === html && !html.includes(label)) throw Error('version-label not found in index.html');

@@ -17,8 +17,10 @@ tools/quickshare/python/*
 *.zip
 *.tgz
 release/
+dist-setup/
 _to_delete/
 _update/
+_setup/
 
 # Personal / machine-local files — never commit these.
 # Charles keeps settings, chat history, memory and encrypted keys in %APPDATA%\Charles,

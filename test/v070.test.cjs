@@ -129,13 +129,13 @@ test('extra instructions: Codex turn/steer, queue for one-shot providers, Ctrl+E
   a.busy = false;
   await assert.rejects(() => a.steer('x'));
   const sessions = read('app/ai/sessions.cjs');
-  assert.match(sessions, /async steer\(text\)/);
+  assert.match(sessions, /async steer\(text, attachments = \[\], shownAttachments = \[\]\)/);
   assert.match(sessions, /providerModel\) throw Error/);
-  assert.match(read('app/preload.cjs'), /steer: \(text\) => invoke\('steer', text\)/);
+  assert.match(read('app/preload.cjs'), /steer: \(text, attachments\) => invoke\('steer', text, attachments\)/);
   const renderer = read('src/renderer.ts');
   assert.match(renderer, /e\.key === 'Enter' && e\.ctrlKey/);
-  assert.match(renderer, /steer\.send\(prompt\.value\)/);
-  assert.match(read('src/chat/steer.ts'), /queue\.push\(text\)/);
+  assert.match(renderer, /steer\.send\(prompt\.value, features\.take\(sendingFiles\)\)/);
+  assert.match(read('src/chat/steer.ts'), /queue\.push\(\{ text, files \}\)/);
 });
 
 test('Cursor: print mode trusts its workspace (no bypass flags) and reads usage', async () => {

@@ -73,11 +73,11 @@ function versionFromText(text) {
   const m = /(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)/.exec(String(text || ''));
   return m ? m[1] : null;
 }
-/** "0.8.0-beta.1" → "v0.8.0 Beta" (the label Charles shows). */
+/** "0.8.0-beta.1" → "v0.8.0 Beta", "0.9.24-rc.1" → "v0.9.24 Release Candidate" (the label Charles shows). */
 function label(v) {
   const p = parseVersion(v);
   if (!p) return String(v || '');
-  return `v${p.major}.${p.minor}.${p.patch}` + (p.pre[0] === 'beta' ? ' Beta' : p.pre.length ? '-' + p.pre.join('.') : '');
+  return `v${p.major}.${p.minor}.${p.patch}` + (p.pre[0] === 'beta' ? ' Beta' : p.pre[0] === 'rc' ? ' Release Candidate' : p.pre.length ? '-' + p.pre.join('.') : '');
 }
 
 // ── release info ─────────────────────────────────────────────────────────────

@@ -94,8 +94,11 @@ export function extraUI(
     attributeFilter: ['open'],
   });
   const hideName = attachmentNames($('attachments'));
+  // v0.9.24: files in one message; nothing limits their size
+  const MAX_FILES = 1000;
   function attachments() {
     hideName();
+    document.dispatchEvent(new Event('charles-attachments'));
     $('drop-actions').hidden = !files.length;
     $('attachments').replaceChildren(
       ...files.map((file) =>
@@ -118,7 +121,7 @@ export function extraUI(
     { passive: false },
   );
   async function addFiles(next: any[]) {
-    if (files.length + next.length > 50) throw Error('Bir mesajda en fazla 50 ek olabilir.');
+    if (files.length + next.length > MAX_FILES) throw Error('Bir mesajda en fazla 1000 ek olabilir.');
     const prepared = [];
     for (const file of next) {
       if (file.kind === 'gif') {
@@ -146,7 +149,7 @@ export function extraUI(
         }
       } else prepared.push(file);
     }
-    if (files.length + prepared.length > 50) throw Error('Bir mesajda en fazla 50 ek olabilir.');
+    if (files.length + prepared.length > MAX_FILES) throw Error('Bir mesajda en fazla 1000 ek olabilir.');
     files.push(...prepared);
     attachments();
     bot.gulp();
@@ -179,15 +182,14 @@ export function extraUI(
     if (!images.length) return;
     e.preventDefault();
     if (pastePending) return;
-    if (files.length + images.length > 50) {
-      notice('Bir mesajda en fazla 50 ek olabilir.');
+    if (files.length + images.length > MAX_FILES) {
+      notice('Bir mesajda en fazla 1000 ek olabilir.');
       return;
     }
     pastePending = true;
     void attempt(async () => {
       try {
         for (const image of images) {
-          if (image.size > 20 * 1024 * 1024) throw Error('Resim en fazla 20 MB olabilir.');
           await addFiles([await api.pasteImage(new Uint8Array(await image.arrayBuffer()))]);
         }
       } finally {
@@ -499,7 +501,23 @@ export function extraUI(
       files = files.filter((f) => f.id !== id);
       attachments();
     },
+    // v0.9.24: an extra instruction takes the box's files with it; a queued one brings them back
+    take: (except: string[] = []) => {
+      const taken = files.filter((f) => !except.includes(f.id));
+      files = files.filter((f) => except.includes(f.id));
+      attachments();
+      return taken;
+    },
+    putBack: (back: any[]) => {
+      files.push(...back.filter((f) => !files.some((x) => x.id === f.id)));
+      attachments();
+    },
     // v0.9.15: `id`: a just-sent picture opens its original (the chip's thumbnail is only 112 px)
+    // v0.9.24: a thousand cards leave at once, not one drawing at a time
+    removeMany: (ids: string[]) => {
+      files = files.filter((f) => !ids.includes(f.id));
+      attachments();
+    },
     previews: () => files.map((f) => ({ id: f.id, name: f.name, kind: f.kind, thumbnail: f.thumbnail })),
     clear: () => {
       files = [];

@@ -182,6 +182,9 @@ export function companionUI(
   const opensChat = () => !!document.body.dataset.view && document.body.dataset.view !== 'chat';
   const barTarget = () => (document.body.dataset.view === 'shelf' ? 'notch' : 'chat');
   let opening = false;
+  // v0.9.24: the saved height is the Large one; a Small island shows it at 2/3 (app/core/layout.cjs)
+  const sizeFactor = () => (document.body.classList.contains('island-small') ? 2 / 3 : 1);
+  const baseHeight = () => document.body.getBoundingClientRect().height / sizeFactor();
   grip.addEventListener('pointerdown', (e) => {
     if (opensChat()) {
       opening = true;
@@ -191,14 +194,14 @@ export function companionUI(
       return;
     }
     startY = e.screenY;
-    startHeight = document.body.getBoundingClientRect().height;
+    startHeight = baseHeight();
     dragging = true;
     grip.setPointerCapture(e.pointerId);
     e.preventDefault();
   });
   grip.addEventListener('pointermove', (e) => {
     if (dragging && Math.abs(e.screenY - startY) >= 4) {
-      const height = Math.max(480, Math.min(1200, startHeight + e.screenY - startY));
+      const height = Math.max(480, Math.min(1200, startHeight + (e.screenY - startY) / sizeFactor()));
       grip.title = 'Yeni yükseklik: ' + height + ' px';
       void attempt(() => api.panelResize(height, false));
     }
@@ -217,13 +220,13 @@ export function companionUI(
       void attempt(() => api.islandView('notch'));
       return;
     }
-    void attempt(() => api.panelResize(startHeight + e.screenY - startY, true));
+    void attempt(() => api.panelResize(startHeight + (e.screenY - startY) / sizeFactor(), true));
   });
   grip.addEventListener('click', (e) => e.stopPropagation());
   grip.addEventListener('pointercancel', () => {
     opening = false;
     if (dragging)
-      void attempt(() => api.panelResize(document.body.getBoundingClientRect().height, true));
+      void attempt(() => api.panelResize(baseHeight(), true));
     dragging = false;
   });
   grip.addEventListener('keydown', (e) => {

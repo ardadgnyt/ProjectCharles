@@ -253,9 +253,17 @@ panel is not on screen, so `main.cjs` shows a card from `app/files/share-card.cj
 when it was answered elsewhere, timed out or the phone gave up.
 
 ### Island size
-`appearance.island` is `large` or `small` (Settings → Appearance). `layout.cjs` makes the closed island
-and its strip 2/3 from the same base numbers, so the window and click area shrink; `37-v0920.css` zooms
-the content. The open panel does not change.
+`appearance.island` is `large` or `small` (Settings → Appearance). `layout.cjs` makes every island state
+2/3 from the same base numbers, so the visible area, click area and what is placed from them (cards,
+the dictation indicator) follow and nothing adds up; the native surface stays as it is. `37-v0920.css`
+zooms `main.island`. The app window, Charles on the desktop and the plugin guide share the page but
+are left out of that rule. The saved chat height is always the Large one.
+
+### Frames
+`animationLoop` draws Charles. Up to 30 frames a second a timer starts the frame; 60 frames follow the
+display. `src/renderer.ts` picks the rate: 60 while he moves fast (drag, hover, jelly, costume actions),
+30 while the AI works, 20 or 30 with the pointer moving, 12 once pointer and keyboard have rested for
+four seconds. These frames are nearly all of an open, idle island's CPU.
 
 ### Sending a message
 `sendMessage()` in `src/renderer.ts` is the one way out. Called with no argument it takes the message
@@ -271,6 +279,18 @@ rules in `9-special.css` use `!important`, so a rule for the shared chat must be
 `src/chat/attachment-card.ts` draws both forms: the card in the message box (`attachmentCard`) and the
 file in a sent message (`sentFile`; a picture there is only the picture). `title` is removed from every
 element (`ui/no-native-tooltips.ts`), so the whole name is shown by `attachmentNames`.
+
+A file has no size limit; `MAX_ATTACHMENTS` in `app/core/extras.cjs` allows 1000 per message.
+`ingestFile` copies asynchronously and `ingest` stays for Charles' own small files. `inputs()` keeps the
+text of one message under `MAX_ATTACHMENT_TEXT`: `fitted()` cuts a file inside its fence, adds a note for
+the model, and `result.cut` names the file. `cut` must not reach Codex, so `inputs()` takes it off each
+item and leaves it on the array. A text file is read only as far as the room allows.
+
+With more than 24 pictures, `shownAttachments` in `main.cjs` stores smaller JPEG thumbnails, because they
+live in `charles-history.json`. `loadImages` gives each picture its share of `MAX_REQUEST_IMAGE_BYTES`.
+
+An extra instruction goes through `steer` with attachment ids. Outside content (`extras.untrusted`) is
+refused there, because a running turn has its tools: `steer.ts` keeps it in the queue for a turn of its own.
 
 ### Language
 `languageUI` in `src/settings/i18n.ts` watches the page. It reads only the nodes that changed, does
@@ -337,8 +357,36 @@ Formatting (optional): `npx @biomejs/biome format --write app src test scripts`
 
 ## 9. Packaging
 
-`npm run release:pack` builds the in-place update package; `scripts/setup-pack.py` builds the setup
-kit. `test/`, `src/` and `scripts/` are not needed to run; they are for development.
+`npm run release:pack` builds the in-place update package. `test/`, `src/` and `scripts/` are not
+needed to run; they are for development.
+
+### The installer (`CharlesSetup.exe`)
+```bat
+tools\quickshare\python\python.exe -B scripts\setup-pack.py <output folder>
+```
+`scripts/build-setup.ps1` compiles `setup/CharlesSetup.cs` with the .NET Framework compiler that comes
+with Windows (C# 5, no SDK, nothing downloaded) and embeds `LICENSE`, `LICENSE-ASSETS.md` and
+`THIRD-PARTY-NOTICES.md`. `scripts/setup-pack.py` appends the application as a zip with
+`charles-manifest.json`, then a footer with the zip's SHA-256 and sizes. The same program is the
+uninstaller: `Uninstall Charles.exe` is its first part alone.
+
+`Engine` has no window, registry or shortcuts, so tests can run it on sample data; `Shell` holds what
+touches the rest of Windows, all of it in the user's own folders and `HKCU`. A setup unpacks and checks
+everything in `_setup\stage` beside the live files; only a complete copy replaces them, one top-level
+item at a time, with a journal (`_setup\swap.txt`) that puts the old files back after a failure or the
+next time a setup starts. `app/core/updater.cjs` and the setup share the same folder layout and app id,
+and the setup leaves the same protected names alone.
+
+The setup's language is for the setup. `charles-install.json` is written only when `%APPDATA%\Charles`
+has no `companion.json`, so a language somebody chose is never changed. `setup/install.ps1` stays for
+running from a folder; releases use `CharlesSetup.exe`.
+
+### Charles' name in Windows
+`Charles.exe` (`setup/CharlesLauncher.cs`) copies `electron.exe` to `charles-host-<key>.exe` and writes
+Charles' icon and version resource into that copy; Task Manager takes the name from its
+`FileDescription`. The Electron file stays as it came. Charles.exe sets `CHARLES_HOST`; a host started
+any other way (the restart after an older updater) goes through Charles.exe first, so it never stays
+on an old copy. Changing the resource means raising `host-v3` in the launcher.
 
 ## Charles Download (optional)
 

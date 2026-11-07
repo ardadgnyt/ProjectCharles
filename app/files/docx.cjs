@@ -2,7 +2,7 @@
 const { unzipSync, strFromU8 } = require('fflate');
 function docxText(bytes) {
   const zip = unzipSync(bytes, {
-    filter: (file) => file.name === 'word/document.xml' && file.originalSize <= 10 * 1024 * 1024,
+    filter: (file) => file.name === 'word/document.xml' && file.originalSize <= 512 * 1024 * 1024,
   });
   const xml = zip['word/document.xml'];
   if (!xml) throw Error('Word belgesinin metni okunamadı veya çok büyük.');

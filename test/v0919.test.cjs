@@ -333,7 +333,7 @@ test('Charles goes back only for this drag, and never during another', () => {
 
 test('no work while nothing happens: frames, previews, pickers, sound, windows, helpers', () => {
   const loop = read('src/island/animation-loop.ts');
-  assert.match(loop, /const sleep = last \? 1000 \/ fps\(\)/);
+  assert.match(loop, /const left = last \? 1000 \/ rate/);
   const preview = read('src/settings/slime-preview.ts');
   assert.doesNotMatch(preview, /requestAnimationFrame/);
   assert.match(preview, /IntersectionObserver/);

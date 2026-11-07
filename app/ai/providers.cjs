@@ -1016,7 +1016,7 @@ class Providers {
       throw Error('Bu model için geçerli bir efor seçimi değil.');
     // v0.8.7: Claude and Gemini take images too (app/ai/provider-images.cjs)
     const { texts, images } = imagesKit.splitAttachments(provider, args.attachments);
-    const claudeImages = provider === 'claude' && images.length ? imagesKit.loadImages(images, this.shrinkImage) : null;
+    const claudeImages = provider === 'claude' && images.length ? await imagesKit.loadImages(images, this.shrinkImage) : null;
     if (agent.busy) throw Error('Önce etkin yanıtı durdur.');
     const spec = this.spec(provider);
     const isHttp = !!spec.http;
@@ -1029,7 +1029,12 @@ class Providers {
     const isAbacus = provider === 'abacus';
     const id = randomUUID();
     const workspace = path.join(this.dir, 'workspace');
-    const staged = provider === 'gemini' && images.length ? imagesKit.stageGeminiImages(workspace, id, images) : null;
+    const staged = provider === 'gemini' && images.length ? await imagesKit.stageGeminiImages(workspace, id, images) : null;
+    // copying many pictures takes a moment: nothing may have started meanwhile
+    if (staged && agent.busy) {
+      imagesKit.removeStaged(staged.dir);
+      throw Error('Önce etkin yanıtı durdur.');
+    }
     // Sign-in was verified by refreshAuth above (claude.ai subscription only, see probe);
     // no extra `claude auth status` launch before every message.
     const planArgs = {

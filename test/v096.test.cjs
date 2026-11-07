@@ -139,9 +139,9 @@ test('v0.9.5 leftovers: readable sources, full module docs, versions agree', () 
     assert.doesNotMatch(read(f), /\\u0131|\\xFC|\\xE7/, f);
   assert.match(read('docs/MODULES.md'), /CharlesSlime\.mount/);
   assert.ok(!fs.existsSync(path.join(ROOT, 'docs/DOWNLOAD-MODULE.md')));
-  const label = 'v' + JSON.parse(read('package.json')).version.replace(/-beta\.\d+$/, '') + ' Beta';
-  for (const m of read('setup/Create-Desktop-Shortcut.vbs').match(/v0\.\d+\.\d+ Beta/g)) assert.equal(m, label);
-  assert.match(read('README.md'), new RegExp('version-' + label.split(' ')[0].replace(/\./g, '\\.') + '%20beta'));
+  const label = require('../app/core/updater.cjs').label(JSON.parse(read('package.json')).version);
+  assert.ok(read('setup/Create-Desktop-Shortcut.vbs').includes(label));
+  assert.match(read('README.md'), new RegExp('version-' + label.split(' ')[0].replace(/\./g, '\\.') + '%20release%20candidate'));
 });
 
 test('model menu: providers first, models beside them without the provider name', () => {

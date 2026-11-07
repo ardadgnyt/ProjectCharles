@@ -1,7 +1,10 @@
 // Older updaters and legacy shortcuts start electron.exe directly. Route them
 // through the branded host before creating any window or acquiring the app lock.
+// v0.9.24: so does an older host (its file still says Electron): an update restarts the program it
+// was running, and only Charles.exe knows which host is current.
+const startedAs = require('node:path').basename(process.execPath).toLowerCase();
 if (process.platform === 'win32' && !process.argv.includes('--demo') &&
-    require('node:path').basename(process.execPath).toLowerCase() === 'electron.exe') {
+    (startedAs === 'electron.exe' || (startedAs.startsWith('charles-host-') && process.env.CHARLES_HOST !== '3'))) {
   const entry = require('node:path').resolve(__dirname, '..', 'Charles.exe');
   if (require('node:fs').existsSync(entry)) {
     const child = require('node:child_process').spawn(entry, process.argv.slice(2), {
@@ -2541,13 +2544,67 @@ else {
         return item;
       }
       extrasAttachment = (file) => attachment(extras.ingest(file, { untrusted: 'content' }));
+      /** What a sent message shows and keeps of its attachments. */
+      async function shownAttachments(ids) {
+        const out = [];
+        for (const id of ids) {
+          const a = extras.attachments.get(id);
+          if (!a) throw Error('Ek bulunamadı.');
+          let thumbnail = null,
+            preview = null;
+          if (a.kind === 'image' || a.kind === 'gif') {
+            const img = nativeImage.createFromPath(a.path);
+            if (!img.isEmpty()) {
+              const size = img.getSize(),
+                ratio = Math.min(1, 320 / size.width, 240 / size.height);
+              // v0.9.24: the small picture lives in the chat's history: with many of them it is
+              // smaller and JPEG, or a thousand pictures would make that file enormous
+              const many = ids.length > 24,
+                fit = many ? Math.min(1, 160 / size.width, 120 / size.height) : ratio;
+              const small = img.resize({
+                width: Math.max(1, Math.round(size.width * fit)),
+                height: Math.max(1, Math.round(size.height * fit)),
+              });
+              thumbnail = many ? 'data:image/jpeg;base64,' + small.toJPEG(62).toString('base64') : small.toDataURL();
+              // v0.9.1: a large copy for the full-size view (a click on the picture in the chat),
+              // kept as a file next to the history like Charles' own pictures
+              try {
+                const { storeImage } = require('./ai/sessions.cjs');
+                const dir = path.join(app.getPath('userData'), 'history-images');
+                const big = Math.min(1, 1920 / size.width, 1440 / size.height);
+                // v0.9.15: a pasted picture keeps every pixel (it exists nowhere else)
+                const data =
+                  a.pasted
+                    ? 'data:image/png;base64,' + fs.readFileSync(a.path).toString('base64')
+                    : a.kind === 'gif' && fs.statSync(a.path).size <= 8 * 1024 * 1024
+                    ? 'data:image/gif;base64,' + fs.readFileSync(a.path).toString('base64')
+                    : 'data:image/jpeg;base64,' +
+                      (big < 1 ? img.resize({ width: Math.max(1, Math.round(size.width * big)), height: Math.max(1, Math.round(size.height * big)), quality: 'best' }) : img)
+                        .toJPEG(88)
+                        .toString('base64');
+                preview = storeImage(dir, data);
+              } catch {}
+            }
+          }
+          out.push({ id, name: a.name, kind: a.kind, thumbnail, preview });
+          await new Promise((resolve) => setImmediate(resolve));
+        }
+        return out;
+      }
+      /** v0.9.24: many files one at a time, with room for the page between them: Charles stays alive. */
+      async function ingestMany(paths) {
+        const items = [];
+        for (const p of paths) {
+          items.push(attachment(await extras.ingestFile(p)));
+          await new Promise((resolve) => setImmediate(resolve));
+        }
+        return items;
+      }
       function ingestImage(bytes) {
-        if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length > 20 * 1024 * 1024)
-          throw Error('Resim en fazla 20 MB olabilir.');
+        if (!(bytes instanceof Uint8Array) || !bytes.length) throw Error('Panodaki resim okunamadı.');
         const image = nativeImage.createFromBuffer(Buffer.from(bytes));
         if (image.isEmpty()) throw Error('Panodaki resim okunamadı.');
         const png = image.toPNG();
-        if (png.length > 20 * 1024 * 1024) throw Error('Resim en fazla 20 MB olabilir.');
         const file = path.join(
           app.getPath('temp'),
           'Charles-pano-' + require('node:crypto').randomUUID() + '.png',
@@ -2840,15 +2897,14 @@ else {
             title: 'Charles’a dosya ekle',
           });
           if (r.canceled) return [];
-          if (r.filePaths.length > 50) throw Error('En fazla 50 dosya seçin.');
-          return r.filePaths.map((p) => attachment(extras.ingest(p)));
+          if (r.filePaths.length > 1000) throw Error('En fazla 1000 dosya seçin.');
+          return await ingestMany(r.filePaths);
         } finally {
           dialogOpen = false;
         }
       });
       safeHandler('drop-text', (text) => {
-        if (typeof text !== 'string' || !text.trim() || Buffer.byteLength(text, 'utf8') > 200000)
-          throw Error('Seçili metin boş veya 200 KB sınırını aşıyor.');
+        if (typeof text !== 'string' || !text.trim()) throw Error('Seçili metin boş.');
         const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'charles-selection-'));
         const file = path.join(dir, 'Seçili metin.txt');
         try {
@@ -2862,11 +2918,11 @@ else {
       safeHandler('drop-files', (paths) => {
         if (
           !Array.isArray(paths) ||
-          paths.length > 50 ||
+          paths.length > 1000 ||
           !paths.every((p) => typeof p === 'string' && path.isAbsolute(p))
         )
           throw Error('Geçersiz dosya listesi.');
-        return paths.map((p) => attachment(extras.ingest(p)));
+        return ingestMany(paths);
       });
       safeHandler('auto-start', (value) => {
         if (demo) return false;
@@ -3220,7 +3276,7 @@ else {
       agent.providers.shrinkImage = (file, max) => {
         let img = nativeImage.createFromPath(file);
         if (img.isEmpty()) return null;
-        for (const width of [2400, 1800, 1400, 1000]) {
+        for (const width of [2400, 1800, 1400, 1000, 800, 600, 400]) {
           if (img.getSize().width > width) img = img.resize({ width, quality: 'good' });
           const data = img.toJPEG(85);
           if (data.length <= max) return { data, mime: 'image/jpeg' };
@@ -3598,7 +3654,8 @@ else {
           );
         const chatDir = path.join(app.getPath('userData'), 'chat-workspace');
         if (mode === 'chat') fs.mkdirSync(chatDir, { recursive: true });
-        return agent.send({
+        const inputs = await extras.inputs(args.attachments || [], { textOnly: /^(gemini|claude|cursor|abacus|evren):/.test(args.model || ''), images: !/^(cursor|abacus|evren):/.test(args.model || '') });
+        const turn = await agent.send({
           prompt: args.prompt,
           displayPrompt: args.displayPrompt,
           task: args.task || '',
@@ -3607,45 +3664,8 @@ else {
           effort: typeof args.effort === 'string' ? args.effort.slice(0, 24) : '',
           cwd: mode === 'chat' ? chatDir : chosenCwd,
           mode,
-          attachments: await extras.inputs(args.attachments || [], { textOnly: /^(gemini|claude|cursor|abacus|evren):/.test(args.model || ''), images: !/^(cursor|abacus|evren):/.test(args.model || '') }),
-          displayAttachments: (args.attachments || []).map((id) => {
-            const a = extras.attachments.get(id);
-            if (!a) throw Error('Ek bulunamadı.');
-            let thumbnail = null,
-              preview = null;
-            if (a.kind === 'image' || a.kind === 'gif') {
-              const img = nativeImage.createFromPath(a.path);
-              if (!img.isEmpty()) {
-                const size = img.getSize(),
-                  ratio = Math.min(1, 320 / size.width, 240 / size.height);
-                thumbnail = img
-                  .resize({
-                    width: Math.max(1, Math.round(size.width * ratio)),
-                    height: Math.max(1, Math.round(size.height * ratio)),
-                  })
-                  .toDataURL();
-                // v0.9.1: a large copy for the full-size view (a click on the picture in the chat),
-                // kept as a file next to the history like Charles' own pictures
-                try {
-                  const { storeImage } = require('./ai/sessions.cjs');
-                  const dir = path.join(app.getPath('userData'), 'history-images');
-                  const big = Math.min(1, 1920 / size.width, 1440 / size.height);
-                  // v0.9.15: a pasted picture keeps every pixel (it exists nowhere else)
-                  const data =
-                    a.pasted
-                      ? 'data:image/png;base64,' + fs.readFileSync(a.path).toString('base64')
-                      : a.kind === 'gif' && fs.statSync(a.path).size <= 8 * 1024 * 1024
-                      ? 'data:image/gif;base64,' + fs.readFileSync(a.path).toString('base64')
-                      : 'data:image/jpeg;base64,' +
-                        (big < 1 ? img.resize({ width: Math.max(1, Math.round(size.width * big)), height: Math.max(1, Math.round(size.height * big)), quality: 'best' }) : img)
-                          .toJPEG(88)
-                          .toString('base64');
-                  preview = storeImage(dir, data);
-                } catch {}
-              }
-            }
-            return { id, name: a.name, kind: a.kind, thumbnail, preview };
-          }),
+          attachments: inputs,
+          displayAttachments: await shownAttachments(args.attachments || []),
           memory:
             personal.memory() +
             '\nResponse language: ' +
@@ -3653,6 +3673,8 @@ else {
           access: untrusted ? 'ask' : personal.data.access,
           hasDocument: !!args.hasDocument,
         });
+        // v0.9.24: what did not fit in one message is said, not left out in silence
+        return inputs.cut?.length ? { ...turn, cut: inputs.cut } : turn;
       });
       // v0.7.1: Ayarlar → Hesap → "Tüm verileri sıfırla" / "Hesap bağlantılarını kaldır"
       safeHandler('reset-all', async (scope) => {
@@ -4219,9 +4241,16 @@ else {
         delete wsCache.home;
         return r;
       });
-      safeHandler('steer', (text) => {
+      safeHandler('steer', async (text, attachments) => {
         if (liveRoom) throw Error('Önce sesli görüşmeyi bitir.');
-        return agent.steer(text);
+        if (attachments === undefined || (Array.isArray(attachments) && !attachments.length)) return agent.steer(text);
+        if (!Array.isArray(attachments) || !attachments.every((id) => typeof id === 'string')) throw Error('Geçersiz ek listesi.');
+        // v0.9.24: outside content must not reach a turn that has its tools: it waits for a turn of
+        // its own, where the send path above takes them away
+        if (extras.untrusted(attachments)) throw Error('Bu içerik yanıt bitince gönderilecek.');
+        const inputs = await extras.inputs(attachments);
+        const steered = await agent.steer(text, inputs, await shownAttachments(attachments));
+        return inputs.cut?.length ? { ...steered, cut: inputs.cut } : steered;
       });
       safeHandler('new-chat', (options) => agent.reset(options));
       safeHandler('reply', (args) => agent.reply(args));

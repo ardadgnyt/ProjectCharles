@@ -32,8 +32,8 @@ test('Attachment copy, input formatting, limits and executable rejection', async
     fs.writeFileSync(path.join(f.dir, 'bad.exe'), 'x');
     assert.throws(() => f.extras.ingest(path.join(f.dir, 'bad.exe')), /Desteklenenler/);
     await assert.rejects(f.extras.inputs(['unknown']));
-    assert.equal((await f.extras.inputs(Array(50).fill(a.id))).length, 50);
-    await assert.rejects(f.extras.inputs(Array(51).fill(a.id)));
+    assert.equal((await f.extras.inputs(Array(1000).fill(a.id))).length, 1000);
+    await assert.rejects(f.extras.inputs(Array(1001).fill(a.id)));
     assert.throws(() => f.extras.ingest(f.dir));
     const img = path.join(f.dir, 'a.png');
     fs.writeFileSync(img, 'test');

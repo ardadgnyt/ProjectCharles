@@ -16,7 +16,7 @@ const { zipSync } = require('fflate');
 const ROOT = path.resolve(__dirname, '..');
 const BASE = ['Charles.exe', 'src', 'test', 'docs', 'DEVELOPMENT.md', 'LICENSE-ASSETS.md', 'app', 'dist', 'public', 'package.json', 'package-lock.json', 'LICENSE', 'README.md', 'CHANGELOG.md', 'setup', 'scripts', 'Start-Charles.cmd', 'licenses', 'THIRD-PARTY-NOTICES.md'];
 // never shipped, wherever they are
-const SKIP = /(^|\/)(\.git|node_modules|_update|_to_delete|__pycache__|graphify-out|\.qa|\.DS_Store|Thumbs\.db)(\/|$)|(^|\/)(\.env(\..*)?|Charles-creator\.json|charles-install\.json|charles-manifest\.json|personal\.json|companion\.json|charles-history\.json|preferences\.json|[^/]*\.enc\.json|[^/]*\.key|[^/]*\.pem|[^/]*\.log)$/i;
+const SKIP = /(^|\/)(\.git|node_modules|_update|_setup|dist-setup|_to_delete|__pycache__|graphify-out|\.qa|\.DS_Store|Thumbs\.db)(\/|$)|(^|\/)(\.env(\..*)?|Charles-creator\.json|charles-install\.json|charles-manifest\.json|personal\.json|companion\.json|charles-history\.json|preferences\.json|[^/]*\.enc\.json|[^/]*\.key|[^/]*\.pem|[^/]*\.log)$/i;
 
 function collect(rel, out) {
   const abs = path.join(ROOT, rel);
@@ -38,7 +38,7 @@ function pack({ outDir = path.join(ROOT, 'release'), extra = [] } = {}) {
   if (!fs.existsSync(path.join(ROOT, 'dist', 'renderer.js')))
     throw Error('dist/ is missing: run `npm run build` first. / dist/ yok: önce `npm run build` çalıştır.');
   // v0.9.9: never ship a dist/ built before the version was raised (v0.9.8 showed "v0.9.7 Beta")
-  const label = 'v' + pkg.version.replace(/^(\d+\.\d+\.\d+)-([a-z]+).*$/i, (_, n, t) => n + ' ' + t[0].toUpperCase() + t.slice(1));
+  const label = 'v' + pkg.version.replace(/^(\d+\.\d+\.\d+)-([a-z]+).*$/i, (_, n, t) => n + ' ' + (t === 'rc' ? 'Release Candidate' : t[0].toUpperCase() + t.slice(1)));
   if (!fs.readFileSync(path.join(ROOT, 'dist', 'index.html'), 'utf8').includes('>' + label + '<'))
     throw Error('dist/ is older than package.json (' + label + '): run `npm run build` again.');
   for (const e of extra)

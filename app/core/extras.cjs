@@ -20,6 +20,11 @@ const DEFAULTS = {
 const SERVICES = ['github', 'vercel', 'stripe', 'resend', 'notion', 'calcom', 'n8n'];
 // v0.8.5: all attachment text of one message together
 const MAX_ATTACHMENT_TEXT = 1000000;
+// v0.9.24: files per message. There is no size limit on a file any more; what a model can take in
+// one message decides how much of a long text reaches it (see inputs).
+const MAX_ATTACHMENTS = 1000;
+const MAX_GIF_BYTES = 256 * 1024 * 1024; // its moving preview has to fit in one string
+const IMAGE_TYPES = ['.png', '.jpg', '.jpeg', '.webp'];
 // v0.9.16: slide pictures that go with one presentation
 const MAX_SLIDE_PICTURES = 12;
 class Extras {
@@ -256,13 +261,29 @@ class Extras {
   }
   /** v0.9.9: `untrusted` marks a file Charles made from outside text (a mail he opened). */
   ingest(source, { untrusted = false } = {}) {
+    const place = this.incoming(source);
+    fs.copyFileSync(source, place.dest);
+    return this.received(source, place, untrusted);
+  }
+  /** v0.9.24: the same for what the user adds: a large file must not stop Charles while it is copied. */
+  async ingestFile(source, { untrusted = false } = {}) {
+    const place = this.incoming(source);
+    try {
+      await fs.promises.copyFile(source, place.dest);
+    } catch (e) {
+      fs.rmSync(place.dest, { force: true });
+      throw e;
+    }
+    return this.received(source, place, untrusted);
+  }
+  /** Checks a file and chooses its place in the inbox. */
+  incoming(source) {
     const stat = fs.statSync(source);
     if (!stat.isFile()) throw Error('Yalnızca dosya eklenebilir.');
     const ext = path.extname(source).toLowerCase();
-    // v0.9.16: presentations carry their pictures, so they get more room
     const deckFile = ext === '.pptx' || ext === '.ppt';
-    if (stat.size > (deckFile ? 100 : 20) * 1024 * 1024) throw Error(`Dosya en fazla ${deckFile ? 100 : 20} MB olabilir.`);
-    const images = ['.png', '.jpg', '.jpeg', '.webp'];
+    if (ext === '.gif' && stat.size > MAX_GIF_BYTES) throw Error('GIF en fazla 256 MB olabilir.');
+    const images = IMAGE_TYPES;
     const text = [
       '.txt',
       '.md',
@@ -298,14 +319,21 @@ class Extras {
     if (deckFile) require('../files/slides.cjs').loadDeck(source);
     const dir = path.join(this.directory, 'inbox');
     fs.mkdirSync(dir, { recursive: true });
-    for (const file of fs.readdirSync(dir)) {
-      const p = path.join(dir, file);
-      if (fs.statSync(p).isFile() && Date.now() - fs.statSync(p).mtimeMs > 7 * 86400000)
-        fs.unlinkSync(p);
+    // once a minute is enough: a thousand files at once would walk the folder a thousand times
+    if (Date.now() - (this.inboxSwept || 0) > 60000) {
+      this.inboxSwept = Date.now();
+      for (const file of fs.readdirSync(dir)) {
+        const p = path.join(dir, file);
+        if (fs.statSync(p).isFile() && Date.now() - fs.statSync(p).mtimeMs > 7 * 86400000)
+          fs.unlinkSync(p);
+      }
     }
     const id = crypto.randomUUID();
-    const dest = path.join(dir, id + ext);
-    fs.copyFileSync(source, dest);
+    return { id, dest: path.join(dir, id + ext), ext, deckFile, stat };
+  }
+  /** The copied file becomes an attachment. */
+  received(source, { id, dest, ext, deckFile, stat }, untrusted) {
+    const images = IMAGE_TYPES;
     fs.utimesSync(dest, new Date(), new Date());
     const item = {
       id,
@@ -351,31 +379,62 @@ class Extras {
     return Array.isArray(ids) && ids.some((id) => !!this.attachments.get(id)?.untrusted);
   }
   async inputs(ids, { textOnly = false, images = true } = {}) {
-    if (!Array.isArray(ids) || ids.length > 50) throw Error('En fazla 50 dosya eklenebilir.');
+    if (!Array.isArray(ids) || ids.length > MAX_ATTACHMENTS) throw Error('En fazla 1000 dosya eklenebilir.');
     const result = [];
-    // v0.8.5: up to 50 files, but the text sent with one message stays bounded (each PDF
-    // may give up to 900 000 characters; 50 of them would not fit any model).
-    let total = 0;
+    // v0.8.5: the text sent with one message stays bounded, or it would fit no model.
+    // v0.9.24: a long text no longer stops the message: what does not fit stays out, the model is
+    // told so, and result.cut names those files for the user.
+    let left = MAX_ATTACHMENT_TEXT;
+    const cut = [];
+    const outOfRoom = (name) => {
+      cut.push(name);
+      return { type: 'text', text: `[Charles notu: ${name} dosyasının metni bu mesaja sığmadı. İçeriğini görmedin; görmüş gibi anlatma, kullanıcıya söyle.]`, text_elements: [] };
+    };
+    let turn = 0;
     for (const id of ids) {
+      // many files: the app keeps breathing while they are read
+      if (++turn % 16 === 0) await new Promise((resolve) => setImmediate(resolve));
       const found = this.attachments?.get(id);
-      const items = found?.kind === 'presentation' ? await this.presentationInput(found, images) : [await this.input(id, textOnly)];
+      const reads = found && (found.kind === 'text' || found.kind === 'docx' || found.kind === 'presentation' || (found.kind === 'pdf' && textOnly));
+      if (reads && left < 4000) {
+        result.push(outOfRoom(found.name));
+        continue;
+      }
+      const room = Math.max(0, left - 2000);
+      const items = found?.kind === 'presentation' ? await this.presentationInput(found, images, room) : [await this.input(id, textOnly, room)];
       for (const item of items) {
-        if (item.type === 'text') {
-          total += item.text.length;
-          if (total > MAX_ATTACHMENT_TEXT)
-            throw Error('Eklerin metni bir mesaj için çok uzun (toplam en fazla 1.000.000 karakter). Daha az dosya ekle ya da belgeleri ayrı mesajlarda gönder.');
+        if (item.cut) {
+          cut.push(item.cut);
+          delete item.cut;
         }
+        if (item.type === 'text' && item.text.length > left) {
+          result.push(outOfRoom(found?.name || String(id)));
+          continue;
+        }
+        if (item.type === 'text') left -= item.text.length;
         result.push(item);
       }
     }
+    if (cut.length) result.cut = [...new Set(cut)];
     return result;
+  }
+  /** v0.9.24: the fenced text of a file, as much of it as fits, with a word when part of it stayed out. */
+  fitted(a, text, tag, room, textOnly) {
+    const { fence } = require('./untrusted.cjs');
+    const whole = text.length <= room && !(a.kind === 'text' && a.size > Buffer.byteLength(text, 'utf8'));
+    const body = fence(tag, text.slice(0, room), { max: room });
+    if (whole) return { text: body };
+    return {
+      cut: a.name,
+      text: body + `\n[Charles notu: ${a.name} dosyasının yalnızca ilk ${Math.min(text.length, room)} karakteri bu mesajda. Kalanını görmedin; görmüş gibi anlatma.${textOnly ? '' : ' Tamamı burada, gerekirse yalnızca oku: ' + a.path}]`,
+    };
   }
   /**
    * v0.9.16: a presentation goes as its text, in order and numbered, plus pictures of the slides
    * that show something text cannot say. The text states which slides were really seen, so the
    * model never claims to have looked at a picture that only its name reached.
    */
-  async presentationInput(a, images) {
+  async presentationInput(a, images, room = MAX_ATTACHMENT_TEXT) {
     if (!fs.existsSync(a.path)) throw Error('Ek artık bulunamıyor; yeniden ekleyin.');
     const slides = require('../files/slides.cjs');
     const { fence } = require('./untrusted.cjs');
@@ -402,16 +461,18 @@ class Extras {
     const empty = !text.replace(/\[Slayt[^\]]*\]/g, '').trim();
     if (empty && !seen.length) throw Error(`${a.name}: sunumda okunabilir metin yok.`);
     const who = a.untrusted ? 'Charles’ın açtığı e-posta eki (gönderen yazdı, kullanıcı değil)' : 'Kullanıcının eklediği dosya';
+    const fit = this.fitted(a, text, 'dosya_icerigi', room, true);
     return [
       {
         type: 'text',
-        text: `${who} · PowerPoint sunumu: ${a.name} (${deck.slides.length} slayt)\n` + (lines.length ? lines.join('\n') + '\n' : '') + fence('dosya_icerigi', text, { max: MAX_ATTACHMENT_TEXT }),
+        text: `${who} · PowerPoint sunumu: ${a.name} (${deck.slides.length} slayt)\n` + (lines.length ? lines.join('\n') + '\n' : '') + fit.text,
         text_elements: [],
+        ...(fit.cut ? { cut: fit.cut } : {}),
       },
       ...pictures.map((file) => ({ type: 'localImage', path: file })),
     ];
   }
-  async input(id, textOnly) {
+  async input(id, textOnly, room = MAX_ATTACHMENT_TEXT) {
       const a = this.attachments.get(id);
       if (!a || !fs.existsSync(a.path)) throw Error('Ek artık bulunamıyor; yeniden ekleyin.');
       if (a.kind === 'gif')
@@ -421,25 +482,24 @@ class Extras {
       // mail Charles opened says that its sender wrote it, not the user.
       const { fence } = require('./untrusted.cjs');
       const who = a.untrusted === 'content' ? 'Charles’ın kullanıcının isteğiyle okuduğu dış içerik (kullanıcı yazmadı)' : a.untrusted ? 'Charles’ın açtığı e-posta (gönderen yazdı, kullanıcı değil)' : 'Kullanıcının eklediği dosya';
+      const part = (head, fit) => ({ type: 'text', text: head + fit.text, text_elements: [], ...(fit.cut ? { cut: fit.cut } : {}) });
       if (a.kind === 'docx')
-        return {
-          type: 'text',
-          text:
-            who + ' · Word belgesi: ' + a.name + '\n' +
-            fence('dosya_icerigi', require('../files/docx.cjs').docxText(fs.readFileSync(a.path)), { max: MAX_ATTACHMENT_TEXT }),
-          text_elements: [],
-        };
+        return part(who + ' · Word belgesi: ' + a.name + '\n', this.fitted(a, require('../files/docx.cjs').docxText(fs.readFileSync(a.path)), 'dosya_icerigi', room, textOnly));
       if (a.kind === 'text') {
-        if (a.size > 200000) throw Error(`${a.name}: metin dosyası en fazla 200 KB olabilir.`);
-        return {
-          type: 'text',
-          text: `${who}: ${a.name}\n` + fence(a.untrusted ? 'mail_verisi' : 'dosya_icerigi', fs.readFileSync(a.path, 'utf8'), { max: 200000 }),
-          text_elements: [],
-        };
+        // only as much as can be sent is read: a log of many gigabytes never comes into memory
+        const wanted = Math.min(a.size, room * 4);
+        const bytes = Buffer.alloc(wanted);
+        const file = fs.openSync(a.path, 'r');
+        try {
+          fs.readSync(file, bytes, 0, wanted, 0);
+        } finally {
+          fs.closeSync(file);
+        }
+        return part(`${who}: ${a.name}\n`, this.fitted(a, bytes.toString('utf8'), a.untrusted ? 'mail_verisi' : 'dosya_icerigi', room, textOnly));
       }
       if (textOnly) {
         const text = await require('../files/attachment-text.cjs').pdfText(a.path);
-        return { type: 'text', text: `${who} · PDF: ${a.name}\n` + fence('dosya_icerigi', text, { max: MAX_ATTACHMENT_TEXT }), text_elements: [] };
+        return part(`${who} · PDF: ${a.name}\n`, this.fitted(a, text, 'dosya_icerigi', room, true));
       }
       return {
         type: 'text',
@@ -448,4 +508,4 @@ class Extras {
       };
   }
 }
-module.exports = { Extras, DEFAULTS, SERVICES, MAX_ATTACHMENT_TEXT };
+module.exports = { Extras, DEFAULTS, SERVICES, MAX_ATTACHMENT_TEXT, MAX_ATTACHMENTS };

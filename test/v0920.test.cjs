@@ -342,7 +342,7 @@ test('shelf drag name: broken like a desktop icon, never cut in the middle of th
   for (const place of [/function offTaskbar\(\) \{\s+if \(rackDragging\) return;/, /function applyTopmost\(\) \{\s+if \(!win \|\| win\.isDestroyed\(\) \|\| rackDragging\) return;/, /win\.isMinimized\(\) \|\| rackDragging\) return;/, /workspace \|\| rackDragging\) return;/]) assert.match(main, place);
 });
 
-test('island size: Small is 2/3 of Large, from the same numbers, and the panel does not change', () => {
+test('island size: Small is 2/3 of Large in every island state, from the same numbers', () => {
   const { bounds, NOTCH, HIDDEN, ISLAND_SMALL, shelfSize } = require('../app/core/layout.cjs');
   const area = { x: 0, y: 0, width: 1920, height: 1040 };
   const at = (island, state) => bounds(area, { side: 'center', height: 620, ...state, ...(island ? { island } : {}) });
@@ -351,13 +351,18 @@ test('island size: Small is 2/3 of Large, from the same numbers, and the panel d
   assert.deepEqual([at(null, notch).width, at(null, notch).height], [NOTCH.width, NOTCH.height]);
   assert.deepEqual([at(null, strip).width, at(null, strip).height], [HIDDEN.width, HIDDEN.height]);
   const small = at(ISLAND_SMALL, notch);
-  assert.deepEqual([small.width, small.height], [253, 44]);
+  assert.deepEqual([small.width, small.height], [254, 44]);
   assert.ok(Math.abs(small.width / NOTCH.width - 2 / 3) < 0.01);
   assert.ok(Math.abs(small.height / NOTCH.height - 2 / 3) < 0.01);
-  assert.equal(small.x, Math.round((1920 - 253) / 2), 'still in the middle');
+  assert.equal(small.x, Math.round((1920 - 254) / 2), 'still in the middle');
   assert.equal(at(ISLAND_SMALL, strip).width, 160);
-  for (const open of [{ expanded: true, hidden: false, chat: true }, { expanded: true, hidden: false, chat: false, shelf: 300 }])
-    assert.deepEqual(at(ISLAND_SMALL, open), at(null, open), 'the open panel');
+  for (const open of [{ expanded: true, hidden: false, chat: true }, { expanded: true, hidden: false, chat: false, shelf: 300 }]) {
+    const big = at(null, open), little = at(ISLAND_SMALL, open);
+    assert.ok(Math.abs(little.width - big.width * 2 / 3) <= 1 && little.width % 2 === 0, 'the open island, on whole pixels');
+    assert.equal(little.height, Math.round(big.height * 2 / 3));
+    assert.equal(little.x, Math.round((1920 - little.width) / 2), 'still in the middle');
+    assert.deepEqual(at(1, open), big, 'back to Large');
+  }
   assert.equal(shelfSize(300).width, 640);
   // back and forth adds nothing up: both are worked out from the base numbers
   assert.deepEqual(at(null, notch), at(1, notch));

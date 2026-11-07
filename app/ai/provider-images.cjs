@@ -16,10 +16,14 @@ const path = require('node:path');
 const IMAGE_PROVIDERS = ['claude', 'gemini'];
 const IMAGE_ONLY_MESSAGE = 'Görseller şu an yalnızca GPT, Claude ve Antigravity ile çalışıyor.';
 const MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
-const MAX_IMAGES = 10;
+// v0.9.24: what each connection can carry in one message. Claude's API takes up to 600 pictures in
+// one request (100 on models with a 200k context) and 128 MB of request in all; agy reads files.
+const MAX_IMAGES = { claude: 600, gemini: 1000 };
 // The Claude API takes images up to 5 MB each; larger ones are shrunk first when the app can
 // (Electron nativeImage, see main.cjs), otherwise refused with a clear message.
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+// base64 grows by a third: this many bytes of pictures stay under the request limit, text aside
+const MAX_REQUEST_IMAGE_BYTES = 90 * 1024 * 1024;
 
 function imageMime(file) {
   return MIME[path.extname(String(file || '')).toLowerCase()] || null;
@@ -33,7 +37,7 @@ function splitAttachments(provider, attachments) {
   if (texts.length + images.length !== list.length)
     throw Error('Bu sağlayıcının Charles bağlantısı bu ek türünü desteklemiyor.');
   if (images.length && !IMAGE_PROVIDERS.includes(provider)) throw Error(IMAGE_ONLY_MESSAGE);
-  if (images.length > MAX_IMAGES) throw Error(`Bir mesajda en fazla ${MAX_IMAGES} görsel gönderilebilir.`);
+  if (images.length > (MAX_IMAGES[provider] || 0)) throw Error(`Bu bağlantıyla bir mesajda en fazla ${MAX_IMAGES[provider]} görsel gönderilebilir.`);
   for (const img of images) {
     if (!imageMime(img.path)) throw Error('Görseller PNG, JPG ya da WebP olmalı.');
     if (!path.isAbsolute(String(img.path)) || !fs.existsSync(img.path) || !fs.statSync(img.path).isFile())
@@ -43,18 +47,24 @@ function splitAttachments(provider, attachments) {
 }
 
 // Reads the images for Claude: [{ mime, data }] with base64 data, shrunk when needed.
-function loadImages(images, shrink) {
-  return images.map((img) => {
-    let data = fs.readFileSync(img.path);
+async function loadImages(images, shrink) {
+  // v0.9.24: with many pictures each gets its share of the request, and the app stays alive
+  const each = Math.min(MAX_IMAGE_BYTES, Math.floor(MAX_REQUEST_IMAGE_BYTES / Math.max(1, images.length)));
+  const loaded = [];
+  for (const img of images) {
+    let data = null;
     let mime = imageMime(img.path);
-    if (data.length > MAX_IMAGE_BYTES && typeof shrink === 'function') {
-      const small = shrink(img.path, MAX_IMAGE_BYTES);
+    if (fs.statSync(img.path).size > each && typeof shrink === 'function') {
+      const small = shrink(img.path, each);
       if (small?.data?.length) ({ data, mime } = small);
     }
-    if (data.length > MAX_IMAGE_BYTES) throw Error('Görsel çok büyük (en fazla 5 MB).');
+    data ||= fs.readFileSync(img.path);
+    if (data.length > each) throw Error(`Görsel çok büyük (en fazla ${Math.max(1, Math.round(each / 1048576))} MB).`);
     if (!data.length) throw Error('Görsel boş.');
-    return { mime, data: data.toString('base64') };
-  });
+    loaded.push({ mime, data: data.toString('base64') });
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+  return loaded;
 }
 
 // One stream-json line for `claude -p --input-format stream-json`.
@@ -69,15 +79,16 @@ function claudeInput(text, images) {
 // Copies the images for Gemini into <workspace>/.charles-images/<id>/ and returns the folder
 // and the copied files. Names are fixed (image-1.png …) so nothing from the source name
 // reaches the prompt.
-function stageGeminiImages(workspace, id, images) {
+async function stageGeminiImages(workspace, id, images) {
   if (!/^[A-Za-z0-9-]+$/.test(String(id))) throw Error('Geçersiz istek kimliği.');
   const dir = path.join(workspace, '.charles-images', id);
   fs.mkdirSync(dir, { recursive: true });
-  const files = images.map((img, i) => {
+  const files = [];
+  for (const [i, img] of images.entries()) {
     const dest = path.join(dir, `image-${i + 1}${path.extname(img.path).toLowerCase()}`);
-    fs.copyFileSync(img.path, dest);
-    return dest;
-  });
+    await fs.promises.copyFile(img.path, dest);
+    files.push(dest);
+  }
   return { dir, files };
 }
 
@@ -102,6 +113,7 @@ module.exports = {
   IMAGE_ONLY_MESSAGE,
   MAX_IMAGES,
   MAX_IMAGE_BYTES,
+  MAX_REQUEST_IMAGE_BYTES,
   imageMime,
   splitAttachments,
   loadImages,

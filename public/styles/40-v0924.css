@@ -1,0 +1,50 @@
+/* v0.9.24 */
+
+/* --- The time beside a message in the app window ----------------------------------------------------
+   It stands outside the bubble with `right: calc(100% + 42px)`: an absolute box there has no width of
+   its own to take, so it was as narrow as its smallest piece, and next to a message with many files
+   the digits fell under one another. It is one line, as wide as its words. */
+body.workspace #feed .message.user[data-ws-meta]::after {
+  width: max-content;
+  max-width: none;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+  line-height: 18px;
+}
+
+/* --- Sohbet | Proje in the app window: as on the island. The app window's general button colour won
+   over the segment's own, so the chosen word was white on cream. */
+body.workspace .mode-row .mode-seg-btn {
+  color: #b3aea7 !important;
+}
+body.workspace .mode-row .mode-seg-btn:hover:not(.on):not(:disabled) {
+  color: var(--v10-ink, #f3eee7) !important;
+}
+body.workspace .mode-row .mode-seg-btn.on,
+body.workspace .mode-row .mode-seg-btn.on:hover,
+body.workspace .mode-row .mode-seg-btn.on:focus-visible {
+  background: var(--v10-cream, #edc9a9) !important;
+  color: #1b1712 !important;
+}
+body.workspace .mode-row .mode-seg-btn:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 1px;
+}
+
+/* --- The welcome card: a low island scrolls instead of cutting off the buttons ----------------------- */
+.tour {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The picture view stands under the title bar: Windows draws its own buttons above the page, so a
+   view from the very top lay under them, along with its close button. 52px = titleBarOverlay height. */
+body.workspace .image-lightbox {
+  inset: 52px 0 0;
+}
+/* a tall picture fits the view: without a set row its 100% height meant its own height */
+.image-lightbox {
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+}

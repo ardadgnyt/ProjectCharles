@@ -22,12 +22,21 @@ export function animationLoop(
   // on with a timer
   // v0.9.19: between two frames it sleeps. Asking for every display refresh only to skip most of
   // them woke the page (and with it the compositor) 144 times a second for 30 drawn frames.
+  // v0.9.24: up to 30 frames a second the timer alone starts the frame. Waiting for the display as
+  // well kept asking for refreshes until the frame was due: an idle chat spent about a fifth of
+  // its CPU on that. A moving Charles (60 frames) still follows the display.
   const schedule = () => {
     if (document.visibilityState !== 'visible') {
       frame = -window.setTimeout(() => tick(performance.now()), 50);
       return;
     }
-    const sleep = last ? 1000 / fps() - (performance.now() - last) - 6 : 0;
+    const rate = fps();
+    const left = last ? 1000 / rate - (performance.now() - last) : 0;
+    if (rate <= 30) {
+      frame = -window.setTimeout(() => tick(performance.now()), Math.max(1, left));
+      return;
+    }
+    const sleep = left - 6;
     if (sleep < 4) {
       frame = requestAnimationFrame(tick);
       return;

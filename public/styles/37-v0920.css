@@ -1,7 +1,25 @@
-/* 37 · v0.9.20 — Ayarlar → Görünüm → Charles adacık boyutu: Küçük is 2/3 of the closed island.
+/* 37 · v0.9.20 — Ayarlar → Görünüm → Charles adacık boyutu: Küçük is 2/3 of the island.
    The window and its click area come from app/core/layout.cjs; here the content follows with zoom,
    which lays things out at the new size (a transform would leave the old boxes behind). The ears
-   and corners are on body variables, so they are set in their own right and not zoomed. */
+   and corners are on body variables, so they are set in their own right and not zoomed.
+   v0.9.24: the whole island, not only the closed one. The app window, Charles on the desktop and the
+   plugin guide use the same page and keep their size; the thin strip has its own height below. */
+body.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active) main.island {
+  zoom: 0.6667;
+}
+/* The island's shape is cut from pieces (19-v0811.css). At 2/3 their edges fall between two pixels and
+   a hairline of the desktop showed through, so here the middle pieces reach a pixel into the corners. */
+body.v10.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active) .island {
+  --mask-box:
+    linear-gradient(#000 0 0) var(--ear-l) 0 / calc(100% - var(--ear-l) - var(--ear-r)) calc(100% - var(--r) + 1px) no-repeat,
+    linear-gradient(#000 0 0) calc(var(--ear-l) + var(--r) - 1px) 100% / calc(100% - var(--ear-l) - var(--ear-r) - 2 * var(--r) + 2px) var(--r) no-repeat,
+    radial-gradient(circle at 100% 0, #000 calc(var(--r) - 0.6px), transparent var(--r)) var(--ear-l) 100% / var(--r) var(--r) no-repeat,
+    radial-gradient(circle at 0 0, #000 calc(var(--r) - 0.6px), transparent var(--r)) calc(100% - var(--ear-r)) 100% / var(--r) var(--r) no-repeat,
+    radial-gradient(circle at 0 100%, transparent calc(var(--ear-l) - 0.6px), #000 var(--ear-l)) 0 0 / var(--ear-l) var(--ear-l) no-repeat,
+    radial-gradient(circle at 100% 100%, transparent calc(var(--ear-r) - 0.6px), #000 var(--ear-r)) 100% 0 / var(--ear-r) var(--ear-r) no-repeat;
+  -webkit-mask: var(--mask-box);
+  mask: var(--mask-box);
+}
 body.v10.island-small[data-view='notch']:not(.desktop-pet):not(.hidden-island) {
   --ear-l: 9px;
   --ear-r: 9px;
@@ -16,26 +34,12 @@ body.v10.island-small.docked-right[data-view='notch']:not(.desktop-pet):not(.hid
   --ear-r: 0px;
   padding-right: 0;
 }
-body.v10.island-small[data-view='notch']:not(.desktop-pet):not(.hidden-island) #notch {
-  zoom: 0.6667;
-}
 /* words at 2/3 of 10 px could not be read: they keep a readable size in the smaller box */
 body.v10.island-small[data-view='notch'] .notch-track-title {
   font-size: 15px;
 }
 body.v10.island-small[data-view='notch'] .notch-track-artist {
   font-size: 13.5px;
-}
-body.v10.island-small[data-view='notch'] #resize-handle {
-  width: 54px;
-  height: 6px;
-}
-body.v10.island-small[data-view='notch'] #resize-handle::after {
-  top: 1px;
-  width: 30px;
-}
-body.v10.island-small[data-view='notch'] #resize-handle:hover::after {
-  width: 40px;
 }
 body.island-small.hidden-island:not(.desktop-pet) .island {
   height: 4px;

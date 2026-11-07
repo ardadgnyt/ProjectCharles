@@ -1,54 +1,58 @@
 #!/usr/bin/env python3
-"""Create the complete Windows setup kit and its SHA-256 from the built checkout."""
+"""Create CharlesSetup.exe and its SHA-256 from the built checkout.
+
+    tools\\quickshare\\python\\python.exe -B scripts/setup-pack.py <output folder>
+
+The installer program (setup/CharlesSetup.cs, compiled by scripts/build-setup.ps1) comes first, then
+the application as a zip with charles-manifest.json, then a footer the program reads:
+
+    [program][zip][sha-256 of the zip: 32][program length: 8][zip length: 8]["CHARLES1": 8]
+"""
 import hashlib
 import importlib.util
-import pathlib
-import sys
-import zipfile
 import json
+import os
+import pathlib
+import struct
+import subprocess
+import sys
 
 root = pathlib.Path(__file__).resolve().parent.parent
 out = pathlib.Path(sys.argv[1]).resolve()
+out.mkdir(parents=True, exist_ok=True)
 version = json.loads((root / 'package.json').read_text(encoding='utf-8'))['version']
-label = 'v' + version.split('-')[0] + '-Beta'
-kit = out / ('ProjectCharles-' + label + '-Setup')
-kit.mkdir(parents=True, exist_ok=True)
+target = out / 'CharlesSetup.exe'
+work = out / '.charles-setup-work'
+work.mkdir(parents=True, exist_ok=True)
+stub = work / 'stub.exe'
+subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', str(root / 'scripts' / 'build-setup.ps1'), '-Output', str(stub)], check=True)
 spec = importlib.util.spec_from_file_location('payload_pack', root / 'scripts/package.py')
 packer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(packer)
-payload = kit / 'Charles.zip'
+payload = work / 'Charles.zip'
 packer.main(str(root), str(payload))
 
-def sha(file):
-    digest = hashlib.sha256()
-    with file.open('rb') as f:
+digest, whole = hashlib.sha256(), hashlib.sha256()
+partial = pathlib.Path(str(target) + '.partial')
+stub_bytes = stub.read_bytes()
+with partial.open('wb') as w:
+    w.write(stub_bytes)
+    whole.update(stub_bytes)
+    with payload.open('rb') as f:
         for block in iter(lambda: f.read(1024 * 1024), b''):
             digest.update(block)
-    value = digest.hexdigest()
-    pathlib.Path(str(file) + '.sha256').write_text(value + '  ' + file.name + '\n', encoding='utf-8')
-    return value
-
-sha(payload)
-for name in ['Install.cmd', 'install.ps1']:
-    (kit / name).write_bytes((root / 'setup' / name).read_bytes())
-(kit / 'LICENSE').write_bytes((root / 'LICENSE').read_bytes())
-(kit / 'README.txt').write_text('Charles ' + version + ''' - Windows Setup
-
-Extract this entire folder, then run Install.cmd. Select your language and destination.
-The setup includes the runtime and voice tools; Node.js is not required separately.
-The Download module is installed separately; its tools (yt-dlp, FFmpeg) are included.
-If an older in-app updater leaves files in _update, use this setup once.
-Chats and settings remain in %APPDATA%\\Charles.
-
-Klasorun tamamini cikartin, Install.cmd dosyasini calistirin. Dil ve kurulum yolunu secin.
-Node.js kurmaniz gerekmez. Download modulu ayri kurulur; indirme araclari (yt-dlp, FFmpeg) pakete dahildir.
-Eski guncelleyici _update klasorunde takiliyorsa bir kez bu Setup paketini kullanin.
-Sohbetler ve ayarlar %APPDATA%\\Charles klasorunde korunur.
-''', encoding='utf-8')
-archive = out / (kit.name + '.zip')
-with zipfile.ZipFile(archive, 'w', allowZip64=True) as z:
-    for file in sorted(kit.iterdir()):
-        if file.name.endswith('.hashes.json'):
-            continue
-        z.write(file, kit.name + '/' + file.name, compress_type=zipfile.ZIP_STORED if file.suffix == '.zip' else zipfile.ZIP_DEFLATED)
-print(json.dumps({'setup':str(archive), 'sha256':sha(archive), 'bytes':archive.stat().st_size}))
+            whole.update(block)
+            w.write(block)
+    footer = digest.digest() + struct.pack('<qq', len(stub_bytes), payload.stat().st_size) + b'CHARLES1'
+    whole.update(footer)
+    w.write(footer)
+os.replace(partial, target)
+value = whole.hexdigest()
+pathlib.Path(str(target) + '.sha256').write_text(value + '  ' + target.name + '\n', encoding='utf-8')
+hashes = work / 'Charles.zip.hashes.json'
+if hashes.exists():
+    hashes.unlink()
+payload.unlink()
+stub.unlink()
+work.rmdir()
+print(json.dumps({'setup': str(target), 'sha256': value, 'bytes': target.stat().st_size, 'version': version}))

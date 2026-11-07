@@ -7,6 +7,11 @@
 // v0.7.1 SpecialBeta: "Şimdi" on a queued message stops the running answer and sends the
 // message right away (a real interruption for Claude, Gemini and Cursor too). A message
 // written while the request is still being sent is queued instead of being dropped.
+// v0.9.24: the box's files and photos go with it. GPT gets them in the running turn; a queued
+// instruction keeps them and they return to the box when it goes out or is pulled back.
+
+export type SteerFile = { id: string; name: string; kind?: string; thumbnail?: string };
+type Held = { text: string; files: SteerFile[] };
 
 export type SteerDeps = {
   api: any;
@@ -14,7 +19,11 @@ export type SteerDeps = {
   bar: HTMLElement;
   prompt: HTMLTextAreaElement;
   external: () => boolean;
-  shown: (text: string) => void; // adds the user's extra instruction to the chat
+  shown: (text: string, files: SteerFile[]) => void; // adds the user's extra instruction to the chat
+  /** Puts files back in the message box. */
+  restore: (files: SteerFile[]) => void;
+  /** Files whose text did not fully fit. */
+  tooLong?: (names?: string[]) => void;
   notice: (s: string) => void;
   t: (s: string) => string;
   /** Is an answer running right now (for the "Şimdi" button)? */
@@ -36,14 +45,19 @@ export function steerUI(d: SteerDeps) {
       if (queue.length && d.feed!.lastElementChild !== box) d.feed!.append(box);
     }).observe(d.feed, { childList: true });
   } else d.composer.insertBefore(box, d.bar);
-  const queue: string[] = [];
+  const queue: Held[] = [];
+  const steerTo = (text: string, files: SteerFile[]) => (files.length ? d.api.steer(text, files.map((f) => f.id)) : d.api.steer(text));
+  const together = () => {
+    const items = queue.splice(0);
+    return { text: items.map((i) => i.text).join('\n\n'), files: items.flatMap((i) => i.files) };
+  };
   let interjecting = false;
 
   function paint() {
     box.replaceChildren();
     box.hidden = !queue.length;
     if (d.feed && queue.length && d.feed.lastElementChild !== box) d.feed.append(box);
-    queue.forEach((text, i) => {
+    queue.forEach(({ text, files }, i) => {
       const item = document.createElement('div');
       item.className = 'steer-item';
       const tag = document.createElement('span');
@@ -52,11 +66,12 @@ export function steerUI(d: SteerDeps) {
       const body = document.createElement('button');
       body.type = 'button';
       body.className = 'steer-text';
-      body.textContent = text;
+      body.textContent = files.length ? `${text}  📎 ${files.length}` : text;
       body.title = d.t('Düzenlemek için tıkla');
       body.onclick = () => {
         queue.splice(i, 1);
         d.prompt.value = d.prompt.value ? d.prompt.value + '\n' + text : text;
+        if (files.length) d.restore(files);
         d.prompt.focus();
         paint();
       };
@@ -93,21 +108,22 @@ export function steerUI(d: SteerDeps) {
   }
 
   /** Sends text as an extra instruction to the running answer. */
-  async function send(text: string) {
-    text = text.trim();
+  async function send(text: string, files: SteerFile[] = []) {
+    text = text.trim() || (files.length ? d.t('Eklediğim dosyalara da bak.') : '');
     if (!text) return;
     d.prompt.value = '';
     d.prompt.dispatchEvent(new Event('input'));
     if (!d.external()) {
       try {
-        await d.api.steer(text);
-        d.shown(text);
+        const result = await steerTo(text, files);
+        d.shown(text, files);
+        d.tooLong?.(result?.cut);
         return;
       } catch {
         // the turn may have just ended or the server refused it: keep it for the next turn
       }
     }
-    queue.push(text);
+    queue.push({ text, files });
     paint();
     d.notice(
       d.t(
@@ -119,12 +135,12 @@ export function steerUI(d: SteerDeps) {
   }
 
   /** Keeps text for after the current request (used while a message is still being sent). */
-  function hold(text: string) {
-    text = text.trim();
+  function hold(text: string, files: SteerFile[] = []) {
+    text = text.trim() || (files.length ? d.t('Eklediğim dosyalara da bak.') : '');
     if (!text) return;
     d.prompt.value = '';
     d.prompt.dispatchEvent(new Event('input'));
-    queue.push(text);
+    queue.push({ text, files });
     paint();
   }
 
@@ -132,13 +148,14 @@ export function steerUI(d: SteerDeps) {
   async function started() {
     paint();
     if (d.external() || !queue.length) return;
-    const text = queue.splice(0).join('\n\n');
+    const held = together();
     paint();
     try {
-      await d.api.steer(text);
-      d.shown(text);
+      const result = await steerTo(held.text, held.files);
+      d.shown(held.text, held.files);
+      d.tooLong?.(result?.cut);
     } catch {
-      queue.unshift(text);
+      queue.unshift(held);
       paint();
     }
   }
@@ -150,10 +167,11 @@ export function steerUI(d: SteerDeps) {
     return was;
   }
 
-  /** The queued text to send next (all queued messages together), or null. */
+  /** The queued text to send next (all queued messages together), or null. Its files go back in the box. */
   function take(): string | null {
     if (!queue.length) return null;
-    const text = queue.splice(0).join('\n\n');
+    const { text, files } = together();
+    if (files.length) d.restore(files);
     paint();
     return text;
   }

@@ -123,6 +123,8 @@ let userOrdinal = 0;
 let focusUntil = 0;
 let musicPlaying = false;
 let last = performance.now();
+let cursorMoved = last;
+document.addEventListener('keydown', () => (cursorMoved = performance.now()), true);
 function animate(now: number) {
   if (quotaBlocked) {
     bot.setState('ratelimit');
@@ -133,7 +135,8 @@ function animate(now: number) {
   const calm = Date.now() < focusUntil && !busy;
   // v0.9.6: never dancing and sleeping at once
   bot.setDancing(!quotaBlocked && musicPlaying && !busy && !calm && !sleeping && bot.reading < 0.01);
-  const frameDt = Math.min((now - last) / 1000, 0.05);
+  // v0.9.24: wide enough for the slowest pace (12 frames a second), or he would breathe in slow motion
+  const frameDt = Math.min((now - last) / 1000, 0.1);
   bot.update(frameDt * (calm ? 0.55 : 1));
   jelly.step(frameDt);
   last = now;
@@ -170,18 +173,17 @@ animationLoop(
   animate,
   () =>
     petIsOut() || (document.visibilityState === 'visible' && !document.body.classList.contains('hidden-island')),
-  () =>
-    document.body.classList.contains('pet-dragging') ||
-    busy ||
-    hovering ||
-    jelly.active ||
-    (bot.outfit !== 'none' && bot.busy)
-      ? 60
-      : // v0.9.19: nearly all of an open panel's cost is these frames: when nobody is at the panel
-        // and Charles is only breathing, he breathes at the pace the compact island always had
-        document.body.classList.contains('compact') || !document.hasFocus()
-        ? 20
-        : 30,
+  () => {
+    if (document.body.classList.contains('pet-dragging') || hovering || jelly.active || (bot.outfit !== 'none' && bot.busy)) return 60;
+    // v0.9.24: while the AI works he is busy, not moving fast: a long answer spent half of its
+    // CPU on these frames
+    if (busy) return 30;
+    // v0.9.19: nearly all of an open panel's cost is these frames: when nobody is at the panel
+    // and Charles is only breathing, he breathes at the pace the compact island always had
+    // v0.9.24: with the pointer resting he only breathes and blinks, which 12 frames show as well
+    if (performance.now() - cursorMoved > 4000) return 12;
+    return document.body.classList.contains('compact') || !document.hasFocus() ? 20 : 30;
+  },
 ).start();
 bot.greet();
 let hoverTimer: number | undefined;
@@ -237,6 +239,7 @@ new MutationObserver(() => (canvasRect = null)).observe(document.body, { attribu
 let queuedCursor: { x: number; y: number } | null = null,
   cursorFrame = 0;
 function queueCursor(point: { x: number; y: number }) {
+  cursorMoved = performance.now();
   queuedCursor = point;
   if (cursorFrame) return;
   cursorFrame = requestAnimationFrame(() => {
@@ -470,10 +473,13 @@ window.setInterval(() => {
     }, 2500);
   }
 }, 1000);
+// v0.9.24: the files of a message still being sent stay in the box until it is accepted
+let sendingFiles: string[] = [];
+const boxHasFiles = () => features.ids().some((id: string) => !sendingFiles.includes(id));
 function controls() {
   $<HTMLButtonElement>('sessions-toggle').disabled = dispatching;
   const steering = busy && !dispatching;
-  $<HTMLButtonElement>('send').disabled = demo || (busy && !prompt.value.trim());
+  $<HTMLButtonElement>('send').disabled = demo || (busy && !prompt.value.trim() && !boxHasFiles());
   $('send').title = steering ? t('Ek talimat gönder · Ctrl+Enter') : '';
   document.body.classList.toggle('steering', steering);
   mode.disabled = busy;
@@ -521,6 +527,10 @@ async function attempt(fn: () => Promise<any>) {
   }
 }
 let roomBranches: any = {};
+// v0.9.24: a long text that did not fit is said here; the model was told too
+function tooLong(cut?: string[]) {
+  if (cut?.length) notice(t('Bu dosyaların metni bu mesaja tam sığmadı:') + ' ' + cut.slice(0, 3).join(', ') + (cut.length > 3 ? ' +' + (cut.length - 3) : ''));
+}
 function row(text: string, className = '', attachments: any[] = []) {
   $('welcome')?.remove();
   const el = document.createElement('div');
@@ -550,6 +560,8 @@ function row(text: string, className = '', attachments: any[] = []) {
           /^data:image\/(png|jpeg|webp|gif);base64,/.test(file.thumbnail)
         ) {
           const img = document.createElement('img');
+          // v0.9.24: hundreds of pictures are drawn as they come into view
+          if (attachments.length > 24) img.loading = 'lazy';
           img.src = file.thumbnail;
           img.alt = file.name;
           img.classList.add('zoomable');
@@ -1408,6 +1420,7 @@ personalUI(api, notice, attempt, () => {
 });
 
 const features = extraUI(api, bot, notice, attempt, switchRoom);
+document.addEventListener('charles-attachments', () => controls());
 // v0.5.1: expressions are tried on a preview Slime inside the settings.
 expressionsUI(api);
 function applyExpanded(value: boolean) {
@@ -1568,14 +1581,14 @@ async function sendMessage(out?: Outgoing): Promise<boolean> {
   {
     if (!out) {
       // v0.7.0: while the AI is working, a message is an extra instruction (see chat/steer.ts)
-      if (busy && !dispatching && !demo && !voice.active() && prompt.value.trim()) {
-        await steer.send(prompt.value);
+      if (busy && !dispatching && !demo && !voice.active() && (prompt.value.trim() || boxHasFiles())) {
+        await steer.send(prompt.value, features.take(sendingFiles));
         return false;
       }
       // v0.7.1 SpecialBeta: while the previous message is still being sent, keep this one
       // (it used to be ignored silently).
-      if (busy && dispatching && !demo && prompt.value.trim()) {
-        steer.hold(prompt.value);
+      if (busy && dispatching && !demo && (prompt.value.trim() || boxHasFiles())) {
+        steer.hold(prompt.value, features.take(sendingFiles));
         return false;
       }
     }
@@ -1611,6 +1624,7 @@ async function sendMessage(out?: Outgoing): Promise<boolean> {
     voice.begin();
     busy = true;
     dispatching = true;
+    sendingFiles = sentIds;
     turnModel = model.value;
     controls();
     notice('');
@@ -1630,7 +1644,8 @@ async function sendMessage(out?: Outgoing): Promise<boolean> {
         attachments: sentIds,
         hasDocument,
       });
-      if (!own) for (const id of sentIds) features.remove(id);
+      if (!own) features.removeMany(sentIds);
+      tooLong(result?.cut);
       // v0.9.19: handed to the chat: the card of the content that went with it has done its job
       dropped.sent(sentIds);
       if (!out) {
@@ -1661,6 +1676,7 @@ async function sendMessage(out?: Outgoing): Promise<boolean> {
       throw e;
     } finally {
       dispatching = false;
+      sendingFiles = [];
       controls();
     }
   }
@@ -1796,11 +1812,14 @@ const steer = steerUI({
   bar: $('composer-bar'),
   prompt,
   external: () => /^(gemini|claude|cursor|abacus|evren):/.test(model.value || ''),
-  shown: (text) => {
-    markSteer(row(text, 'user'));
+  shown: (text, files) => {
+    markSteer(row(text, 'user', files));
     splitAfterSteer();
     stickToBottom(feed, true);
+    dropped.sent(files.map((f) => f.id));
   },
+  restore: (files) => features.putBack(files),
+  tooLong,
   notice,
   t,
   running: () => busy && !dispatching,

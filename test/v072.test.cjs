@@ -253,11 +253,11 @@ test('WhatsApp: hooked into chat and voice, with a settings card', () => {
 
 test('version: package, lock, label and installer agree (v0.7.2 or later)', () => {
   const v = JSON.parse(read('package.json')).version;
-  assert.match(v, /^0\.(7\.[2-9]|[89]\.\d+)-beta\.\d+$/); // v0.7.2 or later
+  assert.match(v, /^0\.(7\.[2-9]|[89]\.\d+)-(beta|rc)\.\d+$/); // v0.7.2 or later
   const lock = JSON.parse(read('package-lock.json'));
   assert.equal(lock.version, v);
   assert.equal(lock.packages[''].version, v);
-  const short = 'v' + v.replace(/-beta\.\d+$/, '') + ' Beta';
+  const short = require('../app/core/updater.cjs').label(v);
   assert.ok(read('public/index.html').includes(short));
   assert.ok(read('setup/install.ps1').includes(`$Version = '${short}'`));
   assert.match(read('CHANGELOG.md'), /## v0\.7\.2 Beta/);

@@ -38,6 +38,17 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
   let overlay: HTMLElement | null = null;
   let typing: ReturnType<typeof setInterval> | undefined;
 
+  // v0.9.24: on the card shelf the island is only as tall as its cards and cut the card off, with
+  // its buttons. The island makes room for the whole card and does not fold while it is open.
+  let room: ResizeObserver | undefined;
+  const CARD_TOP = 98 + 10 + 18; // .tour: the room above the card and under it
+  function makeRoom() {
+    const card = overlay?.querySelector<HTMLElement>('.tour-card');
+    if (!card || document.body.dataset.view !== 'shelf') return;
+    document.body.dataset.tourHeight = String(Math.ceil(card.offsetHeight + CARD_TOP));
+    document.getElementById('shelf')?.dispatchEvent(new Event('h13-resize'));
+  }
+
   async function finish() {
     clearInterval(typing);
     overlay?.classList.add('closing');
@@ -45,6 +56,11 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
     overlay = null;
     setTimeout(() => o?.remove(), 220);
     document.body.classList.remove('onboarding');
+    room?.disconnect();
+    room = undefined;
+    delete document.body.dataset.tourHeight;
+    document.getElementById('shelf')?.dispatchEvent(new Event('h13-resize'));
+    void Promise.resolve(api.shelfHold?.(false)).catch(() => {});
     try {
       await api.personalEdit('onboarded', { value: true });
     } catch {}
@@ -258,9 +274,16 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
     overlay.append(el('div', 'tour-card'));
     document.querySelector('.island')?.append(overlay);
     document.body.classList.add('onboarding');
+    void Promise.resolve(api.shelfHold?.(true)).catch(() => {});
     bot.greet();
     Sound.play('greet');
     show(0);
+    room = new ResizeObserver(makeRoom);
+    room.observe(overlay.querySelector('.tour-card')!);
+    new MutationObserver((_, watch) => {
+      if (!overlay) watch.disconnect();
+      else makeRoom();
+    }).observe(document.body, { attributes: true, attributeFilter: ['data-view'] });
   }
 
   // Ayarlar → Genel: start the tour again.

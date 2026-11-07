@@ -73,7 +73,7 @@ test('workspace window: title bar, sidebar with folders, overview cards and chat
   assert.match(dash, /api\.usageRead\(force, id\)/);
   assert.match(ws, /if \(\/\^claude:\/\.test\(model\)\) return 'Claude';/);
   assert.match(read('public/index.html'), /styles\/9-special\.css/);
-  assert.ok(read('public/index.html').includes('v' + require('../package.json').version.split('-')[0] + ' Beta'));
+  assert.ok(read('public/index.html').includes(require('../app/core/updater.cjs').label(require('../package.json').version)));
   assert.match(read('public/styles/9-special.css'), /body\.workspace main\.island/);
   // v0.9.18: the character also comes out of the app window (his own window, src/island/desktop-pet.ts)
   assert.match(read('src/island/desktop-pet.ts'), /charles:\/\/app\/pet\.html/);
@@ -118,12 +118,12 @@ test('extra instructions: Codex waits for the turn id and retries once', async (
 
 test('extra instructions: held while sending, "Şimdi" interrupts and sends right away', () => {
   const steer = read('src/chat/steer.ts');
-  assert.match(steer, /function hold\(text: string\)/);
+  assert.match(steer, /function hold\(text: string, files: SteerFile\[\] = \[\]\)/);
   assert.match(steer, /async function started\(\)/);
   assert.match(steer, /steer-now/);
   assert.match(steer, /takeInterjection/);
   const r = read('src/renderer.ts');
-  assert.match(r, /steer\.hold\(prompt\.value\)/);
+  assert.match(r, /steer\.hold\(prompt\.value, features\.take\(sendingFiles\)\)/);
   assert.match(r, /steer\.takeInterjection\(\)\) window\.setTimeout\(sendQueued, 300\)/);
   assert.match(r, /if \(!replaying\) void steer\.started\(\)/);
 });

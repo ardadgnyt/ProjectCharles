@@ -211,7 +211,7 @@ export const english063: Record<string, string> = {
   'Örneğin: Bu projeye koyu tema ekle…': 'For example: Add a dark theme to this project…',
   'Bu sohbette terminal işlemi yok.': 'No terminal activity in this chat.',
   'Alan eklendi 📸 Ne sormak istersin?': 'Region added 📸 What would you like to ask?',
-  'Bir mesajda en fazla 50 ek olabilir.': 'A message can have at most 50 attachments.',
+  'Bir mesajda en fazla 1000 ek olabilir.': 'A message can have at most 1000 attachments.',
   'GIF eklendi. Önizleme hareketlidir; Charles ilk kareyi inceleyecek.':
     'GIF added. The preview is animated; Charles will look at the first frame.',
   'GIF okunamadı.': 'The GIF could not be read.',
