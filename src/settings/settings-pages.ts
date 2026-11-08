@@ -1,3 +1,6 @@
+import { supports } from '../chat/capabilities';
+import { t } from './i18n';
+
 export function settingsPages(api: any) {
   const $ = (id: string) => document.getElementById(id)!;
   const header = document.querySelector('header')!;
@@ -231,6 +234,7 @@ export function settingsPages(api: any) {
     b.textContent = label;
     b.dataset.task = id;
     b.onclick = () => {
+      if (b.disabled) return;
       menu.hidden = true;
       plus.setAttribute('aria-expanded', 'false');
       if (id === 'attach') $('attach-file').click();
@@ -243,7 +247,27 @@ export function settingsPages(api: any) {
     };
     menu.append(b);
   }
+  // v0.9.25: each choice is white when the chosen AI can do it and grey (not clickable) when not;
+  // a chosen task the new model cannot do is dropped
+  const modelSelect = () => document.getElementById('model') as HTMLSelectElement | null;
+  const syncMenu = () => {
+    const model = modelSelect()?.value || '';
+    for (const b of menu.querySelectorAll<HTMLButtonElement>('button[data-task]')) {
+      const ok = supports(model, b.dataset.task || '');
+      b.disabled = !ok;
+      b.setAttribute('aria-disabled', String(!ok));
+      b.title = ok ? '' : t('Seçili yapay zekâ bunu yapamıyor.');
+    }
+    const chosen = composer.dataset.task || '';
+    if (chosen && !supports(model, chosen)) {
+      composer.dataset.task = '';
+      selected.hidden = true;
+    }
+  };
+  modelSelect()?.addEventListener('change', syncMenu);
+  document.addEventListener('charles-model-changed', syncMenu);
   plus.onclick = () => {
+    syncMenu();
     menu.hidden = !menu.hidden;
     plus.setAttribute('aria-expanded', String(!menu.hidden));
   };

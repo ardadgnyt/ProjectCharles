@@ -14,6 +14,10 @@ const crypto = require('node:crypto');
 const MAX_FILE = 4 * 1024 * 1024;
 const MAX_TOTAL = 48 * 1024 * 1024;
 const MAX_RECORDS = 60;
+// v0.9.25: following what a command changes
+const SCAN_FILES = 3000;
+const SCAN_COPY = 512 * 1024;
+const SCAN_KEEP = 24 * 1024 * 1024;
 const IMAGE = /\.(png|jpe?g|gif|webp|bmp)$/i;
 const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp' };
 
@@ -55,9 +59,82 @@ class ChangeReview {
     }
     return out.slice(0, 20);
   }
+  /**
+   * v0.9.25: a command can change files too (a PowerShell Set-Content, a script). Before it runs
+   * the project folder is listed (size and time of each file, and the content of small ones);
+   * when it finishes, every file that appeared or changed is added like a file change (CH-248).
+   * Big folders are not followed: more than SCAN_FILES files, or SCAN_KEEP bytes of copies.
+   */
+  scan(dir) {
+    const SKIP = /^(node_modules|\.git|\.venv|venv|__pycache__|dist|build|\.next|\.cache)$/i;
+    const out = new Map();
+    let kept = 0;
+    const walk = (d, depth) => {
+      if (depth > 6 || out.size > SCAN_FILES) return;
+      let entries;
+      try {
+        entries = fs.readdirSync(d, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const e of entries) {
+        if (out.size > SCAN_FILES) return;
+        const p = path.join(d, e.name);
+        if (e.isDirectory()) {
+          if (!SKIP.test(e.name)) walk(p, depth + 1);
+        } else if (e.isFile()) {
+          try {
+            const st = fs.statSync(p);
+            const small = st.size <= SCAN_COPY && kept + st.size <= SCAN_KEEP;
+            const data = small ? fs.readFileSync(p) : null;
+            if (data) kept += data.length;
+            out.set(p, { size: st.size, mtime: st.mtimeMs, data });
+          } catch {}
+        }
+      }
+    };
+    walk(dir, 0);
+    return out.size > SCAN_FILES ? null : out;
+  }
+  commandStarted(item, cwd, turnId) {
+    const dir = item.cwd || cwd;
+    if (!dir || !path.isAbsolute(dir) || this.pending.has(item.id)) return;
+    const snap = this.scan(dir);
+    if (!snap) return;
+    this.pending.set(item.id, { command: true, dir, snap, turnId });
+    setTimeout(() => this.pending.delete(item.id), 600000).unref?.();
+  }
+  commandCompleted(p, turnId) {
+    const now = this.scan(p.dir);
+    if (!now) return;
+    let added = 0;
+    for (const [file, st] of now) {
+      if (added >= 20) break;
+      const old = p.snap.get(file);
+      if (old && old.size === st.size && old.mtime === st.mtime) continue;
+      const before = old ? (old.data ? { exists: true, data: old.data } : { exists: true, tooLarge: old.size > MAX_FILE, size: old.size }) : { exists: false };
+      if (this.add({ file, before, after: readCopy(file), diff: '', turnId: p.turnId || turnId || '' })) added++;
+    }
+    for (const [file, old] of p.snap) {
+      if (added >= 20) break;
+      if (now.has(file)) continue;
+      if (this.add({ file, before: old.data ? { exists: true, data: old.data } : { exists: true, size: old.size }, after: { exists: false }, diff: '', turnId: p.turnId || turnId || '' })) added++;
+    }
+  }
   /** Called for every live agent event (app/main.cjs eventToUi). */
   observe(method, item, cwd, turnId) {
     if (!item?.id) return;
+    if (item.type === 'commandExecution') {
+      if (method === 'item/started') this.commandStarted(item, cwd, turnId);
+      else if (method === 'item/completed') {
+        const p = this.pending.get(item.id);
+        if (p?.command) {
+          this.pending.delete(item.id);
+          this.commandCompleted(p, turnId);
+        }
+      }
+      return;
+    }
     if (method === 'item/started' && item.type === 'fileChange') {
       if (this.pending.has(item.id)) return;
       const files = this.paths(item, cwd);

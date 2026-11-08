@@ -3,9 +3,13 @@ const { normalize } = require('../system/desktop.cjs');
 function personalCommand(prompt, personal, now = Date.now()) {
   if (typeof prompt !== 'string' || prompt.length > 2500) return null;
   const s = normalize(prompt).replace(/[.!?]+$/, '');
-  const remember = prompt.match(/^bunu hatırla\s*:\s*(.+)$/is);
+  // v0.9.25: also "… Bunu hatırla." / "… bunu aklında tut" at the end of a sentence (CH-259: the
+  // model promised to remember it and nothing was saved)
+  const remember =
+    prompt.match(/^bunu (?:hatırla|aklında tut)\s*[:,–-]\s*(.+)$/is) ||
+    prompt.match(/^\s*(.{3,1500}?)[\s.,!;]+bunu (?:hatırla|aklında tut|unutma)[.!]*\s*$/is);
   if (remember) {
-    personal.edit('memory-save', { text: remember[1] });
+    personal.edit('memory-save', { text: remember[1].trim().replace(/[.,;!]+$/, '') });
     return 'Hafızama kaydettim. Ayarlar → Hafıza bölümünden düzenleyebilir veya silebilirsin.';
   }
   if (/^(?:hafizami|hatirladiklarini)(?: listele| goster)$/.test(s))

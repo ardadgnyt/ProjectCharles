@@ -122,7 +122,9 @@ Turn on **Important mail and calendar notifications** to see bubbles under the i
   when the provider marks it important or when it contains one of your **important keywords**
   (comma-separated, for example *urgent, exam, deadline*).
 - New calendar events and events starting within 15 minutes are announced, each only once.
-- Sorting uses local rules, not a background AI call.
+- Sorting uses local rules, not a background AI call. Only if you turn on **Önemi yapay zekâ
+  belirlesin** does the sender, subject and a short preview of new mail go to the selected AI for
+  sorting (off by default since v0.9.25).
 
 Click a bubble and Charles explains the email. It can also offer to add a deadline to your
 calendar with reminders.

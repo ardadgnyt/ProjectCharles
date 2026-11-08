@@ -1009,6 +1009,8 @@ function startTopGuard() {
       applyTopmost();
       // v0.9.18: a game gets its Down Arrow at once, with no wait for a double press
       dictation?.pause(full || micBlocked());
+      // v0.9.25: cards hide for the full-screen app and come back when it is left
+      mailBubble?.place();
       return;
     }
     if (full) return;
@@ -1539,6 +1541,9 @@ else {
         onOpen: () => {},
         onWhatsApp: (action, args) => whatsappBubbleAction(action, args),
         language: () => v2?.data?.language || 'tr',
+        // v0.9.25: the cards wait while a full-screen app is in front (user report: taskbar over
+        // YouTube/Netflix, Battlefield 6 dropped to the desktop)
+        fullscreen: () => fullscreenOther,
       });
       // v0.8.8: WhatsApp in Charles starts with Charles once it was turned on
       if (!demo && whatsappLive().settings.enabled) setTimeout(() => void waLive.start().catch(() => {}), 4000);
@@ -1560,6 +1565,8 @@ else {
           win.webContents.send('mail-explain', request);
         },
         attention: () => {
+          // v0.9.25: a new mail does not wake the island over a full-screen app
+          if (fullscreenOther) return;
           if (hidden) expand(false);
           win.webContents.send('character-peek');
         },
@@ -1792,10 +1799,24 @@ else {
       );
       win.webContents.on('did-create-window', (w) => petWindowOpened(w));
       contentDrop = new (require('./system/content-drop.cjs').ContentDrop)({ BrowserWindow, screen, globalShortcut: demo ? { register: () => true, unregister: () => {} } : globalShortcut, temp: app.getPath('temp') });
-      win.webContents.on('render-process-gone', () => {
+      // v0.9.25: a page that died (out of memory, a crash) is loaded again, at most three times in
+      // two minutes, and says what happened; before, the island stayed blank until a restart (CH-181).
+      let pageDeaths = [];
+      win.webContents.on('render-process-gone', (_event, details) => {
         voiceHeld = false;
         micArmedUntil = 0;
         voice.stop();
+        if (details?.reason === 'clean-exit' || win.isDestroyed()) return;
+        const now = Date.now();
+        pageDeaths = [...pageDeaths.filter((t) => now - t < 120000), now];
+        if (pageDeaths.length > 3) return;
+        setTimeout(() => {
+          if (win.isDestroyed()) return;
+          win.webContents.once('did-finish-load', () =>
+            setTimeout(() => eventToUi({ type: 'notice', data: 'Arayüz beklenmedik biçimde kapandı ve yeniden açıldı. Son eklediğin dosya çok büyük olabilir.' }), 1500),
+          );
+          win.webContents.reload();
+        }, 800);
       });
       win.webContents.on('will-navigate', (event) => event.preventDefault());
       win.webContents.on('before-input-event', () => {
@@ -2522,10 +2543,14 @@ else {
       });
       function attachment(item) {
         if (item.kind === 'gif') {
-          item.thumbnail =
-            'data:image/gif;base64,' +
-            fs.readFileSync(extras.attachments.get(item.id).path).toString('base64');
-          return item;
+          // v0.9.25: the bytes travel as binary (structured clone). A 128-256 MB GIF used to go
+          // as base64 text that the page turned into an array of numbers, and the page ran out
+          // of memory (CH-181). Only a small GIF keeps its animated data-URL preview.
+          // a copy: the bytes must not stay on the attachment record that the main process keeps
+          const bytes = fs.readFileSync(extras.attachments.get(item.id).path);
+          const out = { ...item, gif: new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.length) };
+          if (bytes.length <= 8 * 1024 * 1024) out.thumbnail = 'data:image/gif;base64,' + bytes.toString('base64');
+          return out;
         }
         if (item.kind === 'image') {
           const img = nativeImage.createFromPath(extras.attachments.get(item.id).path);
@@ -3283,6 +3308,8 @@ else {
         }
         return null;
       };
+      // v0.9.25: Claude and EVREN draw SVG; this turns a drawing into the PNG the chat shows
+      agent.providers.renderSvg = require('./ai/svg-render.cjs').createSvgRenderer({ BrowserWindow, session: require('electron').session });
       safeHandler('providers-status', () => agent.providers.refreshAuth());
       safeHandler('providers-login', (id) => {
         if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
@@ -3352,9 +3379,14 @@ else {
       safeHandler('send', async (args) => {
         if (liveRoom) throw Error('Önce sesli görüşmeyi bitir.');
         if (!args || typeof args !== 'object') throw new Error('Geçersiz istek.');
+        // v0.9.25: files alone are a message too (CH-109): the AI gets a short request, the chat
+        // shows only the files
+        const fileOnly =
+          typeof args.prompt === 'string' && !args.prompt.trim() && Array.isArray(args.attachments) && args.attachments.length > 0;
+        if (fileOnly) args.prompt = 'Ekteki dosyaları incele ve kısaca ne olduklarını söyle.';
         if (typeof args.prompt !== 'string' || !args.prompt.trim() || args.prompt.length > 100000)
           throw Error('Geçersiz mesaj.');
-        args.displayPrompt = undefined; // set only here, when Charles adds data for the AI
+        args.displayPrompt = fileOnly ? '' : undefined; // set only here, when Charles adds data for the AI
         // v0.9.9: a turn that carries mail text runs without tools and with "Onay iste" access,
         // whatever mode and access the chat has (see core/untrusted.cjs)
         // (an attached mail that Charles opened from the mail bubble counts too)
@@ -3416,7 +3448,7 @@ else {
               agent.local(args.prompt, e.message);
               return { localAction: true, message: e.message };
             }
-            const message = ms.formatResults(rows, pluginRequest, en);
+            const message = ms.formatResults(rows, pluginRequest, en, pluginRequest.kind === 'school' ? plugins.searchLimit || 0 : 0);
             if (!pluginRequest.summary || !rows.length) {
               agent.local(args.prompt, message);
               return { localAction: true, message };
@@ -3654,7 +3686,8 @@ else {
           );
         const chatDir = path.join(app.getPath('userData'), 'chat-workspace');
         if (mode === 'chat') fs.mkdirSync(chatDir, { recursive: true });
-        const inputs = await extras.inputs(args.attachments || [], { textOnly: /^(gemini|claude|cursor|abacus|evren):/.test(args.model || ''), images: !/^(cursor|abacus|evren):/.test(args.model || '') });
+        // v0.9.25: every connection takes pictures now (app/ai/provider-images.cjs)
+        const inputs = await extras.inputs(args.attachments || [], { textOnly: /^(gemini|claude|cursor|abacus|evren):/.test(args.model || ''), images: true });
         const turn = await agent.send({
           prompt: args.prompt,
           displayPrompt: args.displayPrompt,
@@ -3740,9 +3773,8 @@ else {
             const chosen = model ?? extras.prefs.startupModel ?? null;
             // v0.8.7: images (absolute paths checked by the module host) go in the same shape
             // as the main chat's image attachments
+            // v0.9.25: every connection takes pictures (app/ai/provider-images.cjs)
             const attachments = (images || []).map((p) => ({ type: 'localImage', path: p }));
-            if (attachments.length && /^(cursor|abacus|evren):/i.test(chosen || ''))
-              throw Error('Görseller şu an yalnızca GPT, Claude ve Antigravity ile çalışıyor.');
             return require('./ai/ask-once.cjs').askOnce({
               root,
               providers: agent.providers,

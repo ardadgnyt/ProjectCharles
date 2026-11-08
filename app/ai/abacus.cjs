@@ -130,8 +130,12 @@ function parseAbacusModels(text) {
   return out;
 }
 
-/** The command line for one message. */
-function abacusPlan({ model, prompt, mode, access, projectDir, workspace }) {
+/**
+ * The command line for one message. v0.9.25: a chat message with pictures (`imageDir`) runs in the
+ * pictures' own folder with the Read tool on, so the CLI can open them; Glob, Grep, edits, the
+ * shell and the web stay off. (Not tried live: no Abacus account on the test computer.)
+ */
+function abacusPlan({ model, prompt, mode, access, projectDir, workspace, imageDir = null }) {
   const tools = mode === 'project' && !!projectDir;
   const level = ['ask', 'auto', 'full'].includes(access) ? access : 'ask';
   if (typeof prompt !== 'string' || !prompt.trim()) throw Error('Mesaj boş.');
@@ -144,10 +148,10 @@ function abacusPlan({ model, prompt, mode, access, projectDir, workspace }) {
   const deny = ['Bash', 'Bash(*)', 'mcp__*'];
   if (!tools || level === 'ask') {
     cli.push('--permission-mode', 'plan');
-    if (!tools) deny.push('Edit', 'Write', 'Read', 'WebFetch');
+    if (!tools) deny.push('Edit', 'Write', 'WebFetch', ...(imageDir ? ['Glob', 'Grep', 'WebSearch'] : ['Read']));
   } else cli.push('--permission-mode', 'accept-edits');
   for (const d of deny) cli.push('--disallowed-tools', d);
-  return { cli, cwd: tools ? projectDir : workspace, tools, timeoutMs: tools ? 20 * 60 * 1000 : 180000 };
+  return { cli, cwd: tools ? projectDir : imageDir || workspace, tools, timeoutMs: tools ? 20 * 60 * 1000 : 180000 };
 }
 
 /** The answer text from `abacusai -p` output, or null. */

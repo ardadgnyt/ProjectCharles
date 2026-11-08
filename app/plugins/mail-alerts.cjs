@@ -40,7 +40,9 @@ class MailAlerts {
   }
 
   async mail(mails) {
-    const picked = await triageMail(mails, { ask: this.ask, rules: this.plugins.data.rules });
+    // v0.9.25: the AI sees new mail only when "Önemi yapay zekâ belirlesin" is on (off by default)
+    const ask = this.plugins.data.aiTriage === true ? this.ask : null;
+    const picked = await triageMail(mails, { ask, rules: this.plugins.data.rules });
     this.log(
       'triage new=' + mails.length,
       'important=' + picked.length,

@@ -8,6 +8,7 @@ const { launchPlan, claudeItems } = require('./provider-tools.cjs');
 const { ASK_FORMAT } = require('../core/ask-format.cjs');
 const abacus = require('./abacus.cjs');
 const imagesKit = require('./provider-images.cjs');
+const drawing = require('./provider-drawing.cjs');
 const { Evren } = require('./evren.cjs');
 // v0.8.0: every provider Charles can sign in to besides GPT
 // v0.9.6: EVREN - an OpenAI-compatible HTTP API reached with the user's own API key.
@@ -264,6 +265,18 @@ class Providers {
           (x) => Array.isArray(x) && /^[a-z0-9][a-z0-9._-]*$/.test(x[0]) && typeof x[1] === 'string',
         );
     } catch {}
+    // v0.9.25: the Cursor plan and the models it can use (refreshCursorPlan), ids only
+    this.cursorPlan = null;
+    try {
+      const saved = JSON.parse(fs.readFileSync(path.join(this.dir, 'cursor-plan.json'), 'utf8'));
+      if (saved && typeof saved.tier === 'string')
+        this.cursorPlan = {
+          tier: saved.tier.slice(0, 40),
+          listKey: String(saved.listKey || ''),
+          checkedAt: Number(saved.checkedAt) || 0,
+          allowed: Array.isArray(saved.allowed) ? saved.allowed.filter((id) => typeof id === 'string' && /^[a-z0-9][a-z0-9._-]*$/.test(id)) : null,
+        };
+    } catch {}
     this.enabledFile = path.join(this.dir, 'enabled.json');
     try {
       this.enabled = JSON.parse(fs.readFileSync(this.enabledFile, 'utf8'));
@@ -320,7 +333,7 @@ class Providers {
     this.jobs = new Map();
     // Claude quota is read with the CLI's own claude.ai session; the CLI renews it if needed.
     this.claudeUsage = new ClaudeUsage(path.join(this.dir, 'claude'), {
-      refreshSession: () => this.probe('claude'),
+      refreshSession: () => this.renewClaude(),
       ping: () => this.pingClaude(),
       cacheFile: path.join(this.dir, 'claude-usage.json'),
       log: require('../core/log.cjs').createLog(dir, 'usage'),
@@ -354,7 +367,10 @@ class Providers {
     if (provider === 'cursor')
       return {
         exe: path.join(this.root, 'tools/cursor/node.exe'),
-        args: [path.join(this.root, 'tools/cursor/index.js')],
+        // v0.9.25: Windows' own certificate store, like Charles itself (core/system-ca.cjs). With an
+        // antivirus or company proxy that inspects HTTPS, Cursor's bundled Node knew only its own
+        // roots and every message failed with "self-signed certificate in certificate chain".
+        args: ['--use-system-ca', path.join(this.root, 'tools/cursor/index.js')],
       };
     if (provider === 'gemini')
       return { exe: path.join(this.root, 'tools/antigravity/agy.exe'), args: [] };
@@ -429,6 +445,17 @@ class Providers {
    * not saved as a session). It makes the Claude CLI renew its sign-in, so the quota can be
    * read again. Never shown in a chat. → true when Claude answered.
    */
+  /**
+   * v0.9.25: renews an expired claude.ai session. `claude auth status` (what this used to run)
+   * only reads the stored token and never renews it, so an expired token stayed expired for a day
+   * and every Claude message failed (CH-206). A real one-word request makes the CLI renew it;
+   * at most once in 30 minutes, so a session that cannot be renewed does not spend quota.
+   */
+  async renewClaude(now = Date.now()) {
+    if (now - (this.claudeRenewAt || 0) < 30 * 60000) return false;
+    this.claudeRenewAt = now;
+    return this.pingClaude();
+  }
   async pingClaude() {
     if (!this.auth.claude) return false;
     const spec = this.spec('claude');
@@ -465,7 +492,9 @@ class Providers {
   allModels() {
     // v0.9.6: the "-fast" variants are their own rows for now (they come back as a separate
     // option later); they are not folded into the level picker.
-    const cursor = (this.cursorModels && this.cursorModels.length ? this.cursorModels : CURSOR_FALLBACK)
+    // v0.9.25: a Free Cursor account sees only the models its plan can use (cursor-plan.cjs)
+    const cursor = require('./cursor-plan.cjs')
+      .visible(this.cursorModels && this.cursorModels.length ? this.cursorModels : CURSOR_FALLBACK, this.cursorPlan)
       .map(([id, name]) => ['cursor:' + id, 'Cursor · ' + name]);
     // v0.8.0: Abacus AI models start with "Abacus AI · " so they never mix with the others
     const abacusModels = [
@@ -597,8 +626,40 @@ class Providers {
       try {
         fs.writeFileSync(path.join(this.dir, 'cursor-models.json'), JSON.stringify(list));
       } catch {}
+      await this.refreshCursorPlan(list).catch(() => {});
     }
     return this.cursorModels;
+  }
+  /** v0.9.25: which listed models the account's plan can use (app/ai/cursor-plan.cjs). */
+  async refreshCursorPlan(list = this.cursorModels || [], force = false) {
+    const plans = require('./cursor-plan.cjs');
+    const spec = this.spec('cursor');
+    const ws = path.join(this.dir, 'workspace');
+    const about = await runOffThread(spec.exe, [...spec.args, 'about'], { cwd: ws, env: this.env, windowsHide: true, timeout: 20000, maxBuffer: 256 * 1024 });
+    const tier = plans.parseTier(about.out);
+    if (!tier) return this.cursorPlan;
+    const key = plans.listKey(list);
+    if (!force && !plans.stale(this.cursorPlan, tier, key)) return this.cursorPlan;
+    let plan = { tier, listKey: key, checkedAt: Date.now(), allowed: null };
+    if (!plans.isPaid({ tier })) {
+      const ask = async (id) => {
+        const r = await runOffThread(spec.exe, [...spec.args, '-p', '--output-format', 'json', '--trust', '--workspace', ws, '--mode', 'ask', '--model', id, 'Yalnızca OK yaz.'], {
+          cwd: ws,
+          env: this.env,
+          windowsHide: true,
+          timeout: 90000,
+          maxBuffer: 256 * 1024,
+        });
+        return { ok: !r.error && /"type"\s*:\s*"result"/.test(String(r.out || '')) && !/"is_error"\s*:\s*true/.test(String(r.out || '')), refusal: plans.parseRefusal(`${r.err || ''}\n${r.out || ''}`) };
+      };
+      const found = await plans.probeFree(list, ask);
+      plan = { ...plan, allowed: found.allowed, families: found.families };
+    }
+    this.cursorPlan = plan;
+    try {
+      fs.writeFileSync(path.join(this.dir, 'cursor-plan.json'), JSON.stringify(plan));
+    } catch {}
+    return plan;
   }
   /** v0.9.6: every Claude model of the account (GET /v1/models with the claude.ai session). */
   async refreshClaudeModels(fetcher = fetch) {
@@ -1002,10 +1063,10 @@ class Providers {
       model = args.model.slice(cut + 1);
     await this.refreshAuth();
     if (!this.auth[provider]) throw Error('Önce ayarlardan bu sağlayıcıyı bağla.');
-    if (args.task)
-      throw Error(
-        'Web arama, derin araştırma ve görsel oluşturma GPT ile çalışır. Bu istek için GPT seç.',
-      );
+    // v0.9.25: the + menu's choices work on every connection that can do them (provider-drawing.cjs)
+    const task = String(args.task || '');
+    if (task && !['image', 'web', 'research'].includes(task)) throw Error('Geçersiz araç seçimi.');
+    if (task && !drawing.supports(args.model, task)) throw Error(drawing.unsupportedMessage(task));
     if (args.mode === 'project' && !args.cwd) throw Error('Proje modu için klasör seç.');
     // v0.9.6: the level the panel chose. It is checked against the model's own set right here,
     // so nothing invented upstream can reach a CLI flag or a request body. An id-level
@@ -1017,6 +1078,8 @@ class Providers {
     // v0.8.7: Claude and Gemini take images too (app/ai/provider-images.cjs)
     const { texts, images } = imagesKit.splitAttachments(provider, args.attachments);
     const claudeImages = provider === 'claude' && images.length ? await imagesKit.loadImages(images, this.shrinkImage) : null;
+    // v0.9.25: EVREN takes the pictures in the request itself (OpenAI-style image_url parts)
+    const evrenImages = provider === 'evren' && images.length ? await imagesKit.loadImages(images, this.shrinkImage) : null;
     if (agent.busy) throw Error('Önce etkin yanıtı durdur.');
     const spec = this.spec(provider);
     const isHttp = !!spec.http;
@@ -1029,7 +1092,8 @@ class Providers {
     const isAbacus = provider === 'abacus';
     const id = randomUUID();
     const workspace = path.join(this.dir, 'workspace');
-    const staged = provider === 'gemini' && images.length ? await imagesKit.stageGeminiImages(workspace, id, images) : null;
+    // Antigravity, Cursor and Abacus open the pictures from a folder of their own
+    const staged = ['gemini', 'cursor', 'abacus'].includes(provider) && images.length ? await imagesKit.stageImages(workspace, id, images) : null;
     // copying many pictures takes a moment: nothing may have started meanwhile
     if (staged && agent.busy) {
       imagesKit.removeStaged(staged.dir);
@@ -1047,6 +1111,7 @@ class Providers {
       workspace,
       images: images.length > 0,
       imageDir: staged?.dir || null,
+      task,
     };
     // Abacus AI takes the message on its command line (-p), so its plan is made once the full
     // message is known (below); this first plan only says where it runs. EVREN has no CLI: the
@@ -1061,9 +1126,52 @@ class Providers {
         path.join(this.dir, 'gemini/.gemini/antigravity-cli/settings.json'),
         JSON.stringify(plan.geminiSettings),
       );
+    // v0.9.25: Cursor reads the pictures in their own folder, guarded by Charles' hook. Without the
+    // hook files Cursor would let every read through, so the message stops instead.
+    if (plan.cursorFolder) {
+      const node = path.join(this.root, 'tools/cursor/node.exe');
+      const hook = path.join(__dirname, 'cursor-hook.cjs');
+      if (!fs.existsSync(node) || !fs.existsSync(hook)) {
+        imagesKit.removeStaged(staged?.dir);
+        throw Error('Cursor görselleri güvenle açamıyor: kurulum dosyaları eksik. Kurulumu onar ya da başka bir model seç.');
+      }
+      const conf = require('./provider-tools.cjs').cursorPictureConfig(plan.cursorFolder, node, hook);
+      fs.mkdirSync(path.join(plan.cursorFolder, '.cursor'), { recursive: true });
+      fs.writeFileSync(path.join(plan.cursorFolder, '.cursor/cli.json'), JSON.stringify(conf.cli));
+      fs.writeFileSync(path.join(plan.cursorFolder, '.cursor/hooks.json'), JSON.stringify(conf.hooks));
+    }
     agent.busy = true;
     const emit = (method, params) => agent.publish('agent', { method, params });
     emit('turn/started', { turn: { id } });
+    // v0.9.25: pictures this answer creates go out as GPT's imageGeneration items, so the chat shows
+    // the same "Görsel oluşturuluyor" card and then the same image card.
+    const cards = [];
+    const drawStart = () => {
+      const iid = `${id}-img-${cards.length + 1}`;
+      cards.push(iid);
+      emit('item/started', { item: { id: iid, type: 'imageGeneration', status: 'inProgress' } });
+    };
+    const drawFinish = (results) => {
+      results.forEach((result, i) => {
+        if (i >= cards.length) cards.push(`${id}-img-${i + 1}`);
+        emit('item/completed', { item: { id: cards[i], type: 'imageGeneration', status: 'completed', result } });
+      });
+      for (const iid of cards.slice(results.length)) emit('item/completed', { item: { id: iid, type: 'imageGeneration', status: 'failed' } });
+    };
+    /** SVG drawings in an answer → [text without them, PNG data URLs] (Claude, EVREN). */
+    const drawSvgs = async (answer) => {
+      const { text: rest, svgs } = drawing.extractDrawings(answer);
+      if (!svgs.length) return [answer, []];
+      while (cards.length < svgs.length) drawStart();
+      const results = [];
+      for (const svg of svgs) {
+        try {
+          if (typeof this.renderSvg !== 'function') throw Error('no renderer');
+          results.push(await this.renderSvg(svg));
+        } catch {}
+      }
+      return [rest || (results.length ? '' : 'Çizim resme dönüştürülemedi.'), results];
+    };
     // These CLIs report no tool steps. When the answer is based on a document or on
     // mail Charles fetched, report one reading step so Slime shows its reading animation.
     const mailData = /<mail_verisi>/.test(args.prompt);
@@ -1096,6 +1204,17 @@ class Providers {
             : 'Proje dosyalarını okuyup düzenleyebilirsin; komut çalıştırma iznin yok, gerekirse kullanıcıya hangi komutu çalıştırması gerektiğini söyle. ') +
           'Kullanıcıyla Türkçe konuş; sonunda değişen dosyaları kısaca özetle. Yapmadığın işlemleri yaptığını söyleme.\n'
         : 'Sen Charles, HzPederPan tarafından geliştirilmiş bir masaüstü sohbet asistanısın. Bu bağlantıda bilgisayar araçların yok. Yapmadığın işlemleri yaptığını söyleme.\n') +
+      // v0.9.25: what this connection can make and look up (provider-drawing.cjs)
+      (drawing.SVG_PROVIDERS.includes(provider) ? drawing.drawInstruction(task) + '\n' : '') +
+      (provider === 'gemini'
+        ? (task === 'image' ? 'Kullanıcı Görsel oluştur seçti: bu mesajda yerleşik görsel oluşturucunla bir görsel üret. ' : '') +
+          'Kullanıcı bir resim, çizim ya da görsel isterse ASCII çizme; yerleşik görsel oluşturucunla gerçek bir görsel üret. Charles onu sohbette gösterir; dosya yolunu yazma. Görseli üretirken "oluşturuyorum" gibi ara bilgi cümlesi yazma; görsel hazır olunca kullanıcının dilinde kısa bir cümle yaz.\n'
+        : '') +
+      (task === 'web'
+        ? 'Kullanıcı Web’de arama seçti. Bu soruyu web arama aracınla güncel kaynaklardan araştır ve gerçekten açtığın kaynakları bağlantılarıyla belirt.\n'
+        : task === 'research'
+          ? 'Kullanıcı Derin araştırma seçti. Web arama aracınla birden fazla güvenilir kaynağı incele, iddiaları karşılaştır, tarih ve belirsizlikleri belirt ve kaynak bağlantılarıyla kapsamlı bir rapor hazırla.\n'
+          : '') +
       ASK_FORMAT.trim() +
       '\n' +
       require('../core/untrusted.cjs').SECURITY_RULE.trim() +
@@ -1103,10 +1222,10 @@ class Providers {
       args.prompt +
       '\n' +
       texts.map((a) => a.text).join('\n') +
-      (staged ? imagesKit.geminiImagePrompt(staged.files) : '');
+      (staged ? imagesKit.imageFilesPrompt(staged.files, provider === 'gemini' ? 'read_file' : 'Read') : '');
     if (isAbacus) {
       try {
-        plan = abacus.abacusPlan({ ...planArgs, prompt });
+        plan = abacus.abacusPlan({ ...planArgs, prompt, imageDir: staged?.dir || null });
       } catch (e) {
         agent.busy = false;
         if (reading) emit('item/completed', { item: readItem('failed') });
@@ -1135,12 +1254,17 @@ class Providers {
       this.jobs.set(agent, job);
       let answer = '';
       let startedItem = false;
-      const done = (error) => {
+      // v0.9.25: a drawing never shows as code while it streams; its card opens instead
+      const shown = drawing.drawingFilter(drawStart);
+      const done = async (error) => {
         if (job.finished) return;
         job.finished = true;
         this.jobs.delete(agent);
         if (!error && !answer.trim()) error = 'EVREN yanıtı boş geldi.';
+        let pictures = [];
+        if (!error) [answer, pictures] = await drawSvgs(answer);
         if (reading) emit('item/completed', { item: readItem(error ? 'failed' : 'completed') });
+        drawFinish(pictures);
         agent.busy = false;
         if (answer) {
           if (!startedItem) emit('item/started', { item: { id, type: 'agentMessage', text: '' } });
@@ -1159,19 +1283,22 @@ class Providers {
           model,
           prompt,
           effort,
+          images: evrenImages,
           signal: controller.signal,
           onDelta: (piece) => {
+            answer += piece;
+            const visible = shown.push(piece);
+            if (!visible) return;
             if (!startedItem) {
               startedItem = true;
               emit('item/started', { item: { id, type: 'agentMessage', text: '' } });
             }
-            answer += piece;
-            emit('item/agentMessage/delta', { itemId: id, delta: piece });
+            emit('item/agentMessage/delta', { itemId: id, delta: visible });
           },
         })
         .then((text) => {
           answer = text || answer;
-          done(null);
+          return done(null);
         })
         .catch((e) => done(job.cancelled ? 'Yanıt durduruldu.' : e?.message || 'EVREN yanıtı alınamadı.'));
       return { turnId: id };
@@ -1194,6 +1321,12 @@ class Providers {
     let stdout = '',
       stderr = '',
       finished = false;
+    // v0.9.25: agy's result, the actions it was refused, its pictures and the steps that drew them
+    let agyResult = null,
+      denied = '';
+    const agyPictures = [];
+    const agySteps = new Set();
+    const startedAt = Date.now();
     const finish = (error) => {
       if (finished) return;
       finished = true;
@@ -1236,6 +1369,12 @@ class Providers {
           if (!r || r.error || r.is_error || (provider === 'gemini' && r.status !== 'SUCCESS'))
             throw Error('Sağlayıcı yanıt vermedi.');
           text = provider === 'gemini' ? r.response : r.result;
+          if (provider === 'gemini') agyResult = r;
+          // v0.9.25: agy stops without an answer when a step needed a permission Charles does not give
+          if (provider === 'gemini' && !String(text || '').trim() && Array.isArray(r.denied_actions) && r.denied_actions.length) {
+            denied = r.denied_actions.map((a) => String(a?.display_name || a?.action || '')).filter(Boolean).slice(0, 4).join(', ');
+            throw Error('denied');
+          }
           if (isAbacus && /not logged in|please log ?in|unauthori[sz]ed|invalid api key/i.test(text.slice(0, 300))) {
             this.abacus.verified = false;
             this.auth.abacus = false;
@@ -1244,9 +1383,30 @@ class Providers {
           }
           if (typeof text !== 'string' || !text.trim()) throw Error('Yanıt boş.');
         } catch {
-          error = 'Yanıt okunamadı. Sağlayıcı hesabını ve kullanım kotasını kontrol et.';
+          error = denied
+            ? `Antigravity bu iş için Charles’ın bu sohbette vermediği bir izin istedi (${denied}). İsteği izin gerektirmeyecek biçimde yeniden yaz ya da Proje modunu kullan.`
+            : 'Yanıt okunamadı. Sağlayıcı hesabını ve kullanım kotasını kontrol et.';
         }
       }
+      // v0.9.25: the pictures of this answer: agy's own files, or the SVGs Claude drew
+      if (!error && provider === 'gemini') {
+        const found = drawing.agyPictures({ text, brain: path.join(this.dir, 'gemini/.gemini/antigravity-cli/brain'), conversationId: agyResult?.conversation_id, since: startedAt });
+        text = found.text;
+        for (const f of found.files) {
+          try {
+            agyPictures.push(drawing.pictureData(f));
+          } catch {}
+        }
+        if (!text && agyPictures.length) text = ' ';
+      }
+      const tail = async () => {
+        let pictures = agyPictures;
+        if (!error && drawing.SVG_PROVIDERS.includes(provider)) [text, pictures] = await drawSvgs(text);
+        drawFinish(error ? [] : pictures);
+        text = String(text || '').trim();
+        afterPictures();
+      };
+      const afterPictures = () => {
       if (reading) emit('item/completed', { item: readItem(error ? 'failed' : 'completed') });
       for (const item of started.values())
         emit('item/completed', { item: { ...item, status: error ? 'failed' : 'completed' } });
@@ -1275,6 +1435,8 @@ class Providers {
       // does, so the chat types it out and Slime's writing/talking animations run too.
       if (text && args.stream !== false) streamText(text, emit, id, complete);
       else complete();
+      };
+      tail().catch(() => afterPictures());
     };
     const timeout = setTimeout(() => {
       child.kill();
@@ -1286,7 +1448,7 @@ class Providers {
       stdout += s;
       // Claude reports each tool step as a stream-json line: show it in the activity list
       // and let Slime switch to its search / reading / laptop / keyboard animations.
-      if (provider === 'claude') {
+      if (provider === 'claude' || provider === 'gemini') {
         lineBuffer += s;
         const parts = lineBuffer.split(/\r?\n/);
         lineBuffer = parts.pop() || '';
@@ -1297,6 +1459,16 @@ class Providers {
           } catch {
             continue;
           }
+          // v0.9.25: the "Görsel oluşturuluyor" card opens as soon as a picture is being made
+          if (provider === 'gemini') {
+            const step = event.step_update?.step_index;
+            if (drawing.agyDrawingStarts(event) && event.step_update?.state !== 'DONE' && !agySteps.has(step)) {
+              agySteps.add(step);
+              drawStart();
+            }
+            continue;
+          }
+          if (!cards.length && event?.type === 'assistant' && JSON.stringify(event.message?.content || '').includes('<charles-gorsel>')) drawStart();
           for (const { method, item } of claudeItems(event)) {
             if (method === 'item/started') started.set(item.id, item);
             const known = started.get(item.id);
@@ -1316,13 +1488,21 @@ class Providers {
       stderr = (stderr + s).slice(-2000);
     });
     child.on('error', () => finish('Sağlayıcı başlatılamadı.'));
-    child.on('close', (code) =>
+    child.on('close', (code) => {
+      // v0.9.25: a Cursor model the plan does not include says so, and the list is checked again
+      const refusal = provider === 'cursor' && code ? require('./cursor-plan.cjs').parseRefusal(stderr) : null;
+      if (refusal) {
+        if (this.cursorPlan) this.cursorPlan.checkedAt = 0;
+        void this.refreshCursorPlan(this.cursorModels || [], true).catch(() => {});
+      }
       finish(
-        code
-          ? 'Hesap bağlantısını ve kullanım kotasını kontrol et. Ayarlardan yeniden giriş yapabilirsin.'
-          : null,
-      ),
-    );
+        refusal
+          ? `Bu Cursor modeli ${refusal.tier} planında kullanılamıyor. ${refusal.tier} planında yalnız şunlar var: ${refusal.families.join(', ')}. Model listesi güncelleniyor; listeden başka bir model seç.`
+          : code
+            ? 'Hesap bağlantısını ve kullanım kotasını kontrol et. Ayarlardan yeniden giriş yapabilirsin.'
+            : null,
+      );
+    });
     child.stdin.on('error', () => {});
     child.stdin.end(
       isAbacus

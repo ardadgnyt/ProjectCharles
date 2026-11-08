@@ -1161,6 +1161,9 @@ function event(e: any) {
         const status = p.turn.status;
         if (!replaying) voice.completed(status === 'completed');
         if (status === 'failed') {
+          // v0.9.25: the failure stays in the chat (live and in history); the notice alone faded
+          // after a few seconds and the message looked unanswered (CH-104)
+          row(t('Yanıt alınamadı:') + ' ' + String(p.turn.error?.message || t('Codex işi tamamlayamadı.')).slice(0, 400));
           // v0.9.16: an old chat being drawn again says nothing about now; a limit look comes from
           // quota.limitError, for the AI that gave this answer only
           if (replaying) state('idle', 'Hazırım.');
@@ -1594,7 +1597,8 @@ async function sendMessage(out?: Outgoing): Promise<boolean> {
     }
     if (busy || demo || voice.active()) return false;
     const text = out ? out.text : prompt.value.trim();
-    if (!text) return false;
+    // v0.9.25: files alone can be sent (the Send button was enabled but did nothing, CH-109)
+    if (!text && !(out?.attachments?.length || (!out && boxHasFiles()))) return false;
     const own = out?.attachments;
     if (!own) await dropped.ensure();
     const sentIds: string[] = own ? own.map((a) => a.id!) : features.ids();

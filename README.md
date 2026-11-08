@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.24%20release%20candidate-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.25%20release%20candidate-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -30,31 +30,7 @@ laptop while it writes code, and gets dizzy if you shake him too hard.
 
 ---
 
-## What’s new
-
-| Version | What’s new |
-| --- | --- |
-| **v0.9.24 RC** | Add pictures and files to an extra instruction · no size limit on attachments, up to 1000 files in one message · CharlesSetup.exe with language choice, license screen and an uninstaller · the island size setting now changes the whole island · Charles shows as Charles in Task Manager · a lighter idle chat · the time stays on one line beside many attachments · the welcome card fits on the island |
-| **v0.9.23** | Readable links in the chat · the app window uses the island's dark message style, with your messages on the right · attachments in the app window match the island · sent pictures line up on the right · no status line under Charles in the app window |
-| **v0.9.22** | Push to talk on Right + Up, and the key can be changed again · attachments on cards inside the message box · one black theme for Settings and Review changes · no shadow under Charles on the desktop · long chats open without freezing |
-| **v0.9.21** | Settings open every time in the app window · dropping a shelf file on a name that already exists no longer freezes the mouse · Quick Share asks in the app window too |
-| **v0.9.20** | One small helper instead of several PowerShell processes · mail dates no longer open Outlook by themselves · shelf files drag like files on the desktop · a Small size for the island |
-| **v0.9.19** | Charles goes back by himself after reading · content goes with one message · edit a message in its own bubble · the push-to-talk bubble sits under the island · a more reliable target frame that leaves the desktop alone · less memory and CPU |
-| **v0.9.18** | System monitor for CPU, GPU and RAM · push to talk in any app · drop Charles on a page or document to ask about it · drag the character out of the panel · right-click menu for text · notifications stay visible with the app window open · a summary after each update |
-| **v0.9.17** | Quick Share: a stale phone address is looked up again before giving up, with a clear message if the phone stays closed |
-| **v0.9.16** | PowerPoint in the chat and the converter (.pptx, .ppt → PDF, Word, slide pictures, text) · File shelf: Ctrl+V adds a screenshot, previews on every row, a drag card with the file's name · Scrolling while an answer is written · Clearer Quick Share start errors, LocalSend works on its own · Fixes for the limit animation, the finished state and the taskbar |
-| **v0.9.15** | File shelf: keep copies of files on the island, drag them out as real files, Ctrl+V adds a screenshot · Pictures in a sent message open at full size · Antigravity quota checks no longer flash a terminal window |
-| **v0.9.14** | Island redesign: a big voice chat card (bars that move with the voice), the message box with dictation, a new Spotify card and the song on the closed island · **Tools**: color picker, timer (focus with breaks, countdown, stopwatch), reminders, calendar, emails, usage summary and smart home, plus module shortcuts · faster, HDR-correct screenshots and color picking · design polish |
-| **v0.9.13** | Redesigned island home: Charles with an inline message box (mic, voice call), a new Spotify card and three expanding cards (Files · AI usage · Weather with hourly forecast) · quiet WhatsApp catch-up, muted/archived chats stay silent |
-| **v0.9.12** | Modules can save and open files (`files.save`, `files.pick`) through Windows’ own Save / Open window |
-| **v0.9.11** | Long chats can be continued after a restart · Charles sleeps when you are away |
-| **v0.9.10** | Smoother Slime (no waving in his sleep, no doubled cheeks) · durations in your language · tables with formulas and file citations render properly · the chat keeps its place |
-| **v0.9.9** | Mail can’t steer Charles (prompt-injection guard) · app window fixes · Download tools included |
-| **v0.9.8** | No third hand · props change one at a time · movable app window · EVREN setup · Claude models by version |
-| **v0.9.7** | Quick Share network permission fixed · menu arrows point the right way |
-| **v0.9.6** | Effort levels · EVREN account · Quick Share visible without opening the panel |
-
-Details: [CHANGELOG](CHANGELOG.md) · [File sharing](docs/SHARING.md)
+## Features
 
 ### The island
 

@@ -4,6 +4,33 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.25 Release Candidate — November 8, 2026
+
+- **Stop ends the running command:** with GPT, Stop ended the answer but a command Charles had started kept running and could still change files. Stop now also ends that command and says so in the chat.
+- **Mail sorting stays on your computer:** the important-mail bubbles no longer send new mail to the AI to decide what matters. Your account's important mark and your words decide it on your computer. Settings → Plugins → Mail has a new box if you want the AI to decide; it is off by default and says what it sends.
+- **"Approve for me" asks before leaving the project:** in the automatic access mode, a step that needs to go outside the project folder or onto the network now waits for your answer instead of being approved for you.
+- **WhatsApp asks you to check the person:** when a name is not saved in Charles, WhatsApp opens the first search result with the message ready, and you check the person and press Send yourself. Before, it could send to the wrong person with the same name.
+- **Cursor behind antivirus HTTPS checks:** Cursor now trusts the Windows certificate store, so it connects on computers where an antivirus or company network checks secure traffic.
+- **Claude stays signed in:** Charles renews the Claude session in the background, so a long break no longer ends in a sign-in error.
+- **Big GIFs:** a very large GIF no longer crashes the island. If the interface ever closes unexpectedly, Charles opens it again and tells you why.
+- **Files only:** a message with files and no text is sent again; Charles looks at the files and says what they are.
+- **A failed answer stays in the chat:** when the AI cannot answer, the reason now stays in the chat instead of only flashing at the bottom.
+- **Changes made by commands in Review:** files a command changed, created or deleted now appear in Review changes, as edits made by the AI already did.
+- **Number keys on question cards:** when Charles asks a question with choices, press 1, 2, 3 … to pick one while the message box is empty.
+- **"Remember this" at the end:** Charles now remembers a sentence that ends with "remember this", "keep this in mind" or "don't forget", not only one that starts with it.
+- **Mail search scope:** with a POP3 account, search results now say that only the latest mail on the server was searched.
+- **Full-screen games and films:** a mail bubble or notice no longer pulls you out of a full-screen game or video, or brings back the taskbar. It waits until you leave full screen.
+- **Charles reading and at his laptop:** while he reads he no longer follows the pointer and his blush stays in place. At his laptop his eyes stay visible when he looks down, and the laptop is a little smaller.
+- **Grey colours:** the colour picker's tones of a grey no longer turn pink.
+- **An approval waiting on open:** if a request waits for your approval when you open Charles, the chat opens with it.
+- **Taskbar icon:** a leftover Electron shortcut could show an atom instead of Charles in the taskbar. Charles now gives it his icon and removes his own dead Start menu links.
+- **Keyboard focus on Charles:** Charles shows a clear ring when you reach him with the Tab key.
+- **Pictures with every AI:** Antigravity, Claude, Cursor, EVREN and Abacus AI now look at the pictures you add, not only GPT. Antigravity had refused to open them since a change in its own permission handling. The same change also kept it from reading files in Project mode, which works again. Cursor opens only the pictures of that message, nothing else on your computer. EVREN gets them in the request; a chosen EVREN model that cannot see pictures hands the message to EVREN's automatic choice. Abacus AI was not tried live.
+- **Creating pictures:** Antigravity makes pictures with its own image generator. Claude and EVREN, which have none, draw them, and Charles turns the drawing into a picture. All of them show the same "Creating image" card as GPT and the same picture with Download and Copy. No more drawings made of letters.
+- **The + menu follows the AI:** Create image, Web search and Deep research are white when the chosen AI can do them and grey when it cannot. Antigravity and Claude now search the web and do deep research too; Claude gets only its search and page-reading tools for that.
+- **EVREN's model list:** only chat models are listed; reading, speech and other special models stay out.
+- **Cursor on the Free plan:** the model list shows only the models a Free account can use (Auto and one Grok 4.7 and Grok 4.6 each). Charles reads the plan from Cursor and checks again once a week. A model your plan does not include now says so, instead of asking you to check your account.
+
 ## v0.9.24 Release Candidate — November 7, 2026
 
 - **Island size:** Settings → Appearance → Charles island size now changes the whole island: Small shows the closed island, the card shelf and the tall chat at 2/3 of their width and height, at once and after a restart. Before, only the closed island with music changed, so the choice seemed to do nothing. The app window and Charles on the desktop keep their size.

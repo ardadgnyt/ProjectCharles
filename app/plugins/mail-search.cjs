@@ -228,16 +228,23 @@ function describe(s, en) {
 }
 
 /** Chat/voice answer listing what was found. */
-function formatResults(rows, request, en = false) {
+function formatResults(rows, request, en = false, limit = 0) {
   const s = request.search;
   const { what, range } = describe(s, en);
   const shown = rows.slice(0, 10);
   const head = en
     ? `🔎 ${rows.length ? `Found ${rows.length} email${rows.length > 1 ? 's' : ''}` : 'No emails found'}${what ? ' for ' + what : ''}${range ? ' · ' + range : ''}.`
     : `🔎 ${what ? what + ' için ' : ''}${range ? range + ' ' : ''}${rows.length ? rows.length + ' mail buldum.' : 'mail bulamadım.'}`;
+  // v0.9.25: a POP3 account is searched only in its newest mails: the answer says so
+  const scope = limit
+    ? en
+      ? ` (POP3 has no server search: only the newest ${limit} emails were checked.)`
+      : ` (POP3 sunucuda arama yapamadığı için yalnız en yeni ${limit} e-postaya bakıldı.)`
+    : '';
   if (!rows.length)
     return (
       head +
+      scope +
       (en
         ? ' Try other words or a wider date range.'
         : ' Başka bir kelime ya da daha geniş bir tarih aralığı deneyebilirsin.')
@@ -256,7 +263,7 @@ function formatResults(rows, request, en = false) {
     );
   });
   const more = rows.length > shown.length ? (en ? `\n\n…and ${rows.length - shown.length} more.` : `\n\n…ve ${rows.length - shown.length} mail daha.`) : '';
-  return head + '\n\n' + lines.join('\n') + more;
+  return head + scope + '\n\n' + lines.join('\n') + more;
 }
 
 module.exports = { parseMailSearch, formatResults, inRange, matches, fold, findDate };

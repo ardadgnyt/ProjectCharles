@@ -57,6 +57,37 @@ export function answerText(questions: AiQuestion[], answers: string[]) {
 }
 
 /**
+ * v0.9.25: a number key picks an option of the newest open card while the message box is empty
+ * (the card never takes the focus, so the "2" went into the box instead, CH-274). With text in
+ * the box the key is typed as usual.
+ */
+let numbersWatched = false;
+function watchNumbers() {
+  if (numbersWatched) return;
+  numbersWatched = true;
+  document.addEventListener(
+    'keydown',
+    (e) => {
+      if (e.ctrlKey || e.altKey || e.metaKey || e.repeat || !/^[1-9]$/.test(e.key)) return;
+      const target = e.target as HTMLElement | null;
+      const box = document.getElementById('prompt') as HTMLTextAreaElement | null;
+      const inBox = target === box;
+      if (!inBox && target && target !== document.body) return;
+      if (inBox && box!.value.trim()) return;
+      const cards = [...document.querySelectorAll<HTMLElement>('#feed .ai-questions:not(.answered)')];
+      const card = cards.at(-1);
+      if (!card || !card.getClientRects().length) return;
+      const option = card.querySelectorAll<HTMLButtonElement>('.ai-q-option')[Number(e.key) - 1];
+      if (!option) return;
+      e.preventDefault();
+      e.stopPropagation();
+      option.click();
+    },
+    true,
+  );
+}
+
+/**
  * The card under the message (v0.7.0, Claude-like): one question at a time, options as
  * numbered rows, a free-answer row at the bottom. A single-choice pick moves on by itself;
  * the last answer sends everything as the user's next message. Number keys 1–4 pick.
@@ -217,6 +248,7 @@ export function questionCard(
       option.click();
     }
   });
+  watchNumbers();
   render();
   return card;
 }

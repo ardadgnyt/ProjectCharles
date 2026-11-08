@@ -1,4 +1,5 @@
 import { english0922, patterns0922 } from './i18n-0922';
+import { english0925, patterns0925 } from './i18n-0925';
 import { english063, englishPatterns } from './i18n-063';
 import { english070 } from './i18n-070';
 import { english071 } from './i18n-071';
@@ -306,8 +307,8 @@ Object.assign(english, {
   'ChatGPT web hafızası otomatik eşitlenmez. Kendi metin özetini içe\n              aktar, inceleyip Kaydet.':
     'ChatGPT web memory does not sync automatically. Import your text summary, review it and save.',
   'Erişim ve onaylar': 'Access and approvals',
-  "Onay iste: dosya ve komut izinlerini sorar. Benim için onayla:\n              projede düzenleme yapar; ek izin taleplerini Codex risk\n              değerlendirmesine gönderir. Gerekli işlemler engellenebilir veya\n              kullanıcı müdahalesi gerekebilir. Tam erişim: Charles'ın\n              dosya/komut onayları ve Codex sandbox sınırı kaldırılır; mevcut\n              Windows hesabının erişebildiği dosyalarda ve ağda işlem yapabilir.\n              Windows yönetici izinlerini aşmaz.":
-    'Ask for approval: asks about file and command permissions. Approve for me: edits the project and sends additional permission requests to Codex risk review; some actions may require your input. Full access: removes Charles file/command approval prompts and the Codex sandbox boundary, within the permissions of your Windows account. It does not bypass Windows administrator permissions.',
+  "Onay iste: dosya ve komut izinlerini sorar. Benim için onayla:\n              proje klasöründe sormadan düzenleme yapar; proje dışına veya\n              ağa çıkan her istek için yine onayını sorar. Tam erişim: Charles'ın\n              dosya/komut onayları ve Codex sandbox sınırı kaldırılır; mevcut\n              Windows hesabının erişebildiği dosyalarda ve ağda işlem yapabilir.\n              Windows yönetici izinlerini aşmaz.":
+    'Ask for approval: asks about file and command permissions. Approve for me: edits inside the project folder without asking, and still asks you about anything that leaves the project or uses the network. Full access: removes Charles file/command approval prompts and the Codex sandbox boundary, within the permissions of your Windows account. It does not bypass Windows administrator permissions.',
   'Anahtarlar Windows şifrelemesiyle saklanır. Kartlar açık panelde\n                60 saniyede bir yenilenir.':
     'Keys are protected with Windows encryption. Cards refresh every 60 seconds while the panel is open.',
   'Bağlantı kurulmadı': 'Not connected',
@@ -363,13 +364,13 @@ Object.assign(english, {
   'Kaydet düğmesine tıkla, ardından kısayol tuşlarına birlikte bas. Esc ile vazgeç.':
     'Click Record keys, then press the shortcut together. Press Esc to cancel.',
 });
-Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089, english0810, english0811, english0814, english0815, english092, english096, english0913, english0914, english0915, english0916, english0918, english0919, english0922);
+Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089, english0810, english0811, english0814, english0815, english092, english096, english0913, english0914, english0915, english0916, english0918, english0919, english0922, english0925);
 
 // v0.6.3: look-up that ignores line breaks/indentation from the HTML, then the patterns
 // (texts with numbers or names inside).
 const collapsed = new Map<string, string>();
 for (const [k, v] of Object.entries(english)) collapsed.set(k.replace(/\s+/g, ' ').trim(), v);
-const allPatterns = [...englishPatterns, ...specialPatterns, ...patterns072, ...patterns077, ...patterns080, ...patterns085, ...patterns087, ...patterns088, ...patterns0810, ...patterns092, ...patterns096, ...patterns0913, ...patterns0914, ...patterns0922];
+const allPatterns = [...englishPatterns, ...specialPatterns, ...patterns072, ...patterns077, ...patterns080, ...patterns085, ...patterns087, ...patterns088, ...patterns0810, ...patterns092, ...patterns096, ...patterns0913, ...patterns0914, ...patterns0922, ...patterns0925];
 // v0.9.22: a pattern is a short interface text with a number or a name in it. Without this limit
 // every line of a command's output went through all of them.
 const PATTERN_MAX = 600;

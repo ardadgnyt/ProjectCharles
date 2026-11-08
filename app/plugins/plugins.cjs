@@ -58,6 +58,8 @@ class Plugins {
       seen: {},
       rules: 'acil,urgent,sınav,exam,son tarih,deadline',
       monitor: true,
+      // v0.9.25: new mail is sorted by local rules; the AI sees it only when the user turns this on
+      aiTriage: false,
     };
     this.cache = {};
     this.errors = {};
@@ -106,6 +108,7 @@ class Plugins {
       ),
       monitor: this.data.monitor,
       rules: this.data.rules,
+      aiTriage: this.data.aiTriage === true,
       errors: this.errors,
     };
   }
@@ -160,6 +163,7 @@ class Plugins {
   settings(v) {
     this.data.monitor = v.monitor === true;
     this.data.rules = String(v.rules || '').slice(0, 2000);
+    if (typeof v.aiTriage === 'boolean') this.data.aiTriage = v.aiTriage;
     this.save();
     return this.status();
   }
@@ -637,6 +641,9 @@ class Plugins {
       throw Error(
         'Okul e-postası bağlı değil. Ayarlar → Eklentiler → Okul e-postası bölümünde POP3/IMAP sunucusu, e-posta adresi ve şifreni kaydet.',
       );
+    // v0.9.25: the answer says how far a POP3 search looked (CH-426: an older mail got only
+    // "bulamadım", with no word about the limit)
+    this.searchLimit = c.protocol === 'pop3' ? 100 : 0;
     if (c.protocol === 'pop3') {
       // POP3 has no search: look through the newest 100 headers.
       this.schoolQueue = (this.schoolQueue || Promise.resolve())

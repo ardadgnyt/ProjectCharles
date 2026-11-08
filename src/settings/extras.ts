@@ -125,10 +125,12 @@ export function extraUI(
     const prepared = [];
     for (const file of next) {
       if (file.kind === 'gif') {
-        const raw = atob(file.thumbnail.split(',')[1]);
-        const bitmap = await createImageBitmap(
-          new Blob([Uint8Array.from(raw, (c) => c.charCodeAt(0))], { type: 'image/gif' }),
-        );
+        // v0.9.25: binary from the main process (a big GIF as base64 text ran the page out of memory)
+        const bytes: Uint8Array = file.gif || Uint8Array.from(atob(file.thumbnail.split(',')[1]), (c) => c.charCodeAt(0));
+        delete file.gif;
+        const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/gif' })).catch(() => {
+          throw Error(`${file.name}: GIF açılamadı; dosya bozuk olabilir.`);
+        });
         try {
           const ratio = Math.min(1, 4096 / Math.max(bitmap.width, bitmap.height));
           const canvas = document.createElement('canvas');
@@ -142,7 +144,7 @@ export function extraUI(
             new Uint8Array(await blob.arrayBuffer()),
             file.name,
           );
-          converted.thumbnail = file.thumbnail;
+          if (file.thumbnail) converted.thumbnail = file.thumbnail;
           prepared.push(converted);
         } finally {
           bitmap.close();

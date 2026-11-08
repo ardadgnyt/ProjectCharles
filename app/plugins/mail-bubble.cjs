@@ -34,8 +34,9 @@ class MailBubble {
   // anchor(): { x, y, width, height } of the visible island in screen coordinates.
   // onOpen(item): called when the user clicks a bubble.
   // onWhatsApp(action, args): v0.8.8 WhatsApp cards (reply, quick replies, open the chat…).
-  constructor({ anchor, onOpen, onWhatsApp = null, language = () => 'tr' }) {
+  constructor({ anchor, onOpen, onWhatsApp = null, language = () => 'tr', fullscreen = () => false }) {
     this.anchor = anchor;
+    this.fullscreen = fullscreen;
     this.language = language;
     this.onOpen = onOpen;
     this.onWhatsApp = onWhatsApp;
@@ -240,7 +241,9 @@ class MailBubble {
   placeCards() {
     const w = this.window;
     if (!w || w.isDestroyed()) return;
-    if (!this.items.length || !this.height || this.suppressed || this.held) {
+    // v0.9.25: never over a full-screen app (a game, a film): a topmost card brought the taskbar
+    // back over YouTube/Netflix and dropped a game to the desktop. The cards wait for its end.
+    if (!this.items.length || !this.height || this.suppressed || this.held || this.fullscreen?.()) {
       this.composing = false;
       if (w.isVisible()) w.hide();
       return;
@@ -261,6 +264,7 @@ class MailBubble {
   /** v0.8.13: keeps the cards above the island (called after the island raises itself). */
   raise() {
     const w = this.window;
+    if (this.fullscreen?.()) return;
     if (w && !w.isDestroyed() && w.isVisible()) {
       try {
         w.setIgnoreMouseEvents(false);

@@ -57,6 +57,9 @@ docs/VERIFICATION-v0.4.4.md
 # Local visual regression captures
 .qa/
 
+# v0.9.25: the unit tests stay on this computer only (run them with `node --test test/*.test.cjs`)
+/test/
+
 # Graphify knowledge graph (kept locally; scripts/package.py and release-pack.cjs skip it too)
 /graphify-out/
 

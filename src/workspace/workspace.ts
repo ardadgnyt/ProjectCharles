@@ -499,7 +499,9 @@ export function workspaceUI(d: WorkspaceDeps) {
       petSlot.append(pet);
       chatBody.append(content);
       void sidebar.refresh();
-      showHome();
+      // v0.9.25: an approval or a question that waits is shown, not hidden behind the home page
+      if (document.querySelector('#requests .request')) showChat();
+      else showHome();
     } else {
       dashboard.hide();
       sidebar.closeMenu();
@@ -543,6 +545,10 @@ export function workspaceUI(d: WorkspaceDeps) {
   // Mail explained from the island bubble while the window is open → show the chat.
   api.onMailExplain?.(() => {
     if (on) showChat();
+  });
+  // v0.9.25: a new approval card while the home page is open brings the chat forward
+  document.addEventListener('charles-request', (e) => {
+    if (on && view === 'home' && (e as CustomEvent).detail?.open) showChat();
   });
   void api.workspaceState?.().then(apply).catch(() => {});
 

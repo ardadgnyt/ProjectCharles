@@ -100,9 +100,9 @@ if ((await C.info()).features?.includes('ai.images'))
   await C.ai.chat({ messages: [{ role: 'user', content: 'What does this page say?' }], images: ['courses/k1/sources/s9.png'] });
 // Charles 0.8.7+: optional `images` — up to 10 PNG / JPG / JPEG / WebP files (20 MB each) from
 //   the module's own data folder (the same paths as `storage`). Nothing outside that folder can
-//   be sent. Needs only the `ai` permission. Works with GPT, Claude and Antigravity (Gemini); with a Cursor, EVREN or
-//   Abacus AI model the call fails with “Görseller şu an yalnızca GPT, Claude ve Antigravity ile
-//   çalışıyor.” When `features` has no 'ai.images', show your own “images can't be sent” note.
+//   be sent. Needs only the `ai` permission. Since 0.9.25 it works with every AI connection (GPT,
+//   Antigravity, Claude, Cursor, Abacus AI, EVREN). When `features` has no 'ai.images', show your
+//   own “images can't be sent” note.
 
 await C.ai.image({ prompt: 'A green slime in a red hat, watercolour' });
 // → { path: 'images/2026-….png', url: 'charles-module://<id>/_data/images/2026-….png' }

@@ -14,12 +14,19 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
     enabled,
     document.createTextNode('Önemli e-postaları ve takvim hatırlatmalarını adacıkta göster'),
   );
+  // v0.9.25: mail goes to the AI for sorting only when this is on (off by default)
+  const aiTriage = document.createElement('input');
+  aiTriage.type = 'checkbox';
+  const aiToggle = document.createElement('label');
+  aiToggle.className = 'plugin-notify-toggle';
+  aiToggle.append(aiTriage, document.createTextNode('Önemi yapay zekâ belirlesin (yeni e-postanın göndereni, konusu ve kısa önizlemesi seçili yapay zekâya gider)'));
   const save = () =>
     void api
-      .pluginsSettings({ monitor: enabled.checked, rules: keywords.value })
+      .pluginsSettings({ monitor: enabled.checked, rules: keywords.value, aiTriage: aiTriage.checked })
       .then(paint)
       .catch((e: Error) => notice(e.message));
   enabled.onchange = save;
+  aiTriage.onchange = save;
   // Charles reads new mail and decides what matters; these words are always important.
   const keywordLabel = document.createElement('label');
   keywordLabel.className = 'plugin-keywords';
@@ -33,8 +40,8 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
   const triageHint = document.createElement('p');
   triageHint.className = 'hint';
   triageHint.textContent =
-    'Charles yeni e-postaları okur, önemli gördüklerini adacığın altında baloncuk olarak gösterir. Baloncuğa tıklayınca e-postayı sana anlatır.';
-  intro.append(toggle, keywordLabel, triageHint);
+    'Hesabında önemli işaretli e-postalar ve bu kelimeleri içerenler adacığın altında baloncuk olarak görünür; bu sıralama bilgisayarında yapılır. Baloncuğa tıklayınca Charles e-postayı sana anlatır.';
+  intro.append(toggle, keywordLabel, aiToggle, triageHint);
   page.prepend(intro);
   const fields: Record<string, Record<string, HTMLInputElement | HTMLSelectElement>> = {},
     notes: Record<string, HTMLElement> = {},
@@ -239,6 +246,7 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
   }
   function paint(v: any) {
     enabled.checked = v.monitor;
+    aiTriage.checked = v.aiTriage === true;
     rules = v.rules;
     if (document.activeElement !== keywords) keywords.value = rules || '';
     for (const id of Object.keys(fields)) {

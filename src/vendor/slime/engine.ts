@@ -1035,6 +1035,17 @@ export class BotEngine {
     // Slime: the face sits low on the body; looking far down pushed the eyes onto the mouth
     // and moustache. Up/down look is limited (about what the user found natural).
     if (!this.isMini) tp = Math.max(SLIME_PITCH_DOWN, Math.min(SLIME_PITCH_UP, tp));
+    // v0.9.25: while he reads, the face stays toward the sheet. The cheeks turned with the head but
+    // the reading glasses and their eyes are drawn in place, so a cheek slid into an eye (user bug1).
+    if (this.reading > 0.02) {
+      const k = 1 - Math.min(1, this.reading);
+      ty *= k;
+      tp *= k;
+    }
+    // v0.9.25: behind the laptop he does not look down: the screen covered the lower half of his
+    // eyes (user bug2)
+    const laptop = this.shownStation === 'code' || this.shownStation === 'terminal' ? this.stationAlpha : 0;
+    if (laptop > 0.02 && tp < 0) tp *= 1 - Math.min(1, laptop);
     this.tgYaw = ty;
     this.tgPitch = tp;
     this.tgTilt = this.cfg.tilt;

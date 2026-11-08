@@ -170,15 +170,20 @@ async function sendWhatsApp(cmd, { contacts, openExternal, automate, en = false 
     return typedText(contact.name);
   }
 
-  // 2) only a name: open WhatsApp, search the person (Ctrl+F) and write the message there
+  // 2) only a name: open WhatsApp, search the person (Ctrl+F) and write the message there.
+  // v0.9.25: never sent from here. The search opens its FIRST result, which may be another person
+  // or a group with a similar name (CH-446); only a saved number is ever sent automatically.
   if (cmd.to && automate) {
     try {
       await openExternal('whatsapp://');
     } catch {
       return web();
     }
-    const r = await automate({ mode: 'search', name: cmd.to, message: cmd.message, send: autoSend }).catch(() => ({ ok: false }));
-    if (r.ok) return r.sent ? sentText(cmd.to) : typedText(cmd.to);
+    const r = await automate({ mode: 'search', name: cmd.to, message: cmd.message, send: false }).catch(() => ({ ok: false }));
+    if (r.ok)
+      return en
+        ? `WhatsApp opened the first result for “${cmd.to}” and wrote “${cmd.message}”. Check that it is the right person, then press send.`
+        : `WhatsApp’ta “${cmd.to}” için ilk sonuç açıldı ve “${cmd.message}” yazıldı. Doğru kişi olduğunu kontrol edip Gönder’e bas.`;
   }
 
   // 3) nobody named (or the search did not work): WhatsApp opens with the text

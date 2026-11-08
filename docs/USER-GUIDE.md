@@ -113,7 +113,12 @@ and one message can carry 1000 files. A GIF can be up to 256 MB and a presentati
 reads at most 1,000,000 characters of file text in one message. If a long file does not fit, Charles
 sends the part that fits, tells the AI, and names the file for you. Claude takes up to 600 pictures
 in a message and Antigravity up to 1000. With many pictures, each one is sent smaller. The limits of
-your AI account still apply. Cursor, Abacus and EVREN take no pictures.
+your AI account still apply. Cursor and Abacus take up to 20 pictures in a message and EVREN up to 8.
+
+**Creating pictures, web search and research.** The **+** menu shows what the chosen AI can do: a
+choice it cannot do is grey. GPT and Antigravity create pictures with their own image generators;
+Claude and EVREN draw them, and Charles shows the drawing as a picture. GPT, Antigravity and Claude
+can search the web and do deep research.
 
 Past chats are listed in **History** (the list button at the top left). There you can search
 chats, sort them into folders, rename them and reopen them.

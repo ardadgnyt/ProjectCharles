@@ -39,6 +39,15 @@ function registerShortcuts({ app, shell, root, icon, executable = process.execPa
   if (!old || Object.entries(options).some(([k,v]) => old[k] !== v)) {
     if (!shell.writeShortcutLink(canonical, 'create', options)) throw Error('Charles Başlat menüsü kimliği kaydedilemedi.');
   }
+  // v0.9.25: Electron run from a development copy leaves Start Menu\Programs\Electron.lnk with
+  // Charles' app id and no icon of its own; Windows then shows the Electron atom on Charles'
+  // taskbar button. Such a link gets Charles' icon (its target and arguments stay as they are).
+  try {
+    const stray = path.join(programs, '..', 'Electron.lnk');
+    const link = fs.existsSync(stray) ? shell.readShortcutLink(stray) : null;
+    if (link && link.appUserModelId === APP_ID && link.icon !== icon)
+      shell.writeShortcutLink(stray, 'update', { icon, iconIndex: 0 });
+  } catch {}
   // Repair only this installation's existing shortcuts; never repoint another copy.
   for (const dir of [programs, app.getPath('desktop'), path.join(app.getPath('appData'), 'Microsoft/Internet Explorer/Quick Launch/User Pinned/TaskBar')]) {
     let files;
@@ -48,6 +57,11 @@ function registerShortcuts({ app, shell, root, icon, executable = process.execPa
       if (file === canonical) continue;
       try {
         const link = shell.readShortcutLink(file);
+        // v0.9.25: a Start Menu entry of Charles whose program is gone (an old version's folder)
+        if (dir === programs && link.appUserModelId === APP_ID && link.target && !fs.existsSync(link.target)) {
+          fs.rmSync(file, { force: true });
+          continue;
+        }
         const target = path.resolve(link.target).toLowerCase();
         const sameExe = target === path.resolve(executable).toLowerCase() ||
           target === path.join(root, 'node_modules/electron/dist/electron.exe').toLowerCase();

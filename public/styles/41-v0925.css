@@ -1,0 +1,16 @@
+/* v0.9.25 */
+/* + menu: a choice the chosen AI cannot do is grey and not clickable */
+#composer #composer-menu button:disabled,
+#composer #composer-menu button[aria-disabled='true'] {
+  color: #ffffff4d;
+  cursor: default;
+  background: transparent;
+}
+
+/* Keyboard users see where they are on Charles himself too (CH-532: the only button without a
+   visible focus ring) */
+body.keyboard-nav #pet:focus-visible {
+  outline: 2px solid var(--accent, #edc9a9);
+  outline-offset: 4px;
+  border-radius: 50%;
+}

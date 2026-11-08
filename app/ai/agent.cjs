@@ -61,6 +61,9 @@ class Agent extends EventEmitter {
     this.requests = new Map();
     this.items = new Map();
     this.loginId = null;
+    // v0.9.25: commands that are running now (item id → start time), for Stop
+    this.running = new Map();
+    this.stopCommands = require('./command-stop.cjs').stopCommands;
   }
   publish(type, data) {
     this.emit('event', { type, data });
@@ -321,6 +324,19 @@ class Agent extends EventEmitter {
       threadId: this.threadId,
       turnId: this.turnId,
     });
+    // v0.9.25: Codex ends the turn but not a command it already started; end that one too
+    if (this.running.size) {
+      const since = Math.min(...this.running.values());
+      const ids = [...this.running.keys()];
+      setTimeout(() => {
+        if (!ids.some((id) => this.running.has(id))) return;
+        void this.stopCommands({ rootPid: this.rpc?.child?.pid, since })
+          .then((pids) => {
+            if (pids.length) this.publish('notice', 'Durdur: çalışan komut da sonlandırıldı.');
+          })
+          .catch(() => {});
+      }, 1200).unref?.();
+    }
   }
   notification(msg) {
     const p = msg.params || {};
@@ -348,8 +364,13 @@ class Agent extends EventEmitter {
       this.busy = true;
       this.turnId = p.turn.id;
     }
-    if (msg.method === 'item/started' || msg.method === 'item/completed')
+    if (msg.method === 'item/started' || msg.method === 'item/completed') {
       this.items.set(p.item.id, p.item);
+      if (p.item?.type === 'commandExecution') {
+        if (msg.method === 'item/started') this.running.set(p.item.id, Date.now());
+        else this.running.delete(p.item.id);
+      }
+    }
     if (msg.method === 'turn/completed') {
       this.busy = false;
       this.turnId = null;

@@ -66,6 +66,11 @@ export function drawStation(
     x.stroke();
   }
   if (station === 'terminal' || station === 'code') {
+    // v0.9.25: a little smaller, from its base, so his eyes stay clear of the screen (user bug2)
+    x.save();
+    x.translate(0, 84);
+    x.scale(0.88, 0.88);
+    x.translate(0, -84);
     x.fillStyle = '#24272c';
     x.strokeStyle = '#969da4';
     x.beginPath();
@@ -101,6 +106,7 @@ export function drawStation(
         x.stroke();
       }
     }
+    x.restore();
   }
   if (station === 'image') {
     x.strokeStyle = '#ab825b';

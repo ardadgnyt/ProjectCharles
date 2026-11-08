@@ -48,7 +48,9 @@ export function parseHex(text: string): Rgb | null {
 /** Four tones of a colour, lighter → darker (the same hue and saturation). */
 export function tones(c: Rgb): Rgb[] {
   const { h, s } = rgbToHsl(c);
-  return [0.78, 0.6, 0.42, 0.28].map((l) => hslToRgb(h, Math.max(0.25, s / 100), l));
+  // v0.9.25: grey, black and white keep grey tones (they were pinkish: hue 0 at 25% saturation)
+  const sat = s < 4 ? s / 100 : Math.max(0.25, s / 100);
+  return [0.78, 0.6, 0.42, 0.28].map((l) => hslToRgb(h, sat, l));
 }
 
 type Deps = {

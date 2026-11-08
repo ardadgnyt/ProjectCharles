@@ -66,6 +66,13 @@ class Evren {
     // v0.9.6: each model's own effort level names ("xLow" is one of them), read from the
     // listing's capabilities. Kept beside the model cache; ids and labels only.
     this.effortsFile = path.join(directory, 'providers', 'evren-efforts.json');
+    // v0.9.25: which models can see pictures (capabilities.vision), ids and true/false only
+    this.visionFile = path.join(directory, 'providers', 'evren-vision.json');
+    this.vision = {};
+    try {
+      const saved = JSON.parse(fs.readFileSync(this.visionFile, 'utf8'));
+      if (saved && typeof saved === 'object') for (const [k, v] of Object.entries(saved)) if (typeof v === 'boolean') this.vision[k] = v;
+    } catch {}
     this.key = null;
     this.verified = false;
     try {
@@ -217,7 +224,11 @@ class Evren {
         efforts[id] = values === null ? DEFAULT_EFFORTS : values;
       }
       this.efforts = efforts;
+      const vision = {};
+      for (const [id] of list) if (typeof caps.get(id)?.vision === 'boolean') vision[id] = caps.get(id).vision;
+      this.vision = vision;
       try {
+        fs.writeFileSync(this.visionFile, JSON.stringify(vision));
         fs.mkdirSync(path.dirname(this.modelsFile), { recursive: true });
         // stored as { id, name } objects - the same shape the API listing has, so the next
         // start can run it through cleanModels again and get the same pairs back
@@ -255,7 +266,11 @@ class Evren {
    * Streams one answer. onDelta receives plain text; reasoning deltas are dropped.
    * Resolves with the full text. Throws the same Turkish errors as request().
    */
-  async chat({ model, prompt, signal, onDelta, maxTokens = 8192, thinking = false, effort = '' }) {
+  /**
+   * v0.9.25: `images` are [{ mime, data }] (base64) and go as image_url parts. A model the listing
+   * says cannot see pictures hands a message with pictures to "auto", which can.
+   */
+  async chat({ model, prompt, signal, onDelta, maxTokens = 8192, thinking = false, effort = '', images = null }) {
     if (!this.hasKey()) throw Error('EVREN API anahtarı eklenmemiş. Ayarlardan anahtarını kaydet.');
     if (!MODEL_ID.test(String(model || ''))) throw Error('Geçersiz EVREN modeli. Model listesini yenile.');
     const text = String(prompt || '');
@@ -266,19 +281,25 @@ class Evren {
     const level = String(effort || '').trim();
     if (level && !this.effortValues(model).includes(level))
       throw Error('Bu EVREN modeli için geçerli bir efor seçimi değil.');
+    const pictures = Array.isArray(images) ? images.filter((i) => i && typeof i.data === 'string' && /^image\/(png|jpeg|webp)$/.test(i.mime)) : [];
+    if (pictures.length > 8) throw Error('EVREN bir mesajda en fazla 8 görsel alabilir.');
+    const seeing = pictures.length && this.vision[model] === false ? 'auto' : model;
+    const content = pictures.length
+      ? [{ type: 'text', text }, ...pictures.map((i) => ({ type: 'image_url', image_url: { url: `data:${i.mime};base64,${i.data}` } }))]
+      : text;
     let res;
     try {
       res = await this.fetch(this.base + '/v1/chat/completions', {
         method: 'POST',
         headers: this.headers(),
         body: JSON.stringify({
-          model,
-          messages: [{ role: 'user', content: text }],
+          model: seeing,
+          messages: [{ role: 'user', content }],
           stream: true,
           // a chosen level means the model should reason; reasoning needs room for the answer too
           thinking: thinking || !!level,
           max_tokens: Math.max(2048, (maxTokens | 0 || 8192) * (level ? 2 : 1)),
-          ...(level ? { reasoning_effort: level } : {}),
+          ...(level && seeing === model ? { reasoning_effort: level } : {}),
         }),
         signal,
       });
@@ -299,6 +320,10 @@ const NOT_CHAT = /(?:^|[/_.-])(?:embed(?:ding)?s?|text-embedding|whisper|tts|spe
 /** The name shown for one model id, or null when it is not a chat model. */
 function chatModelName(entry, id) {
   if (NOT_CHAT.test(id)) return null;
+  // v0.9.25: the listing names each model's task; only chat models go in the picker (OCR, speech,
+  // embeddings, guards and "decision" models such as clef and laya stay out)
+  const task = String(entry?.task || '').toLowerCase();
+  if (task && !['chat', 'vision_chat'].includes(task)) return null;
   const type = String(entry?.type || entry?.capabilities?.type || '').toLowerCase();
   if (type && !/chat|text|llm|completion/.test(type)) return null;
   const name = typeof entry?.name === 'string' && entry.name.trim() ? entry.name.trim() : String(id).split('/').pop();

@@ -106,7 +106,10 @@ function threadParams(cwd, model, mode = 'project', access = 'ask') {
     ...(model ? { model } : {}),
     modelProvider: 'openai',
     approvalPolicy: access === 'auto' ? 'on-request' : 'untrusted',
-    approvalsReviewer: access === 'auto' ? 'auto_review' : 'user',
+    // v0.9.25: "Benim için onayla" edits inside the project without cards; anything that leaves the
+    // sandbox (a path outside the project, the network) comes to the user, never to Codex's own
+    // auto_review (CH-216: a file was written outside the project with no card).
+    approvalsReviewer: 'user',
     sandbox: 'workspace-write',
     config: { sandbox_workspace_write: { network_access: false } },
     developerInstructions:
