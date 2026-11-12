@@ -8,7 +8,11 @@
 //   kimi -p <text> --output-format stream-json [-m <alias>] [--agent-file <file>]
 //                                        one answer, as JSON lines: {role:'assistant',content,
 //                                        tool_calls}, {role:'tool',…}, {role:'meta',…}, {type:'error'}
-//   <home>/credentials/kimi-code.json   the session (access_token, refresh_token, expires_at)
+//   <home>/credentials/kimi-code*.json  the session (access_token, refresh_token, expires_at). The
+//                                        name depends on the sign-in address: a global account is
+//                                        kept as kimi-code-env-<id>.json, and its addresses end in
+//                                        kimi.ai (config.toml names them). The access token lasts
+//                                        15 minutes; the tool renews it with the refresh token.
 //   <home>/config.toml                  the account's models, written by the tool at sign-in
 //   GET <base>/usages                   { usages: { limit_5h, limit_7d: { used_ratio, reset_time } } }
 //
@@ -87,17 +91,100 @@ function kimiEnv(env, home) {
 }
 
 // ── the session ────────────────────────────────────────────────────────────────────────────────
+/**
+ * The file that holds the session: kimi-code.json, or kimi-code-env-<id>.json for an account of
+ * the global service. v0.9.27's first build looked for the first name only, so a sign-in that had
+ * worked was reported as "not finished". With several, the newest one counts.
+ */
+function sessionFile(home, fsx = fs) {
+  const dir = path.join(home, 'credentials');
+  let names = [];
+  try {
+    names = fsx.readdirSync(dir).filter((n) => /^kimi-code(?:-env-[A-Za-z0-9_-]+)?\.json$/.test(n));
+  } catch {
+    // a reader that cannot list (tests): the plain name
+    names = ['kimi-code.json'];
+  }
+  const stamp = (n) => {
+    try {
+      return fsx.statSync(path.join(dir, n)).mtimeMs || 0;
+    } catch {
+      return 0;
+    }
+  };
+  return names.sort((a, b) => stamp(b) - stamp(a)).map((n) => path.join(dir, n))[0] || null;
+}
 /** The stored session, or null. Never logged, never copied anywhere. */
 function readSession(home, fsx = fs) {
   try {
-    const v = JSON.parse(fsx.readFileSync(path.join(home, 'credentials', 'kimi-code.json'), 'utf8'));
+    const file = sessionFile(home, fsx);
+    if (!file) return null;
+    const v = JSON.parse(fsx.readFileSync(file, 'utf8'));
     const access = typeof v?.access_token === 'string' ? v.access_token : '';
     const refresh = typeof v?.refresh_token === 'string' ? v.refresh_token : '';
     if (!access && !refresh) return null;
     const expires = Number(v.expires_at);
-    return { access, refresh: !!refresh, expiresAt: Number.isFinite(expires) ? (expires > 1e12 ? expires : expires * 1000) : null };
+    return { access, refresh: !!refresh, expiresAt: Number.isFinite(expires) ? (expires > 1e12 ? expires : expires * 1000) : null, file };
   } catch {
     return null;
+  }
+}
+
+const KIMI_HOST = /^https:\/\/(?:[a-z0-9-]+\.)*kimi\.(?:com|ai)(?:\/[A-Za-z0-9._~\/-]*)?$/;
+/** The service addresses the account uses (config.toml), only when they are Kimi's own. */
+function endpoints(home, fsx = fs) {
+  let config = { baseUrl: '', oauthHost: '' };
+  try {
+    config = parseConfig(fsx.readFileSync(path.join(home, 'config.toml'), 'utf8'));
+  } catch {}
+  const clean = (v, fallback) => (typeof v === 'string' && KIMI_HOST.test(v.replace(/\/+$/, '')) ? v.replace(/\/+$/, '') : fallback);
+  return { base: clean(config.baseUrl, BASE_URL), auth: clean(config.oauthHost, 'https://auth.kimi.com') };
+}
+
+const CLIENT_ID = '17e5f671-d194-4dfb-9706-5516cb48c098'; // Kimi Code's own public client id
+/**
+ * Renews an access token that ran out, the way the tool itself does (one form post with the refresh
+ * token). The file is rewritten only after Kimi answered with a complete new session, through a
+ * temporary file, so a failure of any kind leaves the session as it was. → the session, or null.
+ */
+async function renewSession(home, { fetcher = globalThis.fetch, now = Date.now(), fsx = fs } = {}) {
+  const file = sessionFile(home, fsx);
+  let stored;
+  try {
+    stored = JSON.parse(fsx.readFileSync(file, 'utf8'));
+  } catch {
+    return null;
+  }
+  if (typeof stored?.refresh_token !== 'string' || !stored.refresh_token) return null;
+  const control = new AbortController();
+  const timer = setTimeout(() => control.abort(), 10000);
+  try {
+    const res = await fetcher(endpoints(home, fsx).auth + '/api/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      body: new URLSearchParams({ client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: stored.refresh_token }).toString(),
+      signal: control.signal,
+    });
+    if (res.status !== 200) return null;
+    const data = await res.json();
+    const expiresIn = Number(data?.expires_in);
+    if (typeof data?.access_token !== 'string' || !data.access_token || typeof data?.refresh_token !== 'string' || !data.refresh_token || !(expiresIn > 0)) return null;
+    const next = {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: Math.floor(now / 1000) + expiresIn,
+      scope: typeof data.scope === 'string' ? data.scope : stored.scope || '',
+      token_type: typeof data.token_type === 'string' ? data.token_type : stored.token_type || 'Bearer',
+      expires_in: expiresIn,
+    };
+    const tmp = `${file}.tmp.${process.pid}.${Math.random().toString(36).slice(2)}`;
+    fsx.writeFileSync(tmp, JSON.stringify(next), { mode: 0o600 });
+    fsx.renameSync(tmp, file);
+    return readSession(home, fsx);
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 const signedIn = (home, fsx = fs) => !!readSession(home, fsx);
@@ -134,7 +221,7 @@ function tomlValue(raw) {
  * an empty list (the picker then has "Kimi · Otomatik" alone).
  */
 function parseConfig(text) {
-  const out = { models: [], defaultModel: '', effort: '' };
+  const out = { models: [], defaultModel: '', effort: '', baseUrl: '', oauthHost: '' };
   let section = '';
   let current = null;
   const pick = (o, ...names) => names.map((n) => o[n]).find((v) => v !== undefined);
@@ -161,6 +248,8 @@ function parseConfig(text) {
     if (current) current.raw[kv[1]] = value;
     else if (section === '' && /^default_?model$/i.test(kv[1]) && typeof value === 'string') out.defaultModel = value;
     else if (section === 'thinking' && kv[1] === 'effort' && typeof value === 'string') out.effort = value;
+    else if (section === 'providers."managed:kimi-code"' && /^base_?url$/i.test(kv[1]) && typeof value === 'string') out.baseUrl = value;
+    else if (section === 'providers."managed:kimi-code".oauth' && /^oauth_?host$/i.test(kv[1]) && typeof value === 'string') out.oauthHost = value;
     else if (section === '' && kv[1] === 'thinking') out.effort = /effort\s*=\s*"([^"]+)"/.exec(kv[2])?.[1] || out.effort;
   }
   out.models = out.models.map(({ id, raw }) => {
@@ -233,13 +322,17 @@ const AGENTS = {
   read: { name: 'charles-read', tools: ['Read', 'Glob', 'Grep'], about: 'Charles proje modu: yalnızca okuma.' },
   edit: { name: 'charles-edit', tools: ['Read', 'Glob', 'Grep', 'Write', 'Edit'], about: 'Charles proje modu: okuma ve düzenleme, komut yok.' },
 };
-/** The agent file that decides the tools of one run (`tools` is a whitelist; [] means none). */
+/**
+ * The agent file that decides the tools of one run (`tools` is a whitelist; [] means none). The
+ * description is a quoted string: the tool reads the header as YAML, and a plain value with a colon
+ * in it ("Charles sohbeti: araç yok.") made it refuse the whole file.
+ */
 function agentFile(kind) {
   const a = AGENTS[kind];
   if (!a) throw Error('Geçersiz Kimi çalışma türü.');
   return {
     name: a.name + '.md',
-    text: ['---', `name: ${a.name}`, `description: ${a.about}`, `tools: [${a.tools.join(', ')}]`, 'subagents: []', '---', '', 'Kullanıcının isteğini yanıtla. Sana verilmeyen bir aracı kullanmaya çalışma.', ''].join('\n'),
+    text: ['---', `name: ${a.name}`, `description: ${JSON.stringify(a.about)}`, `tools: [${a.tools.join(', ')}]`, 'subagents: []', '---', '', 'Kullanıcının isteğini yanıtla. Sana verilmeyen bir aracı kullanmaya çalışma.', ''].join('\n'),
   };
 }
 function agentKind({ tools, access, imageDir, task }) {
@@ -317,7 +410,7 @@ function kimiAnswer(stdout, stderr = '', code = 0) {
   if (NEEDS_LOGIN.test(said)) return { text: '', error: 'Kimi oturumu açık değil ya da süresi dolmuş. Ayarlar → AI Modelleri → Kimi’den yeniden giriş yap.', reason: 'login' };
   if (NEEDS_PLAN.test(said)) return { text, error: 'Kimi bu hesabın kullanım hakkının dolduğunu ya da planının bu modeli kapsamadığını bildirdi. Kalan kullanımına bak ya da başka bir model seç.', reason: 'quota' };
   if (text) return { text, error: '' };
-  const last = said.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !/^(Warning:|To resume this session)/i.test(l)).pop() || '';
+  const last = said.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !/^(Warning:|To resume this session|See log:|\d+ \||-+\^)/i.test(l)).pop() || '';
   return { text: '', error: 'Kimi yanıt vermedi.' + (last ? ' (' + last.slice(0, 200) + ')' : ''), reason: 'error' };
 }
 
@@ -340,19 +433,29 @@ function kimiQuota(body, now = Date.now()) {
   if (fiveHour || weekly) {
     result.blocked = fiveHour?.remaining === 0 || weekly?.remaining === 0;
     result.missingWindows = [!fiveHour && 'fiveHour', !weekly && 'weekly'].filter(Boolean);
-  } else result.unavailable = 'Kota bilgisi okunamadı';
+  } else {
+    // an account Kimi keeps no allowance windows for answers with an empty object (seen with a real
+    // account): that is "no information", not a failed read
+    const empty = body && typeof body === 'object' && !Array.isArray(body) && (!u || !Object.keys(u).length);
+    result.unavailable = empty ? 'Bilgi yok' : 'Kota bilgisi okunamadı';
+  }
   return result;
 }
 /** Reads the usage with the stored session. The token goes to Kimi's own address only. */
-async function fetchUsage(home, { fetcher = globalThis.fetch, now = Date.now(), fsx = fs } = {}) {
-  const session = readSession(home, fsx);
+async function fetchUsage(home, { fetcher = globalThis.fetch, now = Date.now(), fsx = fs, renew = true } = {}) {
+  let session = readSession(home, fsx);
   const none = (message) => ({ provider: 'kimi', fiveHour: null, weekly: null, credits: null, blocked: null, updatedAt: now, unavailable: message });
   if (!session) return none('Kimi hesabı bağlı değil');
-  if (!session.access || (session.expiresAt && session.expiresAt < now)) return none('Oturum yenilenince görünecek');
+  // the access token lasts 15 minutes: one that ran out is renewed first (never while the tool
+  // itself is answering, which renews it too)
+  if (!session.access || (session.expiresAt && session.expiresAt < now + 30000)) {
+    if (renew && session.refresh) session = (await renewSession(home, { fetcher, now, fsx })) || session;
+    if (!session.access || (session.expiresAt && session.expiresAt < now)) return none('Oturum yenilenince görünecek');
+  }
   const control = new AbortController();
   const timer = setTimeout(() => control.abort(), 8000);
   try {
-    const res = await fetcher(BASE_URL + '/usages', { headers: { Authorization: 'Bearer ' + session.access, Accept: 'application/json' }, signal: control.signal });
+    const res = await fetcher(endpoints(home, fsx).base + '/usages', { headers: { Authorization: 'Bearer ' + session.access, Accept: 'application/json' }, signal: control.signal });
     if (res.status === 401) return none('Oturum yenilenince görünecek');
     if (!res.ok) return none('Kota bilgisi okunamadı');
     return kimiQuota(await res.json(), now);
@@ -363,4 +466,4 @@ async function fetchUsage(home, { fetcher = globalThis.fetch, now = Date.now(), 
   }
 }
 
-module.exports = { findKimi, kimiEnv, readSession, signedIn, parseLogin, parseConfig, prettyModel, effortLabel, withEffort, agentFile, agentKind, kimiPlan, kimiItems, kimiAnswer, kimiQuota, fetchUsage, MODEL_ALIAS, MAX_PROMPT, BASE_URL, AGENTS };
+module.exports = { findKimi, kimiEnv, readSession, sessionFile, endpoints, renewSession, signedIn, parseLogin, parseConfig, prettyModel, effortLabel, withEffort, agentFile, agentKind, kimiPlan, kimiItems, kimiAnswer, kimiQuota, fetchUsage, MODEL_ALIAS, MAX_PROMPT, BASE_URL, AGENTS };

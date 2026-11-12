@@ -146,7 +146,7 @@ const EFFORT_LEVELS = {
 };
 // Providers that take the level as a request parameter (the model id stays as it is). The
 // others carry the level inside the model id itself ("gemini-4-argon-high", "grok-4.7-xhigh").
-const EFFORT_BY_PARAM = new Set(['claude', 'evren', 'kimi', 'opencode']);
+const EFFORT_BY_PARAM = new Set(['claude', 'evren', 'kimi', 'opencode', 'copilot']);
 // Models that take no level even though their provider does: Claude Haiku and the Claude
 // models before Opus/Sonnet 4.5 have no effort setting.
 const NO_EFFORT = new Set(['claude:haiku']);
@@ -838,7 +838,9 @@ class Providers {
   /** Kimi's 5-hour and weekly allowance for the island gauges (60 s cache; a failed read keeps the last one). */
   async kimiUsage(force = false) {
     if (!force && this.kimiQuotaCache && Date.now() - this.kimiQuotaCache.updatedAt < 60000) return this.kimiQuotaCache;
-    const value = await kimiKit.fetchUsage(KITS.kimi.home(this.dir));
+    // while Kimi Code is answering it renews its own session: Charles does not do it beside it
+    const answering = [...this.jobs.values()].some((job) => job.kimi === true);
+    const value = await kimiKit.fetchUsage(KITS.kimi.home(this.dir), { renew: !answering });
     if (value.unavailable && this.kimiQuotaCache && !this.kimiQuotaCache.unavailable && value.unavailable !== 'Kimi hesabı bağlı değil')
       return { ...this.kimiQuotaCache, stale: true, updatedAt: Date.now() };
     this.kimiQuotaCache = value;
@@ -1669,12 +1671,13 @@ class Providers {
           : isAbacus
             ? abacus.abacusEnv(this.env)
             : kit
-              ? kit.env(this.env, this.kitContext({ tools: plan.tools, access: args.access }))
+              ? kit.env(this.env, this.kitContext({ tools: plan.tools, access: args.access, pictures: !!staged }))
               : this.env,
       windowsHide: true,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     this.jobs.set(agent, child);
+    if (provider === 'kimi') child.kimi = true;
     let stdout = '',
       stderr = '',
       finished = false;

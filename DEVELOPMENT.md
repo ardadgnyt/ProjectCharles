@@ -291,6 +291,14 @@ reasoning levels are read from that home's `config.toml`, and the level of the n
 there (`withEffort`), because the tool has no option for it. A new CLI connection is a kit plus its id
 in the lists `test/v0927-providers.test.cjs` names.
 
+Where the tools really are (found on a real install, 0.9.27-rc.2): Copilot is usually VS Code's launcher
+`…\Microsoft VS Code\bin\copilot-shim\copilot.exe` (the real tool; `copilot help config` lists the model
+ids, `--reasoning-effort` takes the level); OpenCode is usually the desktop app's
+`%LOCALAPPDATA%\Programs\ai.opencode.desktop\resources\opencode-cli.exe` (v2: `run --standalone -m
+provider/model#variant -- <message>`, models from `api GET /api/model`); Kimi keeps its session in
+`credentials/kimi-code-env-<id>.json` and its addresses (`base_url`, `oauth_host`) in `config.toml`.
+VS Code being signed in to Copilot does not sign the command line tool in.
+
 ### Where the chat is (`src/chat/follow.ts`)
 One file owns the chat list's scroll position. It remembers the first message on screen and how far
 into it the top edge is, not a pixel count: at another width the text wraps differently and the same
