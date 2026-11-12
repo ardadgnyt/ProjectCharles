@@ -212,8 +212,8 @@ contextBridge.exposeInMainWorld('charles', {
   evrenTermsAccept: (version) => invoke('evren-terms-accept', version),
   evrenConnect: (key) => invoke('evren-connect', key),
   providersKitTest: (id) => invoke('providers-kit-test', id),
-  kimiLoginState: () => invoke('kimi-login-state'),
-  kimiLogout: () => invoke('kimi-logout'),
+  // v0.9.27: the models a GitHub Copilot plan has were read again and are not what they were
+  onProviderModels: (cb) => ipcRenderer.on('provider-models-changed', (_e, value) => cb(value)),
   updateState: () => invoke('update-state'),
   updateCheck: () => invoke('update-check'),
   updateAuto: (value) => invoke('update-auto', value),

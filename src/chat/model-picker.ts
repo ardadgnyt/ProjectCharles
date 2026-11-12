@@ -29,11 +29,9 @@ export const PROVIDERS: [string, string][] = [
   ['cursor', 'Cursor'],
   ['abacus', 'Abacus AI'],
   ['evren', 'Evren'],
-  ['kimi', 'Kimi'],
   ['copilot', 'GitHub Copilot'],
-  ['opencode', 'OpenCode'],
 ];
-const PREFIX = /^(?:Cursor|Antigravity|AntiGravity|Gemini|Claude|Abacus AI|EVREN|Evren|Kimi|GitHub Copilot|OpenCode|OpenAI)\s*·\s*/;
+const PREFIX = /^(?:Cursor|Antigravity|AntiGravity|Gemini|Claude|Abacus AI|EVREN|Evren|GitHub Copilot|OpenAI)\s*·\s*/;
 
 /**
  * The provider an option belongs to ('' = no provider, e.g. "Önce hesap bağla").
@@ -43,7 +41,7 @@ const PREFIX = /^(?:Cursor|Antigravity|AntiGravity|Gemini|Claude|Abacus AI|EVREN
  */
 export function optionProvider(option: HTMLOptionElement) {
   if (option.dataset.provider !== undefined) return option.dataset.provider;
-  const m = /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.exec(option.value);
+  const m = /^(gemini|claude|cursor|abacus|evren|copilot):/.exec(option.value);
   if (m) return m[1];
   return option.value ? 'gpt' : '';
 }

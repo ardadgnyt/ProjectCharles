@@ -34,8 +34,6 @@ const PROVIDERS: [string, string, string][] = [
   ['cursor', 'Cursor', '#3fd8c8'],
   ['abacus', 'Abacus AI', '#b9a6ff'],
   ['evren', 'EVREN', '#E30A17'],
-  ['kimi', 'Kimi', '#F46AC8'],
-  ['opencode', 'OpenCode', '#FFD54A'],
   ['copilot', 'GitHub Copilot', '#A3E635'],
 ];
 const SOURCES: Record<string, string> = {

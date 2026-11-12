@@ -9,9 +9,7 @@ const PROVIDERS: [string, string][] = [
   ['cursor', 'Cursor'],
   ['abacus', 'Abacus AI'],
   ['evren', 'EVREN'],
-  ['kimi', 'Kimi'],
   ['copilot', 'GitHub Copilot'],
-  ['opencode', 'OpenCode'],
 ];
 
 export function accountTab(api: any, notice: (s: string) => void) {

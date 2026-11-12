@@ -294,7 +294,7 @@ approves. See [docs/MODULES.md](docs/MODULES.md).
 
 ### AI usage and weather
 
-**AI usage** shows every connected AI (Codex, Claude, Antigravity, Cursor, Abacus AI, EVREN, Kimi, GitHub Copilot, OpenCode)
+**AI usage** shows every connected AI (Codex, Claude, Antigravity, Cursor, Abacus AI, EVREN, GitHub Copilot)
 with its two windows and when they reset. **Weather** shows the current conditions, the next
 hours, today and the next five days; the location button changes the city.
 

@@ -2173,17 +2173,15 @@ else {
       // The island shows the quota of the provider behind the selected model. The renderer
       // names that provider; without one the main AI chosen in settings is used.
       safeHandler('usage-read', async (force = false, requested = null) => {
-        const known = ['gpt', 'gemini', 'claude', 'cursor', 'abacus', 'evren', 'kimi', 'copilot', 'opencode'];
+        const known = ['gpt', 'gemini', 'claude', 'cursor', 'abacus', 'evren', 'copilot'];
         const provider = known.includes(requested)
           ? requested
           : agent.providers?.enabled.primary || 'gpt';
         if (demo) return { provider, fiveHour: null, weekly: null, credits: null, updatedAt: null };
         // v0.8.0: the Abacus AI command line tool reports no usage limits
-        // v0.9.27: the GitHub Copilot and OpenCode tools report none either
-        if (['abacus', 'copilot', 'opencode'].includes(provider))
+        // v0.9.27: the GitHub Copilot tool reports none either
+        if (['abacus', 'copilot'].includes(provider))
           return { provider, fiveHour: null, weekly: null, credits: null, updatedAt: Date.now(), unavailable: 'Bilgi yok' };
-        // v0.9.27: Kimi Code's 5-hour and weekly allowance (60 s cache in the provider)
-        if (provider === 'kimi') return agent.providers.kimiUsage(force === true);
         if (provider === 'gemini') return agent.providers.usage(force === true);
         if (provider === 'claude') return agent.providers.claudeUsage.read(force === true);
         // v0.9.6: EVREN reports its daily token quota (60 s cache in the provider)
@@ -2363,7 +2361,7 @@ else {
       // chat folders) and the quota panel follow its provider.
       safeHandler('default-model', (value) => {
         const result = extras.setDefaultModel(value);
-        const provider = /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(value || '')
+        const provider = /^(gemini|claude|cursor|abacus|evren|copilot):/.test(value || '')
           ? String(value).split(':')[0]
           : 'gpt';
         if (agent.providers && agent.providers.enabled.primary !== provider) {
@@ -3367,6 +3365,11 @@ else {
         root,
         app.getPath('userData'),
       );
+      // v0.9.27: the models of a GitHub Copilot plan are read again every hour (and when the tool
+      // refuses a model); when they are not what they were, the model list is rebuilt
+      agent.providers.watchKitModels((id, change) => {
+        if (win && !win.isDestroyed()) win.webContents.send('provider-models-changed', { id, ...change });
+      });
       // v0.8.7: Claude takes images up to 5 MB; larger photos are scaled down to JPEG first.
       agent.providers.shrinkImage = (file, max) => {
         let img = nativeImage.createFromPath(file);
@@ -3416,15 +3419,12 @@ else {
         if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
         return agent.providers.evrenTermsAccept(version);
       });
-      // v0.9.27: Kimi, GitHub Copilot and OpenCode (app/ai/cli-kits.cjs): the connection test, and
-      // Kimi's sign-in, which needs no console window
+      // v0.9.27: GitHub Copilot (app/ai/cli-kits.cjs): the connection test
       safeHandler('providers-kit-test', (id) => {
         if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
-        if (!['kimi', 'copilot', 'opencode'].includes(id)) throw Error('Geçersiz sağlayıcı.');
+        if (!['copilot'].includes(id)) throw Error('Geçersiz sağlayıcı.');
         return agent.providers.testKit(id);
       });
-      safeHandler('kimi-login-state', () => agent.providers.kimiLoginState());
-      safeHandler('kimi-logout', () => agent.providers.kimiLogout());
       // v0.9.27: paste the key and connect in one step (saved encrypted, then really checked)
       safeHandler('evren-connect', (key) => {
         if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
@@ -3433,7 +3433,7 @@ else {
       safeHandler('providers-enable', ({ id, value }) => agent.providers.enable(id, value));
       safeHandler('provider-primary-read', () => agent.providers.enabled.primary || 'gpt');
       safeHandler('provider-primary-save', async (id) => {
-        if (!['gpt', 'gemini', 'claude', 'cursor', 'abacus', 'evren', 'kimi', 'copilot', 'opencode'].includes(id)) throw Error('Geçersiz sağlayıcı.');
+        if (!['gpt', 'gemini', 'claude', 'cursor', 'abacus', 'evren', 'copilot'].includes(id)) throw Error('Geçersiz sağlayıcı.');
         // Only check sign-in when we do not already know the account is connected; the
         // check starts three CLIs and made switching the main AI feel stuck.
         if (id !== 'gpt' && !agent.providers.auth[id]) await agent.providers.refreshAuth(true);
@@ -3450,7 +3450,7 @@ else {
                 ? 'cursor:auto'
                 : id === 'abacus'
                   ? 'abacus:auto'
-                  : ['evren', 'kimi', 'copilot', 'opencode'].includes(id)
+                  : ['evren', 'copilot'].includes(id)
                     ? id + ':auto'
                     : 'claude:claude-sonnet-5-5';
         extras.setDefaultModel(model);
@@ -3778,7 +3778,7 @@ else {
         const chatDir = path.join(app.getPath('userData'), 'chat-workspace');
         if (mode === 'chat') fs.mkdirSync(chatDir, { recursive: true });
         // v0.9.25: every connection takes pictures now (app/ai/provider-images.cjs)
-        const inputs = await extras.inputs(args.attachments || [], { textOnly: /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(args.model || ''), images: true });
+        const inputs = await extras.inputs(args.attachments || [], { textOnly: /^(gemini|claude|cursor|abacus|evren|copilot):/.test(args.model || ''), images: true });
         const turn = await agent.send({
           prompt: args.prompt,
           displayPrompt: args.displayPrompt,

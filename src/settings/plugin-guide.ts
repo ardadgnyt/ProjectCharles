@@ -122,22 +122,7 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
           finish: true,
         },
       ],
-      // v0.9.27: Kimi, GitHub Copilot and OpenCode, each through its own command line tool
-      'kimi-login': [
-        {
-          title: '1 · Kimi Code’u kur',
-          text: 'Kimi’nin komut satırı aracı (Kimi Code) Charles ile gelmez. Aşağıdaki düğmeyle kurulum sayfasını aç ve Windows adımlarıyla kur. Zaten kuruluysa sonraki adıma geç.',
-        },
-        {
-          title: '2 · Hesabınla giriş yap',
-          text: 'Aşağıdaki düğmeye bas. Tarayıcıda Kimi’nin sayfası açılır ve Charles sana bir kod gösterir. Kimi hesabınla giriş yapıp o kodu onayla. Siyah pencere açılmaz.',
-        },
-        {
-          title: '3 · Bağlantıyı kontrol et',
-          text: 'Bağlantıyı kontrol et’e bas. Charles, Kimi’ye kısa bir deneme mesajı gönderir; yanıt gelirse hesabındaki Kimi modelleri model listesine eklenir.',
-          finish: true,
-        },
-      ],
+      // v0.9.27: GitHub Copilot, through its own command line tool
       'copilot-login': [
         {
           title: '1 · GitHub Copilot aracını kur',
@@ -150,21 +135,6 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
         {
           title: '3 · Bağlantıyı kontrol et',
           text: 'Bağlantıyı kontrol et’e bas. Charles, GitHub Copilot’a kısa bir deneme mesajı gönderir; yanıt gelirse GitHub Copilot model listesine eklenir.',
-          finish: true,
-        },
-      ],
-      'opencode-login': [
-        {
-          title: '1 · OpenCode’u kur',
-          text: 'OpenCode komut satırı aracı Charles ile gelmez. Aşağıdaki düğmeyle kurulum sayfasını aç ve Windows adımlarıyla kur. Zaten kuruluysa sonraki adıma geç.',
-        },
-        {
-          title: '2 · Hesabınla giriş yap',
-          text: 'Aşağıdaki düğmeye bas. Charles küçük bir siyah pencere açar. Ok tuşlarıyla bir sağlayıcı seç (ücretsiz modeller için OpenCode Zen), girişi tamamla ve pencereyi kapat.',
-        },
-        {
-          title: '3 · Bağlantıyı kontrol et',
-          text: 'Bağlantıyı kontrol et’e bas. Charles, OpenCode’a kısa bir deneme mesajı gönderir; yanıt gelirse OpenCode modelleri model listesine eklenir.',
           finish: true,
         },
       ],
@@ -329,16 +299,14 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
       reopen.onclick = () => void api.pluginsSetupPage(id, current.page);
       bubble.append(reopen);
     }
-    const loginOf = /^(gpt|claude|gemini|cursor|abacus|kimi|copilot|opencode)-login$/.exec(id)?.[1];
-    const NAMES: Record<string, string> = { gpt: 'ChatGPT', claude: 'Claude', gemini: 'Antigravity', cursor: 'Cursor', abacus: 'Abacus AI', evren: 'EVREN', kimi: 'Kimi', copilot: 'GitHub Copilot', opencode: 'OpenCode' };
+    const loginOf = /^(gpt|claude|gemini|cursor|abacus|copilot)-login$/.exec(id)?.[1];
+    const NAMES: Record<string, string> = { gpt: 'ChatGPT', claude: 'Claude', gemini: 'Antigravity', cursor: 'Cursor', abacus: 'Abacus AI', evren: 'EVREN', copilot: 'GitHub Copilot' };
     // v0.9.27: tools the user installs themself: the setup page first (step 1), then the sign-in (step 2)
     const INSTALL: Record<string, string> = {
       abacus: 'https://abacus.ai/help/abacusai-desktop/cli-installation',
-      kimi: 'https://moonshotai.github.io/kimi-code/',
       copilot: 'https://docs.github.com/copilot/how-tos/copilot-cli',
-      opencode: 'https://opencode.ai/docs/',
     };
-    const isKit = !!loginOf && ['kimi', 'copilot', 'opencode'].includes(loginOf);
+    const isKit = !!loginOf && ['copilot'].includes(loginOf);
     // v0.8.0: Abacus AI first needs its own tool installed (step 1), then signs in (step 2)
     if (loginOf && INSTALL[loginOf] && step === 0) {
       const docs = document.createElement('button');
@@ -351,7 +319,7 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
     if (loginOf && step === (INSTALL[loginOf] ? 1 : 0)) {
       const open = document.createElement('button');
       open.className = 'primary';
-      open.textContent = loginOf === 'gpt' ? 'ChatGPT ile giriş yap' : loginOf === 'kimi' ? 'Kimi ile giriş' : 'Giriş penceresini aç';
+      open.textContent = loginOf === 'gpt' ? 'ChatGPT ile giriş yap' : 'Giriş penceresini aç';
       open.onclick = async () => {
         open.disabled = true;
         try {
@@ -371,21 +339,6 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
             const last = bubble?.querySelector('p');
             if (last) last.textContent = NAMES[loginOf] + ' hesabın zaten bağlı. Kurulumu bitir düğmesine basabilirsin.';
             await saved(null);
-            return;
-          }
-          // Kimi: no console; its tool gave a link (opened in the browser) and a code to confirm
-          if (loginOf === 'kimi') {
-            p.replaceChildren();
-            if (r?.url && r?.code) {
-              const code = document.createElement('strong');
-              code.setAttribute('translate', 'no');
-              code.textContent = String(r.code);
-              const lead = document.createElement('span');
-              lead.textContent = 'Tarayıcıda Kimi sayfası açıldı. Hesabınla giriş yapıp bu kodu onayla:';
-              const tail = document.createElement('span');
-              tail.textContent = 'Onayladıktan sonra Tamam, sonraki adım’a bas.';
-              p.append(lead, ' ', code, ' ', tail);
-            } else p.textContent = String(r?.message || 'Kimi girişi başlatılamadı. Yeniden dene.');
             return;
           }
           p.textContent =

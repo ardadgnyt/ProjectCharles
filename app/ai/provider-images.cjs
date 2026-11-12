@@ -16,13 +16,13 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const IMAGE_PROVIDERS = ['claude', 'gemini', 'cursor', 'abacus', 'evren', 'kimi', 'copilot', 'opencode'];
+const IMAGE_PROVIDERS = ['claude', 'gemini', 'cursor', 'abacus', 'evren', 'copilot'];
 const IMAGE_ONLY_MESSAGE = 'Bu bağlantı görsel alamıyor.';
 const MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
 // v0.9.24: what each connection can carry in one message. Claude's API takes up to 600 pictures in
 // one request (100 on models with a 200k context) and 128 MB of request in all; agy reads files.
 // v0.9.25: Cursor and Abacus open each picture with a tool call; EVREN's vision models take 8.
-const MAX_IMAGES = { claude: 600, gemini: 1000, cursor: 20, abacus: 20, evren: 8, kimi: 20, copilot: 20, opencode: 20 };
+const MAX_IMAGES = { claude: 600, gemini: 1000, cursor: 20, abacus: 20, evren: 8, copilot: 20 };
 // The Claude API takes images up to 5 MB each; larger ones are shrunk first when the app can
 // (Electron nativeImage, see main.cjs), otherwise refused with a clear message.
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;

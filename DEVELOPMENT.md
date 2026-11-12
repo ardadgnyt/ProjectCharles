@@ -74,7 +74,7 @@ Windows’ application data folder: `%APPDATA%\Charles`. See section 6.
 | --- | --- | --- |
 | `app/` (root) | Entry points | `main.cjs` (windows: the transparent island and the framed app window, one shared page in a WebContentsView; layout, IPC endpoints), `preload.cjs` (interface bridge) |
 | `app/core/` | Infrastructure | `store.cjs` (safe JSON storage), `policy.cjs` (Codex permissions), `layout.cjs` (panel sizes), `preferences.cjs`, `shortcuts.cjs`, `startup.cjs`, `extras.cjs` (appearance preferences and attachments), `desktop-pet.cjs`, `pet-physics.cjs`, `task-mode.cjs`, `proposals.cjs`, `ask-format.cjs`, `reset.cjs`, `file-preview.cjs`, `change-review.cjs`, `dash-layout.cjs`, `system-info.cjs`, `release-notes.cjs` (notes of a version from `CHANGELOG.md`; first install, update or restart), `metric-stats.cjs` (Current / Average / Peak and chart points) |
-| `app/ai/` | AI and chats | `agent.cjs` + `rpc.cjs` (Codex), `providers.cjs`, `cli-kits.cjs` + `kimi.cjs` (Kimi, GitHub Copilot and OpenCode through their own command line tools), `provider-tools.cjs` (tool permissions in project mode; no permission-bypass mode), `sessions.cjs`, `chat-folders.cjs`, `chat-classifier.cjs`, `ask-once.cjs`, `chat-actions.cjs`, `conversation-tools.cjs` |
+| `app/ai/` | AI and chats | `agent.cjs` + `rpc.cjs` (Codex), `providers.cjs`, `cli-kits.cjs` (GitHub Copilot through its own command line tool), `provider-tools.cjs` (tool permissions in project mode; no permission-bypass mode), `sessions.cjs`, `chat-folders.cjs`, `chat-classifier.cjs`, `ask-once.cjs`, `chat-actions.cjs`, `conversation-tools.cjs` |
 | `app/usage/` | Remaining usage on the island | `codex-usage.cjs`, `gemini-usage.cjs`, `claude-usage.cjs`, `cursor-usage.cjs`, `evren-usage.cjs` |
 | `app/modules/` | Modules | `manifest.cjs`, `package.cjs`, `registry.cjs`, `storage.cjs`, `protocol.cjs`, `host.cjs`, `module-preload.cjs`, `ai-image.cjs`; docs: `docs/MODULES.md` |
 | `app/plugins/` | Accounts and notifications | `plugins.cjs`, `pop3.cjs`, `plugin-commands.cjs`, `home-climate.cjs`, `mail-search.cjs`, `oauth-setup.cjs`, `mail-triage.cjs`, `mail-alerts.cjs`, `mail-bubble.cjs` + `bubble-preload.cjs`, `deadlines.cjs`, `whatsapp-live.cjs` |
@@ -280,24 +280,26 @@ the plugin guide share the page but are left out of that rule. The saved chat he
 Large one.
 
 ### AI connections through a command line tool (`app/ai/cli-kits.cjs`)
-Kimi, GitHub Copilot and OpenCode are "kits": `find` (where the user's install puts the tool; none is
-shipped), `env`, `plan` (the command line of one message), `answer` (text and a clear error out of what
-the tool printed), and for sign-in either `loginArgs` (a console window) or Kimi's own device-code flow
-(`Providers.kimiLogin`, no window). `providers.cjs` drives all three through the same branches as Abacus
-AI. A chat never gets tools: Kimi through an agent file whose `tools` list is a whitelist, Copilot
-through `--deny-tool`, OpenCode through `OPENCODE_CONFIG_CONTENT`. No kit ever uses a mode that skips
-permissions. Kimi keeps a home of its own (`providers/kimi/home`, `KIMI_CODE_HOME`); its models and
-reasoning levels are read from that home's `config.toml`, and the level of the next run is written
-there (`withEffort`), because the tool has no option for it. A new CLI connection is a kit plus its id
-in the lists `test/v0927-providers.test.cjs` names.
+GitHub Copilot is a "kit": `find` (where the user's install puts the tool; it is not shipped), `env`,
+`plan` (the command line of one message), `answer` (text and a clear error out of what the tool
+printed), `loginArgs` (sign-in in a console window) and `listModels`. `providers.cjs` drives a kit
+through the same branches as Abacus AI. A chat never gets tools (`--deny-tool`), and no kit ever uses a
+mode that skips permissions. A new CLI connection is a kit plus its id in the lists
+`test/v0927-providers.test.cjs` names.
 
-Where the tools really are (found on a real install, 0.9.27-rc.2): Copilot is usually VS Code's launcher
-`…\Microsoft VS Code\bin\copilot-shim\copilot.exe` (the real tool; `copilot help config` lists the model
-ids, `--reasoning-effort` takes the level); OpenCode is usually the desktop app's
-`%LOCALAPPDATA%\Programs\ai.opencode.desktop\resources\opencode-cli.exe` (v2: `run --standalone -m
-provider/model#variant -- <message>`, models from `api GET /api/model`); Kimi keeps its session in
-`credentials/kimi-code-env-<id>.json` and its addresses (`base_url`, `oauth_host`) in `config.toml`.
-VS Code being signed in to Copilot does not sign the command line tool in.
+What a real install showed: Copilot is usually VS Code's launcher
+`…\Microsoft VS Code\bin\copilot-shim\copilot.exe` (the real tool), and VS Code being signed in does
+not sign the command line tool in. `copilot help config` lists every model id the tool knows, which is
+not what an account has: the account's list comes from a session opened over `--acp`
+(`copilotAccountModels`: `initialize`, `session/new`, read `models.availableModels`; no prompt is
+sent). `Providers.refreshKitModels` asks it at every sign-in check, every hour (`watchKitModels`) and
+at once when the tool answers "Model … is not available"; a changed list is sent to the page as
+`provider-models-changed`, which rebuilds the model menu and, when it is a change of plan rather than
+the first list, says so.
+
+Kimi and OpenCode were kits in 0.9.27-rc.1 to rc.3 and were removed in rc.4 at the user's request.
+`Providers` deletes what they left in `providers/` (`kimi/`, `kimi.json`, `opencode.json`) and resets a
+main AI that was one of them.
 
 ### Where the chat is (`src/chat/follow.ts`)
 One file owns the chat list's scroll position. It remembers the first message on screen and how far

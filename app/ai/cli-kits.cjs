@@ -1,33 +1,27 @@
-// v0.9.27: three more AI connections through their own official command line tools, the way
-// Abacus AI is connected (app/ai/abacus.cjs): Kimi (Kimi Code), GitHub Copilot (Copilot CLI) and
-// OpenCode. None of the tools is shipped with Charles: whoever has the account installs the tool,
-// signs in with it, and Charles finds it and talks to it. Each works with what the account's own
-// plan allows (a free plan included, where the service has one); Charles checks no plan.
+// v0.9.27: GitHub Copilot as an AI connection through its own official command line tool (Copilot
+// CLI), the way Abacus AI is connected (app/ai/abacus.cjs). The tool is not shipped with Charles:
+// whoever has the account installs it, signs in with it, and Charles finds it and talks to it. It
+// works with what the account's own plan allows; the plan's models are asked from the tool, again
+// every hour, so a changed plan shows up by itself.
 //
-// One "kit" per tool says: where it is installed, how one message is sent, how the answer is read,
-// how to sign in, and how its models are listed. app/ai/providers.cjs drives all three the same way.
+// A "kit" says: where the tool is installed, how one message is sent, how the answer is read, how to
+// sign in, and how its models are listed. app/ai/providers.cjs drives a kit through the same branches
+// as Abacus AI. (Kimi and OpenCode were kits too in the first builds of v0.9.27 and were taken out
+// again before the release.)
 //
 // Safety, as for every CLI connection: a chat runs without tools in Charles' own empty folder;
 // project mode gets reading, or reading and editing, never the shell, and never a mode that skips
-// permissions (Copilot's --allow-all / --yolo, OpenCode's --dangerously-skip-permissions).
+// permissions (--allow-all / --yolo).
 //
-// What is known from where:
-//   Kimi      the tool's own source (app/ai/kimi.cjs).
-//   Copilot   GitHub Docs and the tool's own --help (1.0.109, on the user's computer): -p, -s,
-//             --model, --reasoning-effort, --no-ask-user, --no-custom-instructions, --allow-tool /
-//             --deny-tool (shell, write, read, url); `copilot help config` lists the model ids.
-//             With VS Code installed, `copilot` is VS Code's own launcher (bin\copilot-shim): it
-//             runs the same tool and is the usual way to have it on Windows.
-//   OpenCode  its own program (opencode 1.19.5, read, not run): `opencode run [message..] -m
-//             provider/model --variant <level>`, `opencode models --verbose` (a "provider/model" line,
-//             then that model as JSON: name, cost, variants), `opencode auth login`, and the
-//             `permission` config (edit, bash, webfetch: allow/ask/deny).
-// Copilot and OpenCode could not be run on the development computer (no accounts there), so their
-// answers are read as plain text, the most forgiving form, and every message has a clear error.
+// What is known from where: GitHub Docs and the tool's own --help (1.0.109, on the user's computer):
+// -p, -s, --model, --reasoning-effort, --no-ask-user, --no-custom-instructions, --allow-tool /
+// --deny-tool (shell, write, read, url). With VS Code installed, `copilot` is VS Code's own launcher
+// (bin\copilot-shim): it runs the same tool and is the usual way to have it on Windows. The account's
+// models come from a session opened over `--acp`. Answers are read as plain text.
 const fs = require('node:fs');
 const path = require('node:path');
-const kimi = require('./kimi.cjs');
-const { parseNpmShim, parseAbacusModels } = require('./abacus.cjs');
+const { spawn } = require('node:child_process');
+const { parseNpmShim } = require('./abacus.cjs');
 
 const MAX_PROMPT = 28000; // Windows command lines stop at 32 767 characters
 const stripAnsi = (s) => String(s || '').replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, '').replace(/\x1b\][^\x07]*\x07/g, '');
@@ -79,6 +73,8 @@ function checkPrompt(prompt, name) {
 }
 const NEEDS_LOGIN = /not (?:logged|signed) in|please (?:log ?in|sign in|authenticate)|no (?:auth|credentials|token|provider)|unauthori[sz]ed|authentication (?:required|failed)|\b401\b|invalid (?:api )?(?:key|token)|\/login|auth login/i;
 const NEEDS_PLAN = /quota|premium request|usage limit|rate limit|\b429\b|\b402\b|billing|subscription|insufficient|exceeded|not (?:available|included) (?:on|in) your plan/i;
+// "Model "grok-4.7" is not available.": the account's plan does not have that model
+const NO_MODEL = /model\b.{1,90}\bis not available|model not found|unknown model|invalid model/i;
 /** Plain-text output of one run → { text, error, reason }. */
 function textAnswer(name, stdout, stderr, code, noise = null) {
   let text = stripAnsi(stdout).replace(/\r/g, '');
@@ -88,34 +84,83 @@ function textAnswer(name, stdout, stderr, code, noise = null) {
   // a refusal is told apart from an answer by the exit code first; an answer about "login" is an answer
   const refusal = code ? said + '\n' + text.slice(0, 400) : !text ? said : '';
   if (refusal && NEEDS_LOGIN.test(refusal)) return { text: '', error: `${name} oturumu açık değil. Ayarlar → AI Modelleri → ${name} kartından giriş yap, sonra Bağlantıyı kontrol et’e bas.`, reason: 'login' };
+  if (refusal && NO_MODEL.test(refusal)) return { text: '', error: `${name} hesabın bu modeli kullanamıyor. Otomatik’i ya da listeden başka bir model seç.`, reason: 'model' };
   if (refusal && NEEDS_PLAN.test(refusal)) return { text: '', error: `${name} bu hesabın kullanım hakkının dolduğunu ya da planının bu modeli kapsamadığını bildirdi. Başka bir model seç ya da daha sonra yeniden dene.`, reason: 'quota' };
   if (text && !code) return { text, error: '' };
   const last = said.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).pop() || '';
   return { text: '', error: `${name} yanıt vermedi.` + (last ? ' (' + last.slice(0, 200) + ')' : ''), reason: 'error' };
 }
 
+const COPILOT_EFFORTS = ['low', 'medium', 'high', 'xhigh'];
 /**
- * `copilot help config` → [[id, name, levels]]: the quoted ids listed under the `model` setting.
- * The tool says which levels exist (--reasoning-effort) but not which a model takes ("supported
- * levels depend on the model"), so every model is offered the three every reasoning model has; a
- * level a model refuses comes back as the tool's own error.
+ * The models the signed-in account may really use. `copilot help config` lists every id the tool
+ * knows (27 of them), and the second build of v0.9.27 offered all of those: on an account whose plan
+ * has only "Auto", each one answered "Model … is not available". The tool tells the account's own
+ * list when a session is opened over its Agent Client Protocol mode (`--acp`): nothing is sent to a
+ * model for it. → [[id, name, []]], or null when the tool did not tell (not signed in, too old).
  */
-const COPILOT_EFFORTS = ['low', 'medium', 'high'];
-function parseCopilotModels(text) {
-  const lines = stripAnsi(text).replace(/\r/g, '').split('\n');
-  const start = lines.findIndex((l) => /^\s*`model`:/.test(l));
-  if (start < 0) return [];
-  const out = [];
-  for (let i = start + 1; i < lines.length && out.length < 80; i++) {
-    const m = /^\s*-\s*"([^"]+)"\s*$/.exec(lines[i]);
-    if (!m) {
-      // the description may run over several lines before the list begins
-      if (!out.length && lines[i].trim() && !/^\s*`[A-Za-z.]+`:/.test(lines[i])) continue;
-      break;
-    }
-    if (COPILOT_MODEL.test(m[1]) && m[1] !== 'auto' && !out.some((r) => r[0] === m[1])) out.push([m[1], copilotName(m[1]), [...COPILOT_EFFORTS]]);
+function parseAcpModels(result) {
+  const list = result?.models?.availableModels;
+  if (!Array.isArray(list)) return null;
+  const rows = [];
+  for (const m of list) {
+    const id = String(m?.modelId || '');
+    const state = m?._meta?.copilotEnablement;
+    if (id === 'auto' || !COPILOT_MODEL.test(id) || (state && state !== 'enabled') || rows.some((r) => r[0] === id)) continue;
+    rows.push([id, typeof m.name === 'string' && m.name.trim() ? m.name.trim().slice(0, 40) : copilotName(id), []]);
+    if (rows.length >= 80) break;
   }
-  return out;
+  return rows;
+}
+function copilotAccountModels(exe, args, { cwd, env, timeoutMs = 25000, spawnFn = spawn } = {}) {
+  return new Promise((resolve) => {
+    let child;
+    try {
+      child = spawnFn(exe, [...args, '--acp', '--no-custom-instructions'], { cwd, env, windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] });
+    } catch {
+      return resolve(null);
+    }
+    let buf = '';
+    let done = false;
+    const end = (value) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      try {
+        child.kill();
+      } catch {}
+      resolve(value);
+    };
+    const timer = setTimeout(() => end(null), timeoutMs);
+    const send = (id, method, params) => {
+      try {
+        child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
+      } catch {
+        end(null);
+      }
+    };
+    child.on('error', () => end(null));
+    child.on('close', () => end(null));
+    child.stdin.on('error', () => {});
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => {
+      buf += chunk;
+      if (buf.length > 4e6) return end(null);
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i).trim();
+        buf = buf.slice(i + 1);
+        let m = null;
+        try {
+          m = line ? JSON.parse(line) : null;
+        } catch {}
+        if (!m || typeof m !== 'object') continue;
+        if (m.id === 1) m.result ? send(2, 'session/new', { cwd, mcpServers: [] }) : end(null);
+        else if (m.id === 2) end(m.result ? parseAcpModels(m.result) : null);
+      }
+    });
+    send(1, 'initialize', { protocolVersion: 1, clientCapabilities: {} });
+  });
 }
 /** "claude-sonnet-5.5" → "Claude Sonnet 5.5", "gpt-6.1-sol" → "GPT 6.1 Sol". */
 function copilotName(id) {
@@ -191,174 +236,18 @@ const copilot = {
   },
   answer: (stdout, stderr, code) => textAnswer('GitHub Copilot', stdout, stderr, code),
   loginArgs: ['login'],
-  loginHint: "Write-Host 'Charles: GitHub Copilot girisi icin tarayici acilacak. GitHub hesabinla izin ver; bitince bu pencereyi kapat ve Charles ayarlarinda Baglantiyi test et dugmesine bas. (Sign in with GitHub in the browser, then press Test connection in Charles.)'",
-  // the tool's own list of model ids is in its help text (`copilot help config`, under `model`)
-  modelCommands: [['help', 'config']],
-  parseModels: (out) => parseCopilotModels(out),
+  loginHint: "Write-Host 'Charles: GitHub Copilot girisi icin tarayici acilacak. GitHub hesabinla izin ver; bitince bu pencereyi kapat ve Charles ayarlarinda Baglantiyi kontrol et dugmesine bas. (Sign in with GitHub in the browser, then press Check connection in Charles.)'",
+  // the account's own models come from the tool's ACP mode; its help text lists every id it knows,
+  // which is not what an account may use
+  modelCommands: [],
+  parseModels: () => [],
+  listModels: (exe, args, options) => copilotAccountModels(exe, args, options),
   effortLabel: (value) => VARIANT_LABELS[String(value).toLowerCase()] || String(value),
   modelId: COPILOT_MODEL,
 };
 
-// ── OpenCode ───────────────────────────────────────────────────────────────────────────────────
-const OPENCODE_MODEL = /^[a-z0-9][a-z0-9._-]{0,40}\/[A-Za-z0-9][A-Za-z0-9._:/-]{0,80}$/i;
-const opencode = {
-  id: 'opencode',
-  name: 'OpenCode',
-  docs: 'https://opencode.ai/docs/',
-  find(env = process.env, fsx = fs) {
-    const { home, local, roaming } = folders(env);
-    return findTool({
-      env,
-      fsx,
-      shimName: 'opencode.cmd',
-      candidates: [
-        env.CHARLES_OPENCODE && /\.exe$/i.test(env.CHARLES_OPENCODE) ? env.CHARLES_OPENCODE : '',
-        home && path.join(home, '.opencode', 'bin', 'opencode.exe'),
-        // the OpenCode desktop app ships the same tool as opencode-cli.exe (it is not on PATH)
-        local && path.join(local, 'Programs', 'ai.opencode.desktop', 'resources', 'opencode-cli.exe'),
-        env.ProgramFiles && path.join(env.ProgramFiles, 'OpenCode', 'resources', 'opencode-cli.exe'),
-        roaming && path.join(roaming, 'npm', 'node_modules', '@opencode', 'cli', 'bin', 'opencode.exe'),
-        roaming && path.join(roaming, 'npm', 'node_modules', 'opencode-ai', 'bin', 'opencode.exe'),
-        home && path.join(home, 'scoop', 'shims', 'opencode.exe'),
-        local && path.join(local, 'Microsoft', 'WinGet', 'Links', 'opencode.exe'),
-        onPath('opencode.exe', env, isFile(fsx)),
-      ],
-    });
-  },
-  /** The permissions travel as the tool's own config, for this one process only. */
-  env(base, { tools = false, access = 'ask', pictures = false } = {}) {
-    // Everything is denied first; what a run may use is then named. (With only edit, bash and
-    // webfetch denied, a chat could still read any file on the computer: seen with the real tool.)
-    const permission = { '*': 'deny' };
-    if (tools || pictures) Object.assign(permission, { read: 'allow', glob: 'allow', grep: 'allow', list: 'allow' });
-    if (tools && access !== 'ask') permission.edit = 'allow';
-    const out = { ...base, NO_COLOR: '1', FORCE_COLOR: '0', OPENCODE_DISABLE_AUTOUPDATE: '1', OPENCODE_CONFIG_CONTENT: JSON.stringify({ permission, autoupdate: false, share: 'disabled' }) };
-    delete out.ELECTRON_RUN_AS_NODE;
-    delete out.OPENCODE_PERMISSION;
-    return out;
-  },
-  plan({ model, prompt, mode, projectDir, workspace, imageDir = null, effort = '' }) {
-    const tools = mode === 'project' && !!projectDir;
-    checkPrompt(prompt, 'OpenCode');
-    // --standalone: a server of this run's own. Without it the tool talks to the background
-    // service the desktop app keeps running, and that one does not have Charles' permissions.
-    const cli = ['run', '--standalone'];
-    if (model && model !== 'auto') {
-      if (!OPENCODE_MODEL.test(model)) throw Error('Geçersiz OpenCode model kimliği.');
-      // the model's own reasoning level ("variant"): each model has its own set, read from the tool.
-      // OpenCode 2 takes it inside the model id (provider/model#variant).
-      if (effort && !VARIANT.test(effort)) throw Error('Geçersiz OpenCode efor düzeyi.');
-      cli.push('-m', effort ? `${model}#${effort}` : model);
-    }
-    // the message is one argument of its own, after "--", so it can never be read as an option
-    cli.push('--', prompt);
-    return { cli, cwd: tools ? projectDir : imageDir || workspace, tools, timeoutMs: tools ? 20 * 60 * 1000 : 300000 };
-  },
-  answer: (stdout, stderr, code) => textAnswer('OpenCode', stdout, stderr, code, /^\s*(?:[|│>]\s+\w+\s|@\s*[\w./-]+\s*$|opencode\s+v?\d)/i),
-  loginArgs: ['auth', 'login'],
-  loginHint: "Write-Host 'Charles: OpenCode acilinca bir saglayici sec (ucretsiz modeller icin OpenCode Zen) ve girisi tamamla. Bitince bu pencereyi kapat ve Charles ayarlarinda Baglantiyi test et dugmesine bas. (Pick a provider, finish signing in, then press Test connection in Charles.)'",
-  // --verbose adds each model's name and its levels; the plain list is the fallback
-  // OpenCode 2 answers with every model, its name and its levels as JSON; 1.x prints them with
-  // --verbose; the plain list (ids only) is the last resort
-  modelCommands: [['api', 'GET', '/api/model'], ['models', '--verbose'], ['models']],
-  parseModels: (out) => parseOpencodeModels(out),
-  effortLabel: (value) => VARIANT_LABELS[String(value).toLowerCase()] || String(value),
-  modelId: OPENCODE_MODEL,
-};
-
-const VARIANT = /^[A-Za-z][A-Za-z0-9_-]{0,20}$/;
 const VARIANT_LABELS = { none: 'None', minimal: 'Minimal', low: 'Low', medium: 'Medium', high: 'High', xhigh: 'Extra High', max: 'Max' };
-/**
- * `opencode models --verbose` → [[id, name, levels]]. The tool prints a "provider/model" line and
- * then that model as JSON; `variants` holds the levels the model takes (some have "xhigh", some
- * have none at all). Without --verbose only the id lines are there and no model has a level.
- */
-function parseOpencodeModels(text) {
-  const clean = stripAnsi(text).trim();
-  // OpenCode 2: { data: [{ id, providerID, name, variants: [...], enabled }] }
-  if (clean.startsWith('{')) {
-    try {
-      const list = JSON.parse(clean)?.data;
-      if (Array.isArray(list)) {
-        const rows = [];
-        for (const m of list) {
-          const id = `${m?.providerID}/${m?.id}`;
-          if (m?.enabled === false || (m?.type && m.type !== 'chat') || !OPENCODE_MODEL.test(id) || rows.some((r) => r[0] === id)) continue;
-          const levels = (Array.isArray(m.variants) ? m.variants : m.variants && typeof m.variants === 'object' ? Object.keys(m.variants) : [])
-            .map((v) => (typeof v === 'string' ? v : String(v?.id || v?.name || '')))
-            .filter((v) => VARIANT.test(v))
-            .slice(0, 8);
-          rows.push([id, typeof m.name === 'string' && m.name.trim() ? m.name.trim().slice(0, 40) : id, levels]);
-          if (rows.length >= 80) break;
-        }
-        return rows;
-      }
-    } catch {}
-    return [];
-  }
-  const lines = clean.replace(/\r/g, '').split('\n');
-  const out = [];
-  for (let i = 0; i < lines.length && out.length < 80; i++) {
-    const id = lines[i].trim();
-    if (!OPENCODE_MODEL.test(id) || out.some((m) => m[0] === id)) continue;
-    let meta = null;
-    if ((lines[i + 1] || '').trim().startsWith('{')) {
-      // the JSON block: up to the line that closes its first brace
-      let depth = 0;
-      let block = '';
-      let inString = false;
-      let end = -1;
-      for (let j = i + 1; j < lines.length && end < 0 && j < i + 4000; j++) {
-        const line = lines[j];
-        for (let k = 0; k < line.length; k++) {
-          const c = line[k];
-          if (inString) {
-            if (c === '\\') k++;
-            else if (c === '"') inString = false;
-          } else if (c === '"') inString = true;
-          else if (c === '{') depth++;
-          else if (c === '}' && --depth === 0) end = j;
-        }
-        block += line + '\n';
-      }
-      if (end >= 0) {
-        try {
-          meta = JSON.parse(block);
-        } catch {}
-        i = end;
-      }
-    }
-    const name = typeof meta?.name === 'string' && meta.name.trim() ? meta.name.trim().slice(0, 40) : parseAbacusModels(id)[0]?.[1] || id;
-    const levels = meta?.variants && typeof meta.variants === 'object' ? Object.keys(meta.variants).filter((v) => VARIANT.test(v)).slice(0, 8) : [];
-    out.push([id, name, levels]);
-  }
-  return out;
-}
 
-// ── Kimi (the richer kit lives in kimi.cjs) ────────────────────────────────────────────────────
-const kimiKit = {
-  id: 'kimi',
-  name: 'Kimi',
-  docs: 'https://moonshotai.github.io/kimi-code/',
-  find: (env = process.env, fsx = fs) => kimi.findKimi(env, fsx),
-  home: (dir) => path.join(dir, 'kimi', 'home'),
-  env: (base, { dir }) => kimi.kimiEnv(base, path.join(dir, 'kimi', 'home')),
-  /** Writes the agent file that decides this run's tools and returns the command line. */
-  plan(args, { dir, fsx = fs }) {
-    const tools = args.mode === 'project' && !!args.projectDir;
-    const kind = kimi.agentKind({ tools, access: args.access, imageDir: args.imageDir, task: args.task });
-    const file = kimi.agentFile(kind);
-    const agents = path.join(dir, 'kimi', 'agents');
-    fsx.mkdirSync(agents, { recursive: true });
-    const agentPath = path.join(agents, file.name);
-    fsx.writeFileSync(agentPath, file.text);
-    return kimi.kimiPlan({ ...args, agentPath });
-  },
-  answer: (stdout, stderr, code) => kimi.kimiAnswer(stdout, stderr, code),
-  items: (event) => kimi.kimiItems(event),
-  modelId: kimi.MODEL_ALIAS,
-};
+const KITS = { copilot };
 
-const KITS = { kimi: kimiKit, copilot, opencode };
-
-module.exports = { KITS, findTool, textAnswer, parseOpencodeModels, parseCopilotModels, MAX_PROMPT, COPILOT_MODEL, OPENCODE_MODEL };
+module.exports = { KITS, findTool, textAnswer, parseAcpModels, copilotAccountModels, MAX_PROMPT, COPILOT_MODEL };

@@ -46,9 +46,7 @@ export function providerName(model: string) {
   if (/^cursor:/.test(model)) return 'Cursor';
   if (/^abacus:/.test(model)) return 'Abacus AI';
   if (/^evren:/.test(model)) return 'EVREN';
-  if (/^kimi:/.test(model)) return 'Kimi';
   if (/^copilot:/.test(model)) return 'GitHub Copilot';
-  if (/^opencode:/.test(model)) return 'OpenCode';
   return 'Codex';
 }
 

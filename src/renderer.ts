@@ -948,14 +948,14 @@ async function populateModels() {
   const old = model.value || defaultModel;
   model.replaceChildren();
   const gpt = list.filter(
-    (m: any) => !/^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(m.id),
+    (m: any) => !/^(gemini|claude|cursor|abacus|evren|copilot):/.test(m.id),
   );
   // v0.9.26: each row carries its provider and whether it is that provider's "Auto" as data, so
   // the picker never has to recognise them by a text the interface language may translate
   if (gpt.length)
     model.add(markOption(new Option('Otomatik · ' + (gpt.find((m: any) => m.isDefault)?.name || 'GPT'), ''), 'gpt', true));
   for (const m of list) {
-    const provider = /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.exec(m.id)?.[1] || 'gpt';
+    const provider = /^(gemini|claude|cursor|abacus|evren|copilot):/.exec(m.id)?.[1] || 'gpt';
     const option = markOption(new Option(m.name, m.id), provider, /:auto$/.test(m.id));
     model.add(option);
     // v0.9.6: one row per model; its effort levels live in the panel beside the picker.
@@ -984,10 +984,11 @@ async function populateModels() {
   // v0.9.26: a saved model the provider no longer lists (EVREN's reading models, say) goes to that
   // provider's own "Auto" and says so, instead of quietly becoming the first model of the list
   const listed = (v: string) => [...model.options].some((o) => o.value === v);
-  const gone = /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.exec(wanted || '');
+  const gone = /^(gemini|claude|cursor|abacus|evren|copilot):/.exec(wanted || '');
   if (wanted && gone && !listed(wanted)) {
     const auto = [...model.options].find((o) => o.dataset.provider === gone[1] && o.dataset.auto === '1');
-    if (auto && [...model.options].some((o) => o.dataset.provider === gone[1] && o !== auto)) {
+    // (GitHub Copilot: a plan may have nothing but Auto, and that is where a lost model goes)
+    if (auto && (gone[1] === 'copilot' || [...model.options].some((o) => o.dataset.provider === gone[1] && o !== auto))) {
       wanted = auto.value;
       notice('Seçili model artık listede yok; aynı yapay zekânın Otomatik seçeneğine geçildi.');
     }
@@ -1383,6 +1384,26 @@ settingsPolish();
 document.addEventListener('charles-startup-model', (e: any) => {
   startupModel = e.detail;
 });
+// v0.9.27: the models of the GitHub Copilot plan changed (read again every hour): rebuild the list.
+// Rebuilding ends in the model's "change" event, whose line is "Varsayılan model: …"; for this one
+// rebuild that line is replaced: by what happened to the plan, or by nothing when it is only the
+// first list of an account (null: the usual line, '': say nothing).
+let modelNotice: string | null = null;
+api.onProviderModels?.((v: any) => {
+  const chosen = model.value;
+  modelNotice = '';
+  void populateModels()
+    .then(() => {
+      if (v?.notify) {
+        // one message: the list changed, and what became of a chosen model that left the plan
+        const lost = /^copilot:/.test(chosen) && model.value !== chosen;
+        modelNotice = lost ? 'GitHub Copilot planındaki modeller değişti; seçili model artık planda yok, Otomatik’e geçildi.' : 'GitHub Copilot planındaki modeller değişti; model listesi güncellendi.';
+      }
+      // a rebuild that ended early sends no "change": the next real choice gets its usual line
+      window.setTimeout(() => (modelNotice = null), 3000);
+    })
+    .catch(() => (modelNotice = null));
+});
 api.onPrimary(async (v: any) => {
   defaultModel = v.model;
   await populateModels();
@@ -1527,9 +1548,10 @@ $('new-chat').onclick = () =>
 model.onchange = () =>
   attempt(async () => {
     defaultModel = await api.defaultModel(model.value);
-    notice(
-      `Varsayılan model: ${model.selectedOptions[0].textContent}. Sonraki mesajında kullanılacak.`,
-    );
+    const said = modelNotice;
+    modelNotice = null;
+    if (said === '') return;
+    notice(said ?? `Varsayılan model: ${model.selectedOptions[0].textContent}. Sonraki mesajında kullanılacak.`);
   });
 $('stop').onclick = () => attempt(() => api.interrupt());
 document.querySelectorAll<HTMLButtonElement>('[data-prompt]').forEach(
@@ -1805,7 +1827,7 @@ const steer = steerUI({
   composer: $('composer'),
   bar: $('composer-bar'),
   prompt,
-  external: () => /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(model.value || ''),
+  external: () => /^(gemini|claude|cursor|abacus|evren|copilot):/.test(model.value || ''),
   shown: (text, files) => {
     markSteer(row(text, 'user', files));
     splitAfterSteer();
@@ -1912,7 +1934,7 @@ const proposals = proposalsUI({
   },
 });
 // Kota bekçisi: under 10 % left → suggest another connected provider's model.
-const quotaProvider = (v: string) => (/^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(v) ? v.split(':')[0] : 'gpt');
+const quotaProvider = (v: string) => (/^(gemini|claude|cursor|abacus|evren|copilot):/.test(v) ? v.split(':')[0] : 'gpt');
 function onLowQuota(q: LowQuota) {
   void confirmLowQuota(q).then((low) => {
     if (!low) return;

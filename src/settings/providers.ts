@@ -22,7 +22,7 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
   async function fillDefaults() {
     const [list, saved] = await Promise.all([api.models(), api.startupModel()]);
     choice.replaceChildren(new Option('Son kullandığım model', '__last__'));
-    const gpt = list.filter((m: any) => !/^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(m.id));
+    const gpt = list.filter((m: any) => !/^(gemini|claude|cursor|abacus|evren|copilot):/.test(m.id));
     if (gpt.length)
       choice.add(
         new Option(
@@ -241,9 +241,9 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
   );
   cardTail.after(evren.section);
   cardTail = evren.section;
-  // v0.9.27: Kimi, GitHub Copilot and OpenCode, each through its own command line tool
+  // v0.9.27: GitHub Copilot, through its own command line tool
   const kits: Record<string, ReturnType<typeof cliCard>> = {};
-  for (const kind of ['kimi', 'copilot', 'opencode'] as const) {
+  for (const kind of ['copilot'] as const) {
     kits[kind] = cliCard(
       kind,
       api,

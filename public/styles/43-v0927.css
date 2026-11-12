@@ -375,27 +375,3 @@ body.workspace #feed .steps {
     animation: none;
   }
 }
-
-/* --- Settings → AI Modelleri → Kimi: the sign-in code its tool gave ------------------------------ */
-#settings-panel .cli-card .cli-code {
-  display: grid;
-  gap: 8px;
-  justify-items: start;
-  margin-top: 8px;
-  padding: 10px 12px;
-  border: 1px solid var(--sb-line);
-  border-radius: 12px;
-  background: var(--ch-rail);
-}
-#settings-panel .cli-card .cli-code[hidden] {
-  display: none;
-}
-#settings-panel .cli-card .cli-code p {
-  margin: 0;
-}
-#settings-panel .cli-card .cli-code-value {
-  font: 700 20px/1.2 'Cascadia Mono', Consolas, monospace;
-  letter-spacing: 0.12em;
-  color: var(--sb-text);
-  user-select: all;
-}

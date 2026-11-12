@@ -9,14 +9,12 @@ export const CAPABILITIES: Record<string, MenuTask[]> = {
   cursor: ['attach'],
   abacus: ['attach'],
   evren: ['attach', 'image'],
-  // v0.9.27: pictures are drawn as with Claude and EVREN; Kimi Code has a web search of its own
-  kimi: ['attach', 'image', 'web', 'research'],
+  // v0.9.27: pictures are drawn as with Claude and EVREN
   copilot: ['attach', 'image'],
-  opencode: ['attach', 'image'],
 };
 
 export function providerOf(model: string): string {
-  const m = /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.exec(String(model || ''));
+  const m = /^(gemini|claude|cursor|abacus|evren|copilot):/.exec(String(model || ''));
   return m ? m[1] : 'gpt';
 }
 
