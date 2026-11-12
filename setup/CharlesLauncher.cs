@@ -13,8 +13,8 @@ using System.ComponentModel;
 [assembly: AssemblyProduct("ProjectCharles")]
 [assembly: AssemblyDescription("Charles desktop assistant")]
 [assembly: AssemblyCompany("HzPederPan")]
-[assembly: AssemblyVersion("0.9.25.0")]
-[assembly: AssemblyFileVersion("0.9.25.0")]
+[assembly: AssemblyVersion("0.9.27.0")]
+[assembly: AssemblyFileVersion("0.9.27.0")]
 static class CharlesLauncher {
   static string Quote(string value) {
     var b = new StringBuilder("\""); int slashes = 0;

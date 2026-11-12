@@ -1,6 +1,7 @@
 import { pluginGuideUI } from './plugin-guide';
 import { abacusCard } from './abacus-card';
 import { evrenCard } from './evren-card';
+import { cliCard } from './cli-card';
 export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: string) => void) {
   const page = document.querySelector('.settings-page[data-category=account]')!;
   // v0.5.1: no separate "main AI" setting. The model chosen in the chat decides; the main
@@ -21,7 +22,7 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
   async function fillDefaults() {
     const [list, saved] = await Promise.all([api.models(), api.startupModel()]);
     choice.replaceChildren(new Option('Son kullandığım model', '__last__'));
-    const gpt = list.filter((m: any) => !/^(gemini|claude|cursor|abacus|evren):/.test(m.id));
+    const gpt = list.filter((m: any) => !/^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(m.id));
     if (gpt.length)
       choice.add(
         new Option(
@@ -112,6 +113,10 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
         }
         if (s.id === 'evren') {
           evren.update(s);
+          continue;
+        }
+        if (kits[s.id]) {
+          kits[s.id].update(s);
           continue;
         }
         const result = results.get(s.id),
@@ -224,8 +229,7 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
   );
   cardTail.after(abacus.section);
   cardTail = abacus.section;
-  // v0.9.6: EVREN - no sign-in window; a pasted API key, its connection test and the usage
-  // terms the service may ask to accept once.
+  // v0.9.6: EVREN - no sign-in window; a pasted API key that is checked against EVREN at once.
   const evren = evrenCard(
     api,
     notice,
@@ -237,6 +241,22 @@ export function providersUI(api: any, refresh: () => Promise<void>, notice: (s: 
   );
   cardTail.after(evren.section);
   cardTail = evren.section;
+  // v0.9.27: Kimi, GitHub Copilot and OpenCode, each through its own command line tool
+  const kits: Record<string, ReturnType<typeof cliCard>> = {};
+  for (const kind of ['kimi', 'copilot', 'opencode'] as const) {
+    kits[kind] = cliCard(
+      kind,
+      api,
+      notice,
+      async () => {
+        last = '';
+        await sync();
+      },
+      (gid) => guide(gid),
+    );
+    cardTail.after(kits[kind].section);
+    cardTail = kits[kind].section;
+  }
   window.addEventListener('focus', () => void sync());
   document.getElementById('model-button')!.addEventListener('click', () => void sync());
   window.setInterval(() => {

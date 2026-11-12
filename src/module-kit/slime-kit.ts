@@ -109,11 +109,14 @@ function mount(target: HTMLElement, o: MountOptions = {}) {
   let last = performance.now();
   let raf = 0;
   let alive = true;
+  let reads = false;
   const frame = (now: number) => {
     if (!alive) return;
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
     bot.update(dt);
+    bot.reading += ((reads && bot.stationAlpha < 0.05 ? 1 : 0) - bot.reading) * (1 - Math.exp(-dt * 6));
+    if (!reads && bot.reading < 0.002) bot.reading = 0;
     jelly.step(dt);
     ctx.setTransform(dpr * (size / 240), 0, 0, dpr * (size / 240), 0, 0);
     ctx.clearRect(0, 0, 240, 240);
@@ -262,7 +265,9 @@ function mount(target: HTMLElement, o: MountOptions = {}) {
     station(name: Station) {
       if (!STATIONS.includes(name)) throw Error('Geçersiz çalışma animasyonu: ' + String(name));
       bot.station = name;
-      bot.reading = name === 'read' ? 1 : 0;
+      // v0.9.27: the sheet comes out once the previous prop has been put away, as on the island
+      // (it used to appear at once, on top of a laptop that was still fading)
+      reads = name === 'read';
     },
     /** Accessories on top of the look, e.g. { eyes: 'roundGlasses' }; {} takes them off. */
     wear(v: Look = {}) {

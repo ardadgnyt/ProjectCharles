@@ -6,7 +6,7 @@
 // API (see docs/EVREN.md in the service's own documentation):
 //   GET  /v1/models                  model list (cached in providers/evren-models.json)
 //   POST /v1/chat/completions        streaming answer (SSE; ":" comment lines are skipped)
-//   GET  /v1/terms/status|text       usage terms gate -> POST /v1/terms/accept (else 403)
+//   GET  /v1/terms/status|text       EVREN's own terms -> POST /v1/terms/accept { version }
 //   GET  /v1/quota                   daily token quota (+ x-evren-daily-remaining-tokens)
 const fs = require('node:fs');
 const path = require('node:path');
@@ -36,12 +36,26 @@ function evrenError(status, body) {
     message = String(parsed?.error?.message || parsed?.message || '');
     code = String(parsed?.error?.code || parsed?.code || '');
   } catch {}
-  if (status === 403 && /terms/i.test(code) && /terms/i.test(message))
-    return Object.assign(Error('EVREN kullanım şartları kabul edilmedi. Ayarlardaki EVREN kartından şartları okuyup kabul et.'), {
+  // v0.9.27: the gate is EVREN's own (the account, not Charles, has to accept). Either field may
+  // name it; the old test wanted both and read a plain "forbidden" message as a bad key.
+  if (status === 403 && (/terms/i.test(code) || /terms_not_accepted/i.test(text)))
+    return Object.assign(Error('EVREN bu hesap için kendi kullanım şartlarının kabul edilmesini istiyor. Bağlantı, şartlar EVREN tarafında kabul edilince kurulur.'), {
       code: 'terms_not_accepted',
     });
   if (status === 401 || status === 403)
-    return Error('EVREN API anahtarı geçersiz veya eksik. Ayarlar → AI Modelleri bölümünden anahtarını kontrol et.');
+    return Object.assign(Error('EVREN API anahtarı geçersiz veya eksik. Ayarlar → AI Modelleri bölümünden anahtarını kontrol et.'), {
+      code: 'invalid_key',
+    });
+  if (status === 408 || status === 504)
+    return Object.assign(Error('EVREN zamanında yanıt vermedi. Bir süre sonra yeniden dene.'), { code: 'timeout' });
+  if (status === 409 && /terms|version/i.test(code + ' ' + message))
+    return Object.assign(Error('EVREN kullanım şartları bu sırada güncellenmiş. Yeni metni okuyup yeniden dene.'), {
+      code: 'terms_version',
+    });
+  if (status === 422)
+    return Object.assign(Error('EVREN isteği kabul etmedi (geçersiz istek). Charles’ı güncelleyip yeniden dene.'), {
+      code: 'invalid_request',
+    });
   if (status === 429)
     return Error('EVREN günlük kullanım hakkı dolmuş görünüyor. Bir süre sonra yeniden dene.');
   if (status >= 500) return Error('EVREN sunucusuna şu an ulaşılamıyor. Bir süre sonra yeniden dene.');
@@ -60,6 +74,7 @@ class Evren {
     this.encryption = encryption;
     this.fetcher = fetcher;
     this.base = BASE;
+    this.timeout = 20000;
     this.file = path.join(directory, 'evren.enc.json');
     this.stateFile = path.join(directory, 'providers', 'evren.json');
     this.modelsFile = path.join(directory, 'providers', 'evren-models.json');
@@ -158,19 +173,30 @@ class Evren {
   /** One JSON request. Errors never carry the key or the headers. */
   async request(pathname, { method = 'GET', body, signal, expect = 'json' } = {}) {
     if (!this.hasKey()) throw Error('EVREN API anahtarı eklenmemiş. Ayarlardan anahtarını kaydet.');
+    // v0.9.27: a server that never answers used to leave "testing…" on screen for good
+    const limit = new AbortController();
+    const timer = setTimeout(() => limit.abort(), this.timeout);
+    const stop = () => limit.abort();
+    if (signal) signal.aborted ? stop() : signal.addEventListener('abort', stop, { once: true });
     let res;
+    let text = '';
     try {
       res = await this.fetch(this.base + pathname, {
         method,
         headers: this.headers(),
         body: body === undefined ? undefined : JSON.stringify(body),
-        signal,
+        signal: limit.signal,
       });
+      text = await res.text().catch(() => '');
     } catch (e) {
-      if (e?.name === 'AbortError') throw e;
-      throw Error('EVREN sunucusuna bağlantı kurulamadı. İnternet, VPN ve güvenlik duvarını kontrol et.');
+      if (signal?.aborted) throw e?.name === 'AbortError' ? e : Object.assign(Error('İstek durduruldu.'), { name: 'AbortError' });
+      if (limit.signal.aborted)
+        throw Object.assign(Error('EVREN zamanında yanıt vermedi. İnternet bağlantını kontrol edip yeniden dene.'), { code: 'timeout' });
+      throw Object.assign(Error('EVREN sunucusuna bağlantı kurulamadı. İnternet, VPN ve güvenlik duvarını kontrol et.'), { code: 'network' });
+    } finally {
+      clearTimeout(timer);
+      if (signal) signal.removeEventListener('abort', stop);
     }
-    const text = await res.text().catch(() => '');
     if (!res.ok) throw evrenError(res.status, text + ' ' + (res.headers.get('x-evren-error') || ''));
     if (expect === 'raw') return { text, headers: res.headers };
     try {
@@ -184,26 +210,28 @@ class Evren {
     return (this.fetcher || globalThis.fetch)(url, options);
   }
 
-  // ── usage terms (mandatory before the first call: else 403 terms_not_accepted) ──────────
+  // ── EVREN's own usage terms ──────────────────────────────────────────────────────────────
+  // The service refuses an account that has not accepted them (403 terms_not_accepted). Charles
+  // has no terms step of its own (v0.9.27): these are only reached after such a refusal.
+  // Shapes from EVREN's OpenAPI document: status { current_version: int, is_material, accepted },
+  // text { version: int, content }, accept wants { version: int } - exactly the current one.
+  // Up to v0.9.26 accept sent {} and the service answered with a version error.
   async termsStatus() {
     const data = await this.request('/v1/terms/status');
-    return {
-      accepted: data?.accepted === true || data?.terms_accepted === true || data?.status === 'accepted',
-      version: typeof data?.version === 'string' ? data.version : null,
-    };
+    return { accepted: data?.accepted === true, version: termsVersion(data?.current_version ?? data?.version) };
   }
 
   async termsText() {
     const data = await this.request('/v1/terms/text');
-    return {
-      text: String(data?.text ?? data?.terms ?? data?.content ?? ''),
-      version: typeof data?.version === 'string' ? data.version : null,
-    };
+    return { text: String(data?.content ?? data?.text ?? ''), version: termsVersion(data?.version) };
   }
 
-  async acceptTerms() {
-    await this.request('/v1/terms/accept', { method: 'POST', body: {} });
-    return { accepted: true };
+  /** Accepts the version the user was shown. Never guesses one: no version, no request. */
+  async acceptTerms(version) {
+    const v = termsVersion(version);
+    if (v === null) throw Object.assign(Error('EVREN kullanım şartlarının sürümü okunamadı. Metni yeniden açıp tekrar dene.'), { code: 'terms_version' });
+    const data = await this.request('/v1/terms/accept', { method: 'POST', body: { version: v } });
+    return { accepted: true, version: termsVersion(data?.accepted_version) ?? v };
   }
 
   // ── model list ───────────────────────────────────────────────────────────────────────────
@@ -273,6 +301,10 @@ class Evren {
   async chat({ model, prompt, signal, onDelta, maxTokens = 8192, thinking = false, effort = '', images = null }) {
     if (!this.hasKey()) throw Error('EVREN API anahtarı eklenmemiş. Ayarlardan anahtarını kaydet.');
     if (!MODEL_ID.test(String(model || ''))) throw Error('Geçersiz EVREN modeli. Model listesini yenile.');
+    // v0.9.26: a model that is not one of EVREN's chat models never gets the message (a choice
+    // saved before the list was cleaned up, or a reading model): nothing is sent to it quietly
+    if (model !== 'auto' && this.models.length && !this.models.some(([id]) => id === model))
+      throw Error('Bu EVREN modeli sohbet için listelenmiyor. Model listesinden EVREN · Otomatik ya da başka bir model seç.');
     const text = String(prompt || '');
     if (!text.trim()) throw Error('Mesaj boş olamaz.');
     if (text.length > MAX_PROMPT) throw Error('Mesaj EVREN için çok uzun. Kısaltıp yeniden gönder.');
@@ -317,9 +349,24 @@ class Evren {
 // moderation, image generators) are left out. The ids may come prefixed with their vendor
 // ("zai/glm-5.3-fp8"); the picker shows the part after the last "/".
 const NOT_CHAT = /(?:^|[/_.-])(?:embed(?:ding)?s?|text-embedding|whisper|tts|speech|audio|transcri\w*|rerank\w*|moderation|dall-e|image-gen|stable-diffusion|flux)(?:$|[/_.-])/i;
+/**
+ * v0.9.26: EVREN's own chat models, by the family the account's listing names them with (EVREN's
+ * model table: "Akıl yürütme · Kod · Ajan"). The listing also carries reading (OCR) and other
+ * special models, and its `task` field calls some of them chat too (qwen3-vl-30b reads pictures
+ * for the OCR service); the cache kept only ids and names, so after a restart even the task
+ * filter was gone. A model shows in the picker only when it is in this table; a new chat model
+ * EVREN adds is a line here. Matched on the id after its vendor, with an optional suffix such as
+ * "-fp8" or a version date, never on words found anywhere in the name.
+ */
+const EVREN_CHAT_MODELS = ['gemma-4-31b', 'glm-5.3', 'qwen3.8-flash-next', 'deepseek-v4.1-flash'];
+function evrenChatModel(id) {
+  const base = String(id || '').split('/').pop().toLowerCase();
+  return EVREN_CHAT_MODELS.some((m) => base === m || base.startsWith(m + '-fp') || /^-(?:\d{4,8}|v\d+|instruct|chat)$/.test(base.slice(m.length)) && base.startsWith(m));
+}
 /** The name shown for one model id, or null when it is not a chat model. */
 function chatModelName(entry, id) {
   if (NOT_CHAT.test(id)) return null;
+  if (!evrenChatModel(id)) return null;
   // v0.9.25: the listing names each model's task; only chat models go in the picker (OCR, speech,
   // embeddings, guards and "decision" models such as clef and laya stay out)
   const task = String(entry?.task || '').toLowerCase();
@@ -328,6 +375,12 @@ function chatModelName(entry, id) {
   if (type && !/chat|text|llm|completion/.test(type)) return null;
   const name = typeof entry?.name === 'string' && entry.name.trim() ? entry.name.trim() : String(id).split('/').pop();
   return name.slice(0, 80);
+}
+
+/** A terms version as EVREN numbers them (a whole number from 0 up), or null. */
+function termsVersion(value) {
+  const n = typeof value === 'string' && /^\d{1,9}$/.test(value) ? Number(value) : value;
+  return Number.isInteger(n) && n >= 0 ? n : null;
 }
 
 /** The standard level names; a model whose listing said nothing offers these three. */
@@ -414,4 +467,4 @@ async function readSse(res, onDelta) {
   return answer;
 }
 
-module.exports = { Evren, cleanModels, evrenError, readSse, MODEL_ID, MAX_PROMPT, BASE };
+module.exports = { Evren, cleanModels, evrenError, readSse, MODEL_ID, MAX_PROMPT, BASE, EVREN_CHAT_MODELS, evrenChatModel };

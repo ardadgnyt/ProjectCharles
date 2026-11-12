@@ -1,13 +1,13 @@
-/* 37 · v0.9.20 — Ayarlar → Görünüm → Charles adacık boyutu: Küçük is 2/3 of the island.
+/* 37 · v0.9.20 — Ayarlar → Görünüm → Charles adacık boyutu: Küçük is 3/4 of the island (2/3 until v0.9.26).
    The window and its click area come from app/core/layout.cjs; here the content follows with zoom,
    which lays things out at the new size (a transform would leave the old boxes behind). The ears
    and corners are on body variables, so they are set in their own right and not zoomed.
    v0.9.24: the whole island, not only the closed one. The app window, Charles on the desktop and the
    plugin guide use the same page and keep their size; the thin strip has its own height below. */
 body.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active) main.island {
-  zoom: 0.6667;
+  zoom: 0.75;
 }
-/* The island's shape is cut from pieces (19-v0811.css). At 2/3 their edges fall between two pixels and
+/* The island's shape is cut from pieces (19-v0811.css). Scaled down, their edges fall between two pixels and
    a hairline of the desktop showed through, so here the middle pieces reach a pixel into the corners. */
 body.v10.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active) .island {
   --mask-box:
@@ -21,10 +21,10 @@ body.v10.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(
   mask: var(--mask-box);
 }
 body.v10.island-small[data-view='notch']:not(.desktop-pet):not(.hidden-island) {
-  --ear-l: 9px;
-  --ear-r: 9px;
-  --r: 13px;
-  padding: 0 9px 1px;
+  --ear-l: 10px;
+  --ear-r: 10px;
+  --r: 15px;
+  padding: 0 10px 1px;
 }
 body.v10.island-small.docked-left[data-view='notch']:not(.desktop-pet):not(.hidden-island) {
   --ear-l: 0px;
@@ -34,12 +34,12 @@ body.v10.island-small.docked-right[data-view='notch']:not(.desktop-pet):not(.hid
   --ear-r: 0px;
   padding-right: 0;
 }
-/* words at 2/3 of 10 px could not be read: they keep a readable size in the smaller box */
+/* words at 3/4 of 10 px are hard to read: they keep their size in the smaller box (× 0.75 = 10 px, 9 px) */
 body.v10.island-small[data-view='notch'] .notch-track-title {
-  font-size: 15px;
+  font-size: 13.5px;
 }
 body.v10.island-small[data-view='notch'] .notch-track-artist {
-  font-size: 13.5px;
+  font-size: 12px;
 }
 body.island-small.hidden-island:not(.desktop-pet) .island {
   height: 4px;

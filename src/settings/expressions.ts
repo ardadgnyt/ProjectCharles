@@ -1,4 +1,4 @@
-// Settings → Görünüm → Mimikleri dene.
+// Settings → Görünüm → Mimikleri dene (v0.9.26: at the bottom of the page).
 // Expressions are played on a separate preview Slime; the real Charles keeps doing its job.
 import { slimePreview, accessoriesOf } from './slime-preview';
 
@@ -50,6 +50,23 @@ export function expressionsUI(api: any) {
   body.append(preview.element, list);
   section.append(title, hint, body);
   details.replaceWith(section);
+  // v0.9.26: the last section of Ayarlar → Görünüm, with its title, hint and buttons. Other
+  // sections are placed on the page after this one (Slime stüdyosu moves itself to the top, the
+  // island size and screen cards are added later), so it goes back to the end whenever that happens.
+  const toEnd = () => {
+    const look = document.querySelector('.settings-page[data-category=look]');
+    if (!look || section.parentElement !== look || look.lastElementChild === section) return;
+    look.append(section);
+  };
+  const watchPage = () => {
+    const look = document.querySelector('.settings-page[data-category=look]');
+    if (!look) return false;
+    new MutationObserver(toEnd).observe(look, { childList: true });
+    toEnd();
+    return true;
+  };
+  if (!watchPage()) window.setTimeout(watchPage, 0);
+  window.setTimeout(toEnd, 1500);
   // The preview wears the same accessory as Charles.
   const outfit = (p: any) => {
     preview.setAccessories(accessoriesOf(p));

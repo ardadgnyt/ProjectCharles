@@ -74,14 +74,14 @@ Windows’ application data folder: `%APPDATA%\Charles`. See section 6.
 | --- | --- | --- |
 | `app/` (root) | Entry points | `main.cjs` (windows: the transparent island and the framed app window, one shared page in a WebContentsView; layout, IPC endpoints), `preload.cjs` (interface bridge) |
 | `app/core/` | Infrastructure | `store.cjs` (safe JSON storage), `policy.cjs` (Codex permissions), `layout.cjs` (panel sizes), `preferences.cjs`, `shortcuts.cjs`, `startup.cjs`, `extras.cjs` (appearance preferences and attachments), `desktop-pet.cjs`, `pet-physics.cjs`, `task-mode.cjs`, `proposals.cjs`, `ask-format.cjs`, `reset.cjs`, `file-preview.cjs`, `change-review.cjs`, `dash-layout.cjs`, `system-info.cjs`, `release-notes.cjs` (notes of a version from `CHANGELOG.md`; first install, update or restart), `metric-stats.cjs` (Current / Average / Peak and chart points) |
-| `app/ai/` | AI and chats | `agent.cjs` + `rpc.cjs` (Codex), `providers.cjs`, `provider-tools.cjs` (tool permissions in project mode; no permission-bypass mode), `sessions.cjs`, `chat-folders.cjs`, `chat-classifier.cjs`, `ask-once.cjs`, `chat-actions.cjs`, `conversation-tools.cjs` |
+| `app/ai/` | AI and chats | `agent.cjs` + `rpc.cjs` (Codex), `providers.cjs`, `cli-kits.cjs` + `kimi.cjs` (Kimi, GitHub Copilot and OpenCode through their own command line tools), `provider-tools.cjs` (tool permissions in project mode; no permission-bypass mode), `sessions.cjs`, `chat-folders.cjs`, `chat-classifier.cjs`, `ask-once.cjs`, `chat-actions.cjs`, `conversation-tools.cjs` |
 | `app/usage/` | Remaining usage on the island | `codex-usage.cjs`, `gemini-usage.cjs`, `claude-usage.cjs`, `cursor-usage.cjs`, `evren-usage.cjs` |
 | `app/modules/` | Modules | `manifest.cjs`, `package.cjs`, `registry.cjs`, `storage.cjs`, `protocol.cjs`, `host.cjs`, `module-preload.cjs`, `ai-image.cjs`; docs: `docs/MODULES.md` |
 | `app/plugins/` | Accounts and notifications | `plugins.cjs`, `pop3.cjs`, `plugin-commands.cjs`, `home-climate.cjs`, `mail-search.cjs`, `oauth-setup.cjs`, `mail-triage.cjs`, `mail-alerts.cjs`, `mail-bubble.cjs` + `bubble-preload.cjs`, `deadlines.cjs`, `whatsapp-live.cjs` |
 | `app/voice/` | Voice | `voice.cjs` + `voice.ps1` (Whisper, Windows speech), `dictation.cjs` + `dictation-preload.cjs` (push to talk), `gemini-live.cjs`, `live-computer.cjs`, `live-plugins.cjs`, `wake-profile.cjs` |
 | `app/personal/` | Personal data | `personal.cjs`, `memory.cjs`, `profile-transfer.cjs`, `creator-profile.cjs`, `companion.cjs`, `weather.cjs`, `weather-chat.cjs` |
 | `app/system/` | Windows helpers | `helper-hub.cjs` + `charles-helper.exe` (the one helper process; source `setup/CharlesHelper.cs`), `desktop.cjs` + `.ps1`, `media-worker.cjs`, `performance.cjs`, `live-metrics.cjs` (system monitor), `content-drop.cjs` + `content-reader.ps1` (what Charles reads when dropped), `watchdog.cjs`, `foreground.cjs`, `computer-time.cjs`, `weekly.cjs`, `capture.cjs`, `web-commands.cjs`, `whatsapp.cjs`, `open-with.cjs` |
-| `app/files/` | Files | `library.cjs`, `docx.cjs`, `pdf-text.cjs`, `file-rack.cjs`, `slides.cjs` + `pptx-read.cjs`, `ppt-read.cjs`, `powerpoint-com.cjs`, `convert.cjs`, `share.cjs` |
+| `app/files/` | Files | `library.cjs`, `docx.cjs`, `pdf-text.cjs`, `file-rack.cjs`, `slides.cjs` + `pptx-read.cjs`, `ppt-read.cjs`, `powerpoint-com.cjs`, `convert.cjs`, `share.cjs`; converter (v0.9.26): `convert-ops.cjs` (targets, labels and choices per file type), `convert-run.cjs` (runners per type), `convert-host.cjs` (HTML rendering and the engines the converter gets), `office-com.cjs` (Word/Excel/PowerPoint over COM), `pdf-render.cjs`, `pdf-layout.cjs`, `helper-job.cjs`, `sheets.cjs`, `docs.cjs`, `tables.cjs`, `searchable-pdf.cjs`, `pptx-write.cjs`, `vectorize.cjs`, `media.cjs`, `archive.cjs`, `transcribe.cjs`; `image-actions.cjs` (save, copy and attach a picture from the big view) |
 
 Every file starts with a short description line.
 
@@ -108,7 +108,25 @@ used their own process.
 
 Messages are `<channel>\t<payload>` lines. The channels and their requests are a fixed list: nothing
 runs a command. `--grab` (pictures of the screen; goes after a minute's rest) and `--static`
-(processor and memory names, once) are short-lived modes of the same file.
+(processor and memory names, once) are short-lived modes of the same file. The converter adds three
+more (v0.9.26), each started per job by `app/files/helper-job.cjs` with one JSON line on stdin and
+answering with JSON lines:
+
+| Mode | What it does |
+| --- | --- |
+| `--pdf` | page count and size; pages to PNG through `Windows.Data.Pdf`. The renderer scales by the screen's DPI, so the scale is calibrated on a one-inch test first and sizes come out in real points |
+| `--image` | frames of GIF and multi-page TIFF, and HEIC decoding through WIC (HEIC needs the HEIF Image Extensions) |
+| `--ocr` | installed OCR languages; words with their boxes through `Windows.Media.Ocr` |
+
+`--pdf` and `--ocr` reference the WinRT metadata and `System.Runtime.WindowsRuntime.dll`; `--image`
+uses WPF (`PresentationCore.dll`, `System.Xaml.dll`). `scripts/build-helper.ps1` adds them.
+
+**Office over COM** (`app/files/office-com.cjs`): one hidden PowerShell per job, the job as JSON in
+`CHARLES_JOB`, never in the script. The file is opened read-only with `AutomationSecurity = 3`
+(macros off) and a dummy password, so a protected file fails instead of asking. Word and Excel are
+closed only when the instance was started by the job (`-not $app.Visible`); PowerPoint, which has one
+instance, only when no presentation is open and it is not visible. An earlier draft that checked for
+a running Word left hidden instances behind, so keep this rule.
 
 The helper ends when stdin closes, so it cannot outlive Charles, and Windows removes its hooks with
 it. After sleep or unlock `hub.refresh()` sets hooks and the media connection up again, replacing the
@@ -123,10 +141,10 @@ compiler Windows ships).
 | Folder | What it does |
 | --- | --- |
 | `src/renderer.ts` | Entry point: chat flow, sending, approvals, character reactions |
-| `src/chat/` | Messages: `markdown.ts`, `model-picker.ts`, `history-folders.ts`, `activity.ts`, `reactions.ts`, `reading.ts`, `status-scroll.ts`, `ai-questions.ts`, `steer.ts`, `highlight.ts`, `release-notes.ts`, `content-context.ts` |
+| `src/chat/` | Messages: `markdown.ts`, `model-picker.ts`, `history-folders.ts`, `activity.ts`, `steps.ts` (the steps list of an answer), `follow.ts` (where the chat is), `reactions.ts`, `reading.ts`, `status-scroll.ts`, `ai-questions.ts`, `steer.ts`, `highlight.ts`, `release-notes.ts`, `content-context.ts` |
 | `src/island/` | The island and Slime: `shelf.ts`, `usage.ts`, `panel-motion.ts`, `companion.ts`, `desktop-pet.ts`, `wardrobe.ts`, `animation-loop.ts`, `file-rack.ts`, `system-monitor.ts` |
 | `src/workspace/` | App window: `workspace.ts`, `sidebar.ts`, `dashboard.ts`, `side-panel.ts`, `calendar.ts` + `holidays.ts`, `home.ts`, `dash-edit.ts` + `extra-cards.ts`, `work.ts`, `review.ts` + `diff.ts`, `drop-slime.ts`, `modal.ts`, `icons.ts`, `bridge.ts` |
-| `src/settings/` | Settings pages: `settings-pages.ts`, `settings-cards.ts`, `providers.ts`, `plugins.ts`, `plugin-guide.ts`, `shortcuts.ts`, `push-to-talk.ts`, `personal.ts`, `extras.ts`, `workspace.ts`, `profile-transfer.ts`, `account-tab.ts`, `i18n*.ts` (Turkish → English), `lang/de.ts`, `fr.ts`, `es.ts`, `zh.ts` (English text → other languages; `{n}` is a number) |
+| `src/settings/` | Settings pages: `settings-pages.ts`, `settings-cards.ts`, `providers.ts`, `plugins.ts`, `plugin-guide.ts`, `shortcuts.ts`, `shortcut-view.ts` (key labels and the row's answer line), `push-to-talk.ts`, `personal.ts`, `extras.ts`, `workspace.ts`, `profile-transfer.ts`, `account-tab.ts`, `i18n*.ts` (Turkish → English), `lang/de.ts`, `fr.ts`, `es.ts`, `zh.ts` (English text → other languages; `{n}` is a number) |
 | `src/voice/` | Voice interface: `voice.ts`, `dictation.ts`, `wav.ts`, `wake.ts`, `wake-training.ts`, `gemini-live.ts` |
 | `src/ui/` | Shared helpers: `sound-button.ts`, `mic-button.ts`, `context-menu.ts` |
 | `src/vendor/` | Slime engine, accessories, sounds and animation helpers (license: THIRD-PARTY-NOTICES.md) |
@@ -254,10 +272,48 @@ when it was answered elsewhere, timed out or the phone gave up.
 
 ### Island size
 `appearance.island` is `large` or `small` (Settings → Appearance). `layout.cjs` makes every island state
-2/3 from the same base numbers, so the visible area, click area and what is placed from them (cards,
+3/4 (`ISLAND_SMALL`; 2/3 until v0.9.26) from the same base numbers, so the visible area, click area and what is placed from them (cards,
 the dictation indicator) follow and nothing adds up; the native surface stays as it is. `37-v0920.css`
-zooms `main.island`. The app window, Charles on the desktop and the plugin guide share the page but
-are left out of that rule. The saved chat height is always the Large one.
+zooms `main.island` by the same number, and `src/island/island-size.ts` holds it for the page's own
+arithmetic; `test/v0927.test.cjs` keeps the three together. The app window, Charles on the desktop and
+the plugin guide share the page but are left out of that rule. The saved chat height is always the
+Large one.
+
+### AI connections through a command line tool (`app/ai/cli-kits.cjs`)
+Kimi, GitHub Copilot and OpenCode are "kits": `find` (where the user's install puts the tool; none is
+shipped), `env`, `plan` (the command line of one message), `answer` (text and a clear error out of what
+the tool printed), and for sign-in either `loginArgs` (a console window) or Kimi's own device-code flow
+(`Providers.kimiLogin`, no window). `providers.cjs` drives all three through the same branches as Abacus
+AI. A chat never gets tools: Kimi through an agent file whose `tools` list is a whitelist, Copilot
+through `--deny-tool`, OpenCode through `OPENCODE_CONFIG_CONTENT`. No kit ever uses a mode that skips
+permissions. Kimi keeps a home of its own (`providers/kimi/home`, `KIMI_CODE_HOME`); its models and
+reasoning levels are read from that home's `config.toml`, and the level of the next run is written
+there (`withEffort`), because the tool has no option for it. A new CLI connection is a kit plus its id
+in the lists `test/v0927-providers.test.cjs` names.
+
+### Where the chat is (`src/chat/follow.ts`)
+One file owns the chat list's scroll position. It remembers the first message on screen and how far
+into it the top edge is, not a pixel count: at another width the text wraps differently and the same
+number is another place. "At the end" is kept apart and always wins. Code that moves or resizes the list
+(`panel-motion.ts`, docking in `companion.ts`, island ↔ app window in `workspace.ts`) calls `hold(list,
+name)` before and `release(list, name)` after; a list that was hidden is put back when it is shown, and
+a jump to the top that no wheel, key or press caused is undone. `keepPlace(list, work)` is for rows
+added above the reader (older messages). Do not write `feed.scrollTop` anywhere else.
+
+### Steps of an answer (`src/chat/steps.ts`)
+`describe(item)` turns one reported item into a row (label, preview, detail, state) or into nothing:
+an item with no content is not drawn, one without detail is a line that does not open. `mergeItem`
+keeps what is known when a closing event carries only an id and a state. Only the published `summary`
+of a reasoning item is shown, never its `content`. `stepLists()` draws one list per turn; the user's
+message starts a new one (history keeps no "turn started"), and `finish(status)` closes steps that never
+reported their end.
+
+### What Slime wears and holds
+`outfitLayer()` in `src/vendor/slime/outfits.ts` says where an accessory lives: `body` (bow tie, scarf,
+leash, pumpkin, banana, arrow), `face` (glasses, monocle, eye patch) or `head` (hats, bow, headphones,
+ears). One frame is drawn in this order: body, eyes, mouth and moustache, `body` items, `face` items,
+the reading sheet, the work prop, `head` items. A new accessory needs only its layer. `PROP_TOP` in
+`src/chat/activity.ts` is the line no held prop rises above, so the mouth and moustache stay whole.
 
 ### Frames
 `animationLoop` draws Charles. Up to 30 frames a second a timer starts the frame; 60 frames follow the
@@ -315,6 +371,18 @@ events while an installed Charles runs: its hook sees every key the test's hook 
 `dictation.cjs` compares the target before and after with `canType()`. The indicator uses
 `bubbleSpot()` too, from the island or from the cards when they show, and follows them through
 `mailBubble.onPlaced`. Its window closes 30 seconds after it was last hidden.
+
+### Changing a shortcut
+`src/settings/key-names.ts` names a key from `KeyboardEvent.code` (its place on the keyboard), never
+from `e.key`, which AltGr, Shift or a Turkish layout turn into another character. A captured key goes
+straight to `shortcuts-apply`; `app/core/shortcuts.cjs` checks it (`problem()`), compares it with the
+other shortcuts and with push to talk (`reserved`), tries to register it and answers
+`{ ok }` or `{ ok: false, reason: 'invalid' | 'modifier' | 'duplicate' | 'reserved' | 'in-use', with }`.
+The row shows the answer through `statusLine()` in `shortcut-view.ts`: "saved" leaves after a moment,
+an error stays, and each message has a number so an older timer cannot close a newer one. The keys are
+drawn by `keyChips()` as one label per key (never a text field, which cut long combinations). While a row records, `recording(true)` unregisters the global shortcuts and
+`dictation-pause` stops push to talk, so neither fires on the key being recorded. `loadable()` keeps
+every valid saved choice and drops only a broken one.
 
 ### System monitor
 `live-metrics.cjs` uses the helper's `metrics` channel and keeps an hour of samples: every second while the monitor

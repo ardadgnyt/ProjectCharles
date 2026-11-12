@@ -9,13 +9,14 @@ import { wardrobeUI } from './island/wardrobe';
 import { geminiLiveUI } from './voice/gemini-live';
 import { providersUI } from './settings/providers';
 import { wakeUI } from './voice/wake';
-import { usageUI, resetLabel, LOW_QUOTA, type LowQuota } from './island/usage';
+import { usageUI, LOW_QUOTA, lowQuotaText, type LowQuota, type LowWindow } from './island/usage';
+import { percent } from './settings/time-units';
 import { proposalsUI } from './chat/proposals';
 import { paintSoundButton } from './ui/sound-button';
 import { micPrivacyUI } from './ui/mic-button';
 import { Jelly } from './island/jelly';
 import { onboardingUI } from './island/onboarding';
-import { showGenerating, showImage, showFailed, lightbox, closeLightbox } from './chat/image-card';
+import { showGenerating, showImage, showFailed, lightbox, closeLightbox, setPreviewActions, setImageText } from './chat/image-card';
 import { sentFile } from './chat/attachment-card';
 import { expressionsUI } from './settings/expressions';
 import { panelMotion } from './island/panel-motion';
@@ -24,10 +25,11 @@ import { workspaceUI } from './settings/workspace';
 import { noNativeTooltips } from './ui/no-native-tooltips';
 import { profileTransferUI } from './settings/profile-transfer';
 import { statusScroll } from './chat/status-scroll';
-import { stickToBottom, following, liveText, restore as restoreFeed } from './chat/follow';
+import { stepLists } from './chat/steps';
+import { stickToBottom, liveText, restore as restoreFeed, readerAtTop, keepPlace } from './chat/follow';
 import { companionUI } from './island/companion';
 import { ActivityState } from './chat/activity';
-import { modelPicker } from './chat/model-picker';
+import { modelPicker, markOption } from './chat/model-picker';
 import { effortPicker, setModelEfforts, modelEfforts } from './chat/effort-picker';
 import { personalUI } from './settings/personal';
 import { voiceUI } from './voice/voice';
@@ -103,19 +105,19 @@ let ready = false,
   demo = false;
 const requests = new Map<string | number, HTMLElement>();
 const messages = new Map<string, HTMLElement>();
-let activityGroup: HTMLDetailsElement | null = null;
-function activityHost() {
-  if (!activityGroup || !activityGroup.isConnected) {
-    activityGroup = document.createElement('details');
-    activityGroup.className = 'activity-group';
-    const title = document.createElement('summary');
-    title.textContent = 'Düşünme ve işlem adımları';
-    activityGroup.append(title);
-    feed.append(activityGroup);
-  }
-  return activityGroup;
-}
-const activities = new Map<string, { summary: HTMLElement; pre: HTMLElement }>();
+// v0.9.27: the steps of each answer (chat/steps.ts): one compact list per turn
+const steps = stepLists({
+  append: (node) => {
+    $('welcome')?.remove();
+    feed.append(node);
+  },
+  liveText: (box, value) => liveText(box, value),
+  changed: (pre) => {
+    if (replaying) return;
+    if (pre) stickToBottom(pre);
+    stickToBottom(feed);
+  },
+});
 const activityState = new ActivityState();
 let readingDocument = false,
   documentContext = false;
@@ -572,11 +574,18 @@ function row(text: string, className = '', attachments: any[] = []) {
             const name = typeof file.preview === 'string' ? file.preview : '';
             // v0.9.15: a message sent just now has no history copy yet; it opens the attachment
             // itself. A GIF's thumbnail already is the whole (moving) picture.
-            const original = typeof file.id === 'string' && !file.thumbnail.startsWith('data:image/gif');
-            if (!name && !original) return lightbox(file.thumbnail, file.name);
-            void (name ? api.historyImage(name) : api.attachmentImage(file.id))
-              .then((src: string) => lightbox(src, file.name))
-              .catch(() => lightbox(file.thumbnail, file.name));
+            // v0.9.26: the original first (still in the inbox for a week), so the view's Copy and
+            // Download use every pixel; the history copy (often a smaller JPEG) says that it is one.
+            const gif = file.thumbnail.startsWith('data:image/gif');
+            const byId = typeof file.id === 'string' && !gif;
+            if (gif) return lightbox(file.thumbnail, file.name, { name: file.name, original: true });
+            const preview = () =>
+              name
+                ? api.historyImage(name).then((src: string) => lightbox(src, file.name, { name: file.name, original: false }))
+                : Promise.resolve(lightbox(file.thumbnail, file.name, { name: file.name, original: false }));
+            void (byId ? api.attachmentImage(file.id).then((src: string) => lightbox(src, file.name, { name: file.name, original: true })) : Promise.reject())
+              .catch(preview)
+              .catch(() => lightbox(file.thumbnail, file.name, { name: file.name, original: false }));
           };
           img.onclick = (e) => {
             e.stopPropagation();
@@ -621,6 +630,9 @@ function row(text: string, className = '', attachments: any[] = []) {
       el.append(nav);
     }
   }
+  // v0.9.27: what the user wrote ends the list of steps before it. History keeps no "turn
+  // started", so a reopened chat used to add every turn's steps to the first turn's list.
+  if (className === 'user') steps.next();
   feed.append(el);
   // v0.9.9: no upper limit any more. The list used to keep only its last 250 rows, so in a long
   // chat the first messages could not be reached; opening a chat still draws only its last
@@ -634,7 +646,7 @@ function row(text: string, className = '', attachments: any[] = []) {
 const streaming = new Set<string>();
 const splitAt = new Map<string, number>();
 function splitAfterSteer() {
-  activityGroup = null;
+  steps.next();
   for (const id of streaming) {
     const el = messages.get(id);
     if (!el || !el.isConnected) continue;
@@ -711,7 +723,7 @@ feed.addEventListener('click', (e) => {
   e.preventDefault();
   void attempt(() => api.openLink(link.getAttribute('href')));
 });
-function activity(item: any) {
+function activity(item: any, completed = false) {
   if (
     item.type === 'imageGeneration' &&
     item.status === 'completed' &&
@@ -764,7 +776,7 @@ function activity(item: any) {
       if (!node) {
         node = document.createElement('div');
         node.className = 'message agent progress-message';
-        activityHost().append(node);
+        steps.note(node);
         messages.set(item.id, node);
       }
       if (item.text) updateMarkdown(node, item.text, true);
@@ -785,54 +797,9 @@ function activity(item: any) {
     else showGenerating(node);
     return;
   }
-  let a = activities.get(item.id);
-  if (!a) {
-    $('welcome')?.remove();
-    const details = document.createElement('details');
-    details.className = 'activity';
-    details.dataset.type = item.type;
-    const summary = document.createElement('summary');
-    const pre = document.createElement('pre');
-    details.append(summary, pre);
-    activityHost().append(details);
-    a = { summary, pre };
-    activities.set(item.id, a);
-  }
-  const names: Record<string, string> = {
-    commandExecution: 'Komut',
-    fileChange: 'Dosya değişikliği',
-    mcpToolCall: 'Araç',
-    webSearch: 'Arama',
-    plan: 'Plan',
-    reasoning: 'Düşünme özeti',
-  };
-  const details = a.summary.parentElement!;
-  const status = item.status === 'completed' ? 'completed' : item.status === 'failed' ? 'failed' : 'running';
-  details.dataset.status = status;
-  const badge = document.createElement('span');
-  badge.className = 'activity-badge';
-  badge.textContent = status === 'completed' ? '✓' : status === 'failed' ? '!' : '•';
-  const title = document.createElement('span');
-  title.className = 'activity-label';
-  title.textContent = names[item.type] || 'İşlem';
-  const preview = document.createElement('span');
-  preview.className = 'activity-preview';
-  preview.translate = false;
-  preview.textContent = String(item.command || item.query || item.tool || item.changes?.map((c: any) => c.path).join(', ') || '').slice(0, 240);
-  const stateLabel = document.createElement('span');
-  stateLabel.className = 'activity-state';
-  stateLabel.textContent = status === 'completed' ? 'Tamamlandı' : status === 'failed' ? 'Hata' : 'Çalışıyor';
-  a.summary.replaceChildren(badge, title, preview, stateLabel);
-  const output =
-    item.type === 'reasoning' ? (item.summary || []).map((s: any) => typeof s === 'string' ? s : s.text || '').join('\n') :
-    item.type === 'commandExecution' ? [item.command, item.cwd && 'Klasör: ' + item.cwd, item.aggregatedOutput].filter(Boolean).join('\n\n').slice(-100000) :
-    item.type === 'fileChange' ? (item.changes || []).map((c: any) => [c.path, c.diff].filter(Boolean).join('\n')).join('\n\n') :
-    item.type === 'plan' ? String(item.steps || '') :
-    item.type === 'webSearch' ? String(item.query || item.action?.query || '') :
-    [item.command || item.tool, typeof item.result === 'string' ? item.result : item.result ? JSON.stringify(item.result, null, 2) : '', item.error?.message].filter(Boolean).join('\n\n').slice(-100000);
-  liveText(a.pre, output);
-  if (!replaying) stickToBottom(a.pre);
-  if (!replaying) stickToBottom(feed);
+  // v0.9.27: drawn by chat/steps.ts. `completed` is told by the caller: a closing event may
+  // carry no state of its own.
+  steps.update(item, completed);
   // v0.7.2: the app window's side panel shows written files and terminal output
   document.dispatchEvent(new CustomEvent('charles-activity', { detail: { item, replaying } }));
 }
@@ -981,17 +948,20 @@ async function populateModels() {
   const old = model.value || defaultModel;
   model.replaceChildren();
   const gpt = list.filter(
-    (m: any) => !/^(gemini|claude|cursor|abacus|evren):/.test(m.id),
+    (m: any) => !/^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(m.id),
   );
+  // v0.9.26: each row carries its provider and whether it is that provider's "Auto" as data, so
+  // the picker never has to recognise them by a text the interface language may translate
   if (gpt.length)
-    model.add(new Option('Otomatik · ' + (gpt.find((m: any) => m.isDefault)?.name || 'GPT'), ''));
+    model.add(markOption(new Option('Otomatik · ' + (gpt.find((m: any) => m.isDefault)?.name || 'GPT'), ''), 'gpt', true));
   for (const m of list) {
-    const option = new Option(m.name, m.id);
+    const provider = /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.exec(m.id)?.[1] || 'gpt';
+    const option = markOption(new Option(m.name, m.id), provider, /:auto$/.test(m.id));
     model.add(option);
     // v0.9.6: one row per model; its effort levels live in the panel beside the picker.
     setModelEfforts(option, m);
   }
-  if (!list.length) model.add(new Option('Önce hesap bağla', ''));
+  if (!list.length) model.add(markOption(new Option('Önce hesap bağla', ''), ''));
   // v0.9.6: a stored default can be one effort level of a model that is now listed once
   // ("gemini-4-argon-high" is the "high" of "Gemini · 4 Argon"). Adopt that level instead of
   // silently falling back to the first model in the list.
@@ -1011,7 +981,18 @@ async function populateModels() {
   const alias = /^claude:(opus|sonnet|haiku)$/.exec(old || '');
   if (alias && ![...model.options].some((o) => o.value === old))
     wanted = [...model.options].find((o) => o.value.startsWith('claude:claude-' + alias[1] + '-'))?.value || old;
-  model.value = [...model.options].some((o) => o.value === wanted) ? wanted : model.options[0].value;
+  // v0.9.26: a saved model the provider no longer lists (EVREN's reading models, say) goes to that
+  // provider's own "Auto" and says so, instead of quietly becoming the first model of the list
+  const listed = (v: string) => [...model.options].some((o) => o.value === v);
+  const gone = /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.exec(wanted || '');
+  if (wanted && gone && !listed(wanted)) {
+    const auto = [...model.options].find((o) => o.dataset.provider === gone[1] && o.dataset.auto === '1');
+    if (auto && [...model.options].some((o) => o.dataset.provider === gone[1] && o !== auto)) {
+      wanted = auto.value;
+      notice('Seçili model artık listede yok; aynı yapay zekânın Otomatik seçeneğine geçildi.');
+    }
+  }
+  model.value = listed(wanted) ? wanted : model.options[0].value;
   model.dispatchEvent(new Event('change'));
   if (list.length) modelsAt = Date.now();
 }
@@ -1096,7 +1077,7 @@ function event(e: any) {
       if (method === 'turn/started') {
         activityState.reset();
         activityState.think();
-        activityGroup = null;
+        steps.next();
         busy = true;
         state('thinking', readingDocument ? 'Belgeyi okuyorum 📖' : 'Düşünüyorum…');
         controls();
@@ -1105,7 +1086,7 @@ function event(e: any) {
       if (!replaying && method === 'item/completed') voice.item(p.item);
       if (method === 'item/started' || method === 'item/completed') {
         if (method === 'item/started') activityState.update(p.item);
-        activity(p.item);
+        activity(p.item, method === 'item/completed');
         if (busy && !requests.size)
           state(
             p.item.type === 'webSearch' ? 'searching' : 'working',
@@ -1125,11 +1106,7 @@ function event(e: any) {
         splitAt.delete(p.item.id);
       }
       if (method === 'item/commandExecution/outputDelta') {
-        const a = activities.get(p.itemId);
-        if (a) {
-          liveText(a.pre, (a.pre.textContent + p.delta).slice(-100000));
-          stickToBottom(a.pre);
-        }
+        steps.output(p.itemId, String(p.delta || ''));
       }
       if (method === 'turn/plan/updated') {
         const plan = (p.plan || [])
@@ -1148,17 +1125,17 @@ function event(e: any) {
         if (!replaying) quota.limitError(turnModel || model.value, message);
       }
       if (method === 'turn/completed') {
+        // v0.9.26: decided by the turn's own state, in the interface language (it was English for
+        // every language but Turkish); Stop reads as stopped, not as a failure
         for (const node of feed.querySelectorAll<HTMLElement>('.image-generating'))
-          showFailed(
-            node,
-            document.documentElement.lang !== 'tr'
-              ? 'Image generation ended.'
-              : 'Görsel oluşturma sona erdi.',
-          );
+          if (p.turn?.status === 'interrupted') showFailed(node, 'Görsel oluşturma durduruldu.', 'cancelled');
+          else showFailed(node, 'Görsel oluşturma sona erdi.');
         busy = false;
         for (const id of requests.keys()) removeRequest(id);
         controls();
         const status = p.turn.status;
+        // a step that never reported its end is closed with the turn, not left "running"
+        steps.finish(status);
         if (!replaying) voice.completed(status === 'completed');
         if (status === 'failed') {
           // v0.9.25: the failure stays in the chat (live and in history); the notice alone faded
@@ -1236,26 +1213,27 @@ function olderMessages(head: any[], token: number) {
     // v0.9.22: a page at a time; the whole rest of a very long chat at once froze the list too
     const cut = tailStart(head);
     const page = cut ? head.slice(cut) : head;
-    // the drawn messages step aside while the older ones are added in front of them
-    const keep = document.createDocumentFragment();
-    keep.append(...Array.from(feed.childNodes));
-    const height = feed.scrollHeight;
-    const top = feed.scrollTop;
-    const ordinal = userOrdinal;
-    const group = activityGroup;
-    activityGroup = null;
-    userOrdinal = countUsers(head, cut);
-    replaying = true;
-    try {
-      for (const e of page) event(e);
-    } finally {
-      replaying = false;
-      activityGroup = group;
-      userOrdinal = ordinal;
-      feed.append(keep);
-    }
-    if (cut) olderMessages(head.slice(0, cut), token);
-    feed.scrollTop = feed.scrollHeight - height + top;
+    // v0.9.27: the reader stays on the message they were at (chat/follow.ts). The place used to
+    // be measured after the list had been emptied, which sent them to the end of the chat.
+    keepPlace(feed, () => {
+      // the drawn messages step aside while the older ones are added in front of them
+      const keep = document.createDocumentFragment();
+      keep.append(...Array.from(feed.childNodes));
+      const ordinal = userOrdinal;
+      const group = steps.hold();
+      steps.next();
+      userOrdinal = countUsers(head, cut);
+      replaying = true;
+      try {
+        for (const e of page) event(e);
+      } finally {
+        replaying = false;
+        steps.restore(group);
+        userOrdinal = ordinal;
+        feed.append(keep);
+      }
+      if (cut) olderMessages(head.slice(0, cut), token);
+    });
   };
   more.onclick = draw;
   // v0.9.10: only when you scrolled up to it. Moving the chat between the app window and the
@@ -1265,10 +1243,12 @@ function olderMessages(head: any[], token: number) {
     if (
       entries.some((e) => e.isIntersecting) &&
       feed.clientHeight > 0 &&
-      !following(feed) &&
-      !document.body.classList.contains('ws-switching')
+      !document.body.classList.contains('ws-switching') &&
+      readerAtTop(feed, more.offsetHeight + 8)
     )
-      window.setTimeout(draw, 60);
+      // v0.9.27: only when the reader is still there a moment later; a list that was being
+      // re-laid passed the top for an instant and the older messages were drawn unasked
+      window.setTimeout(() => readerAtTop(feed, more.offsetHeight + 8) && draw(), 60);
   }, { root: feed });
   // only once the latest messages are on screen (the list opens scrolled to the bottom)
   window.setTimeout(() => token === roomToken && more.isConnected && observer.observe(more), 600);
@@ -1288,8 +1268,7 @@ async function switchRoom(r: any) {
   messages.clear();
   streaming.clear();
   splitAt.clear();
-  activities.clear();
-  activityGroup = null;
+  steps.clear();
   roomBranches = r.branches || {};
   documentContext = !!r.documentContext;
   readingDocument = false;
@@ -1423,6 +1402,18 @@ personalUI(api, notice, attempt, () => {
 });
 
 const features = extraUI(api, bot, notice, attempt, switchRoom);
+// v0.9.26: the picture card and the big view speak the interface language
+setImageText(t, (n) => percent(n));
+// v0.9.26: the big picture view's Sohbete ekle / Görseli kopyala / Bir kopyasını indir
+setPreviewActions({
+  attach: async (dataUrl, name) => {
+    const item = await api.imageAttach(dataUrl, name);
+    await features.addFiles([item]);
+    return true;
+  },
+  copy: (dataUrl) => api.imageCopy(dataUrl),
+  save: (dataUrl, name) => api.imageSave(dataUrl, name),
+});
 document.addEventListener('charles-attachments', () => controls());
 // v0.5.1: expressions are tried on a preview Slime inside the settings.
 expressionsUI(api);
@@ -1515,8 +1506,7 @@ function clearConversation() {
   messages.clear();
   streaming.clear();
   splitAt.clear();
-  activities.clear();
-  activityGroup = null;
+  steps.clear();
   row(
     mode.value === 'chat'
       ? 'Yeni sohbet. Ne konuşalım?'
@@ -1815,7 +1805,7 @@ const steer = steerUI({
   composer: $('composer'),
   bar: $('composer-bar'),
   prompt,
-  external: () => /^(gemini|claude|cursor|abacus|evren):/.test(model.value || ''),
+  external: () => /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(model.value || ''),
   shown: (text, files) => {
     markSteer(row(text, 'user', files));
     splitAfterSteer();
@@ -1922,7 +1912,7 @@ const proposals = proposalsUI({
   },
 });
 // Kota bekçisi: under 10 % left → suggest another connected provider's model.
-const quotaProvider = (v: string) => (/^(gemini|claude|cursor|abacus|evren):/.test(v) ? v.split(':')[0] : 'gpt');
+const quotaProvider = (v: string) => (/^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(v) ? v.split(':')[0] : 'gpt');
 function onLowQuota(q: LowQuota) {
   void confirmLowQuota(q).then((low) => {
     if (!low) return;
@@ -1935,16 +1925,21 @@ function onLowQuota(q: LowQuota) {
     else lowQuota(q);
   });
 }
+/** v0.9.26: one fresh reading; the windows of this event that are really still low, with their values now. */
 async function confirmLowQuota(q: LowQuota) {
   try {
     const v = await api.usageRead(true, q.provider);
-    const w = v?.[q.window];
-    if (v?.paid || v?.unavailable || typeof w?.remaining !== 'number' || w.remaining >= LOW_QUOTA)
-      return false;
-    if (w.resetsAt && w.resetsAt * 1000 <= Date.now()) return false;
-    q.remaining = w.remaining;
-    q.resetsAt = w.resetsAt ?? null;
-    return true;
+    if (v?.paid || v?.unavailable) return false;
+    const now = Date.now();
+    const still: LowWindow[] = [];
+    for (const low of q.windows) {
+      const w = v?.[low.window];
+      if (typeof w?.remaining !== 'number' || w.remaining >= LOW_QUOTA) continue;
+      if (w.resetsAt && w.resetsAt * 1000 <= now) continue;
+      still.push({ window: low.window, remaining: w.remaining, resetsAt: w.resetsAt ?? null });
+    }
+    q.windows = still;
+    return still.length > 0;
   } catch {
     return false;
   }
@@ -1958,34 +1953,30 @@ function lowQuota(q: LowQuota) {
     seen.add(p);
     alternatives.push(o);
   }
-  const span = q.window === 'fiveHour' ? '5 saatlik' : 'haftalık';
-  const reset = resetLabel(q.resetsAt);
-  const text =
-    `⚠️ **${q.name}** ${span} kullanım hakkının yalnızca **%${Math.round(q.remaining)}**'i kaldı` +
-    (reset ? ` (${reset} sonra yenilenir)` : '') +
-    '. ' +
-    (alternatives.length
-      ? 'Kesilmeden devam etmek için başka bir yapay zekâya geçelim mi?'
-      : 'Bağlı başka bir yapay zekâ yok; Ayarlar → Yapay zekâ bölümünden ekleyebilirsin.');
+  const text = lowQuotaText(q, alternatives.length);
+  const named = (o: HTMLOptionElement) => o.textContent || o.value;
   proposals.local(text, [
     ...alternatives.slice(0, 3).map((o, i) => ({
       id: o.value,
-      label: (o.textContent || o.value) + ' modeline geç',
+      label: t('{model} modeline geç').replace('{model}', named(o)),
       primary: i === 0,
       run: () => {
-        if (busy) throw Error('Önce çalışan iş bitsin, sonra geçebilirim.');
+        if (busy) throw Error(t('Önce çalışan iş bitsin, sonra geçebilirim.'));
         model.value = o.value;
         model.dispatchEvent(new Event('change', { bubbles: true }));
-        return `Tamam, **${o.textContent || o.value}** modeline geçtim.`;
+        return t('Tamam, {model} modeline geçtim.').replace('{model}', '**' + named(o) + '**');
       },
     })),
-    { id: 'stay', label: alternatives.length ? 'Böyle kalsın' : 'Tamam', run: () => 'Peki.' },
+    { id: 'stay', label: t(alternatives.length ? 'Böyle kalsın' : 'Tamam'), run: () => t('Peki.') },
   ]);
+  // one card for the whole event (its id has no window in it: a second card would replace it)
   void api
     .charlesBubble({
-      id: 'quota|' + q.provider + '|' + q.window,
-      title: q.name + ' kotası azaldı',
-      reason: `%${Math.round(q.remaining)} kaldı — başka yapay zekâya geçmeyi öneriyorum.`,
+      id: 'quota|' + q.provider,
+      title: t('{name} kotası azaldı').replace('{name}', q.name),
+      reason: q.windows
+        .map((w) => t(w.window === 'fiveHour' ? '5 saat' : 'Haftalık') + ': ' + t('{pct} kaldı').replace('{pct}', percent(Math.round(w.remaining))))
+        .join(' · '),
     })
     .catch(() => {});
 }

@@ -122,6 +122,52 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
           finish: true,
         },
       ],
+      // v0.9.27: Kimi, GitHub Copilot and OpenCode, each through its own command line tool
+      'kimi-login': [
+        {
+          title: '1 · Kimi Code’u kur',
+          text: 'Kimi’nin komut satırı aracı (Kimi Code) Charles ile gelmez. Aşağıdaki düğmeyle kurulum sayfasını aç ve Windows adımlarıyla kur. Zaten kuruluysa sonraki adıma geç.',
+        },
+        {
+          title: '2 · Hesabınla giriş yap',
+          text: 'Aşağıdaki düğmeye bas. Tarayıcıda Kimi’nin sayfası açılır ve Charles sana bir kod gösterir. Kimi hesabınla giriş yapıp o kodu onayla. Siyah pencere açılmaz.',
+        },
+        {
+          title: '3 · Bağlantıyı kontrol et',
+          text: 'Bağlantıyı kontrol et’e bas. Charles, Kimi’ye kısa bir deneme mesajı gönderir; yanıt gelirse hesabındaki Kimi modelleri model listesine eklenir.',
+          finish: true,
+        },
+      ],
+      'copilot-login': [
+        {
+          title: '1 · GitHub Copilot aracını kur',
+          text: 'GitHub Copilot’un komut satırı aracı Charles ile gelmez. Aşağıdaki düğmeyle kurulum sayfasını aç ve Windows adımlarıyla kur. Zaten kuruluysa sonraki adıma geç.',
+        },
+        {
+          title: '2 · Hesabınla giriş yap',
+          text: 'Aşağıdaki düğmeye bas. Charles küçük bir siyah pencere açar ve tarayıcıda GitHub’ın giriş sayfası açılır. GitHub hesabınla izin ver, sonra siyah pencereyi kapat.',
+        },
+        {
+          title: '3 · Bağlantıyı kontrol et',
+          text: 'Bağlantıyı kontrol et’e bas. Charles, GitHub Copilot’a kısa bir deneme mesajı gönderir; yanıt gelirse GitHub Copilot model listesine eklenir.',
+          finish: true,
+        },
+      ],
+      'opencode-login': [
+        {
+          title: '1 · OpenCode’u kur',
+          text: 'OpenCode komut satırı aracı Charles ile gelmez. Aşağıdaki düğmeyle kurulum sayfasını aç ve Windows adımlarıyla kur. Zaten kuruluysa sonraki adıma geç.',
+        },
+        {
+          title: '2 · Hesabınla giriş yap',
+          text: 'Aşağıdaki düğmeye bas. Charles küçük bir siyah pencere açar. Ok tuşlarıyla bir sağlayıcı seç (ücretsiz modeller için OpenCode Zen), girişi tamamla ve pencereyi kapat.',
+        },
+        {
+          title: '3 · Bağlantıyı kontrol et',
+          text: 'Bağlantıyı kontrol et’e bas. Charles, OpenCode’a kısa bir deneme mesajı gönderir; yanıt gelirse OpenCode modelleri model listesine eklenir.',
+          finish: true,
+        },
+      ],
       // v0.9.8: EVREN, an OpenAI-compatible API reached with the user's own API key
       'evren-login': [
         {
@@ -283,21 +329,29 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
       reopen.onclick = () => void api.pluginsSetupPage(id, current.page);
       bubble.append(reopen);
     }
-    const loginOf = /^(gpt|claude|gemini|cursor|abacus)-login$/.exec(id)?.[1];
-    const NAMES: Record<string, string> = { gpt: 'ChatGPT', claude: 'Claude', gemini: 'Antigravity', cursor: 'Cursor', abacus: 'Abacus AI', evren: 'EVREN' };
+    const loginOf = /^(gpt|claude|gemini|cursor|abacus|kimi|copilot|opencode)-login$/.exec(id)?.[1];
+    const NAMES: Record<string, string> = { gpt: 'ChatGPT', claude: 'Claude', gemini: 'Antigravity', cursor: 'Cursor', abacus: 'Abacus AI', evren: 'EVREN', kimi: 'Kimi', copilot: 'GitHub Copilot', opencode: 'OpenCode' };
+    // v0.9.27: tools the user installs themself: the setup page first (step 1), then the sign-in (step 2)
+    const INSTALL: Record<string, string> = {
+      abacus: 'https://abacus.ai/help/abacusai-desktop/cli-installation',
+      kimi: 'https://moonshotai.github.io/kimi-code/',
+      copilot: 'https://docs.github.com/copilot/how-tos/copilot-cli',
+      opencode: 'https://opencode.ai/docs/',
+    };
+    const isKit = !!loginOf && ['kimi', 'copilot', 'opencode'].includes(loginOf);
     // v0.8.0: Abacus AI first needs its own tool installed (step 1), then signs in (step 2)
-    if (loginOf === 'abacus' && step === 0) {
+    if (loginOf && INSTALL[loginOf] && step === 0) {
       const docs = document.createElement('button');
       docs.className = 'primary';
       docs.textContent = 'Kurulum sayfasını aç';
       docs.onclick = () =>
-        void api.openLink('https://abacus.ai/help/abacusai-desktop/cli-installation').catch((e: Error) => (p.textContent = e.message));
+        void api.openLink(INSTALL[loginOf]).catch((e: Error) => (p.textContent = e.message));
       bubble.append(docs);
     }
-    if (loginOf && step === (loginOf === 'abacus' ? 1 : 0)) {
+    if (loginOf && step === (INSTALL[loginOf] ? 1 : 0)) {
       const open = document.createElement('button');
       open.className = 'primary';
-      open.textContent = loginOf === 'gpt' ? 'ChatGPT ile giriş yap' : 'Giriş penceresini aç';
+      open.textContent = loginOf === 'gpt' ? 'ChatGPT ile giriş yap' : loginOf === 'kimi' ? 'Kimi ile giriş' : 'Giriş penceresini aç';
       open.onclick = async () => {
         open.disabled = true;
         try {
@@ -317,6 +371,21 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
             const last = bubble?.querySelector('p');
             if (last) last.textContent = NAMES[loginOf] + ' hesabın zaten bağlı. Kurulumu bitir düğmesine basabilirsin.';
             await saved(null);
+            return;
+          }
+          // Kimi: no console; its tool gave a link (opened in the browser) and a code to confirm
+          if (loginOf === 'kimi') {
+            p.replaceChildren();
+            if (r?.url && r?.code) {
+              const code = document.createElement('strong');
+              code.setAttribute('translate', 'no');
+              code.textContent = String(r.code);
+              const lead = document.createElement('span');
+              lead.textContent = 'Tarayıcıda Kimi sayfası açıldı. Hesabınla giriş yapıp bu kodu onayla:';
+              const tail = document.createElement('span');
+              tail.textContent = 'Onayladıktan sonra Tamam, sonraki adım’a bas.';
+              p.append(lead, ' ', code, ' ', tail);
+            } else p.textContent = String(r?.message || 'Kimi girişi başlatılamadı. Yeniden dene.');
             return;
           }
           p.textContent =
@@ -339,6 +408,12 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
         check.disabled = true;
         p.textContent = 'Kontrol ediliyor…';
         try {
+          if (isKit) {
+            const r = await api.providersKitTest(loginOf);
+            p.textContent = r.ok ? 'Bağlandı. ' + NAMES[loginOf] + ' model listesinde. Kurulumu bitir düğmesine basabilirsin.' : r.message;
+            await saved(null);
+            return;
+          }
           if (loginOf === 'abacus') {
             const r = await api.providersAbacusTest();
             p.textContent = r.ok ? 'Bağlandı. Abacus AI modelleri model listesinde. Kurulumu bitir düğmesine basabilirsin.' : r.message;
@@ -371,48 +446,31 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
       const save = document.createElement('button');
       save.className = 'primary';
       save.textContent = 'Kaydet ve test et';
-      const terms = document.createElement('button');
-      terms.textContent = 'Kullanım şartlarını kabul et';
-      terms.hidden = true;
-      const test = async () => {
-        p.textContent = 'EVREN bağlantısı test ediliyor…';
-        const r = await api.providersEvrenTest();
-        terms.hidden = !r?.terms;
-        p.textContent = r?.ok
-          ? 'Bağlandı. EVREN modelleri model listesinde. Kurulumu bitir düğmesine basabilirsin.'
-          : r?.terms
-            ? 'EVREN kullanım şartlarının kabul edilmesini istiyor. Şartları Ayarlar → AI Modelleri → EVREN → Kullanım şartları’nda okuyabilirsin; kabul edersen aşağıdaki düğmeye bas.'
-            : String(r?.message || 'EVREN bağlantısı kurulamadı.');
-        await saved(null);
-      };
+      // v0.9.27: no terms step here. The key is checked against EVREN and that answer decides.
+      // When EVREN itself refuses the account for its terms, the settings card shows EVREN's
+      // text; this bubble never accepted anything the user could not read.
       save.onclick = async () => {
         save.disabled = true;
         try {
           const value = input.value.trim();
-          if (value) {
-            await api.evrenKeySave(value);
-            input.value = '';
-          } else if (!(await api.providersStatus())?.find?.((r: any) => r.id === 'evren')?.configured)
+          input.value = '';
+          if (!value && !(await api.providersStatus())?.find?.((r: any) => r.id === 'evren')?.configured)
             throw Error('Önce EVREN API anahtarını yapıştır.');
-          await test();
+          p.textContent = 'EVREN bağlantısı test ediliyor…';
+          const r = value ? await api.evrenConnect(value) : await api.providersEvrenTest();
+          p.textContent = r?.ok
+            ? 'Bağlandı. EVREN modelleri model listesinde. Kurulumu bitir düğmesine basabilirsin.'
+            : r?.terms
+              ? 'Anahtar geçerli, ama EVREN bu hesap için kendi kullanım şartlarının kabulünü istiyor. Metni Ayarlar → AI Modelleri → EVREN kartında okuyup oradan kabul edebilirsin.'
+              : String(r?.message || 'EVREN bağlantısı kurulamadı.');
+          await saved(null);
         } catch (e) {
           p.textContent = (e as Error).message;
         } finally {
           save.disabled = false;
         }
       };
-      terms.onclick = async () => {
-        terms.disabled = true;
-        try {
-          await api.evrenTermsAccept();
-          await test();
-        } catch (e) {
-          p.textContent = (e as Error).message;
-        } finally {
-          terms.disabled = false;
-        }
-      };
-      bubble.append(input, save, terms);
+      bubble.append(input, save);
     } else if (current.finish && id === 'gemini') {
       const input = document.createElement('input');
       input.type = 'password';

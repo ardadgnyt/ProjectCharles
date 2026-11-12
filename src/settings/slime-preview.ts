@@ -20,9 +20,11 @@ export function flagAllowed() {
 
 /** Stored accessory values → what the engine wears today ("auto" resolved). */
 export function wearable(a: Accessories) {
+  // v0.9.26: no seasonal hat any more; "auto" (an old save, or an unknown value) is no hat
+  const hat = String(parseOutfit(a.hat));
   const w = wornAccessories(
     {
-      hat: String(parseOutfit(a.hat)),
+      hat: hat === 'auto' ? 'none' : hat,
       eyes: String(a.eyes || 'none'),
       other: String(a.other || 'none'),
       hand: 'auto', // v0.6.3: the flag comes by itself on the national days, no setting
@@ -35,7 +37,7 @@ export function wearable(a: Accessories) {
 
 /** personal.json → accessories (v0.6.1 slots). */
 export function accessoriesOf(p: any): Accessories {
-  return { hat: p?.outfit || 'none', eyes: p?.eyewear || 'none', other: p?.otherWear || 'none' };
+  return { hat: p?.outfit && p.outfit !== 'auto' ? p.outfit : 'none', eyes: p?.eyewear || 'none', other: p?.otherWear || 'none' };
 }
 
 export function slimePreview(label: string) {

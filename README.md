@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.25%20release%20candidate-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.9.27%20release%20candidate-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -157,12 +157,29 @@ where notifications appear, and takes neither the keyboard nor the focus.
 ### Convert files on your desktop
 
 Open **Files → Convert** (or drag a file onto the **Files** card: its Convert / Send tiles open
-by themselves), choose an output format, then press **Convert**. Images, audio, video, documents, presentations, data and archives stay on your computer.
-Supported formats depend on the selected file and the installed tools; image and video
-options include quality and output size. The result is saved beside the original.
+by themselves), choose an output format, then press **Convert**. Everything runs on your computer
+and the result is saved beside the original.
+
+- **Documents:** PDF, Word (DOCX, DOC, ODT, RTF), TXT, Markdown, HTML and EPUB into each other;
+  PDF into DOCX, XLSX or PPTX; pages as PNG, JPEG or TIFF.
+- **Spreadsheets and data:** XLSX, XLS, ODS, CSV, TSV and JSON, with sheet, range, separator,
+  encoding and header choices; a sheet as a picture or PDF.
+- **Presentations:** PPTX, PPT and ODP into each other and PDF; slides as pictures; text with or
+  without speaker notes.
+- **Scans:** text recognition with Windows' own OCR into a searchable PDF, TXT or DOCX, and
+  tables into XLSX or CSV after you check them.
+- **Pictures:** PNG, JPEG, WebP, BMP, TIFF, AVIF, HEIC, SVG, ICO and GIF, PNG or JPEG into a real
+  SVG, several pictures into one animation or one PDF in your order.
+- **Sound, video and speech:** MP3, WAV, FLAC, M4A, AAC, OGG, Opus, MP4, MKV, MOV, AVI and WebM
+  with quality choices; clips to GIF or WebP; speech to TXT, DOCX, SRT or VTT with local Whisper.
+- **Archives:** ZIP, 7z and TAR made and extracted, RAR extracted, always safely.
+
+Only the formats the chosen files can become on this computer are offered. Word, Excel and
+PowerPoint are used for their own formats when they are installed. See the
+[User Guide](docs/USER-GUIDE.md#converting-files) for the full list.
 
 <p align="center">
-  <img src="docs/images/converter.png" alt="Files → Convert with a sample PNG: grouped output formats, quality and size" width="720">
+  <img src="docs/images/converter.png" alt="Files → Convert with a sample PDF: output formats grouped as document, data, presentation, image, text recognition and archive" width="720">
 </p>
 
 ### File shelf
@@ -277,7 +294,7 @@ approves. See [docs/MODULES.md](docs/MODULES.md).
 
 ### AI usage and weather
 
-**AI usage** shows every connected AI (Codex, Claude, Antigravity, Cursor, Abacus AI, EVREN)
+**AI usage** shows every connected AI (Codex, Claude, Antigravity, Cursor, Abacus AI, EVREN, Kimi, GitHub Copilot, OpenCode)
 with its two windows and when they reset. **Weather** shows the current conditions, the next
 hours, today and the next five days; the location button changes the city.
 

@@ -49,7 +49,14 @@ class Personal {
     // v0.6.1: glasses, pumpkin and scarf used to share the single "outfit" value with the
     // hats; they now have their own slots so they can be worn together.
     const old = this.data.outfit;
-    if (EYES.includes(old) && old !== 'none' && !this.data.eyewear) {
+    // v0.9.26: the Slime studio has no "Mevsime göre" any more: a saved seasonal hat becomes no hat
+    // (written once, so every window and module reads the same thing)
+    if (old === 'auto') {
+      this.data.outfit = 'none';
+      try {
+        this.save();
+      } catch {}
+    } else if (EYES.includes(old) && old !== 'none' && !this.data.eyewear) {
       this.data.eyewear = old;
       this.data.outfit = 'none';
     } else if (OTHER.includes(old) && old !== 'none' && !this.data.otherWear) {
@@ -84,13 +91,14 @@ class Personal {
         ].includes(args.value)
       )
         throw Error('Geçersiz aksesuar.');
-      this.data.outfit = args.value;
+      this.data.outfit = args.value === 'auto' ? 'none' : args.value;
     } else if (action === 'onboarded') {
       // v0.6.2 welcome tour: true = finished/skipped, false = show it again
       this.data.onboarded = args.value !== false;
     } else if (action === 'accessories') {
       // v0.6.1 wardrobe: one item per category; the pumpkin does not go with a hat.
-      const hat = args.hat ?? this.data.outfit ?? 'none';
+      // an older window may still send the seasonal choice: it is stored as no hat
+      const hat = (args.hat ?? this.data.outfit ?? 'none') === 'auto' ? 'none' : args.hat ?? this.data.outfit ?? 'none';
       const eyes = args.eyes ?? this.data.eyewear ?? 'none';
       const other = args.other ?? this.data.otherWear ?? 'none';
       if (!HATS.includes(hat) || !EYES.includes(eyes) || !OTHER.includes(other))

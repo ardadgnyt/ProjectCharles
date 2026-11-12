@@ -10,9 +10,13 @@ const abacus = require('./abacus.cjs');
 const imagesKit = require('./provider-images.cjs');
 const drawing = require('./provider-drawing.cjs');
 const { Evren } = require('./evren.cjs');
+// v0.9.27: Kimi, GitHub Copilot and OpenCode through their own command line tools (cli-kits.cjs)
+const { KITS } = require('./cli-kits.cjs');
+const kimiKit = require('./kimi.cjs');
+const KIT_IDS = Object.keys(KITS);
 // v0.8.0: every provider Charles can sign in to besides GPT
 // v0.9.6: EVREN - an OpenAI-compatible HTTP API reached with the user's own API key.
-const PROVIDERS = ['gemini', 'claude', 'cursor', 'abacus', 'evren'];
+const PROVIDERS = ['gemini', 'claude', 'cursor', 'abacus', 'evren', ...KIT_IDS];
 // Runs a CLI in a worker thread; resolves { error, out, err } like execFile's callback.
 function runOffThread(exe, args, options) {
   return new Promise((resolve) => {
@@ -142,7 +146,7 @@ const EFFORT_LEVELS = {
 };
 // Providers that take the level as a request parameter (the model id stays as it is). The
 // others carry the level inside the model id itself ("gemini-4-argon-high", "grok-4.7-xhigh").
-const EFFORT_BY_PARAM = new Set(['claude', 'evren']);
+const EFFORT_BY_PARAM = new Set(['claude', 'evren', 'kimi', 'opencode']);
 // Models that take no level even though their provider does: Claude Haiku and the Claude
 // models before Opus/Sonnet 4.5 have no effort setting.
 const NO_EFFORT = new Set(['claude:haiku']);
@@ -244,6 +248,22 @@ function streamText(text, emit, id, done, tick = 16) {
     setTimeout(step, tick);
   };
   step();
+}
+/** Saved model list of a CLI kit (providers/<id>.json) → [{ id, name, efforts }], checked. */
+function cleanKitModels(id, list) {
+  if (!Array.isArray(list)) return [];
+  const ok = KITS[id].modelId;
+  const out = [];
+  for (const m of list) {
+    if (!m || typeof m.id !== 'string' || !ok.test(m.id) || m.id === 'auto' || out.some((x) => x.id === m.id)) continue;
+    out.push({
+      id: m.id,
+      name: typeof m.name === 'string' && m.name.trim() ? m.name.trim().slice(0, 40) : m.id,
+      efforts: Array.isArray(m.efforts) ? m.efforts.filter((e) => typeof e === 'string' && /^[A-Za-z][A-Za-z0-9_-]{0,20}$/.test(e)).slice(0, 8) : [],
+    });
+    if (out.length >= 80) break;
+  }
+  return out;
 }
 class Providers {
   constructor(root, dir) {
@@ -357,6 +377,19 @@ class Providers {
     this.evren = new Evren(dir);
     this.evrenQuotaCache = null;
     this.evrenQuotaPending = null;
+    // v0.9.27: the CLI kits. What a connection test proved and the account's model list are kept in
+    // providers/<id>.json (names and ids only; the tools keep their own sign-in).
+    this.kits = {};
+    this.kitSpecs = {};
+    for (const id of KIT_IDS) {
+      this.kits[id] = { verified: false, models: [] };
+      try {
+        const saved = JSON.parse(fs.readFileSync(path.join(this.dir, id + '.json'), 'utf8'));
+        this.kits[id] = { verified: saved?.verified === true, models: cleanKitModels(id, saved?.models) };
+      } catch {}
+    }
+    this.kimiQuotaCache = null;
+    this.kimiLoginJob = null;
     this.auth = {};
     this.authChecked = 0;
     this.authPending = null;
@@ -386,6 +419,13 @@ class Providers {
       const found = this.abacusSpec.found;
       return found ? { exe: found.exe, args: found.args } : { exe: '', args: [], missing: true };
     }
+    if (KITS[provider]) {
+      // not shipped with Charles: looked up where its installer puts it (cached for 30 s)
+      const cached = this.kitSpecs[provider];
+      if (!cached || Date.now() - cached.at > 30000) this.kitSpecs[provider] = { at: Date.now(), found: KITS[provider].find(process.env) };
+      const found = this.kitSpecs[provider].found;
+      return found ? { exe: found.exe, args: found.args } : { exe: '', args: [], missing: true };
+    }
     throw Error('Geçersiz sağlayıcı.');
   }
   /**
@@ -395,11 +435,88 @@ class Providers {
    * works: agy ignores "1"). The user's own chats leave it on, so agy still updates itself.
    */
   geminiEnv({ background = false } = {}) {
+    void background;
+    // v0.9.26: off for every agy Charles starts, chats too. The updater agy spawns by itself (at
+    // most every 15 minutes, in a console of its own) is what flashed a black window while a
+    // picture was being made: image turns are long, so its check came due during them.
+    // Updates are not dropped: updateAgy() runs `agy update` itself, hidden, while agy is idle.
     return {
       ...this.env,
       USERPROFILE: path.join(this.dir, 'gemini'),
-      ...(background ? { AGY_CLI_DISABLE_AUTO_UPDATE: 'true' } : {}),
+      AGY_CLI_DISABLE_AUTO_UPDATE: 'true',
     };
+  }
+  /**
+   * v0.9.26: keeps Antigravity up to date without a visible console: `agy update`, hidden, no shell,
+   * at most once a day, never while an answer runs. The result is written to logs/agy-update.log
+   * (time, exit code and the tool's last line, nothing personal). `force` ignores the day.
+   */
+  async updateAgy({ force = false, now = Date.now(), spawnFn = spawn, log = null } = {}) {
+    const stateFile = path.join(this.dir, 'agy-update.json');
+    let last = {};
+    try {
+      last = JSON.parse(fs.readFileSync(stateFile, 'utf8')) || {};
+    } catch {}
+    if (!force && Number(last.at) > 0 && now - Number(last.at) < 24 * 3600 * 1000) return { skipped: 'recent' };
+    if (this.agyUpdating) return { skipped: 'running' };
+    if (this.jobs && this.jobs.size) return { skipped: 'busy' };
+    const spec = this.spec('gemini');
+    if (!spec.exe || !fs.existsSync(spec.exe)) return { skipped: 'missing' };
+    this.agyUpdating = true;
+    // an answer asked for meanwhile waits for the update instead of starting a half-replaced agy
+    let done;
+    this.agyUpdatePending = new Promise((r) => (done = r));
+    const note = (line) => {
+      try {
+        (log || ((l) => {
+          const dir = path.join(path.dirname(this.dir), 'logs');
+          fs.mkdirSync(dir, { recursive: true });
+          fs.appendFileSync(path.join(dir, 'agy-update.log'), l + '\n');
+        }))(new Date(now).toISOString() + ' ' + line);
+      } catch {}
+    };
+    try {
+      const result = await new Promise((resolve) => {
+        // explicit update: the switch that turns agy's own updater off is not passed to it
+        const env = { ...this.env, USERPROFILE: path.join(this.dir, 'gemini') };
+        delete env.AGY_CLI_DISABLE_AUTO_UPDATE;
+        let out = '';
+        let child;
+        try {
+          child = spawnFn(spec.exe, [...spec.args, 'update'], { cwd: path.join(this.dir, 'workspace'), env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+        } catch (e) {
+          return resolve({ code: -1, line: String(e?.message || e).slice(0, 200) });
+        }
+        // only the last bit is kept: a chatty tool cannot fill the memory
+        const keep = (d) => (out = (out + d).slice(-2000));
+        child.stdout?.on('data', keep);
+        child.stderr?.on('data', keep);
+        const timer = setTimeout(() => {
+          try {
+            child.kill();
+          } catch {}
+        }, 10 * 60 * 1000);
+        timer.unref?.();
+        child.on('error', (e) => {
+          clearTimeout(timer);
+          resolve({ code: -1, line: String(e?.message || e).slice(0, 200) });
+        });
+        child.on('close', (code) => {
+          clearTimeout(timer);
+          const lines = out.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+          resolve({ code: code ?? -1, line: (lines.pop() || '').slice(0, 200) });
+        });
+      });
+      note(`agy update exit=${result.code} ${result.line}`);
+      try {
+        fs.writeFileSync(stateFile, JSON.stringify({ at: now, ok: result.code === 0 }));
+      } catch {}
+      return { ok: result.code === 0, code: result.code };
+    } finally {
+      this.agyUpdating = false;
+      this.agyUpdatePending = null;
+      done();
+    }
   }
   async usage(force = false) {
     if (this.quotaPending) return this.quotaPending;
@@ -535,7 +652,197 @@ class Providers {
       ]),
       ...abacusModels,
       ...evrenModels,
+      ...this.kitModels(),
     ];
+  }
+  /**
+   * v0.9.27: the rows of the CLI kits. Each has an "Otomatik" row (the tool's own default model)
+   * and the models its account lists. A Kimi model carries its own reasoning levels; the other two
+   * take none here.
+   */
+  kitModels() {
+    const rows = [];
+    for (const id of KIT_IDS) {
+      const name = KITS[id].name;
+      rows.push([id + ':auto', name + ' · Otomatik', { efforts: [] }]);
+      for (const m of this.kits[id].models)
+        rows.push([
+          `${id}:${m.id}`,
+          `${name} · ${m.name}`,
+          { efforts: (m.efforts || []).map((value) => [value, `${id}:${m.id}`, id === 'kimi' ? kimiKit.effortLabel(value) : KITS[id].effortLabel ? KITS[id].effortLabel(value) : String(value)]) },
+        ]);
+    }
+    return rows;
+  }
+  saveKit(id) {
+    try {
+      fs.writeFileSync(path.join(this.dir, id + '.json'), JSON.stringify(this.kits[id]));
+    } catch {}
+  }
+  kitContext(extra = {}) {
+    return { dir: this.dir, ...extra };
+  }
+  /** The account's models, from the tool itself (Kimi: its config; the others: their listing command). */
+  async refreshKitModels(id) {
+    const kit = KITS[id];
+    const state = this.kits[id];
+    if (id === 'kimi') {
+      try {
+        const parsed = kimiKit.parseConfig(fs.readFileSync(path.join(kit.home(this.dir), 'config.toml'), 'utf8'));
+        state.models = parsed.models.map(({ id: mid, name, efforts, defaultEffort, vision }) => ({ id: mid, name, efforts, defaultEffort, vision }));
+        this.saveKit(id);
+      } catch {}
+      return state.models;
+    }
+    const spec = this.spec(id);
+    if (!spec.exe || state.listing) return state.models;
+    state.listing = true;
+    try {
+      for (const args of kit.modelCommands) {
+        const { error, out } = await runOffThread(spec.exe, [...spec.args, ...args], {
+          cwd: path.join(this.dir, 'workspace'),
+          env: kit.env(this.env, this.kitContext()),
+          windowsHide: true,
+          timeout: 30000,
+          maxBuffer: 1024 * 1024,
+        });
+        const list = error ? [] : kit.parseModels(out);
+        if (list.length) {
+          state.models = list.map(([mid, name, efforts]) => ({ id: mid, name, efforts: Array.isArray(efforts) ? efforts : [] }));
+          this.saveKit(id);
+          break;
+        }
+      }
+    } finally {
+      delete state.listing;
+    }
+    return state.models;
+  }
+  /**
+   * The connection test of a CLI kit: one tiny message without tools (only when the user presses the
+   * button). Nothing says "connected" unless the tool really answered. → { ok, message }
+   */
+  async testKit(id) {
+    const kit = KITS[id];
+    if (!kit) throw Error('Geçersiz sağlayıcı.');
+    const state = this.kits[id];
+    const spec = this.spec(id);
+    const fail = (message) => {
+      state.verified = false;
+      this.saveKit(id);
+      this.auth[id] = false;
+      this.authChecked = 0;
+      return { ok: false, message };
+    };
+    if (!spec.exe) return fail(`${kit.name} komut satırı aracı bu bilgisayarda bulunamadı. Kurulum sayfasındaki adımlarla kur, sonra yeniden dene.`);
+    if (id === 'kimi' && !kimiKit.signedIn(kit.home(this.dir))) return fail('Kimi girişi yapılmamış. Kimi ile giriş’e bas.');
+    let plan;
+    try {
+      plan = kit.plan({ model: 'auto', prompt: 'Reply with one word: ok', mode: 'chat', access: 'ask', workspace: path.join(this.dir, 'workspace') }, this.kitContext());
+    } catch (e) {
+      return fail(e.message);
+    }
+    const { error, out, err } = await runOffThread(spec.exe, [...spec.args, ...plan.cli], {
+      cwd: plan.cwd,
+      env: kit.env(this.env, this.kitContext({ tools: false, access: 'ask' })),
+      windowsHide: true,
+      timeout: 120000,
+      maxBuffer: 512 * 1024,
+    });
+    if (error?.killed || /timed? ?out/i.test(String(error?.message || ''))) return fail(`${kit.name} zamanında yanıt vermedi. İnternet bağlantını kontrol edip yeniden dene.`);
+    const answer = kit.answer(out, err, error ? Number(error.code) || 1 : 0);
+    if (answer.error) return fail(answer.error);
+    state.verified = true;
+    this.saveKit(id);
+    this.auth[id] = true;
+    this.authChecked = 0;
+    await this.refreshKitModels(id).catch(() => {});
+    return { ok: true, message: `Bağlı · ${kit.name} yanıt verdi.` };
+  }
+  /**
+   * Kimi's sign-in without a console window: `kimi login` prints a link and a code and waits until
+   * the account approved them in the browser. Resolves as soon as both are known; `kimiLoginState`
+   * tells how it ended.
+   */
+  kimiLogin() {
+    const kit = KITS.kimi;
+    const spec = this.spec('kimi');
+    if (!spec.exe) throw Error('Kimi komut satırı aracı (Kimi Code) bulunamadı. Önce kurulum sayfasındaki adımlarla kur, sonra yeniden dene.');
+    if (this.kimiLoginJob && !this.kimiLoginJob.ended) return Promise.resolve(this.kimiLoginJob.shown || { opened: true, waiting: true });
+    const home = kit.home(this.dir);
+    fs.mkdirSync(home, { recursive: true });
+    const child = spawn(spec.exe, [...spec.args, 'login', '--region', 'global'], { cwd: path.join(this.dir, 'workspace'), env: kit.env(this.env, this.kitContext()), windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    const job = (this.kimiLoginJob = { child, text: '', ended: false, ok: false, shown: null, message: '' });
+    return new Promise((resolve) => {
+      let settled = false;
+      const settle = (value) => {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+      };
+      const read = (chunk) => {
+        job.text = (job.text + chunk).slice(-4000);
+        const seen = kimiKit.parseLogin(job.text);
+        if (seen.url && seen.code && !job.shown) {
+          job.shown = { opened: true, url: seen.url, code: seen.code };
+          settle(job.shown);
+        }
+      };
+      child.stdout.setEncoding('utf8');
+      child.stderr.setEncoding('utf8');
+      child.stdout.on('data', read);
+      child.stderr.on('data', read);
+      // the code is good for a few minutes; a window nobody finished is not left running
+      const timer = setTimeout(() => child.kill(), 10 * 60 * 1000);
+      const end = (code) => {
+        clearTimeout(timer);
+        job.ended = true;
+        job.ok = code === 0 && kimiKit.signedIn(home);
+        const seen = kimiKit.parseLogin(job.text);
+        job.message = job.ok ? '' : seen.failed ? 'Kimi girişi tamamlanmadı.' : 'Kimi girişi tamamlanmadı. Yeniden dene.';
+        if (job.ok) {
+          this.kits.kimi.verified = true;
+          this.saveKit('kimi');
+          this.auth.kimi = true;
+          this.authChecked = 0;
+          void this.refreshKitModels('kimi').catch(() => {});
+        }
+        settle(job.ok ? { opened: false, signedIn: true } : { opened: false, signedIn: false, message: job.message });
+      };
+      child.on('error', () => end(1));
+      child.on('close', end);
+    });
+  }
+  /** How the last Kimi sign-in stands: { pending, signedIn, message }. */
+  kimiLoginState() {
+    const job = this.kimiLoginJob;
+    const signedIn = kimiKit.signedIn(KITS.kimi.home(this.dir));
+    if (!job) return { pending: false, signedIn, message: '' };
+    return { pending: !job.ended, signedIn: job.ended ? job.ok || signedIn : false, message: job.ended ? job.message : '' };
+  }
+  /** Signs Kimi out of Charles: the session Charles' own Kimi home holds is removed. */
+  kimiLogout() {
+    try {
+      this.kimiLoginJob?.child?.kill();
+    } catch {}
+    try {
+      fs.rmSync(path.join(KITS.kimi.home(this.dir), 'credentials'), { recursive: true, force: true });
+    } catch {}
+    this.kits.kimi.verified = false;
+    this.saveKit('kimi');
+    this.auth.kimi = false;
+    this.authChecked = 0;
+    this.kimiQuotaCache = null;
+    return { signedIn: false };
+  }
+  /** Kimi's 5-hour and weekly allowance for the island gauges (60 s cache; a failed read keeps the last one). */
+  async kimiUsage(force = false) {
+    if (!force && this.kimiQuotaCache && Date.now() - this.kimiQuotaCache.updatedAt < 60000) return this.kimiQuotaCache;
+    const value = await kimiKit.fetchUsage(KITS.kimi.home(this.dir));
+    if (value.unavailable && this.kimiQuotaCache && !this.kimiQuotaCache.unavailable && value.unavailable !== 'Kimi hesabı bağlı değil')
+      return { ...this.kimiQuotaCache, stale: true, updatedAt: Date.now() };
+    this.kimiQuotaCache = value;
+    return value;
   }
   saveAbacus() {
     try {
@@ -726,9 +1033,19 @@ class Providers {
       return {
         ok: false,
         message: e?.message || 'EVREN bağlantısı kurulamadı.',
+        // EVREN's own gate, never Charles': the card then shows EVREN's text and the real accept
         terms: e?.code === 'terms_not_accepted',
+        reason: typeof e?.code === 'string' ? e.code : 'error',
       };
     }
+  }
+  /**
+   * v0.9.27: one step for "paste the key and connect". The key is saved encrypted first (as
+   * before), then checked against EVREN; "connected" is only ever said after that answer.
+   */
+  async evrenConnect(key) {
+    this.evrenKeySave(key);
+    return this.testEvren();
   }
   evrenKeySave(key) {
     const value = this.evren.setKey(key);
@@ -743,16 +1060,22 @@ class Providers {
     this.evrenQuotaCache = null;
     return value;
   }
-  /** Usage terms: { accepted, version, text } (the service asks for acceptance once). */
+  /**
+   * EVREN's own terms, read only after EVREN refused the account for them: { accepted, version,
+   * text }. The version is the one that belongs to the text shown, so what is accepted is what
+   * was read.
+   */
   evrenTerms() {
     return Promise.all([this.evren.termsStatus(), this.evren.termsText()]).then(([status, text]) => ({
       accepted: status.accepted,
-      version: text.version || status.version,
+      version: text.version ?? status.version,
       text: text.text,
     }));
   }
-  evrenTermsAccept() {
-    return this.evren.acceptTerms();
+  /** Accepts that version at EVREN, then runs the real connection test again. */
+  async evrenTermsAccept(version) {
+    await this.evren.acceptTerms(version);
+    return this.testEvren();
   }
   /** Daily token quota for the island gauges (60 s cache; a failed read keeps the last one). */
   async evrenUsage(force = false) {
@@ -803,11 +1126,12 @@ class Providers {
       // A row may declare its levels itself (`extra.efforts`), even when the list is empty —
       // that means "this model takes no level at all", not "fall back to the provider set".
       const explicit = extra && Array.isArray(extra.efforts)
-        ? extra.efforts.map(([value, effortId]) => ({ value, id: effortId || id, label: String(value) }))
+        ? extra.efforts.map(([value, effortId, label]) => ({ value, id: effortId || id, label: label || String(value) }))
         : null;
-      const { base, effort } = splitEffort(id);
+      const ofKit = KIT_IDS.includes(id.split(':')[0]);
+      const { base, effort } = ofKit ? { base: id, effort: null } : splitEffort(id);
       const key = explicit || effort ? base : id;
-      const group = groups.get(key) || { key, name, variants: [], explicit: null };
+      const group = groups.get(key) || { key, name, variants: [], explicit: null, plainName: ofKit };
       group.name = group.name || name;
       if (explicit !== null) group.explicit = explicit;
       else if (effort) group.variants.push({ id, name, effort });
@@ -847,7 +1171,7 @@ class Providers {
       const chosen = offered.find((v) => v.value === 'medium') || offered.find((v) => v.value === 'low') || offered[0];
       models.push({
         id: byParam ? key : chosen.id,
-        name: stripEffortName(group.name) || key,
+        name: (group.plainName ? group.name : stripEffortName(group.name)) || key,
         isDefault: false,
         effort: byParam ? '' : chosen.value,
         efforts: offered.map((v) => ({ value: v.value, label: v.label || effortLabel(provider, v.value), id: v.id })),
@@ -891,6 +1215,10 @@ class Providers {
     if (!spec.exe || !fs.existsSync(spec.exe)) return Promise.resolve(false);
     // Abacus AI: the result of the user's last connection test (no status command to ask)
     if (id === 'abacus') return Promise.resolve(this.abacus.verified);
+    // v0.9.27: Kimi's session is a file in Charles' own Kimi home; Copilot and OpenCode keep theirs
+    // where Charles cannot look, so they report their last connection test, like Abacus AI
+    if (id === 'kimi') return Promise.resolve(kimiKit.signedIn(KITS.kimi.home(this.dir)));
+    if (KITS[id]) return Promise.resolve(this.kits[id].verified);
     // Checks never wait for user input or submit a model prompt. They run in a worker thread
     // so launching the CLI cannot stall the main process (see probe-worker.cjs).
     return runOffThread(
@@ -972,6 +1300,7 @@ class Providers {
       // v0.9.6: EVREN's model list (cached in providers/evren-models.json; a failed refresh
       // keeps the cached list, so going offline never empties the model picker)
       if (this.auth.evren) void this.refreshEvrenModels().catch(() => {});
+      for (const kid of KIT_IDS) if (this.auth[kid]) void this.refreshKitModels(kid).catch(() => {});
       return this.status();
     })();
     try {
@@ -981,6 +1310,8 @@ class Providers {
     }
   }
   async login(id) {
+    // v0.9.27: Kimi signs in without a console window (a link and a code, shown in the card)
+    if (id === 'kimi' && !(await this.probe(id))) return this.kimiLogin();
     if (await this.probe(id)) {
       this.auth[id] = true;
       this.authChecked = 0;
@@ -992,6 +1323,7 @@ class Providers {
       throw Error(
         'Abacus AI komut satırı aracı bulunamadı. Önce Abacus AI’ın kurulum sayfasındaki adımlarla kur, sonra yeniden dene.',
       );
+    if (KITS[id] && !spec.exe) throw Error(`${KITS[id].name} komut satırı aracı bulunamadı. Önce kurulum sayfasındaki adımlarla kur, sonra yeniden dene.`);
     if (!fs.existsSync(spec.exe))
       throw Error('Giriş aracı eksik. Kurulum ZIP dosyasının tamamını çıkar.');
     const script = path.join(this.dir, `login-${id}.ps1`),
@@ -1011,7 +1343,9 @@ class Providers {
         ([k, v]) => `[Environment]::SetEnvironmentVariable(${quote(k)},${quote(v)},'Process')`,
       ),
       `Set-Location -LiteralPath ${quote(path.join(this.dir, 'workspace'))}`,
-      id === 'abacus'
+      KITS[id]?.loginHint
+        ? KITS[id].loginHint
+        : id === 'abacus'
         ? "Write-Host 'Charles: Abacus AI acilinca /login yazip hesabinla giris yap. Bitince /exit yaz, pencereyi kapat ve Charles ayarlarinda Baglantiyi test et dugmesine bas. (Abacus AI: type /login, then /exit and press Test connection in Charles.)'"
         : "Write-Host 'Charles: Abonelik hesabinizi secin. API / Console secmeyin.'",
       '& ' +
@@ -1019,7 +1353,7 @@ class Providers {
         ' ' +
         [
           ...spec.args,
-          ...(id === 'claude' ? ['auth', 'login', '--claudeai'] : id === 'cursor' ? ['login'] : []),
+          ...(id === 'claude' ? ['auth', 'login', '--claudeai'] : id === 'cursor' ? ['login'] : KITS[id]?.loginArgs || []),
         ]
           .map(quote)
           .join(' '),
@@ -1081,19 +1415,28 @@ class Providers {
     // v0.9.25: EVREN takes the pictures in the request itself (OpenAI-style image_url parts)
     const evrenImages = provider === 'evren' && images.length ? await imagesKit.loadImages(images, this.shrinkImage) : null;
     if (agent.busy) throw Error('Önce etkin yanıtı durdur.');
+    // v0.9.26: Charles' own Antigravity update (updateAgy) finishes before agy starts again
+    if (provider === 'gemini' && this.agyUpdatePending) await this.agyUpdatePending;
+    if (agent.busy) throw Error('Önce etkin yanıtı durdur.');
     const spec = this.spec(provider);
     const isHttp = !!spec.http;
     if (!isHttp && (!spec.exe || !fs.existsSync(spec.exe)))
       throw Error(
         provider === 'abacus'
           ? 'Abacus AI komut satırı aracı bulunamadı. Kurup Ayarlar → Hesap\'tan bağlantıyı yeniden test et.'
-          : 'Sağlayıcının resmi aracı bulunamadı. Kurulum paketini yeniden çıkar.',
+          : KITS[provider]
+            ? `${KITS[provider].name} komut satırı aracı bulunamadı. Kurup Ayarlar → AI Modelleri’nden bağlantıyı yeniden test et.`
+            : 'Sağlayıcının resmi aracı bulunamadı. Kurulum paketini yeniden çıkar.',
       );
     const isAbacus = provider === 'abacus';
+    // v0.9.27: Kimi, GitHub Copilot, OpenCode (cli-kits.cjs)
+    const kit = KITS[provider] || null;
+    let kitError = '';
+    let exitCode = 0;
     const id = randomUUID();
     const workspace = path.join(this.dir, 'workspace');
     // Antigravity, Cursor and Abacus open the pictures from a folder of their own
-    const staged = ['gemini', 'cursor', 'abacus'].includes(provider) && images.length ? await imagesKit.stageImages(workspace, id, images) : null;
+    const staged = (['gemini', 'cursor', 'abacus'].includes(provider) || kit) && images.length ? await imagesKit.stageImages(workspace, id, images) : null;
     // copying many pictures takes a moment: nothing may have started meanwhile
     if (staged && agent.busy) {
       imagesKit.removeStaged(staged.dir);
@@ -1120,7 +1463,9 @@ class Providers {
       ? { cli: [], cwd: workspace, timeoutMs: 600000, tools: false }
       : isAbacus
         ? abacus.abacusPlan({ ...planArgs, prompt: '.' })
-        : launchPlan(planArgs);
+        : kit
+          ? kit.plan({ ...planArgs, prompt: '.' }, this.kitContext())
+          : launchPlan(planArgs);
     if (plan.geminiSettings)
       fs.writeFileSync(
         path.join(this.dir, 'gemini/.gemini/antigravity-cli/settings.json'),
@@ -1223,9 +1568,19 @@ class Providers {
       '\n' +
       texts.map((a) => a.text).join('\n') +
       (staged ? imagesKit.imageFilesPrompt(staged.files, provider === 'gemini' ? 'read_file' : 'Read') : '');
-    if (isAbacus) {
+    if (isAbacus || kit) {
       try {
-        plan = abacus.abacusPlan({ ...planArgs, prompt, imageDir: staged?.dir || null });
+        plan = isAbacus ? abacus.abacusPlan({ ...planArgs, prompt, imageDir: staged?.dir || null }) : kit.plan({ ...planArgs, prompt, imageDir: staged?.dir || null }, this.kitContext());
+        // Kimi takes the reasoning level from the config of Charles' own Kimi home
+        if (provider === 'kimi') {
+          const config = path.join(kit.home(this.dir), 'config.toml');
+          let before = '';
+          try {
+            before = fs.readFileSync(config, 'utf8');
+          } catch {}
+          const after = kimiKit.withEffort(before, effort);
+          if (after !== before) fs.writeFileSync(config, after);
+        }
       } catch (e) {
         agent.busy = false;
         if (reading) emit('item/completed', { item: readItem('failed') });
@@ -1313,7 +1668,9 @@ class Providers {
           ? this.geminiEnv({ background: args.background === true })
           : isAbacus
             ? abacus.abacusEnv(this.env)
-            : this.env,
+            : kit
+              ? kit.env(this.env, this.kitContext({ tools: plan.tools, access: args.access }))
+              : this.env,
       windowsHide: true,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
@@ -1336,6 +1693,8 @@ class Providers {
       // v0.7.3: the Claude CLI renews its session while answering, so the quota can be read
       // again with the fresh token right away
       if (provider === 'claude') this.claudeUsage.invalidate();
+      // Kimi Code renews its session while answering too, and the answer used some allowance
+      if (provider === 'kimi') this.kimiQuotaCache = null;
       let text = '';
       if (!error) {
         try {
@@ -1355,7 +1714,21 @@ class Providers {
             text = abacus.abacusAnswer(stdout) || '';
             if (!text) throw Error('Yanıt boş.');
           }
-          const r = isAbacus
+          if (kit) {
+            const a = kit.answer(stdout, stderr, exitCode);
+            if (a.error) {
+              kitError = a.error;
+              // the account is no longer signed in: say so in Settings too
+              if (a.reason === 'login') {
+                this.kits[provider].verified = false;
+                this.saveKit(provider);
+                this.auth[provider] = false;
+              }
+              throw Error('kit');
+            }
+            text = a.text;
+          }
+          const r = isAbacus || kit
             ? { result: text }
             : provider === 'gemini'
               ? lines()
@@ -1383,7 +1756,9 @@ class Providers {
           }
           if (typeof text !== 'string' || !text.trim()) throw Error('Yanıt boş.');
         } catch {
-          error = denied
+          error = kitError
+            ? kitError
+            : denied
             ? `Antigravity bu iş için Charles’ın bu sohbette vermediği bir izin istedi (${denied}). İsteği izin gerektirmeyecek biçimde yeniden yaz ya da Proje modunu kullan.`
             : 'Yanıt okunamadı. Sağlayıcı hesabını ve kullanım kotasını kontrol et.';
         }
@@ -1448,7 +1823,29 @@ class Providers {
       stdout += s;
       // Claude reports each tool step as a stream-json line: show it in the activity list
       // and let Slime switch to its search / reading / laptop / keyboard animations.
-      if (provider === 'claude' || provider === 'gemini') {
+      if (kit?.items) {
+        // the tool reports its steps as JSON lines: they go to the steps list as they happen
+        lineBuffer += s;
+        const parts = lineBuffer.split(/\r?\n/);
+        lineBuffer = parts.pop() || '';
+        for (const line of parts) {
+          let event;
+          try {
+            event = JSON.parse(line);
+          } catch {
+            continue;
+          }
+          if (!cards.length && typeof event?.content === 'string' && event.content.includes('<charles-gorsel>')) drawStart();
+          for (const { method, item } of kit.items(event)) {
+            if (method === 'item/started') started.set(item.id, item);
+            const known = started.get(item.id);
+            if (method === 'item/completed' && known) {
+              started.delete(item.id);
+              emit(method, { item: { ...known, status: item.status } });
+            } else if (method === 'item/started') emit(method, { item });
+          }
+        }
+      } else if (provider === 'claude' || provider === 'gemini') {
         lineBuffer += s;
         const parts = lineBuffer.split(/\r?\n/);
         lineBuffer = parts.pop() || '';
@@ -1495,6 +1892,9 @@ class Providers {
         if (this.cursorPlan) this.cursorPlan.checkedAt = 0;
         void this.refreshCursorPlan(this.cursorModels || [], true).catch(() => {});
       }
+      exitCode = Number(code) || 0;
+      // a kit reads its own failure (not signed in, allowance used up, …) from what the tool said
+      if (kit) return finish(null);
       finish(
         refusal
           ? `Bu Cursor modeli ${refusal.tier} planında kullanılamıyor. ${refusal.tier} planında yalnız şunlar var: ${refusal.families.join(', ')}. Model listesi güncelleniyor; listeden başka bir model seç.`
@@ -1505,7 +1905,7 @@ class Providers {
     });
     child.stdin.on('error', () => {});
     child.stdin.end(
-      isAbacus
+      isAbacus || kit
         ? ''
         : claudeImages
           ? imagesKit.claudeInput(prompt, claudeImages)

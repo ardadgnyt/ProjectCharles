@@ -1932,6 +1932,24 @@ const HATS: ReadonlySet<Outfit> = new Set([
   'headphones',
 ]);
 
+/**
+ * v0.9.27: where an accessory lives, which decides when its front part is drawn.
+ *  - 'body': worn on the body under the face (bow tie, scarf, collar, the pumpkin's skin, the
+ *    banana, the arrow). Drawn before anything Slime holds, so a laptop, a sheet of paper or an
+ *    easel is in front of it, as it is in front of his body.
+ *  - 'face': on the eyes (glasses, monocle, eye patch). Also behind what he holds up (the
+ *    magnifier, the laptop's lid).
+ *  - 'head': hats, the bow, headphones, ears. Above all of it.
+ * Until now every accessory was drawn after the props, in one go: a bow tie sat on top of the
+ * laptop, the scarf on top of the paper he was reading.
+ */
+export type OutfitLayer = 'body' | 'face' | 'head';
+const FACE_LAYER: ReadonlySet<Outfit> = new Set(['sunglasses', 'roundGlasses', 'monocle', 'bigShades', 'eyePatch']);
+const BODY_LAYER: ReadonlySet<Outfit> = new Set(['bowTie', 'scarf', 'catCollar', 'pumpkin', 'banana', 'arrow']);
+export function outfitLayer(outfit: Outfit): OutfitLayer {
+  return BODY_LAYER.has(outfit) ? 'body' : FACE_LAYER.has(outfit) ? 'face' : 'head';
+}
+
 export interface OutfitState {
   /** 0 = gone, 1 = fully on. Animated by the engine. */
   presence: number;

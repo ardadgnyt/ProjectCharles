@@ -1779,17 +1779,6 @@ body.workspace #sessions-panel[open] {
   /* a soft light edge so dark glasses and the eye patch show on the dark buttons */
   filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.55)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.18));
 }
-#settings-panel .studio-icon.auto::after {
-  content: '';
-  position: absolute;
-  right: -3px;
-  bottom: -2px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--sb-accent, #edc9a9);
-  box-shadow: 0 0 0 2px #1b1c21;
-}
 
 /* ── SpecialBeta round 2 ─────────────────────────────────────────────────────── */
 /* calendar: days are buttons, a chosen day lists its events, + adds an event */

@@ -39,6 +39,14 @@ export class ActivityState {
     this.eurekaUntil = 0;
   }
 }
+/**
+ * v0.9.27: nothing Slime holds in front of his body rises above this line (in the engine's own
+ * units, R = 72): the bottom of his mouth and of the moustache's tips. The laptop's lid and the
+ * easel began higher and cut the moustache in half. The magnifier is the one exception: it is
+ * held up to his eye.
+ */
+export const PROP_TOP = 40;
+
 export function drawStation(
   x: CanvasRenderingContext2D,
   t: number,
@@ -74,13 +82,15 @@ export function drawStation(
     x.fillStyle = '#24272c';
     x.strokeStyle = '#969da4';
     x.beginPath();
-    x.roundRect(-48, station === 'code' ? 23 : 51, 96, station === 'code' ? 52 : 25, 5);
+    // the open lid ends at PROP_TOP on screen (this block is drawn at 0.88 from y = 84)
+    const lid = 84 - (84 - PROP_TOP) / 0.88;
+    x.roundRect(-48, station === 'code' ? lid : 51, 96, station === 'code' ? 75 - lid : 25, 5);
     x.fill();
     x.stroke();
     if (station === 'code') {
       x.fillStyle = '#89cdb2';
       for (let i = 0; i < 4; i++)
-        x.fillRect(-36, 34 + i * 8, 18 + ((i + Math.floor(t * 2)) % 3) * 13, 2);
+        x.fillRect(-36, lid + 10 + i * 7.5, 18 + ((i + Math.floor(t * 2)) % 3) * 13, 2);
     } else {
       for (let i = 0; i < 18; i++) {
         x.fillStyle = (i + Math.floor(t * 9)) % 9 === 0 ? '#f4cca3' : '#5c626c';
@@ -111,28 +121,30 @@ export function drawStation(
   if (station === 'image') {
     x.strokeStyle = '#ab825b';
     x.beginPath();
+    // the easel: its board begins at PROP_TOP; the legs meet just above it, in the middle,
+    // where the moustache is thin
     x.moveTo(-33, 87);
-    x.lineTo(0, 17);
+    x.lineTo(0, PROP_TOP - 7);
     x.lineTo(34, 87);
     x.stroke();
     x.fillStyle = '#fbf3e6';
     x.beginPath();
-    x.roundRect(-43, 27, 86, 49, 3);
+    x.roundRect(-43, PROP_TOP, 86, 40, 3);
     x.fill();
     x.strokeStyle = '#8fbda8';
     x.beginPath();
-    x.moveTo(-31, 64);
-    x.lineTo(-11, 43);
-    x.lineTo(4, 58);
-    x.lineTo(22, 39);
-    x.lineTo(34, 65);
+    x.moveTo(-31, PROP_TOP + 31);
+    x.lineTo(-11, PROP_TOP + 14);
+    x.lineTo(4, PROP_TOP + 26);
+    x.lineTo(22, PROP_TOP + 11);
+    x.lineTo(34, PROP_TOP + 32);
     x.stroke();
     x.fillStyle = '#efbd79';
     x.beginPath();
-    x.arc(-24, 40, 5, 0, 7);
+    x.arc(-24, PROP_TOP + 11, 5, 0, 7);
     x.fill();
     x.save();
-    x.translate(39 + Math.sin(t * 2) * 7, 43 + Math.cos(t * 2) * 8);
+    x.translate(39 + Math.sin(t * 2) * 7, PROP_TOP + 12 + Math.cos(t * 2) * 8);
     x.rotate(-0.7);
     x.strokeStyle = '#ba885b';
     x.beginPath();

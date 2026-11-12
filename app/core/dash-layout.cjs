@@ -3,7 +3,7 @@
 // v0.9.14: colours, timer, files (convert / send) and weather
 const CARDS = ['music', 'reminders', 'calendar', 'mail', 'ask', 'home', 'usage', 'commands', 'notes', 'sysusage', 'sysinfo', 'modules', 'colors', 'timer', 'files', 'weather'];
 // v0.8.0: AIs the "Kalan kullanım" card can show (null = every connected one)
-const USAGE_PROVIDERS = ['gpt', 'claude', 'gemini', 'cursor', 'abacus', 'evren'];
+const USAGE_PROVIDERS = ['gpt', 'claude', 'gemini', 'cursor', 'abacus', 'evren', 'kimi', 'copilot', 'opencode'];
 // same rule as a module manifest's id (app/modules/manifest.cjs)
 const MODULE_ID = /^[a-z0-9][a-z0-9-]{1,40}$/;
 const MAX_MODULES = 100;

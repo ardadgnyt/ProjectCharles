@@ -18,7 +18,7 @@ import { dropSlime } from './drop-slime';
 import { slimeIcon } from '../island/app-icon';
 import { roomActions } from './bridge';
 import { parseLook } from '../vendor/slime/shape';
-import { stickToBottom } from '../chat/follow';
+import { restore as restoreFeed, hold as holdFeed, release as releaseFeed } from '../chat/follow';
 
 export type WorkspaceDeps = {
   api: any;
@@ -46,6 +46,9 @@ export function providerName(model: string) {
   if (/^cursor:/.test(model)) return 'Cursor';
   if (/^abacus:/.test(model)) return 'Abacus AI';
   if (/^evren:/.test(model)) return 'EVREN';
+  if (/^kimi:/.test(model)) return 'Kimi';
+  if (/^copilot:/.test(model)) return 'GitHub Copilot';
+  if (/^opencode:/.test(model)) return 'OpenCode';
   return 'Codex';
 }
 
@@ -276,7 +279,8 @@ export function workspaceUI(d: WorkspaceDeps) {
     root.dataset.view = 'chat';
     dashboard.hide();
     chatInfo();
-    stickToBottom($('feed'), true);
+    // v0.9.27: back to where the reader was (the end, when they were there); it used to force the end
+    restoreFeed($('feed'));
     window.setTimeout(() => ($('prompt') as HTMLTextAreaElement).focus(), 30);
     work.shown();
   }
@@ -432,11 +436,9 @@ export function workspaceUI(d: WorkspaceDeps) {
 
   // ── Enter / leave ──────────────────────────────────────────────────────────
   let switchTimer = 0;
-  let fromBottom = 0;
   function switching() {
-    const feed = $('feed');
-    if (!document.body.classList.contains('ws-switching'))
-      fromBottom = Math.max(0, feed.scrollHeight - feed.scrollTop - feed.clientHeight);
+    // v0.9.27: the chat's place is kept by chat/follow.ts (the message on screen, not a pixel count)
+    holdFeed($('feed'), 'workspace');
     document.body.classList.add('ws-switching');
     window.clearTimeout(switchTimer);
     switchTimer = window.setTimeout(switched, 1500);
@@ -446,10 +448,9 @@ export function workspaceUI(d: WorkspaceDeps) {
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
         document.body.classList.remove('ws-switching');
-        const feed = $('feed');
-        if (feed.clientHeight) feed.scrollTop = Math.max(0, feed.scrollHeight - feed.clientHeight - fromBottom);
-        // v0.9.10: hidden right now (the island shows its shelf): chat/follow.ts puts it back
-        // in place when it is shown
+        // hidden right now (the island shows its shelf, the app window its home page):
+        // chat/follow.ts puts it back in place when it is shown
+        releaseFeed($('feed'), 'workspace');
       }),
     );
   }

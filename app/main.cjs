@@ -2173,14 +2173,17 @@ else {
       // The island shows the quota of the provider behind the selected model. The renderer
       // names that provider; without one the main AI chosen in settings is used.
       safeHandler('usage-read', async (force = false, requested = null) => {
-        const known = ['gpt', 'gemini', 'claude', 'cursor', 'abacus', 'evren'];
+        const known = ['gpt', 'gemini', 'claude', 'cursor', 'abacus', 'evren', 'kimi', 'copilot', 'opencode'];
         const provider = known.includes(requested)
           ? requested
           : agent.providers?.enabled.primary || 'gpt';
         if (demo) return { provider, fiveHour: null, weekly: null, credits: null, updatedAt: null };
         // v0.8.0: the Abacus AI command line tool reports no usage limits
-        if (provider === 'abacus')
+        // v0.9.27: the GitHub Copilot and OpenCode tools report none either
+        if (['abacus', 'copilot', 'opencode'].includes(provider))
           return { provider, fiveHour: null, weekly: null, credits: null, updatedAt: Date.now(), unavailable: 'Bilgi yok' };
+        // v0.9.27: Kimi Code's 5-hour and weekly allowance (60 s cache in the provider)
+        if (provider === 'kimi') return agent.providers.kimiUsage(force === true);
         if (provider === 'gemini') return agent.providers.usage(force === true);
         if (provider === 'claude') return agent.providers.claudeUsage.read(force === true);
         // v0.9.6: EVREN reports its daily token quota (60 s cache in the provider)
@@ -2224,36 +2227,54 @@ else {
         else await clipboard.writeText(text);
       });
       // Generated images (src/chat/image-card.ts): İndir → save dialog, Kopyala → clipboard.
-      const imageData = (dataUrl) => {
-        const m = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=\r\n]+)$/.exec(
-          typeof dataUrl === 'string' && dataUrl.length < 60e6 ? dataUrl : '',
-        );
-        if (!m) throw Error('Görsel okunamadı.');
-        return { ext: m[1] === 'jpeg' ? 'jpg' : m[1], bytes: Buffer.from(m[2], 'base64') };
-      };
+      // v0.9.26: the format is read from the bytes (app/files/image-actions.cjs); GIF too
+      const pictures = require('./files/image-actions.cjs');
+      const imageData = pictures.imageData;
       // v0.9.18: the right-click menu's Yapıştır: the same paste as Ctrl+V (text and pictures)
       safeHandler('edit-paste', () => {
         win.webContents.paste();
         return true;
       });
-      safeHandler('image-save', async (dataUrl) => {
+      // v0.9.26: "Bir kopyasını indir" saves a copy under a name the user picks; the source stays
+      // where it is. Windows' own dialog asks before replacing a file that exists.
+      safeHandler('image-save', async (dataUrl, name) => {
         const { ext, bytes } = imageData(dataUrl);
         const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+        const lang = v2?.data?.language || 'tr';
         const r = await dialog.showSaveDialog(win.native, {
-          title: 'Görseli kaydet',
-          defaultPath: path.join(app.getPath('pictures'), `Charles-gorsel-${stamp}.${ext}`),
-          filters: [{ name: 'Görsel', extensions: [ext] }],
+          title: lang === 'tr' ? 'Görseli kaydet' : 'Save picture',
+          defaultPath: path.join(app.getPath('pictures'), pictures.safeName(typeof name === 'string' ? name : '', ext, `Charles-gorsel-${stamp}`)),
+          filters: [{ name: ext.toUpperCase(), extensions: ext === 'jpg' ? ['jpg', 'jpeg'] : [ext] }],
         });
         if (r.canceled || !r.filePath) return false;
-        await fs.promises.writeFile(r.filePath, bytes);
+        const target = pictures.withExtension(r.filePath, ext);
+        // the dialog asked about the name it saw; a name that only got its extension here is new
+        await fs.promises.writeFile(target, bytes, { flag: target === r.filePath ? 'w' : 'wx' }).catch((e) => {
+          if (e.code === 'EEXIST') throw Error('Bu adla bir dosya zaten var; başka bir ad seç.');
+          throw e;
+        });
         return true;
       });
       safeHandler('image-copy', async (dataUrl) => {
         const { bytes } = imageData(dataUrl);
         const image = nativeImage.createFromBuffer(bytes);
         if (image.isEmpty()) throw Error('Görsel kopyalanamadı.');
+        // PNG keeps every pixel and the transparency
         await clip.writePicture(clipboard, require('electron').ClipboardItem, image.toPNG());
         return true;
+      });
+      // v0.9.26: "Sohbete ekle": the picture becomes a real attachment of the message box, the same
+      // way a picked file does (inbox copy, reading, sending to the AI). Nothing is sent by this.
+      safeHandler('image-attach', (dataUrl, name) => {
+        const { ext, bytes } = imageData(dataUrl);
+        const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'charles-attach-'));
+        try {
+          const file = path.join(dir, pictures.safeName(typeof name === 'string' ? name : '', ext, 'Görsel'));
+          fs.writeFileSync(file, bytes, { flag: 'wx' });
+          return attachment(extras.ingest(file));
+        } finally {
+          fs.rmSync(dir, { recursive: true, force: true });
+        }
       });
       safeHandler('history-manage', (args) => agent.manage(args));
       // v0.8.9: searching chats happens here (the list no longer carries every chat's text)
@@ -2342,7 +2363,7 @@ else {
       // chat folders) and the quota panel follow its provider.
       safeHandler('default-model', (value) => {
         const result = extras.setDefaultModel(value);
-        const provider = /^(gemini|claude|cursor|abacus|evren):/.test(value || '')
+        const provider = /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(value || '')
           ? String(value).split(':')[0]
           : 'gpt';
         if (agent.providers && agent.providers.enabled.primary !== provider) {
@@ -2656,10 +2677,21 @@ else {
       // v0.9.15: the attachment's own picture, for the big view of a message sent just now
       safeHandler('attachment-image', (id) => {
         if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) throw Error('Geçersiz ek.');
+        let file = null;
         const a = extras.attachments.get(id);
-        if (!a || (a.kind !== 'image' && a.kind !== 'gif')) throw Error('Ek bulunamadı.');
-        const ext = path.extname(a.path).slice(1).toLowerCase();
-        return `data:image/${ext === 'jpg' ? 'jpeg' : ext};base64,` + fs.readFileSync(a.path).toString('base64');
+        if (a && (a.kind === 'image' || a.kind === 'gif')) file = a.path;
+        else if (!a) {
+          // v0.9.26: a picture sent in an earlier session: its original is still in the inbox for a
+          // week. Only read here, never registered as an attachment again.
+          const dir = path.join(app.getPath('userData'), 'inbox');
+          const name = fs.existsSync(dir) ? fs.readdirSync(dir).find((f) => f.startsWith(id + '.') && /\.(png|jpe?g|gif|webp)$/i.test(f)) : null;
+          if (name) file = path.join(dir, name);
+        }
+        if (!file) throw Error('Ek bulunamadı.');
+        const bytes = fs.readFileSync(file);
+        const kind = pictures.sniff(bytes);
+        if (!kind) throw Error('Ek bulunamadı.');
+        return `data:${pictures.MIME[kind]};base64,` + bytes.toString('base64');
       });
       // v0.9.15: Dosyalar → Dosya Rafı (app/files/file-rack.cjs)
       const rack = new (require('./files/file-rack.cjs').FileRack)(path.join(app.getPath('userData'), 'file-rack'));
@@ -2809,6 +2841,12 @@ else {
           win.focus();
           setTimeout(() => win.webContents.send('shortcut-action', id), 300);
         },
+        {
+          // v0.9.26: push to talk listens to its own key; a shortcut may not take it
+          reserved: () => (dictation?.data?.enabled ? { 'Bas-konuş': dictation.data.key } : {}),
+          // while a shortcut is recorded the push-to-talk hook lets every key through
+          onRecording: (on) => dictation?.pause(on || micBlocked() || fullscreenOther),
+        },
       );
       const captureShortcut = !shortcuts.errors.capture;
       // v0.9.18: Bas-konuş (app/voice/dictation.cjs): off until turned on in Ayarlar → Kısayollar
@@ -2851,6 +2889,8 @@ else {
       safeHandler('dictation-pause', (on) => {
         // Settings is done with the key: what kept it quiet before (microphone off, a game) still does
         dictation.pause(on || micBlocked() || fullscreenOther);
+        // v0.9.26: the keys being recorded must not open the chat or start dictation either
+        shortcuts.recording(on === true);
         return true;
       });
       safeHandler('dictate-audio', (ticket, bytes) => dictation.audio(ticket, bytes));
@@ -2868,6 +2908,11 @@ else {
       });
       safeHandler('shortcuts-read', () => shortcuts.read());
       safeHandler('shortcuts-save', (v) => shortcuts.save(v));
+      // v0.9.26: one row, applied as soon as it was recorded; the answer says why a key was refused
+      safeHandler('shortcuts-apply', (id, key) => {
+        if (typeof id !== 'string' || typeof key !== 'string' || key.length > 80) throw Error('Geçersiz kısayol.');
+        return shortcuts.apply(id, key);
+      });
       safeHandler('capture', async () => {
         await capture.start();
         return { shortcut: captureShortcut };
@@ -3052,11 +3097,36 @@ else {
         }
       });
       safeHandler('convert-cancel', (id) => getConverter().cancel(String(id)));
+      // v0.9.26: text or cells the user checked (OCR, a table) are saved now
+      safeHandler('convert-finish', (id, edited) => {
+        if (typeof id !== 'string') throw Error('Geçersiz istek.');
+        if (edited !== null && edited !== undefined && typeof edited !== 'string' && !Array.isArray(edited)) throw Error('Geçersiz istek.');
+        return getConverter().finish(id, edited);
+      });
       safeHandler('convert-reveal', (id) => {
         const out = getConverter().output(String(id));
         if (!out) throw Error('Dönüştürülen dosya bulunamadı.');
         shell.showItemInFolder(out);
         return true;
+      });
+      // v0.9.26: "Aç": the result itself (a picture, or the folder of a PDF's pages)
+      safeHandler('convert-open', async (id) => {
+        const out = getConverter().output(String(id));
+        if (!out) throw Error('Dönüştürülen dosya bulunamadı.');
+        const error = await shell.openPath(out);
+        if (error) throw Error(error);
+        return true;
+      });
+      // v0.9.26: where a PDF's pages go (null = beside the PDF, as before)
+      safeHandler('convert-folder', async () => {
+        dialogOpen = true;
+        try {
+          const r = await dialog.showOpenDialog(win.native, { title: v2?.data?.language && v2.data.language !== 'tr' ? 'Output folder' : 'Çıktı klasörünü seç', properties: ['openDirectory', 'createDirectory'] });
+          return r.canceled || !r.filePaths.length ? null : r.filePaths[0];
+        } finally {
+          dialogOpen = false;
+          lastInside = Date.now();
+        }
       });
       // v0.9.2: Gönder (Quick Share / Nearby Share & AirDrop Send & Receive — app/files/share.cjs)
       let shareService = null;
@@ -3310,6 +3380,13 @@ else {
       };
       // v0.9.25: Claude and EVREN draw SVG; this turns a drawing into the PNG the chat shows
       agent.providers.renderSvg = require('./ai/svg-render.cjs').createSvgRenderer({ BrowserWindow, session: require('electron').session });
+      // v0.9.26: agy's own updater stays off (it opened a console); Charles updates it, hidden, once
+      // a day while it is idle. A preview window never touches the program files.
+      if (!demo) {
+        const agyUpdate = () => void agent.providers.updateAgy().catch(() => {});
+        setTimeout(agyUpdate, 10 * 60 * 1000).unref?.();
+        setInterval(agyUpdate, 6 * 3600 * 1000).unref?.();
+      }
       safeHandler('providers-status', () => agent.providers.refreshAuth());
       safeHandler('providers-login', (id) => {
         if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
@@ -3335,14 +3412,28 @@ else {
         if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
         return agent.providers.evrenTerms();
       });
-      safeHandler('evren-terms-accept', () => {
+      safeHandler('evren-terms-accept', (version) => {
         if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
-        return agent.providers.evrenTermsAccept();
+        return agent.providers.evrenTermsAccept(version);
+      });
+      // v0.9.27: Kimi, GitHub Copilot and OpenCode (app/ai/cli-kits.cjs): the connection test, and
+      // Kimi's sign-in, which needs no console window
+      safeHandler('providers-kit-test', (id) => {
+        if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
+        if (!['kimi', 'copilot', 'opencode'].includes(id)) throw Error('Geçersiz sağlayıcı.');
+        return agent.providers.testKit(id);
+      });
+      safeHandler('kimi-login-state', () => agent.providers.kimiLoginState());
+      safeHandler('kimi-logout', () => agent.providers.kimiLogout());
+      // v0.9.27: paste the key and connect in one step (saved encrypted, then really checked)
+      safeHandler('evren-connect', (key) => {
+        if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
+        return agent.providers.evrenConnect(key);
       });
       safeHandler('providers-enable', ({ id, value }) => agent.providers.enable(id, value));
       safeHandler('provider-primary-read', () => agent.providers.enabled.primary || 'gpt');
       safeHandler('provider-primary-save', async (id) => {
-        if (!['gpt', 'gemini', 'claude', 'cursor', 'abacus', 'evren'].includes(id)) throw Error('Geçersiz sağlayıcı.');
+        if (!['gpt', 'gemini', 'claude', 'cursor', 'abacus', 'evren', 'kimi', 'copilot', 'opencode'].includes(id)) throw Error('Geçersiz sağlayıcı.');
         // Only check sign-in when we do not already know the account is connected; the
         // check starts three CLIs and made switching the main AI feel stuck.
         if (id !== 'gpt' && !agent.providers.auth[id]) await agent.providers.refreshAuth(true);
@@ -3359,8 +3450,8 @@ else {
                 ? 'cursor:auto'
                 : id === 'abacus'
                   ? 'abacus:auto'
-                  : id === 'evren'
-                    ? 'evren:auto'
+                  : ['evren', 'kimi', 'copilot', 'opencode'].includes(id)
+                    ? id + ':auto'
                     : 'claude:claude-sonnet-5-5';
         extras.setDefaultModel(model);
         win.webContents.send('provider-primary-changed', { id, model });
@@ -3687,7 +3778,7 @@ else {
         const chatDir = path.join(app.getPath('userData'), 'chat-workspace');
         if (mode === 'chat') fs.mkdirSync(chatDir, { recursive: true });
         // v0.9.25: every connection takes pictures now (app/ai/provider-images.cjs)
-        const inputs = await extras.inputs(args.attachments || [], { textOnly: /^(gemini|claude|cursor|abacus|evren):/.test(args.model || ''), images: true });
+        const inputs = await extras.inputs(args.attachments || [], { textOnly: /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(args.model || ''), images: true });
         const turn = await agent.send({
           prompt: args.prompt,
           displayPrompt: args.displayPrompt,
@@ -3766,6 +3857,14 @@ else {
           charlesVersion: app.getVersion(),
           applyWindowIdentity: taskbarIcon,
           islandAnchor: () => !workspace && islandWin && !islandWin.isDestroyed() && islandWin.isVisible() ? (visibleBounds || islandWin.getBounds()) : null,
+          // v0.9.26: where the Download card goes when the compact island cannot hold it (the app
+          // window is open, or the panel is). It used to wait for the island, and the link's offer
+          // was over (30 s) before it ever showed. A full-screen game or film still keeps it away.
+          cardSpot: () => {
+            if (fullscreenOther) return null;
+            const p = screen.getCursorScreenPoint();
+            return { x: p.x, y: p.y, width: 1, height: 1 };
+          },
           language: () => v2?.data?.language || 'tr',
           askChat: ({ prompt, model, images }) => {
             fs.mkdirSync(chatWorkspace, { recursive: true });

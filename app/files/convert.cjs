@@ -16,11 +16,11 @@ const KINDS = {
   image: ['png', 'jpg', 'jpeg', 'jfif', 'webp', 'gif', 'bmp', 'tif', 'tiff', 'ico', 'avif', 'tga', 'svg', 'heic', 'heif'],
   audio: ['mp3', 'm4a', 'aac', 'wav', 'flac', 'ogg', 'oga', 'opus', 'wma', 'aiff', 'aif', 'amr'],
   video: ['mp4', 'mov', 'mkv', 'webm', 'avi', 'wmv', 'flv', 'mpeg', 'mpg', 'ts', 'm2ts', '3gp', 'ogv', 'm4v'],
-  document: ['pdf', 'docx', 'md', 'markdown', 'txt', 'html', 'htm'],
-  presentation: ['pptx', 'ppt'],
-  data: ['csv', 'tsv', 'json'],
+  document: ['pdf', 'docx', 'doc', 'odt', 'rtf', 'md', 'markdown', 'txt', 'html', 'htm', 'epub'],
+  presentation: ['pptx', 'ppt', 'odp'],
+  data: ['csv', 'tsv', 'json', 'xlsx', 'xls', 'ods'],
   subtitle: ['srt', 'vtt'],
-  archive: ['zip'],
+  archive: ['zip', '7z', 'tar', 'tgz', 'gz', 'xz', 'bz2', 'rar'],
 };
 const KIND_NAMES = { image: 'Görsel', audio: 'Ses', video: 'Video', document: 'Belge', presentation: 'Sunum', data: 'Veri', subtitle: 'Altyazı', archive: 'Arşiv', other: 'Dosya' };
 const LABELS = {
@@ -56,8 +56,15 @@ function kindOf(file) {
 }
 const same = (ext, target) => ext === target || (target === 'jpg' && ['jpeg', 'jfif'].includes(ext)) || (target === 'tiff' && ext === 'tif') || (target === 'html' && ext === 'htm') || (target === 'md' && ext === 'markdown');
 
-/** Formats one file can become, before checking what the engines can do. */
+/**
+ * Formats one file can become, before checking what the engines can do. v0.9.26: the long-standing
+ * list (legacyTargets) and the full list of app/files/convert-ops.cjs together.
+ */
 function targetsFor(file) {
+  const ops = require('./convert-ops.cjs');
+  return [...new Set([...ops.targetsOf(file), ...legacyTargets(file)])];
+}
+function legacyTargets(file) {
   const ext = extOf(file);
   const kind = kindOf(file);
   let list = [];
@@ -68,7 +75,8 @@ function targetsFor(file) {
   } else if (kind === 'audio') list = ['mp3', 'm4a', 'wav', 'flac', 'ogg', 'opus'];
   else if (kind === 'video') list = ['mp4', 'webm', 'mov', 'mkv', 'gif', 'mp3', 'm4a', 'wav'];
   else if (kind === 'presentation') list = ['pdf', 'docx', 'png', 'txt', 'md'];
-  else if (ext === 'pdf') list = ['docx', 'txt'];
+  // v0.9.26: PDF pages as pictures too (app/files/pdf-render.cjs)
+  else if (ext === 'pdf') list = ['png', 'jpg', 'docx', 'txt'];
   else if (ext === 'docx') list = ['pdf', 'txt', 'html', 'md'];
   else if (ext === 'md' || ext === 'markdown') list = ['pdf', 'docx', 'html', 'txt'];
   else if (ext === 'txt') list = ['pdf', 'docx', 'html', 'md'];
@@ -92,7 +100,8 @@ function commonTargets(files, available = () => true) {
     const t = targetsFor(f).filter(available);
     common = common ? common.filter((x) => t.includes(x)) : t;
   }
-  return (common || []).map((id) => ({ id, label: LABELS[id] || id.toUpperCase(), group: TARGET_GROUP[id] || 'other' }));
+  const ops = require('./convert-ops.cjs');
+  return (common || []).map((id) => ({ id, label: LABELS[id] || ops.LABELS[id] || id.toUpperCase(), group: TARGET_GROUP[id] || ops.GROUPS[id] || 'other' }));
 }
 
 /** name.ext → name.ext, name (2).ext, … in the same folder; never an existing file. */
@@ -539,9 +548,55 @@ class Converter {
   }
   async capabilities() {
     if (!this.encoders) this.encoders = await ffmpegEncoders(this.deps.ffmpeg?.(), this.deps.spawn);
+    // v0.9.26: which Office programs are here, and the languages Windows' OCR reads (asked once)
+    if (!this.engines) {
+      const office = this.deps.office;
+      const has = async (app) => !!office && (await office.available(app).catch(() => false));
+      let ocrLangs = [];
+      if (this.deps.helper && fs.existsSync(this.deps.helper))
+        try {
+          const lines = await require('./helper-job.cjs').helperJob(this.deps.helper, '--ocr', { cmd: 'langs' }, { idleMs: 15000 });
+          ocrLangs = (lines[0]?.langs || []).filter((l) => typeof l === 'string').slice(0, 20);
+        } catch {}
+      this.engines = { word: await has('word'), excel: await has('excel'), powerpoint: await has('powerpoint'), ocrLangs };
+    }
     return this.encoders;
   }
+  /** v0.9.26: a target of convert-ops.cjs is listed only when its engine is here. */
+  opsAvailable(file, target, encoders) {
+    const ops = require('./convert-ops.cjs');
+    const e = this.engines || {};
+    const need = ops.officeNeed(file, target);
+    if (need && !e[need]) return false;
+    const ff = !!this.deps.ffmpeg?.() && encoders.size > 0;
+    const enc = (list) => ff && list.every((x) => encoders.has(x));
+    const helper = !!this.deps.helper && fs.existsSync(this.deps.helper);
+    const set = ops.setOf(file);
+    if (target.startsWith('ocr-') || ['pages-tiff', 'ico-png'].includes(target) || set === 'heic') return helper;
+    if (set === 'pdf') return helper && !!this.deps.pdfImages;
+    // slide pictures come from PowerPoint, or from Charles' own slide renderer (PPTX/PPT only)
+    if (set === 'slides' && ['png', 'jpg', 'pages-tiff', 'pdf'].includes(target)) return !!e.powerpoint || (!!this.deps.slides && ops.ext(file) !== 'odp' && (target !== 'pages-tiff' || helper));
+    if (target.startsWith('say-')) return ff && require('./transcribe.cjs').available(this.deps.root || '');
+    if (target === 'extract' || target.startsWith('arc-')) return require('./archive.cjs').available();
+    if (['sheet-png', 'sheet-jpg', 'page-png', 'page-jpg'].includes(target) || (['delimited', 'json', 'sheet', 'html', 'svg'].includes(set) && target === 'pdf')) return !!this.deps.renderHtml;
+    if (['anim-webp', 'clip-webp', 'join-webp'].includes(target)) return enc(['libwebp_anim']);
+    if (['anim-mp4'].includes(target)) return enc(['libx264']);
+    if (['clip-gif', 'join-gif', 'frames-png', 'frames-jpg'].includes(target)) return ff;
+    if (target.startsWith('audio-')) return enc(NEEDS[target.slice(6)] || []);
+    if (target === 'aac') return enc(['aac']);
+    if (['mkv', 'mp4', 'mov', 'webm'].includes(target) && set === 'video') return enc(NEEDS[target] || []);
+    if (target === 'avi') return enc(['mpeg4', 'libmp3lame']);
+    if (['mp3', 'wav', 'flac', 'm4a', 'ogg', 'opus'].includes(target) && set === 'audio') return enc(NEEDS[target] || []);
+    if (set === 'word' && target === 'pdf') return e.word || !!this.fontFiles();
+    if (['pages-png', 'pages-jpg'].includes(target)) return helper && (e.word || !!this.fontFiles());
+    if (target === 'epub' || ['odt', 'rtf', 'xlsx', 'ods', 'json', 'tsv', 'csv', 'notes-txt', 'sub-txt', 'svg-trace', 'pdf-xlsx', 'pdf-csv', 'pptx-pages', 'pptx-text'].includes(target)) return true;
+    if (target === 'pdf') return !!this.fontFiles() || e.word;
+    return true;
+  }
   available(file, target, encoders) {
+    // v0.9.26: what the full list adds is checked there; the long-standing targets below as before
+    if (!legacyTargets(file).includes(target) || ['xlsx', 'ods', 'xls', 'odt', 'rtf', 'doc', 'epub', 'odp', 'heic', 'heif', 'ico', '7z', 'tar', 'rar'].includes(extOf(file)))
+      return this.opsAvailable(file, target, encoders);
     const ext = extOf(file);
     const kind = kindOf(file);
     const ff = !!this.deps.ffmpeg?.() && encoders.size > 0;
@@ -557,6 +612,7 @@ class Converter {
     if (kind === 'audio' || kind === 'video') return target === 'zip' || (ff && enc(target));
     // v0.9.16: a target is listed only with an engine that can really make it
     if (kind === 'presentation') return target === 'zip' || ['txt', 'md'].includes(target) || !!this.deps.slides;
+    if (ext === 'pdf' && (target === 'png' || target === 'jpg')) return !!this.deps.pdfImages;
     if (target === 'pdf') return !!this.fontFiles();
     return true;
   }
@@ -573,10 +629,17 @@ class Converter {
       files.push({ path: p, name: path.basename(p), ext: extOf(p), size: stat.size, kind: kindOf(p) });
     }
     const encoders = await this.capabilities();
-    const targets = commonTargets(paths, () => true).filter((t) => paths.every((p) => this.available(p, t.id, encoders)));
+    const ops = require('./convert-ops.cjs');
+    let targets = commonTargets(paths, () => true).filter((t) => paths.every((p) => this.available(p, t.id, encoders)));
+    // v0.9.26: several files into one (an animation, a 7z or TAR archive)
+    for (const id of ops.batchTargets(paths))
+      if (!targets.some((t) => t.id === id) && (id.startsWith('arc-') ? require('./archive.cjs').available() : this.opsAvailable(paths[0], id, encoders)))
+        targets.push({ id, label: ops.LABELS[id], group: ops.GROUPS[id] });
+    // every target carries its choices and notes (the sheet draws them)
+    targets = targets.map((t) => ({ ...t, ...ops.schema(paths, t.id, { ocrLangs: this.engines?.ocrLangs || [] }) }));
     const kinds = [...new Set(files.map((f) => f.kind))];
     const id = 'c' + ++this.seq + '-' + Date.now().toString(36);
-    const batch = { id, files, targets, kind: kinds.length === 1 ? kinds[0] : 'mixed', outputs: [], controller: null };
+    const batch = { id, files, targets, kind: kinds.length === 1 ? kinds[0] : 'mixed', outputs: [], controller: null, sheets: await this.sheetNames(paths) };
     this.batches.set(id, batch);
     for (const key of [...this.batches.keys()].slice(0, -8)) this.batches.delete(key);
     return this.view(batch, encoders);
@@ -589,7 +652,25 @@ class Converter {
       files: batch.files.map(({ name, ext, size, kind }) => ({ name, ext, size, kind })),
       targets: batch.targets,
       ffmpeg: !!this.deps.ffmpeg?.() && encoders.size > 0,
+      sheets: batch.sheets || [],
+      office: { word: !!this.engines?.word, excel: !!this.engines?.excel, powerpoint: !!this.engines?.powerpoint },
     };
+  }
+  /** v0.9.26: the sheet names of one workbook (for "Çalışma sayfası"); [] for anything else. */
+  async sheetNames(paths) {
+    if (paths.length !== 1) return [];
+    const e = extOf(paths[0]);
+    try {
+      const sheets = require('./sheets.cjs');
+      if (e === 'xlsx') return sheets.readXlsx(fs.readFileSync(paths[0])).map((s) => s.name).slice(0, 200);
+      if (e === 'ods') return sheets.readOds(fs.readFileSync(paths[0])).map((s) => s.name).slice(0, 200);
+      if (e === 'xls' && this.engines?.excel) {
+        const out = await this.deps.office.run('excel', { source: paths[0], target: '', format: 'sheets' });
+        const m = /sheets=(.*)$/m.exec(out);
+        return m ? [].concat(JSON.parse(m[1])).map(String).slice(0, 200) : [];
+      }
+    } catch {}
+    return [];
   }
   cancel(id) {
     this.batches.get(id)?.controller?.abort();
@@ -599,19 +680,52 @@ class Converter {
   async run(id, target, options = {}, onProgress = () => {}) {
     const batch = this.batches.get(id);
     if (!batch) throw Error('Dosyaları yeniden bırak.');
-    if (!batch.targets.some((t) => t.id === target)) throw Error('Bu biçime dönüştürülemiyor.');
+    const chosenTarget = batch.targets.find((t) => t.id === target);
+    if (!chosenTarget) throw Error('Bu biçime dönüştürülemiyor.');
     if (batch.controller) throw Error('Dönüştürme zaten sürüyor.');
+    // v0.9.26: the target's own choices, checked against its schema (convert-ops.cjs)
+    const ops = require('./convert-ops.cjs');
+    const chosen = ops.clean(chosenTarget.options || [], options && typeof options === 'object' ? options : {});
+    batch.pending = null;
     const opts = {
+      ...chosen,
       quality: ['high', 'balanced', 'small'].includes(options.quality) ? options.quality : 'balanced',
       size: Math.max(0, Math.min(8192, Math.round(+options.size || 0))),
       merge: !!options.merge,
       notes: [],
+      // v0.9.26: PDF → pictures: pages ('' = all), resolution, PNG background, output folder
+      pages: typeof options.pages === 'string' ? options.pages.slice(0, 400) : '',
+      dpi: Number(options.dpi) || 0,
+      background: options.background === 'transparent' ? 'transparent' : 'white',
+      outDir: typeof options.outDir === 'string' && path.isAbsolute(options.outDir) ? options.outDir : '',
     };
+    if (chosen.quality) opts.quality = chosen.quality;
+    if (opts.outDir && !(fs.existsSync(opts.outDir) && fs.statSync(opts.outDir).isDirectory())) throw Error('Çıktı klasörü bulunamadı.');
+    // the order the user put the files in (for a merged PDF or an animation)
+    const n = batch.files.length;
+    const order = Array.isArray(options.order) && options.order.length === n && new Set(options.order).size === n && options.order.every((i) => Number.isInteger(i) && i >= 0 && i < n) ? options.order : null;
+    const files = order ? order.map((i) => batch.files[i]) : batch.files;
     const controller = new AbortController();
     batch.controller = controller;
     batch.outputs = [];
     const results = [];
     try {
+      if (['join-gif', 'join-webp'].includes(target) || (target.startsWith('arc-') && !(n === 1 && ops.setOf(files[0].path) === 'archive'))) {
+        const first = files[0];
+        const base = n === 1 ? path.basename(first.name, path.extname(first.name)) : path.basename(path.dirname(first.path)) || 'Dosyalar';
+        files.forEach((_, index) => onProgress({ index, progress: 0.05 }));
+        const out = await require('./convert-run.cjs').runJoined(files.map((f) => f.path), target, opts, {
+          deps: this.deps,
+          signal: controller.signal,
+          progress: (p) => files.forEach((_, index) => onProgress({ index, progress: p })),
+          note: (t) => opts.notes.includes(t) || opts.notes.push(t),
+          outDir: opts.outDir || path.dirname(first.path),
+          base,
+        });
+        batch.outputs.push(out);
+        batch.files.forEach((_, index) => onProgress({ index, progress: 1, done: true, output: path.basename(out) }));
+        return { outputs: [path.basename(out)], failed: 0, notes: opts.notes };
+      }
       if (target === 'zip') {
         onProgress({ index: 0, progress: 0.1 });
         const first = batch.files[0];
@@ -624,14 +738,14 @@ class Converter {
       }
       if (target === 'pdf' && opts.merge && batch.kind === 'image' && batch.files.length > 1) {
         const jpegs = [];
-        for (const [index, f] of batch.files.entries()) {
+        for (const [index, f] of files.entries()) {
           if (controller.signal.aborted) throw Object.assign(Error('İptal edildi.'), { cancelled: true });
           onProgress({ index, progress: 0.3 });
           jpegs.push(await this.jpegOf(f.path, opts, controller.signal));
           onProgress({ index, progress: 0.9 });
         }
-        const first = batch.files[0];
-        const out = uniquePath(path.dirname(first.path), path.basename(first.name, path.extname(first.name)) + ` (+${batch.files.length - 1})`, 'pdf');
+        const first = files[0];
+        const out = uniquePath(opts.outDir || path.dirname(first.path), path.basename(first.name, path.extname(first.name)) + ` (+${batch.files.length - 1})`, 'pdf');
         fs.writeFileSync(out, pdfFromJpegs(jpegs));
         batch.outputs.push(out);
         batch.files.forEach((_, index) => onProgress({ index, progress: 1, done: true, output: path.basename(out) }));
@@ -642,12 +756,25 @@ class Converter {
         if (controller.signal.aborted) throw Object.assign(Error('İptal edildi.'), { cancelled: true });
         onProgress({ index, progress: 0 });
         try {
-          const out = await this.one(f, target, opts, controller.signal, (p) => onProgress({ index, progress: p }));
+          let out = await this.one(f, target, opts, controller.signal, (p) => onProgress({ index, progress: p }), batch);
+          // v0.9.26: text or cells to check first: one file waits for the user, several are saved as read
+          if (out && typeof out === 'object' && out.review) {
+            if (batch.files.length === 1) {
+              batch.pending = { finish: out.finish, index };
+              onProgress({ index, progress: 0.95 });
+              return { review: out.review, outputs: [], failed: 0, notes: opts.notes };
+            }
+            out = await out.finish();
+          }
           batch.outputs.push(out);
           results.push(path.basename(out));
           onProgress({ index, progress: 1, done: true, output: path.basename(out) });
         } catch (e) {
-          if (e.cancelled) throw e;
+          // pages finished before a cancel stay (they are the user's now) and can be shown
+          if (e.cancelled) {
+            if (e.partial) batch.outputs.push(e.partial);
+            throw e;
+          }
           failed++;
           onProgress({ index, progress: 1, done: true, error: e.message });
         }
@@ -656,6 +783,21 @@ class Converter {
     } finally {
       batch.controller = null;
     }
+  }
+  /**
+   * v0.9.26: the user checked the text or cells (OCR, a table): `edited` (text or rows) is saved now.
+   * null/undefined saves what was read.
+   */
+  async finish(id, edited) {
+    const batch = this.batches.get(id);
+    if (!batch?.pending) throw Error('Kaydedilecek bir sonuç yok.');
+    const { finish } = batch.pending;
+    batch.pending = null;
+    if (typeof edited === 'string' && edited.length > 50_000_000) throw Error('Metin çok uzun.');
+    if (Array.isArray(edited) && (edited.length > 100_000 || edited.some((r) => !Array.isArray(r) || r.length > 1000))) throw Error('Tablo çok büyük.');
+    const out = await finish(edited);
+    batch.outputs.push(out);
+    return { outputs: [path.basename(out)], failed: 0 };
   }
   /** The folder of the converted files (opened with the first result selected). */
   output(id) {
@@ -777,10 +919,24 @@ class Converter {
       fs.rmSync(tmp, { force: true });
     }
   }
-  async one(f, target, opts, signal, progress) {
+  async one(f, target, opts, signal, progress, batch = null) {
     const dir = path.dirname(f.path);
     const base = path.basename(f.name, path.extname(f.name));
     const ext = f.ext;
+    // v0.9.26: the full list (convert-ops.cjs / convert-run.cjs); null hands it to the code below
+    if (require('./convert-ops.cjs').targetsOf(f.path).includes(target)) {
+      const made = await require('./convert-run.cjs').runTarget(f.path, target, opts, {
+        deps: { ...this.deps, textPdf: (blocks, title) => this.pdf(blocks, title), fonts: () => this.fontFiles() },
+        signal,
+        progress,
+        note: (t) => opts.notes.includes(t) || opts.notes.push(t),
+        outDir: opts.outDir || dir,
+        base,
+        review: !batch || batch.files.length === 1,
+        extra: (p) => batch?.outputs.push(p),
+      });
+      if (made !== null && made !== undefined) return made;
+    }
     if (target === 'extract') {
       const out = uniquePath(dir, base, '');
       progress(0.2);
@@ -789,6 +945,11 @@ class Converter {
       return out;
     }
     if (f.kind === 'presentation' && target !== 'zip') return this.presentation(f, target, opts, signal, progress);
+    if (ext === 'pdf' && (target === 'png' || target === 'jpg')) {
+      if (!this.deps.pdfImages) throw Error('Bu biçime dönüştürülemiyor.');
+      const note = (text) => { if (!opts.notes.includes(text)) opts.notes.push(text); };
+      return this.deps.pdfImages.convert(f.path, { target, pages: opts.pages, dpi: opts.dpi, quality: opts.quality, background: opts.background, outDir: opts.outDir, signal, progress, note });
+    }
     const out = uniquePath(dir, base, target);
     const write = (data) => { fs.writeFileSync(out, data); return out; };
     const readText = () => {
@@ -900,4 +1061,6 @@ module.exports = {
   Converter, KINDS, kindOf, targetsFor, commonTargets, uniquePath, ffmpegArgs, runFFmpeg, ffmpegEncoders,
   parseDelimited, writeDelimited, tableToObjects, objectsToTable, srtToVtt, vttToSrt, htmlToText, htmlToMarkdown,
   docxFromBlocks, docxToBlocks, blocksFromMarkdown, blocksFromText, pdfBlocks, pdfFromJpegs, jpegSize, icoFromPngs, zipFiles, unzipTo,
+  // v0.9.26: for app/files/convert-run.cjs
+  blocksToMarkdown, blocksToText, blocksToHTML, markdownToHTML, markdownToText, textToHTML, legacyTargets,
 };

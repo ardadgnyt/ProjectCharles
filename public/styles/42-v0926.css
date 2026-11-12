@@ -1,0 +1,262 @@
+/* v0.9.26 RC */
+
+/* --- Settings → Shortcuts: each row says what happened to its key ------------------------------ */
+.shortcut-status {
+  grid-column: 1 / -1;
+  margin: -2px 0 2px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--sb-muted, #a9a39a);
+  overflow-wrap: anywhere;
+}
+.shortcut-status[hidden] {
+  display: none;
+}
+.shortcut-status[data-kind='error'] {
+  color: var(--sb-danger, #ff8a7a);
+}
+.shortcut-status[data-kind='ok'] {
+  color: var(--sb-ok, #8fd6a8);
+}
+
+/* --- Big picture view: Sohbete ekle · Görseli kopyala · Bir kopyasını indir --------------------- */
+.image-lightbox {
+  grid-template-rows: minmax(0, 1fr) auto;
+  row-gap: 12px;
+}
+.image-lightbox > img {
+  justify-self: center;
+  align-self: center;
+  object-fit: contain;
+}
+.image-lightbox-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  cursor: default;
+}
+.image-lightbox-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 100%;
+}
+.image-lightbox-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  max-width: 100%;
+  margin: 0;
+  padding: 5px 14px 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--ac-edge);
+  border-top-color: var(--ac-edge-top);
+  background: var(--ac-glass-strong, var(--ac-glass));
+  color: var(--sb-text);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.25;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.image-lightbox-action:first-child {
+  background: var(--sb-accent);
+  border-color: transparent;
+  color: #1b1b1f;
+  font-weight: 600;
+}
+.image-lightbox-action:hover:not(:disabled) {
+  background: var(--ac-glass-hover);
+  border-color: rgba(240, 198, 161, 0.3);
+}
+.image-lightbox-action:first-child:hover:not(:disabled) {
+  background: var(--sb-accent-strong);
+}
+.image-lightbox-action:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.image-lightbox-action svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.image-lightbox-action:focus-visible,
+.image-lightbox-close:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 2px;
+}
+.image-lightbox-status {
+  max-width: min(520px, 100%);
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: rgba(8, 8, 10, 0.55);
+  color: var(--sb-muted, #c9c2b8);
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.image-lightbox-status[hidden] {
+  display: none;
+}
+.image-lightbox-status[data-kind='ok'] {
+  color: var(--sb-ok, #8fd6a8);
+}
+.image-lightbox-status[data-kind='error'] {
+  color: var(--sb-danger, #ff8a7a);
+}
+
+/* --- Converter: PDF → PNG / JPG options ------------------------------------------------------- */
+.conv-pages-opt {
+  flex-wrap: wrap;
+}
+.conv-pages {
+  width: 9em;
+  min-width: 0;
+  max-width: 100%;
+}
+.conv-pages[hidden] {
+  display: none;
+}
+.conv-folder-name {
+  display: block;
+  max-width: 22em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--sb-muted, #a9a39a);
+}
+.conv-opts {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+.conv-text {
+  width: 11em;
+  min-width: 0;
+  max-width: 100%;
+}
+.conv-color {
+  width: 44px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--ac-edge, #ffffff22);
+  border-radius: 8px;
+  background: none;
+}
+.conv-notes {
+  display: grid;
+  gap: 4px;
+  margin: 2px 0 6px;
+}
+.conv-notes[hidden] {
+  display: none;
+}
+.conv-notes .conv-note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--sb-muted, #a9a39a);
+  overflow-wrap: anywhere;
+}
+.conv-order-opt {
+  flex-basis: 100%;
+}
+.conv-order {
+  display: grid;
+  gap: 3px;
+  max-height: 170px;
+  margin: 2px 0 0;
+  padding: 0 0 0 1.4em;
+  overflow: auto;
+}
+.conv-order li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.conv-order-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.conv-mini {
+  min-width: 26px;
+  min-height: 24px;
+  padding: 0 6px;
+  border-radius: 7px;
+}
+.conv-mini:focus-visible,
+.conv-review :focus-visible {
+  outline: 2px solid var(--sb-accent, #edc9a9);
+  outline-offset: 1px;
+}
+/* checking OCR text or table cells before they are saved */
+.conv-review {
+  position: absolute;
+  inset: 8px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--ac-edge, #ffffff22);
+  background: var(--sb-panel, #141416);
+  box-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.8);
+  min-width: 0;
+}
+.conv13 {
+  position: relative;
+}
+.conv-review-text {
+  flex: 1;
+  min-height: 120px;
+  width: 100%;
+  resize: none;
+  font: 12px/1.45 Consolas, 'Cascadia Mono', monospace;
+}
+.conv-review-grid {
+  flex: 1;
+  min-height: 120px;
+  overflow: auto;
+}
+.conv-review-table {
+  border-collapse: collapse;
+}
+.conv-review-table td {
+  padding: 0;
+  border: 1px solid #ffffff1c;
+}
+.conv-review-table input {
+  width: 9em;
+  min-width: 0;
+  margin: 0;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 12px;
+}
+.conv-review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}

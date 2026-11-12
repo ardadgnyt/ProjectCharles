@@ -73,7 +73,7 @@ class ChatClassifier {
           '\nAlıntı: ' +
           JSON.stringify(contextText(r.events).slice(0, 8000)),
       };
-      if (/^(gemini|claude|cursor|abacus|evren):/.test(args.model || '')) await s.providers.send(agent, { ...args, background: true });
+      if (/^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(args.model || '')) await s.providers.send(agent, { ...args, background: true });
       else {
         await agent.connect();
         await agent.send(args);

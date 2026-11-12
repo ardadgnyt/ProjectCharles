@@ -29,20 +29,37 @@ export const PROVIDERS: [string, string][] = [
   ['cursor', 'Cursor'],
   ['abacus', 'Abacus AI'],
   ['evren', 'Evren'],
+  ['kimi', 'Kimi'],
+  ['copilot', 'GitHub Copilot'],
+  ['opencode', 'OpenCode'],
 ];
-const PREFIX = /^(?:Cursor|Antigravity|AntiGravity|Gemini|Claude|Abacus AI|EVREN|Evren|OpenAI)\s*·\s*/;
+const PREFIX = /^(?:Cursor|Antigravity|AntiGravity|Gemini|Claude|Abacus AI|EVREN|Evren|Kimi|GitHub Copilot|OpenCode|OpenAI)\s*·\s*/;
 
-/** The provider an option belongs to ('' = no provider, e.g. "Önce hesap bağla"). */
+/**
+ * The provider an option belongs to ('' = no provider, e.g. "Önce hesap bağla").
+ * v0.9.26: read from `data-provider`, set when the list is built (renderer.ts → populateModels).
+ * GPT's "Otomatik · …" row used to be recognised by its Turkish text; once the interface language
+ * translated it to "Auto · …" it belonged to no provider and showed up in the provider list.
+ */
 export function optionProvider(option: HTMLOptionElement) {
-  const m = /^(gemini|claude|cursor|abacus|evren):/.exec(option.value);
+  if (option.dataset.provider !== undefined) return option.dataset.provider;
+  const m = /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.exec(option.value);
   if (m) return m[1];
-  return option.value || /^Otomatik · /.test(option.text) ? 'gpt' : '';
+  return option.value ? 'gpt' : '';
 }
 /** The model's own name without its provider ("Claude · Opus" → "Opus"). */
 export function shortModelName(option: HTMLOptionElement) {
+  // an "Auto" row, in whichever language the option text is shown now
+  if (option.dataset.auto === '1') return 'Otomatik';
   const text = option.text.trim();
-  if (!option.value && /^Otomatik · /.test(text)) return 'Otomatik';
   return text.replace(PREFIX, '') || text;
+}
+/** v0.9.26: the data every row of the model list carries, whatever its text is translated to. */
+export function markOption(option: HTMLOptionElement, provider: string, auto = false) {
+  option.dataset.provider = provider;
+  if (auto) option.dataset.auto = '1';
+  else delete option.dataset.auto;
+  return option;
 }
 const providerName = (id: string) => PROVIDERS.find(([key]) => key === id)?.[1] || '';
 
@@ -68,7 +85,7 @@ export function modelPicker(select: HTMLSelectElement) {
     else {
       const short = shortModelName(option);
       // "Otomatik" alone would not say whose default it is
-      button.textContent = short === 'Otomatik' || short === 'Auto' ? `${short} · ${providerName(optionProvider(option))}` : short;
+      button.textContent = option.dataset.auto === '1' ? `${short} · ${providerName(optionProvider(option))}` : short;
     }
     button.disabled = select.disabled;
     if (select.disabled) close();
@@ -178,6 +195,8 @@ export function modelPicker(select: HTMLSelectElement) {
     }
     // options that belong to no provider ("Önce hesap bağla")
     for (const option of all.get('') || []) {
+      // an "Auto" row is always a provider's model, never a row of the provider list itself
+      if (option.dataset.auto === '1') continue;
       const item = document.createElement('button');
       item.type = 'button';
       item.textContent = option.text;

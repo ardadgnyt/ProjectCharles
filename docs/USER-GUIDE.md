@@ -1,6 +1,6 @@
 # Charles — User Guide
 
-This guide covers Charles **v0.9.17 Beta** on Windows 10/11. For installation, see the
+This guide covers Charles **v0.9.27 Release Candidate** on Windows 10/11. For installation, see the
 [README](../README.md#installation). For the full history of changes, see
 [CHANGELOG.md](../CHANGELOG.md) (Turkish).
 
@@ -30,7 +30,8 @@ Charles lives in an island at the top of the screen. It has four sizes:
   - **Weather** opens the next five days (temperature, feels like, humidity, wind, chance of
     rain); the pencil button changes the city.
   - **Converter:** drop files on it (or click it to pick them) to turn them into other formats.
-    Everything runs on your computer; the result is saved next to the original.
+    Everything runs on your computer; the result is saved next to the original. See
+    [Converting files](#converting-files).
   - **Music:** a click on the card opens Spotify; its buttons control playback.
 - **The chat (big island):** the island grows down into the chat panel. A click on an empty part
   goes back to the card shelf; a click on the cream bar closes the island, dragging it changes
@@ -75,7 +76,7 @@ own **Copy** button, on the island and in the app window.
 ## Chatting
 
 Open the panel and type in the message box at the bottom. The **model menu** next to the box
-lists every AI you have connected: GPT (through Codex), Claude, Antigravity, Cursor, Abacus AI and EVREN. Beside it the **effort** menu lists only the levels the chosen model offers; models without levels stay on *Otomatik*. The **+**
+lists every AI you have connected: GPT (through Codex), Claude, Antigravity, Cursor, Abacus AI, EVREN, Kimi, GitHub Copilot and OpenCode. Choose an AI, then one of its models; **Auto** in a model list lets that AI pick the model itself. EVREN lists only its chat models (gemma-4-31b, glm-5.3, qwen3.8-flash-next and deepseek-v4.1-flash). If a model you chose earlier is no longer offered, Charles moves to that AI's Auto and tells you. Beside it the **effort** menu lists only the levels the chosen model offers; models without levels stay on *Otomatik*. The **+**
 menu has more tools:
 
 | Tool | What it does |
@@ -119,6 +120,13 @@ your AI account still apply. Cursor and Abacus take up to 20 pictures in a messa
 choice it cannot do is grey. GPT and Antigravity create pictures with their own image generators;
 Claude and EVREN draw them, and Charles shows the drawing as a picture. GPT, Antigravity and Claude
 can search the web and do deep research.
+
+**Looking at a picture.** Click a picture in the chat to see it large. The bar above it has
+**Add to chat** (the picture goes into the message box), **Copy image** and **Save a copy**. Saving
+never replaces a file that is already there. Esc or a click outside the picture closes the view.
+
+**Quota notices.** When an AI's quota runs low, Charles says so once and offers another connected
+AI. If Claude's hourly and weekly quotas run low at the same time, both are named in one notice.
 
 Past chats are listed in **History** (the list button at the top left). There you can search
 chats, sort them into folders, rename them and reopen them.
@@ -172,7 +180,7 @@ hops. Double-click Slime to send it back to the island.
 - **Colour:** green, teal, blue, purple, coral, yellow or white. The app icon follows the
   colour.
 - **Hat:** felt hat, crown, party hat, beanie, witch hat, Santa hat, bunny ears, bow or
-  colourful headphones. With *Seasonal*, Slime picks a hat for the time of year.
+  colourful headphones.
 - **Eyes:** sunglasses, big sunglasses, round glasses, a monocle or a pirate eye patch. Sunglasses slide up onto
   the forehead when Slime makes a face.
 - **Face:** with or without a moustache.
@@ -180,8 +188,8 @@ hops. Double-click Slime to send it back to the island.
   Slime's jelly.
 
 Items from different categories can be worn together, except that the pumpkin does not go
-with a hat. Press **Save** to put the outfit on Charles. **Try expressions**, on the same page,
-plays every expression and work animation.
+with a hat. Press **Save** to put the outfit on Charles. **Try expressions**, at the bottom of the
+same page, plays every expression and work animation.
 
 In the Turkish interface, Slime holds a Turkish flag on 19 May, 30 August, 29 October and
 10 November.
@@ -191,8 +199,8 @@ In the Turkish interface, Slime holds a Turkish flag on 19 May, 30 August, 29 Oc
 | Page | What you will find |
 | --- | --- |
 | **General** | Language (Türkçe, English, Deutsch, Français, Español, 中文), start with Windows, sounds and volume, auto-hide and collapse, read aloud, Hey Charles, weather location (search a city or district and pick it from the list), welcome tour |
-| **AI models** | Sign in to ChatGPT/Codex, Claude, Antigravity and Cursor; add an EVREN API key. Every card has the same buttons: **Set up with Charles** · sign in (“✓ connected” once signed in) · **Check connection**. Default model; Gemini Live with its own connected state, voice and key settings |
-| **Appearance** | Text size, panel size, character size, **Charles island size** (Large is the usual size; Small shows the whole island at 2/3 of its width and height, for a laptop screen; the app window keeps its size), screen choice, chat colours, Slime studio, try expressions |
+| **AI models** | Sign in to ChatGPT/Codex, Claude, Antigravity and Cursor; connect Kimi, GitHub Copilot and OpenCode through their own command line tools, which you install yourself (**Set up with Charles** opens the setup page and walks through the sign-in; Kimi shows a code to confirm instead of a console window, and offers its models with a reasoning level); add an EVREN API key (**Key settings → Save and connect** checks the key against EVREN at once; if EVREN asks an account to accept its own usage terms, the card shows EVREN’s text and an **Accept and connect** button). Every card has the same buttons: **Set up with Charles** · sign in (“✓ connected” once signed in) · **Check connection**. Default model; Gemini Live with its own connected state, voice and key settings |
+| **Appearance** | Text size, panel size, character size, **Charles island size** (Large is the usual size; Small shows the whole island at 3/4 of its width and height, for a laptop screen; the app window keeps its size), screen choice, chat colours, Slime studio, try expressions |
 | **Memory** | Things Charles should remember; **Get to know me from the AI I use**: pick ChatGPT, Claude or Antigravity, paste its answer and choose what to keep |
 | **Access** | How much the AI may do without asking (see [Project mode](#project-mode)) |
 | **Plugins** | Google (Gmail, Calendar, Drive), Microsoft (Outlook, Calendar), POP3/IMAP mail, Home Assistant, Google Calendar (add events), WhatsApp contacts (a connected account shows “✓ … connected”; after **Remove** you can sign in again); important-mail notifications and keywords. GitHub is listed as coming in a later version |
@@ -205,7 +213,12 @@ For step-by-step plugin setup, see [PLUGINS-SETUP.md](PLUGINS-SETUP.md).
 
 ## Keyboard shortcuts
 
-These work from any app and can be changed in Settings → Shortcuts.
+These work from any app and can be changed in Settings → Shortcuts. Click a shortcut, then press
+the new key or combination: it is saved at once, and the row says so for a moment. Every key of the combination is shown as its own label. If the key cannot be used,
+the row says why: Windows keeps it for itself, another shortcut (or push to talk) already has it,
+or it is a modifier such as Ctrl alone. Keys are read by their place on the keyboard, so the same
+key works with a Turkish or an English layout. While you record a key, the other shortcuts pause.
+**Reset to default** puts every shortcut back.
 
 | Shortcut | Action |
 | --- | --- |
@@ -297,6 +310,50 @@ The status bubble (Listening, Turning speech into text…) appears right under t
 If the window cannot be read, or you press Esc, he goes back as well. Picked up again while reading, he stays in your hand, and the card arrives when you let go.
 
 No browser extension is needed. Pages are read from the active tab only. PDFs opened from this computer and saved Word and PowerPoint files are read from the file; unsaved changes are not included. An app that shares no text is pictured as a single window, and the card says only the visible part was read. **×** removes the content from the chat; **Read again** reads the same window once more.
+
+## Converting files
+
+Open **Files → Convert**, or drop files on the Files card. Choose a format from the list on the
+right; only formats that every chosen file can become, and that this computer can make, are
+offered. Choices for that format (quality, size, pages, sheet, separator, language …) appear under
+the list, with notes about what will not be kept. Press **Convert**. The result is saved next to the
+original, with a new name if a file of that name is there; the original is never changed. **Open**
+shows the result.
+
+| From | To |
+| --- | --- |
+| PDF | DOCX, XLSX, PPTX (page pictures or editable text), TXT, HTML, PNG, JPEG, TIFF. Scanned PDF → searchable PDF, TXT, DOCX; tables → XLSX, CSV |
+| Word: DOCX, DOC, ODT, RTF | PDF, DOCX, ODT, RTF, TXT, HTML, EPUB, Markdown; pages → PNG, JPEG |
+| Excel: XLSX, XLS, ODS | XLSX, ODS, PDF, CSV, TSV, HTML; a sheet or a range → PNG, JPEG |
+| CSV, TSV, JSON | XLSX, ODS, CSV, TSV, JSON, HTML, PDF (separator, encoding, header and types can be set) |
+| PowerPoint: PPTX, PPT, ODP | PPTX, ODP, PDF; slides → PNG, JPEG, TIFF; text → TXT, with or without speaker notes |
+| TXT, Markdown, HTML | PDF, DOCX, ODT, RTF, HTML, Markdown, TXT, EPUB; a page's look → PNG, JPEG |
+| EPUB | PDF, TXT, HTML, DOCX |
+| PNG, JPEG, WebP, BMP, TIFF, AVIF, HEIC | each other, PDF; PNG ↔ ICO; PNG or JPEG → SVG (vectorize); text in the picture → TXT, DOCX, searchable PDF; tables → XLSX, CSV |
+| SVG | PNG, JPEG, WebP, PDF |
+| GIF | animated WebP, MP4; chosen frames → PNG, JPEG |
+| Several pictures | one animated GIF or WebP; pictures and PDFs → one PDF in the order you set |
+| MP3, WAV, FLAC, M4A, AAC, OGG, Opus | each other (bit rate, sample rate, mono or stereo); speech → TXT, DOCX, SRT, VTT |
+| MP4, MKV, MOV, AVI, WebM | each other (resolution, frame rate, quality, sound); sound → MP3, WAV, FLAC, M4A; a part → GIF, animated WebP; frames → PNG, JPEG; speech → subtitles |
+| SRT, VTT | each other; plain text without times |
+| ZIP, 7z, TAR, RAR | extract; ZIP, 7z and TAR can also be made and an archive repacked into another format (RAR can only be extracted) |
+
+**Text recognition** uses Windows' own OCR and the languages installed in Windows (Settings → Time
+& language → Language). Tables found in a scan are shown to you first: check and correct them, then
+save. **Speech** is turned into text by the local Whisper model. **HEIC** needs Windows' HEIF Image
+Extensions. Word, Excel and PowerPoint files keep their look best when Microsoft Office is
+installed; Charles then uses it in the background, opens the file read-only with macros off and
+closes only what it opened. Without Office, formats that need it are not offered.
+
+Archives are always extracted safely: a name that would land outside the target folder stops the
+job. Turning a lossy sound (MP3, AAC …) into a lossless one (WAV, FLAC) does not bring back the
+lost quality.
+
+## Download with Charles
+
+When you copy a link to a video or a file, a small card offers to download it with Charles. It
+appears under the island, or in the top-right corner of the screen when the island is hidden, and
+stays away while a full-screen app is open.
 
 ## Moving the character
 

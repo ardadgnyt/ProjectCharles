@@ -12,6 +12,7 @@ Charles is an Electron app with three parts: the **main process** (Node.js, `app
  │ plugins/        Gmail/Calendar/Drive, Outlook, POP3/IMAP, Home Assistant, services   │
  │ voice/          Hey Charles wake word, Whisper dictation, Gemini Live                │
  │ system/         foreground app, media, performance, capture (charles-helper.exe)     │
+ │ files/          converter, file shelf, Quick Share, picture save/copy/attach         │
  │ personal/       memory, reminders, weather, accessories, first-run profile           │
  │ core/           durable JSON store, preferences, policy, desktop-pet physics         │
  └──────────────────────────────▲────────────────────────────────────▲─────────────────┘
@@ -48,6 +49,26 @@ Charles is an Electron app with three parts: the **main process** (Node.js, `app
   (friction and bouncing). `island/jelly.ts` draws the matching squash and wobble.
 - **Two languages.** The interface is written in Turkish and translated live into English by
   `settings/i18n.ts`, which watches the page and swaps known texts and patterns.
+
+## The converter (v0.9.26)
+
+`files/convert.cjs` keeps the batches, offers targets and runs jobs. What each file can become, with
+the choices the sheet draws, is in `files/convert-ops.cjs`; the work itself is in
+`files/convert-run.cjs`, which picks an engine per job:
+
+| Engine | Used for |
+| --- | --- |
+| `charles-helper.exe --pdf` | PDF pages to pictures through `Windows.Data.Pdf` (sizes calibrated to points, not to the screen's scaling) |
+| `charles-helper.exe --image` | Frames of multi-page TIFF, GIF and HEIC through WIC |
+| `charles-helper.exe --ocr` | Text recognition through `Windows.Media.Ocr`, with the languages installed in Windows |
+| `files/office-com.cjs` | Word, Excel and PowerPoint over COM in a hidden PowerShell: read-only, macros off, the job in an environment variable, only its own instance closed |
+| FFmpeg (`tools/download`) | Sound, video, GIF, WebP and AVIF |
+| Whisper (`tools/whisper`) | Speech to text and subtitles (`files/transcribe.cjs`) |
+| `tar.exe` (Windows) | 7z, TAR and RAR (`files/archive.cjs`, every entry checked before extraction) |
+| Charles' own code | XLSX/ODS/CSV (`sheets.cjs`), ODT/RTF/EPUB (`docs.cjs`), PPTX writing, searchable PDF, SVG tracing, HTML rendering in a hidden window (`convert-host.cjs`) |
+
+Each engine is checked before a format is offered, so the sheet never lists a target the computer
+cannot make. Results are written to a temporary name and moved into place only when complete.
 
 ## Build and test
 

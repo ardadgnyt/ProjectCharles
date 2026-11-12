@@ -1,3 +1,5 @@
+import { ISLAND_SMALL } from './island-size';
+import { hold as holdFeed } from '../chat/follow';
 export function companionUI(
   api: any,
   notice: (s: string) => void,
@@ -43,6 +45,10 @@ export function companionUI(
   // Docking: update the panel at once (optimistic), then let the main process move the
   // window. Waiting for the round trip first made the arrows feel slow.
   function dock(side: 'left' | 'center' | 'right') {
+    // v0.9.27: the chat keeps its place while the island moves; panel-motion.ts lets go of it when
+    // the new layout stands ("panel" is the name both use)
+    const feed = document.getElementById('feed');
+    if (feed) holdFeed(feed, 'panel');
     if (snapshot) paint({ ...snapshot, preferences: { ...snapshot.preferences, side } });
     return attempt(async () => paint(await api.companionSave({ side })));
   }
@@ -182,8 +188,8 @@ export function companionUI(
   const opensChat = () => !!document.body.dataset.view && document.body.dataset.view !== 'chat';
   const barTarget = () => (document.body.dataset.view === 'shelf' ? 'notch' : 'chat');
   let opening = false;
-  // v0.9.24: the saved height is the Large one; a Small island shows it at 2/3 (app/core/layout.cjs)
-  const sizeFactor = () => (document.body.classList.contains('island-small') ? 2 / 3 : 1);
+  // v0.9.24: the saved height is the Large one; a Small island shows it scaled (app/core/layout.cjs)
+  const sizeFactor = () => (document.body.classList.contains('island-small') ? ISLAND_SMALL : 1);
   const baseHeight = () => document.body.getBoundingClientRect().height / sizeFactor();
   grip.addEventListener('pointerdown', (e) => {
     if (opensChat()) {

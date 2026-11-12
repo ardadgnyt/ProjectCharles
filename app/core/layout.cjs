@@ -21,7 +21,9 @@ const CHAT_WIDTH = 620;
 // v0.9.24: it is the whole island: closed, its card shelf and the tall chat. Only the closed
 // island shrank before, and that is on screen only while music plays, so with nothing playing the
 // choice seemed to do nothing. The app window, Charles' own window and module windows stay as they are.
-const ISLAND_SMALL = 2 / 3;
+// v0.9.27: Small is 3/4 of Large (it was 2/3, too small to read on a laptop screen). The page zooms
+// by the same number (37-v0920.css, src/island/island-size.ts); test/v0927 keeps the three together.
+const ISLAND_SMALL = 0.75;
 // The width stays even: a centred island with an odd one sits on half a pixel, and the desktop showed
 // through thin lines between its tiles.
 const fit = (s, island) => (island === 1 ? s : { width: 2 * Math.round((s.width * island) / 2), height: Math.round(s.height * island) });

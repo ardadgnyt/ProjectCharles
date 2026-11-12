@@ -15,7 +15,14 @@ $references = @(
   (Join-Path $net 'WPF\WindowsBase.dll'),
   (Join-Path $winmd 'Windows.Foundation.winmd'),
   (Join-Path $winmd 'Windows.Media.winmd'),
-  (Join-Path $winmd 'Windows.Storage.winmd')
+  (Join-Path $winmd 'Windows.Storage.winmd'),
+  (Join-Path $winmd 'Windows.Data.winmd'),
+  (Join-Path $winmd 'Windows.Graphics.winmd'),
+  (Join-Path $winmd 'Windows.Globalization.winmd'),
+  (Join-Path $net 'WPF\PresentationCore.dll'),
+  (Join-Path $net 'System.Xaml.dll'),
+  # v0.9.26: Size and Color of the PDF renderer are projected into this .NET assembly
+  (Join-Path $net 'System.Runtime.WindowsRuntime.dll')
 ) | ForEach-Object { "/reference:$_" }
 $output = Join-Path $projectRoot 'app\system\charles-helper.exe'
 $source = Join-Path $projectRoot 'setup\CharlesHelper.cs'

@@ -6,7 +6,7 @@ import { drawReading } from '../../chat/reading';
 import { Ease, lerp, type EaseFn } from '../core/anim';
 import { Sound } from '../core/sound';
 import type { BotEmoteName, BotStateName } from '../core/layout';
-import { PUMPKIN_BODY, OutfitRenderer, makeHead } from './outfits';
+import { PUMPKIN_BODY, OutfitRenderer, makeHead, outfitLayer, type OutfitLayer } from './outfits';
 import type { Outfit } from './wardrobe';
 import { PAW, SHAPE, SLIME_COLORS, type SlimeColor } from './shape';
 
@@ -1338,15 +1338,18 @@ export class BotEngine {
         this.drawEyes(x, body, R, rx, ry);
         x.restore();
       }
-      drawReading(x, performance.now() / 1000, reading, ownEyes, !greeting, !(slime && this.morph < 0.6));
     } else this.drawEyes(x, body, R, rx, ry);
     // Mouth and moustache before the work props (laptop, drawing board…), so those stay in front.
-    if (slime && this.morph < 0.5 && own > 0.01) {
-      x.save();
-      x.globalAlpha *= own;
-      this.drawSlimeMouth(x, body, R, rx, ry);
-      x.restore();
+    // v0.9.27: the mouth gives way to the reading face, the moustache does not: it is part of
+    // him, and it vanished for as long as he read.
+    if (slime && this.morph < 0.5 && (own > 0.01 || this.look.mustache)) this.drawSlimeMouth(x, body, R, rx, ry, own);
+    // v0.9.27: what he wears on his body and on his eyes comes before what he holds, so the
+    // sheet, the laptop and the easel are in front of a bow tie or a scarf (see outfitLayer)
+    if (head) {
+      this.drawWorn(x, head, outfitState, 'body');
+      this.drawWorn(x, head, outfitState, 'face');
     }
+    if (readingOn) drawReading(x, performance.now() / 1000, reading, ownEyes, !greeting, !(slime && this.morph < 0.6));
     // the light bulb is drawn after the hat (below), so the hat never covers it
     const prop = keep * this.stationAlpha;
     if (prop > 0.01 && this.shownStation !== 'none') {
@@ -1361,13 +1364,7 @@ export class BotEngine {
     if (this.morph > 0.05) this.drawMouth(x, body, R);
 
     if (head) {
-      for (const s of [this.slots.other, this.slots.eyes])
-        s.r.draw(x, 'front', s.shown, head, {
-          presence: s.presence,
-          morph: this.morph,
-          lift: s === this.slots.eyes ? this.glassesLift : 0,
-        });
-      this.outfitRenderer.draw(x, 'front', this.outfit, head, outfitState);
+      this.drawWorn(x, head, outfitState, 'head');
       // v0.6.3: the flag is held in front of everything, the hat included
       const hand = this.slots.hand;
       const held = hand.presence * this.handFree();
@@ -1382,6 +1379,26 @@ export class BotEngine {
       this.drawBadge(x, this.badge, R, cx, cy);
     }
     this.drawParticles(x, R, cx, cy);
+  }
+
+  /**
+   * The front parts of everything worn that belongs to one layer, in a fixed order: the "other"
+   * slot, the eyes, then the hat slot (which may hold any accessory in an old save).
+   */
+  private drawWorn(
+    x: CanvasRenderingContext2D,
+    head: ReturnType<typeof makeHead>,
+    outfitState: { presence: number; morph: number },
+    layer: OutfitLayer,
+  ) {
+    for (const s of [this.slots.other, this.slots.eyes])
+      if (s.shown !== 'none' && outfitLayer(s.shown) === layer)
+        s.r.draw(x, 'front', s.shown, head, {
+          presence: s.presence,
+          morph: this.morph,
+          lift: s === this.slots.eyes ? this.glassesLift : 0,
+        });
+    if (this.outfit !== 'none' && outfitLayer(this.outfit) === layer) this.outfitRenderer.draw(x, 'front', this.outfit, head, outfitState);
   }
 
   // ── Slime body and face ───────────────────────────────────────────────────
@@ -1529,6 +1546,8 @@ export class BotEngine {
     R: number,
     rx: number,
     ry: number,
+    /** how much of the mouth shows (the reading face takes its place); the moustache stays */
+    mouth = 1,
   ) {
     const yawFace = Math.cos(this.yaw);
     if (yawFace <= 0.2) return;
@@ -1560,8 +1579,11 @@ export class BotEngine {
     const below =
       this.look.mustache && (open || ['happy', 'heart', 'star', 'flat', 'line'].includes(shape));
     x.save();
+    x.globalAlpha *= Math.max(0, Math.min(1, mouth));
     if (below) x.translate(0, w * 0.75);
-    if (open) {
+    if (mouth <= 0.01) {
+      // nothing of the mouth to draw: only the moustache below
+    } else if (open) {
       // Little "o": surprised, waiting, yawning, sleeping.
       const big = shape === 'tired' ? 1.25 : shape === 'closed' ? 0.6 : 0.85;
       x.beginPath();

@@ -7,13 +7,13 @@
 // The scale must keep the panel's anchor still: centred panels are positioned with
 // translateX(-50%) and grow from their top centre, while panels docked to the left or
 // right edge have no translate and grow from their top-left / top-right corner.
+import { hold, release } from '../chat/follow';
+
 export function panelMotion(api: any) {
   const body = document.body,
     feed = document.getElementById('feed')!;
   let animation: Animation | null = null,
-    id = 0,
-    scrollTop = 0,
-    atBottom = true;
+    id = 0;
 
   const docked = () =>
     body.classList.contains('docked-left') || body.classList.contains('docked-right');
@@ -27,16 +27,15 @@ export function panelMotion(api: any) {
     body.style.width = v.width + 'px';
     body.style.height = v.height + 'px';
     body.classList.remove('panel-transition');
-    if (!body.classList.contains('compact'))
-      feed.scrollTop = atBottom ? feed.scrollHeight : scrollTop;
+    // v0.9.27: the chat goes back to the message the reader was at (chat/follow.ts). This used to
+    // write back a scrollTop read at the start of the last animation; docking sends only "done",
+    // so the number was an old one and the reader landed somewhere else.
+    release(feed, 'panel');
   }
 
   api.onLayout((v: any) => {
     if (v.id < id) return;
-    if (!animation && !body.classList.contains('compact')) {
-      scrollTop = feed.scrollTop;
-      atBottom = feed.scrollHeight - feed.clientHeight - feed.scrollTop < 4;
-    }
+    hold(feed, 'panel');
     // An interrupted transition continues from what is on screen right now.
     const rect = body.getBoundingClientRect(),
       from = animation ? { width: rect.width, height: rect.height } : v.from;

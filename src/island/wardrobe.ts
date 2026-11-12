@@ -3,7 +3,7 @@
 // different categories are worn together (the pumpkin does not go with a hat). Everything is
 // tried on a preview Slime first; "Kaydet" puts it on Charles.
 import { BotEngine } from '../vendor/slime/engine';
-import { clashes, seasonalOutfit, type AccessorySlot, type Accessories } from '../vendor/slime/wardrobe';
+import { clashes, type AccessorySlot, type Accessories } from '../vendor/slime/wardrobe';
 import { accessoryIcon } from '../vendor/slime/outfits';
 import { slimePreview, wearable, accessoriesOf } from '../settings/slime-preview';
 import { updateAppIcon } from './app-icon';
@@ -27,7 +27,7 @@ const TABS: [Tab, string][] = [
 export const SLOTS: Record<AccessorySlot, [string, string, string][]> = {
   hat: [
     ['none', 'Şapka yok', '○'],
-    ['auto', 'Mevsime göre', '🗓️'],
+    // v0.9.26: "Mevsime göre" is gone; a saved seasonal choice is worn as "Şapka yok"
     ['fedora', 'Fötr şapka', '🎩'],
     ['crown', 'Taç', '👑'],
     ['partyHat', 'Parti şapkası', '🎉'],
@@ -128,15 +128,13 @@ export function wardrobeUI(api: any, bot: BotEngine) {
       b.setAttribute('role', 'option');
       // v0.7.1 SpecialBeta: a small picture of the accessory itself instead of an emoji
       const pic = el('span', 'studio-icon');
-      const outfit = value === 'auto' ? seasonalOutfit(new Date()) : value;
       if (value !== 'none') {
         try {
           const img = document.createElement('img');
-          img.src = accessoryIcon(outfit as any, 40);
+          img.src = accessoryIcon(value as any, 40);
           img.alt = '';
           pic.append(img);
           pic.classList.add('picture');
-          if (value === 'auto') pic.classList.add('auto');
         } catch {
           pic.textContent = icon;
         }
@@ -312,7 +310,7 @@ export function wardrobeUI(api: any, bot: BotEngine) {
     bot.setAccessories(worn());
   });
   void api.personalRead().then(apply);
-  // "Mevsime göre" follows the date.
+  // the flag of the national days follows the date
   window.setInterval(() => bot.setAccessories(worn()), 60000);
   // v0.6.3: the Turkish flag on the national days comes only with the Turkish UI
   document.addEventListener('charles-language', () => {

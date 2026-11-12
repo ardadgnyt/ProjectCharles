@@ -27,8 +27,8 @@ using Microsoft.Win32;
 [assembly: AssemblyProduct("Charles")]
 [assembly: AssemblyCompany("HzPederPan")]
 [assembly: AssemblyDescription("Charles Setup")]
-[assembly: AssemblyVersion("0.9.25.0")]
-[assembly: AssemblyFileVersion("0.9.25.0")]
+[assembly: AssemblyVersion("0.9.27.0")]
+[assembly: AssemblyFileVersion("0.9.27.0")]
 
 namespace CharlesSetup {
 

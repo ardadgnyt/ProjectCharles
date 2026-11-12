@@ -7,7 +7,7 @@ import { verifiedBlocked, limitErrorLasts } from './quota-state';
 // composer (which follows the "main AI" setting when that changes). Every request carries
 // that provider explicitly, and a sequence number drops answers that arrive after the
 // user has already switched, so a slow Codex read can never overwrite a Gemini/Claude view.
-type Provider = 'gpt' | 'gemini' | 'claude' | 'cursor' | 'abacus' | 'evren';
+type Provider = 'gpt' | 'gemini' | 'claude' | 'cursor' | 'abacus' | 'evren' | 'kimi' | 'copilot' | 'opencode';
 
 const NAMES: Record<Provider, string> = {
   gpt: 'Codex',
@@ -16,11 +16,14 @@ const NAMES: Record<Provider, string> = {
   cursor: 'Cursor',
   abacus: 'Abacus AI',
   evren: 'EVREN',
+  kimi: 'Kimi',
+  copilot: 'GitHub Copilot',
+  opencode: 'OpenCode',
 };
 // Codex quota is cheap to read from the running app-server; Claude is one HTTPS call.
 // Gemini starts the Antigravity CLI, so it is refreshed only on demand.
-const PERIODIC: Partial<Record<Provider, number>> = { gpt: 60000, claude: 300000, cursor: 300000, evren: 300000 };
-const MANUAL_REFRESH: Provider[] = ['gemini', 'claude', 'cursor', 'evren'];
+const PERIODIC: Partial<Record<Provider, number>> = { gpt: 60000, claude: 300000, cursor: 300000, evren: 300000, kimi: 300000 };
+const MANUAL_REFRESH: Provider[] = ['gemini', 'claude', 'cursor', 'evren', 'kimi'];
 
 const COLORS: Record<Provider, string> = {
   gpt: '#f2f2f5',
@@ -29,6 +32,10 @@ const COLORS: Record<Provider, string> = {
   cursor: '#3fd8c8', // v0.7.0: turquoise
   abacus: '#b9a6ff', // v0.8.0
   evren: '#E30A17', // v0.9.6: red
+  // v0.9.27: the colours the user chose
+  kimi: '#F46AC8',
+  copilot: '#A3E635',
+  opencode: '#FFD54A',
 };
 const REFRESH_ICON =
   '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 6.4A5.3 5.3 0 1 0 13 10"/><path d="M13.4 2.8v3.8H9.6"/></svg>';
@@ -40,15 +47,64 @@ export function resetLabel(resetsAt: number | null | undefined, now = Date.now()
   return shortMinutes((resetsAt * 1000 - now) / 60000);
 }
 
-// Kota bekçisi (v0.5.3): called once per provider and usage window when less than 10 % is left.
+// Kota bekçisi (v0.5.3): called when less than 10 % is left.
+// v0.9.26: once per reading, with every window that just went low: the 5-hour and the weekly
+// window dropping in the same reading make one notice, not two in a row (user bug2).
+export type LowWindow = { window: 'fiveHour' | 'weekly'; remaining: number; resetsAt: number | null };
 export type LowQuota = {
   provider: Provider;
   name: string;
-  window: 'fiveHour' | 'weekly';
-  remaining: number;
-  resetsAt: number | null;
+  windows: LowWindow[];
 };
 export const LOW_QUOTA = 10;
+
+const WARNED_KEY = 'charles-low-quota-warned';
+const WARNED_NO_RESET_MS = 12 * 3600 * 1000;
+/**
+ * v0.9.26: the windows already warned about, kept across a restart (a reopened Charles used to warn
+ * again about the same window). A key carries its reset time and is dropped once that has passed.
+ */
+export function loadWarned(now = Date.now(), storage: Pick<Storage, 'getItem'> | null = globalThis.localStorage ?? null) {
+  const out = new Set<string>();
+  try {
+    const list = JSON.parse(storage?.getItem(WARNED_KEY) || '[]');
+    for (const e of Array.isArray(list) ? list : []) {
+      if (!e || typeof e.id !== 'string') continue;
+      const reset = Number(e.id.split('|')[2]) || 0;
+      if (reset ? reset * 1000 > now : now - Number(e.at || 0) < WARNED_NO_RESET_MS) out.add(e.id);
+    }
+  } catch {}
+  return out;
+}
+export function saveWarned(warned: Set<string>, now = Date.now(), storage: Pick<Storage, 'setItem'> | null = globalThis.localStorage ?? null) {
+  try {
+    storage?.setItem(WARNED_KEY, JSON.stringify([...warned].slice(-40).map((id) => ({ id, at: now }))));
+  } catch {}
+}
+
+/** v0.9.26: the notice in the interface language: one line per window, its own value and reset. */
+export function lowQuotaText(q: LowQuota, alternatives: number, now = Date.now()) {
+  const lines = q.windows.map((w) => {
+    const reset = resetLabel(w.resetsAt, now);
+    return (
+      '- ' +
+      t(w.window === 'fiveHour' ? '5 saatlik kullanım hakkı' : 'Haftalık kullanım hakkı') +
+      ': ' +
+      t('{pct} kaldı').replace('{pct}', '**' + percent(Math.round(w.remaining)) + '**') +
+      (reset ? ' · ' + t('{time} sonra yenilenir').replace('{time}', reset) : '')
+    );
+  });
+  return (
+    '⚠️ ' +
+    t('{name} kullanım hakkın azaldı.').replace('{name}', '**' + q.name + '**') +
+    '\n\n' +
+    lines.join('\n') +
+    '\n\n' +
+    (alternatives
+      ? t('Kesilmeden devam etmek için başka bir yapay zekâya geçelim mi?')
+      : t('Bağlı başka bir yapay zekâ yok; Ayarlar → Yapay zekâ bölümünden ekleyebilirsin.'))
+  );
+}
 
 // Keys of low windows not warned yet; the key includes the reset time, so the next
 // window warns again after a reset.
@@ -120,9 +176,9 @@ export function usageUI(
   const lastValue = new Map<Provider, any>();
   // v0.9.16: "limit" errors from an AI's own answers, per AI, with the time they stop counting
   const limitErrors = new Map<Provider, number>();
-  const warned = new Set<string>();
+  const warned = loadWarned();
   const providerOf = (value: string): Provider =>
-    /^(gemini|claude|cursor|abacus|evren):/.test(value) ? (value.split(':')[0] as Provider) : 'gpt';
+    /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(value) ? (value.split(':')[0] as Provider) : 'gpt';
   let provider: Provider = providerOf(selected.value);
   let sequence = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -173,8 +229,13 @@ export function usageUI(
           (typeof remaining === 'number' ? remaining + '%' : 'veri alınamadı'),
       );
     }
-    if (v && !v.unavailable)
-      for (const w of lowWindows(v, warned, provider)) onLow({ provider, name, ...w });
+    if (v && !v.unavailable) {
+      const low = lowWindows(v, warned, provider);
+      if (low.length) {
+        saveWarned(warned);
+        onLow({ provider, name, windows: low });
+      }
+    }
     gauges.hidden = !!v?.unavailable;
     panel.title = v?.note ? t(v.note) : '';
     credit.textContent = v?.unavailable || '';
@@ -266,7 +327,7 @@ export function usageUI(
     } else if (e.type === 'agent' && e.data?.method === 'turn/completed') {
       // A finished answer used quota: re-read the provider that answered.
       if (provider === 'gpt') void refresh(true);
-      else if (provider === 'evren') void refresh(true); // one cheap HTTP read: daily tokens moved
+      else if (provider === 'evren' || provider === 'kimi') void refresh(true); // one cheap HTTP read: the allowance moved
       else if (provider === 'claude' || provider === 'cursor') void refresh(false, true); // main process caches 60 s
     } else if (e.type === 'disconnected' && provider === 'gpt') paint(null);
   });

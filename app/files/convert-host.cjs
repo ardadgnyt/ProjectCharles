@@ -73,7 +73,73 @@ function createConverter({ electron, appRoot }) {
       return Buffer.from(String(data).split(',')[1] || '', 'base64');
     });
   const slides = slideEngine({ withPage, rasterSVG });
-  return new Converter({ ffmpeg: ff, nativeImage, rasterSVG, pdfText, slides });
+  // v0.9.26: a page drawn as a picture or printed as a PDF: an HTML file's look, a sheet range,
+  // a table, an SVG as vectors. A user's HTML is drawn from a cleaned copy: its scripts, event
+  // attributes, frames and embedded objects are removed and a policy forbids scripts; the network
+  // is closed (quietSession); relative pictures come from the file's own folder (read only).
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const CSP = `<meta http-equiv="Content-Security-Policy" content="script-src 'none'; object-src 'none'; frame-src 'none'">`;
+  function cleanHtml(text, dir) {
+    let t = String(text)
+      .replace(/<script\b[\s\S]*?<\/script\s*>/gi, '')
+      .replace(/<(iframe|frame|object|embed|applet|meta\s+http-equiv\s*=\s*["']?refresh)[^>]*>([\s\S]*?<\/\1>)?/gi, '')
+      .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+      .replace(/(href|src)\s*=\s*("|')\s*javascript:[^"']*\2/gi, '$1=$2#$2');
+    const head = `${CSP}${dir ? `<base href="${require('node:url').pathToFileURL(dir + path.sep).href}">` : ''}<meta charset="utf-8">`;
+    t = /<head[^>]*>/i.test(t) ? t.replace(/<head[^>]*>/i, (m) => m + head) : head + t;
+    return t;
+  }
+  function cleanSvgText(text) {
+    return String(text)
+      .replace(/<\?xml[^>]*>/, '')
+      .replace(/<!DOCTYPE[^>]*>/i, '')
+      .replace(/<script[\s\S]*?<\/script\s*>/gi, '')
+      .replace(/<foreignObject[\s\S]*?<\/foreignObject\s*>/gi, '')
+      .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+      .replace(/\s(?:xlink:)?href\s*=\s*("|')\s*(?!#|data:image\/(?:png|jpeg|gif|webp);)[^"']*\1/gi, '');
+  }
+  async function renderHtml({ html, file, svgFile, format, width = 1280, quality = 88, landscape = false }) {
+    let page = html ? cleanHtml(html, null) : '';
+    let svgSize = null;
+    if (file) page = cleanHtml(require('./sheets.cjs').decodeText(fs.readFileSync(file), 'auto'), path.dirname(file));
+    if (svgFile) {
+      const svg = cleanSvgText(fs.readFileSync(svgFile, 'utf8'));
+      const tag = /<svg\b[^>]*>/i.exec(svg)?.[0] || '';
+      const box = /viewBox\s*=\s*["']\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)/i.exec(tag);
+      const w = parseFloat(/\swidth\s*=\s*["']?([\d.]+)/i.exec(tag)?.[1]) || (box ? +box[1] : 800);
+      const h = parseFloat(/\sheight\s*=\s*["']?([\d.]+)/i.exec(tag)?.[1]) || (box ? +box[2] : 600);
+      svgSize = { w, h };
+      page = `<!doctype html>${CSP}<meta charset="utf-8"><style>@page{margin:0;size:${w}px ${h}px}html,body{margin:0;padding:0}svg{display:block;width:${w}px;height:${h}px}</style>${svg}`;
+    }
+    return withPage(page, true, async (wc) => {
+      await sleep(150);
+      if (format === 'pdf') {
+        const opts = svgSize
+          ? { pageSize: { width: svgSize.w / 96, height: svgSize.h / 96 }, margins: { marginType: 'none' }, printBackground: true }
+          : { printBackground: true, landscape, margins: { marginType: 'default' }, preferCSSPageSize: !!file };
+        return { bytes: await wc.printToPDF(opts) };
+      }
+      const win = BrowserWindow.fromWebContents(wc);
+      let w = Math.max(200, Math.min(4096, Math.round(width || 0)));
+      if (!width) {
+        win.setContentSize(4096, 800);
+        await sleep(120);
+        w = Math.max(200, Math.min(4096, await wc.executeJavaScript('Math.ceil((document.querySelector("table")||document.body).getBoundingClientRect().width)+34')));
+      }
+      win.setContentSize(w, 800);
+      await sleep(150);
+      const full = await wc.executeJavaScript('Math.ceil(Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0))');
+      const h = Math.max(50, Math.min(16000, full));
+      win.setContentSize(w, h);
+      await sleep(300);
+      const img = await wc.capturePage({ x: 0, y: 0, width: w, height: h }, { stayHidden: true });
+      return { bytes: format === 'png' ? img.toPNG() : img.toJPEG(quality), cut: full > 16000 };
+    });
+  }
+  // v0.9.26: PDF pages drawn by Windows' PDF renderer in Charles' helper (app/files/pdf-render.cjs)
+  const helper = path.join(appRoot, 'app', 'system', 'charles-helper.exe');
+  const pdfImages = process.platform === 'win32' ? require('./pdf-render.cjs').createPdfImages({ helper, nativeImage }) : null;
+  return new Converter({ ffmpeg: ff, nativeImage, rasterSVG, pdfText, slides, pdfImages, helper, root: appRoot, office: require('./office-com.cjs'), renderHtml });
 }
 
 /** v0.9.16: presentations drawn in the same closed hidden page (no network, no scripts of theirs). */

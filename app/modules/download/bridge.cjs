@@ -108,7 +108,16 @@ function createDownloadBridge({ registry, owners, sessionFor, open, deps }) {
   // island panel is expanded, hidden or the app window is open, there is no anchor: wait.
   function cardBounds() {
     const anchor = deps.islandAnchor?.();
-    if (!anchor || anchor.height > ISLAND_MAX_HEIGHT || anchor.height < 20) return null;
+    if (!anchor || anchor.height > ISLAND_MAX_HEIGHT || anchor.height < 20) {
+      // v0.9.26: no compact island to stand under (the app window or the open panel is on screen):
+      // the top-right corner of the screen the pointer is on, as Windows' own notifications do
+      const spot = deps.cardSpot?.();
+      if (!spot) return null;
+      const area = screen.getDisplayMatching(spot).workArea;
+      const width = Math.min(CARD_WIDTH, area.width - 16);
+      const height = Math.max(40, Math.min(cardHeight, area.height - 40));
+      return { x: Math.round(area.x + area.width - width - 12), y: Math.round(area.y + 12), width, height };
+    }
     const area = screen.getDisplayMatching(anchor).workArea;
     const width = Math.min(CARD_WIDTH, area.width - 16);
     const height = Math.max(40, Math.min(cardHeight, area.height - 40));

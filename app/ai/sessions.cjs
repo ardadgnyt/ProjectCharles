@@ -642,7 +642,7 @@ class Sessions extends EventEmitter {
   }
   async send(args) {
     const r = this.current;
-    const external = /^(gemini|claude|cursor|abacus|evren):/.test(args.model || '');
+    const external = /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/.test(args.model || '');
     if (r.agent.providerModel !== external) {
       r.agent.threadId = null;
       r.agent.providerModel = external;
@@ -655,7 +655,8 @@ class Sessions extends EventEmitter {
         r.agent.access !== (args.access || 'ask') ||
         r.agent.task !== (args.task || ''));
     // Abacus AI takes the message on its command line (at most ~28 000 characters)
-    const abacus = /^abacus:/.test(args.model || '');
+    // v0.9.27: Kimi, Copilot and OpenCode take the message on the command line too
+    const abacus = /^(abacus|kimi|copilot|opencode):/.test(args.model || '');
     const budget = abacus ? 14000 : CONTEXT_BUDGET;
     let past = !r.agent.threadId || changing ? contextText(r.events, { budget }) : '';
     // v0.9.11: the history goes out JSON-quoted (newlines, quotes and every backslash of a

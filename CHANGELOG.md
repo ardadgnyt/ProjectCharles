@@ -4,6 +4,50 @@ Charles’ın ilk masaüstü sürümünden bu yana eklenen özellikler, değişe
 
 **Sürüm numaraları:** İlk geliştirme döneminde v1, v2 ve v3 adları kullanıldı. Proje beta aşamasında olduğu için v3.2.2’den sonraki sürüm **v0.4 Beta** olarak adlandırıldı. Bu bir geri dönüş değil, numaralandırma değişikliği. Beta boyunca 0.x sürümleri kullanılacak; v1.0 ile beta dönemi tamamlanacak.
 
+## v0.9.27 Release Candidate — November 12, 2026
+
+- **EVREN connects with the key alone:** Charles no longer has a terms step of its own. Paste the key, press Save and connect, and the key is checked against EVREN at once. The old step sent EVREN an acceptance without the version EVREN asks for, so pressing Accept ended in a version error and the account could not be connected. If EVREN itself refuses an account until its own usage terms are accepted, the EVREN card says so, shows EVREN's text and sends the acceptance for the version you read.
+- **Clearer EVREN errors:** a wrong key, no connection, a server that does not answer in time and EVREN's own errors each have their own message, in every interface language.
+- **Shortcuts:** "Saved" now leaves by itself after a moment and a new action clears it; an error stays until you act. Every key of a combination is shown, as key labels that wrap in a narrow window. Ctrl + Alt + D used to be cut to Ctrl + Alt. Push to talk shows its keys the same way.
+- **Accessories keep their place:** the bow tie, scarf, leash, pumpkin, banana and arrow are now behind what Slime holds (the laptop, the sheet he reads, the easel) instead of on top of it. The moustache is no longer cut by the laptop or the easel and stays on while he reads.
+- **The chat stays where you were:** moving the island left or right, going between the app window and the island, and closing and opening the island keep the message you were reading on screen. At the end of the chat you stay at the end. Loading older messages no longer throws you to the end.
+- **Small island a little larger:** Small is now 3/4 of Large (it was 2/3). Large is unchanged.
+- **Three more AI connections: Kimi, GitHub Copilot and OpenCode.** Each is reached through its own official command line tool, which you install yourself (Charles does not ship them); Settings → AI Models has a card for each, with Set up with Charles, sign in and Check connection like the other accounts. Each works with whatever your account's plan allows. In a chat they run without tools; in Project mode they can read, or read and edit, never run commands. Pictures are drawn the same way as with Claude and EVREN.
+  - **Kimi** signs in without a console window (Charles shows the code to confirm), lists the models of your account with their reasoning level (Standard, High, Maximum), can search the web, and shows the remaining 5-hour and weekly usage.
+  - **GitHub Copilot** and **OpenCode** sign in in their own window. OpenCode lists the models of the providers you signed in to. Their tools report no usage numbers, so the usage panel shows "No information" for them.
+  - Kimi was checked against a stand-in that speaks the tool's formats; none of the three could be tried with a real account on the development computer.
+- **Converter and file names with Turkish letters:** converting a PDF (and reading pictures or text from one) said "PDF not found" when the file's name had letters such as ş, ı or ğ. The name now reaches the converter whole.
+- **Steps of an answer:** "Thinking and steps" is a compact list: one line while closed, short rows when opened, and a row opens only when it has something to show. Running, finished, failed and stopped steps look different. The empty "Action" row that opened onto nothing is gone, a finished tool step keeps its command and output, and in a reopened chat each answer has its own steps.
+
+## v0.9.26 Release Candidate — November 8, 2026
+
+- **Every shortcut can be changed:** Settings → Shortcuts now records a new key as soon as you press it and says on that row whether it was saved, why it was refused (a key used by Windows, a key already used by another shortcut, a modifier alone) or which shortcut already has it. There is no separate Save button any more. Keys are read by their place on the keyboard, so a Turkish layout, AltGr or Shift no longer turns your choice into a different key. Push to talk can be changed the same way; Right + Up stays the default. While you record a key, the other shortcuts pause so they do not fire. One broken entry no longer resets all your choices.
+- **EVREN lists chat models only:** gemma-4-31b, glm-5.3, qwen3.8-flash-next and deepseek-v4.1-flash, plus one Auto. A saved model that is no longer listed moves to EVREN's Auto and says so.
+- **No "Auto" among the AIs:** the provider list showed Auto as if it were an AI when the interface was not in Turkish. Auto now appears only inside each AI's model list.
+- **Creating images in every language:** the picture card's texts, progress and "stopped" or "failed" states are translated in every interface language, and the animation runs the same in all of them.
+- **One quota notice for Claude:** when the hourly and the weekly Claude quota run low in the same reading, you get one notice that names both, not two.
+- **No console window with Antigravity:** making a picture with Antigravity could flash a black command window from Antigravity's own updater. Charles now updates Antigravity itself, hidden, at most once a day and never while it is working.
+- **Try the expressions:** "Try expressions" moved to the bottom of Settings → Appearance.
+- **"Seasonal" outfit removed:** Slime Studio no longer offers the seasonal outfit; a slime that wore it goes back to no outfit.
+- **Download with Charles card:** the offer to download a link you copied did not show when the compact island was hidden, because the card had nothing to stand under. It now appears in the top-right corner of the screen in that case, and still stays away while a full-screen app is open.
+- **Big picture view:** a picture opened large now has Add to chat, Copy image and Save a copy. Save never overwrites a file; Add to chat puts the picture into the message box.
+- **The converter does much more:** it now covers documents, spreadsheets, presentations, pictures, sound, video, subtitles and archives:
+  - **PDF** → DOCX, XLSX, PPTX (pictures of the pages, or editable text), TXT, HTML, PNG, JPEG, TIFF. Scanned PDFs become searchable PDF, TXT or DOCX through Windows' own text recognition, and their tables become XLSX or CSV after you check them.
+  - **Word** (DOCX, DOC, ODT, RTF) → PDF, DOCX, ODT, RTF, TXT, HTML and pages as PNG or JPEG.
+  - **Excel** (XLSX, XLS, ODS) → XLSX, ODS, PDF, CSV, TSV, HTML, and a sheet or a range as PNG or JPEG. CSV and TSV let you pick the sheet and tell you that formulas, formatting and other sheets are not kept.
+  - **CSV and TSV** → XLSX, ODS, CSV, TSV, JSON, HTML, PDF with separator, encoding, header and type choices. JSON with columns → CSV, TSV, XLSX.
+  - **PowerPoint** (PPTX, PPT, ODP) → PPTX, ODP, PDF; slides → PNG, JPEG, TIFF; text → TXT, with the speaker notes as a separate choice.
+  - **Text, Markdown and HTML** → PDF, DOCX, ODT, RTF, HTML, Markdown, TXT; a web page's look → PNG or JPEG. **EPUB** → PDF, TXT, HTML, DOCX, and DOCX, HTML or Markdown → EPUB with chapters and headings in order.
+  - **Pictures** PNG, JPEG, WebP, BMP, TIFF and AVIF into each other and into PDF; HEIC → JPEG, PNG, WebP, PDF; SVG → PNG, JPEG, WebP, PDF; PNG ↔ ICO; PNG or JPEG → a real SVG drawing (vectorize). Quality, resolution, size and background colour can be set.
+  - **GIF** → animated WebP or MP4, chosen frames → PNG or JPEG; several pictures → one animated GIF or WebP; a multi-page TIFF → PDF or one picture per page; pictures and PDFs → one PDF in the order you set. Text in pictures → TXT, DOCX or searchable PDF.
+  - **Sound** MP3, WAV, FLAC, M4A, AAC, OGG and Opus with bit rate, sample rate and mono or stereo. The converter reminds you that turning a lossy file into a lossless one does not bring the quality back.
+  - **Video** MP4, MKV, MOV, AVI, WebM with resolution, frame rate, quality and sound choices; sound out as MP3, WAV, FLAC or M4A; a part → GIF or animated WebP; frames → PNG or JPEG.
+  - **Speech** → TXT, DOCX, SRT or VTT on this computer; SRT ↔ VTT; subtitles → plain text without times.
+  - **Archives:** ZIP, 7z and TAR can be made and opened, RAR can be opened, and an archive can be repacked into another format. Archives are always opened safely: a name that would land outside the target folder stops the job.
+  - When Windows' PDF renderer cannot get graphics memory or stops, the converter says so and what to do, instead of failing without a reason, and no half-made files are left.
+  - Word, Excel and PowerPoint are used for their own formats when they are installed; Charles opens the file read-only with macros off and closes only the copy it started. Without Office, Charles' own readers and writers are used where they can be, and formats that need Office are not offered.
+- **CAPTCHA drop:** planned for this release but postponed.
+
 ## v0.9.25 Release Candidate — November 8, 2026
 
 - **Stop ends the running command:** with GPT, Stop ended the answer but a command Charles had started kept running and could still change files. Stop now also ends that command and says so in the chat.

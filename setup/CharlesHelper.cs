@@ -20,6 +20,9 @@
 // Two more modes, each a short-lived process of its own:
 //   --grab    pictures of the screen on request, raw pixels on stdout (it goes after a rest)
 //   --static  processor and memory names for the monitor, once
+//   --pdf     v0.9.26: the pages of one PDF as PNG pictures, for the converter
+//   --image   v0.9.26: frames of TIFF / ICO / GIF / HEIC as PNG, or pictures as one multi-page TIFF
+//   --ocr     v0.9.26: the words in one picture (Windows' own text recognition)
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -62,6 +65,11 @@ static class Native {
 
 /** Text for a JSON string; nothing else is ever put between quotes unescaped. */
 static class Json {
+ // v0.9.27: one request line from stdin, read as UTF-8. Console.In uses the console's code page (857
+ // on a Turkish Windows), so a path with ş, ı or ğ arrived broken and the file was "not found".
+ public static string RequestLine() {
+  using (var input = new StreamReader(Console.OpenStandardInput(), new UTF8Encoding(false), false, 65536)) return input.ReadLine() ?? "";
+ }
  public static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
  public static string S(string v) {
   var b = new StringBuilder("\"");
@@ -999,11 +1007,249 @@ static class Static {
  }
 }
 
+// ── v0.9.26: PDF pages as pictures (the converter, app/files/pdf-render.cjs) ─────────────────────
+// Windows' own PDF renderer (Windows.Data.Pdf) draws each page: text, vector shapes, pictures,
+// embedded fonts and the page's rotation, as a PDF viewer does. One request on stdin, one line per
+// page on stdout; one page is in memory at a time. The file is only read; the pictures are written
+// as PNG into the folder Charles gives (its own temporary folder). Nothing is run or opened.
+static class Pdf {
+ const int WAIT = 60000;
+ static int PngWidth(byte[] b) { return b.Length > 24 && b[0] == 0x89 && b[1] == 0x50 ? (b[16] << 24) | (b[17] << 16) | (b[18] << 8) | b[19] : 0; }
+ static byte[] Render(Windows.Data.Pdf.PdfPage page, Windows.Data.Pdf.PdfPageRenderOptions o) {
+  using (var mem = new InMemoryRandomAccessStream()) {
+   Wait(page.RenderToStreamAsync(mem, o));
+   var bytes = new byte[mem.Size];
+   using (var reader = new DataReader(mem.GetInputStreamAt(0))) { Wait(reader.LoadAsync((uint)mem.Size)); reader.ReadBytes(bytes); }
+   return bytes;
+  }
+ }
+ /**
+  * PdfPage.Size is in 1/96 inch, but the rendered picture is DestinationWidth times the display's
+  * scaling (1.4 on the computer this was built on): an A4 page asked at 72 DPI came out 833 pixels
+  * wide instead of 595. A page one inch square, written here, is measured and rendered once per run
+  * (scale = picture pixels per DestinationWidth unit), so every page gets exactly the asked size.
+  */
+ static double renderScale = 1;
+ static double UnitsPerInch() {
+  var file = Path.Combine(Path.GetTempPath(), "charles-pdf-inch-" + Guid.NewGuid().ToString("N") + ".pdf");
+  try {
+   var body = new StringBuilder("%PDF-1.4\n"); var offs = new List<int>();
+   string[] objs = { "<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [3 0 R] /Count 1 >>", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 72 72] >>" };
+   for (var i = 0; i < objs.Length; i++) { offs.Add(body.Length); body.Append(i + 1).Append(" 0 obj\n").Append(objs[i]).Append("\nendobj\n"); }
+   var x = body.Length; body.Append("xref\n0 4\n0000000000 65535 f \n");
+   foreach (var o in offs) body.Append(o.ToString("D10", Json.Inv)).Append(" 00000 n \n");
+   body.Append("trailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n").Append(x).Append("\n%%EOF\n");
+   File.WriteAllBytes(file, Encoding.ASCII.GetBytes(body.ToString()));
+   var doc = Wait(Windows.Data.Pdf.PdfDocument.LoadFromFileAsync(Wait(Windows.Storage.StorageFile.GetFileFromPathAsync(file))));
+   using (var p = doc.GetPage(0)) {
+    var o = new Windows.Data.Pdf.PdfPageRenderOptions(); o.DestinationWidth = 100; o.DestinationHeight = 100;
+    var px = PngWidth(Render(p, o));
+    renderScale = px >= 50 && px <= 1000 ? px / 100.0 : 1;
+    var w = p.Size.Width; return w >= 24 && w <= 1000 ? w : 96;
+   }
+  } catch (OutOfMemoryException) {
+   // Windows could not give the renderer graphics memory: a page drawn after this can bring the
+   // process down inside Windows' own code, so the job stops here with a reason instead
+   throw;
+  } catch { return 96; } finally { try { File.Delete(file); } catch {} }
+ }
+ const double MaxSide = 12000, MaxPixels = 64000000;
+ static void Line(string s) { var b = Encoding.UTF8.GetBytes(s + "\n"); using (var o = Console.OpenStandardOutput()) o.Write(b, 0, b.Length); }
+ static T Wait<T>(IAsyncOperation<T> op) {
+  using (var done = new ManualResetEvent(false)) {
+   op.Completed = (o, s) => { try { done.Set(); } catch (ObjectDisposedException) {} };
+   if (!done.WaitOne(WAIT)) { try { op.Cancel(); } catch {} throw new TimeoutException(); }
+  }
+  return op.GetResults();
+ }
+ static void Wait(IAsyncAction op) {
+  using (var done = new ManualResetEvent(false)) {
+   op.Completed = (o, s) => { try { done.Set(); } catch (ObjectDisposedException) {} };
+   if (!done.WaitOne(WAIT)) { try { op.Cancel(); } catch {} throw new TimeoutException(); }
+  }
+  op.GetResults();
+ }
+ static string Why(Exception e) {
+  var h = (uint)e.HResult;
+  if (h == 0x8007052B || h == 0x80070056) return "password"; // ERROR_WRONG_PASSWORD, ERROR_INVALID_PASSWORD
+  if (h == 0x80070002 || h == 0x80070003) return "missing";
+  if (h == 0x80070005) return "denied";
+  if (e is TimeoutException) return "timeout";
+  if (e is OutOfMemoryException || (uint)e.HResult == 0x8007000E) return "memory";
+  return "corrupt";
+ }
+ public static int Run() {
+  Dictionary<string, object> c;
+  try { c = Json.Flat(Json.RequestLine()); } catch { Line("{\"error\":\"request\"}"); return 2; }
+  var file = Json.Str(c, "file") ?? ""; var cmd = Json.Str(c, "cmd") ?? "info";
+  if (!Path.IsPathRooted(file) || !File.Exists(file)) { Line("{\"error\":\"missing\"}"); return 3; }
+  Windows.Data.Pdf.PdfDocument doc;
+  try {
+   var f = Wait(Windows.Storage.StorageFile.GetFileFromPathAsync(file));
+   var password = Json.Str(c, "password") ?? "";
+   doc = password.Length > 0 ? Wait(Windows.Data.Pdf.PdfDocument.LoadFromFileAsync(f, password)) : Wait(Windows.Data.Pdf.PdfDocument.LoadFromFileAsync(f));
+  } catch (Exception e) { Line("{\"error\":" + Json.S(Why(e)) + "}"); return 4; }
+  var count = (int)doc.PageCount;
+  Line("{\"pages\":" + count + ",\"protected\":" + Json.B(doc.IsPasswordProtected) + "}");
+  if (cmd != "render") return 0;
+  var outDir = Json.Str(c, "out") ?? "";
+  if (!Path.IsPathRooted(outDir) || !Directory.Exists(outDir)) { Line("{\"error\":\"out\"}"); return 5; }
+  var dpi = Math.Max(36, Math.Min(600, Json.Num(c, "dpi") ?? 150));
+  var clear = Json.Str(c, "bg") == "none";
+  double system;
+  try { system = UnitsPerInch(); } catch (OutOfMemoryException) { Line("{\"error\":\"memory\"}"); return 6; }
+  var list = new List<int>();
+  foreach (var part in (Json.Str(c, "pages") ?? "").Split(',')) { int n; if (int.TryParse(part, NumberStyles.Integer, Json.Inv, out n) && n >= 1 && n <= count) list.Add(n); }
+  foreach (var n in list) {
+   try {
+    using (var page = doc.GetPage((uint)(n - 1))) {
+     var size = page.Size; // the page as shown: crop box and rotation applied (units: see UnitsPerInch)
+     double w = Math.Max(1, size.Width * dpi / system), h = Math.Max(1, size.Height * dpi / system);
+     var k = Math.Min(1.0, Math.Min(MaxSide / Math.Max(w, h), Math.Sqrt(MaxPixels / (w * h))));
+     var o = new Windows.Data.Pdf.PdfPageRenderOptions();
+     // asked in the renderer's own units: the picture then has exactly w × h pixels
+     o.DestinationWidth = (uint)Math.Max(1, Math.Round(w * k / renderScale)); o.DestinationHeight = (uint)Math.Max(1, Math.Round(h * k / renderScale));
+     o.BackgroundColor = Windows.UI.Color.FromArgb((byte)(clear ? 0 : 255), 255, 255, 255);
+     var name = Path.Combine(outDir, "page-" + n.ToString("D5", Json.Inv) + ".png");
+     var bytes = Render(page, o);
+     File.WriteAllBytes(name, bytes);
+     Line("{\"page\":" + n + ",\"file\":" + Json.S(name) + ",\"w\":" + PngWidth(bytes) + ",\"scaled\":" + Json.B(k < 1) + "}");
+    }
+   } catch (Exception e) { Line("{\"page\":" + n + ",\"error\":" + Json.S(Why(e)) + "}"); }
+  }
+  Line("{\"done\":true}");
+  return 0;
+ }
+}
+
+// ── v0.9.26: pictures Windows can read (WIC) and text in pictures (Windows' own OCR) ─────────────
+// --image: every frame of a TIFF, ICO, GIF or HEIC (HEIF needs Windows' HEIF extension) as PNG, or
+//          several pictures written as one multi-page TIFF. Files are only read; output goes into the
+//          folder Charles gives. Nothing is run or opened.
+// --ocr:   the words of one picture and where they are, by Windows.Media.Ocr, on this computer.
+static class Pictures {
+ static void Line(string s) { var b = Encoding.UTF8.GetBytes(s + "\n"); using (var o = Console.OpenStandardOutput()) o.Write(b, 0, b.Length); }
+ const int MaxFrames = 2000;
+ public static int Run() {
+  Dictionary<string, object> c;
+  try { c = Json.Flat(Json.RequestLine()); } catch { Line("{\"error\":\"request\"}"); return 2; }
+  int code = 0;
+  // WPF's imaging wants a thread of its own (single-threaded apartment)
+  var t = new Thread(() => { try { code = Work(c); } catch (Exception e) { Line("{\"error\":" + Json.S(e is NotSupportedException || (uint)e.HResult == 0x88982F50 ? "codec" : "corrupt") + "}"); code = 4; } });
+  t.SetApartmentState(ApartmentState.STA); t.Start(); t.Join();
+  return code;
+ }
+ static int Work(Dictionary<string, object> c) {
+  var cmd = Json.Str(c, "cmd") ?? "";
+  var outPath = Json.Str(c, "out") ?? "";
+  if (cmd == "frames") {
+   var file = Json.Str(c, "file") ?? "";
+   if (!Path.IsPathRooted(file) || !File.Exists(file)) { Line("{\"error\":\"missing\"}"); return 3; }
+   if (!Path.IsPathRooted(outPath) || !Directory.Exists(outPath)) { Line("{\"error\":\"out\"}"); return 5; }
+   using (var s = File.OpenRead(file)) {
+    var d = System.Windows.Media.Imaging.BitmapDecoder.Create(s, System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat, System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
+    var n = Math.Min(MaxFrames, d.Frames.Count);
+    Line("{\"frames\":" + d.Frames.Count + ",\"codec\":" + Json.S(d.CodecInfo != null ? d.CodecInfo.FriendlyName : "") + "}");
+    for (var i = 0; i < n; i++) {
+     var f = d.Frames[i];
+     var name = Path.Combine(outPath, "frame-" + (i + 1).ToString("D5", Json.Inv) + ".png");
+     var e = new System.Windows.Media.Imaging.PngBitmapEncoder();
+     e.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(f));
+     using (var o = File.Create(name)) e.Save(o);
+     Line("{\"frame\":" + (i + 1) + ",\"file\":" + Json.S(name) + ",\"w\":" + f.PixelWidth + ",\"h\":" + f.PixelHeight + "}");
+    }
+   }
+   Line("{\"done\":true}");
+   return 0;
+  }
+  if (cmd == "tiff") {
+   var list = (Json.Str(c, "files") ?? "").Split('|');
+   if (!Path.IsPathRooted(outPath) || File.Exists(outPath) || !Directory.Exists(Path.GetDirectoryName(outPath))) { Line("{\"error\":\"out\"}"); return 5; }
+   var e = new System.Windows.Media.Imaging.TiffBitmapEncoder();
+   e.Compression = System.Windows.Media.Imaging.TiffCompressOption.Lzw;
+   foreach (var file in list) {
+    if (!Path.IsPathRooted(file) || !File.Exists(file)) continue;
+    using (var s = File.OpenRead(file)) {
+     var d = System.Windows.Media.Imaging.BitmapDecoder.Create(s, System.Windows.Media.Imaging.BitmapCreateOptions.None, System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
+     e.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(d.Frames[0]));
+    }
+   }
+   if (e.Frames.Count == 0) { Line("{\"error\":\"empty\"}"); return 6; }
+   using (var o = new FileStream(outPath, FileMode.CreateNew)) e.Save(o);
+   Line("{\"done\":true,\"pages\":" + e.Frames.Count + "}");
+   return 0;
+  }
+  Line("{\"error\":\"request\"}");
+  return 2;
+ }
+
+ static T Wait<T>(IAsyncOperation<T> op) {
+  using (var done = new ManualResetEvent(false)) {
+   op.Completed = (o, s) => { try { done.Set(); } catch (ObjectDisposedException) {} };
+   if (!done.WaitOne(60000)) { try { op.Cancel(); } catch {} throw new TimeoutException(); }
+  }
+  return op.GetResults();
+ }
+ static string N(double v) { return Math.Round(v, 1).ToString(Json.Inv); }
+ public static int Ocr() {
+  Dictionary<string, object> c;
+  try { c = Json.Flat(Json.RequestLine()); } catch { Line("{\"error\":\"request\"}"); return 2; }
+  if (Json.Str(c, "cmd") == "langs") {
+   var langs = new List<string>();
+   foreach (var l in Windows.Media.Ocr.OcrEngine.AvailableRecognizerLanguages) langs.Add(Json.S(l.LanguageTag));
+   Line("{\"langs\":[" + string.Join(",", langs) + "]}");
+   return 0;
+  }
+  var file = Json.Str(c, "file") ?? "";
+  if (!Path.IsPathRooted(file) || !File.Exists(file)) { Line("{\"error\":\"missing\"}"); return 3; }
+  Windows.Media.Ocr.OcrEngine engine = null;
+  var tag = Json.Str(c, "lang") ?? "";
+  try { if (tag.Length > 0) engine = Windows.Media.Ocr.OcrEngine.TryCreateFromLanguage(new Windows.Globalization.Language(tag)); } catch {}
+  if (engine == null) engine = Windows.Media.Ocr.OcrEngine.TryCreateFromUserProfileLanguages();
+  if (engine == null) { Line("{\"error\":\"nolang\"}"); return 7; }
+  try {
+   var f = Wait(Windows.Storage.StorageFile.GetFileFromPathAsync(file));
+   using (var stream = Wait(f.OpenAsync(Windows.Storage.FileAccessMode.Read))) {
+    var decoder = Wait(Windows.Graphics.Imaging.BitmapDecoder.CreateAsync(stream));
+    double max = Windows.Media.Ocr.OcrEngine.MaxImageDimension;
+    var w = decoder.PixelWidth; var h = decoder.PixelHeight;
+    var k = Math.Min(1.0, max / Math.Max(w, h));
+    var transform = new Windows.Graphics.Imaging.BitmapTransform();
+    if (k < 1) { transform.ScaledWidth = (uint)Math.Max(1, w * k); transform.ScaledHeight = (uint)Math.Max(1, h * k); }
+    var bitmap = Wait(decoder.GetSoftwareBitmapAsync(Windows.Graphics.Imaging.BitmapPixelFormat.Bgra8, Windows.Graphics.Imaging.BitmapAlphaMode.Premultiplied, transform, Windows.Graphics.Imaging.ExifOrientationMode.RespectExifOrientation, Windows.Graphics.Imaging.ColorManagementMode.DoNotColorManage));
+    var result = Wait(engine.RecognizeAsync(bitmap));
+    var back = 1 / k; // boxes in the picture's own pixels
+    var sb = new StringBuilder();
+    sb.Append("{\"lang\":").Append(Json.S(engine.RecognizerLanguage.LanguageTag)).Append(",\"w\":").Append(w).Append(",\"h\":").Append(h);
+    sb.Append(",\"angle\":").Append(result.TextAngle.HasValue ? N(result.TextAngle.Value) : "null").Append(",\"lines\":[");
+    var first = true;
+    foreach (var line in result.Lines) {
+     if (!first) sb.Append(','); first = false;
+     sb.Append("{\"text\":").Append(Json.S(line.Text)).Append(",\"words\":[");
+     var fw = true;
+     foreach (var word in line.Words) {
+      if (!fw) sb.Append(','); fw = false;
+      var r = word.BoundingRect;
+      sb.Append("{\"t\":").Append(Json.S(word.Text)).Append(",\"x\":").Append(N(r.X * back)).Append(",\"y\":").Append(N(r.Y * back)).Append(",\"w\":").Append(N(r.Width * back)).Append(",\"h\":").Append(N(r.Height * back)).Append('}');
+     }
+     sb.Append("]}");
+    }
+    sb.Append("]}");
+    Line(sb.ToString());
+   }
+  } catch (Exception e) { Line("{\"error\":" + Json.S(e is TimeoutException ? "timeout" : "corrupt") + "}"); return 4; }
+  return 0;
+ }
+}
+
 static class Program {
  [MTAThread]
  static int Main(string[] args) {
   // real pixels everywhere: full-screen checks and screen pictures
   try { if (!Native.SetProcessDpiAwarenessContext(new IntPtr(-4))) Native.SetProcessDPIAware(); } catch { try { Native.SetProcessDPIAware(); } catch {} }
+  if (args.Length == 1 && args[0] == "--pdf") return Pdf.Run();
+  if (args.Length == 1 && args[0] == "--image") return Pictures.Run();
+  if (args.Length == 1 && args[0] == "--ocr") return Pictures.Ocr();
   if (args.Length == 1 && args[0] == "--grab") return Grab.Run();
   if (args.Length == 1 && args[0] == "--static") return Static.Run();
   if (args.Length != 0) return 2;

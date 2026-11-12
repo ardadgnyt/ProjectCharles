@@ -5,7 +5,7 @@
 // Codex for GPT models, or the subscription CLI for gemini:/claude:/cursor: models.
 const { Agent } = require('./agent.cjs');
 
-const SUBSCRIPTION = /^(gemini|claude|cursor|abacus|evren):/;
+const SUBSCRIPTION = /^(gemini|claude|cursor|abacus|evren|kimi|copilot|opencode):/;
 
 async function askOnce({
   root,
@@ -65,6 +65,7 @@ function backgroundModel(primary) {
   if (primary === 'cursor') return 'cursor:auto';
   if (primary === 'abacus') return 'abacus:auto';
   if (primary === 'evren') return 'evren:auto';
+  if (['kimi', 'copilot', 'opencode'].includes(primary)) return primary + ':auto';
   return null; // Codex default model
 }
 
