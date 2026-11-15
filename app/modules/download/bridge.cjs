@@ -166,7 +166,7 @@ function createDownloadBridge({ registry, owners, sessionFor, open, deps }) {
     void win.loadURL('charles-module://download/index.html?compact=1');
   }
   engine.on('offer', () => { dismissed = false; showPopup(); });
-  engine.on('completed', job => { dismissed = false; showPopup(); deps.notify?.(message('completed'), job.title.slice(0, 200)); });
+  engine.on('completed', job => { dismissed = false; showPopup(); deps.notify?.(message('completed'), job.title.slice(0, 200), undefined, { icon: 'download' }); });
   engine.on('failed', () => { dismissed = false; showPopup(); });
   const timer = setInterval(async () => {
     if (closing) return;

@@ -1,9 +1,9 @@
 // Generated images in the chat (v0.5.5).
 //
-// While the image is being made: a soft animated canvas with an estimated percentage.
-// The image tool does not report real progress, so the percentage is an estimate from how
-// long the last generations took on this computer (it never shows 100 % before the image
-// arrives). When it is done: the image with İndir / Kopyala / Büyüt buttons.
+// While the image is being made: a flat card with a thin bar and "about N s left" (v1.0.0).
+// The image tool does not report real progress, so the bar is an estimate from how long the
+// last generations took on this computer (it never fills before the image arrives) and no
+// percentage is printed. When it is done: the image with İndir / Kopyala / Büyüt buttons.
 
 // v0.9.26: the card's state is data (`data-image-state`: generating, done, failed, cancelled), never
 // a text, and every text in it goes through t(). A chat message is not translated by the page's
@@ -59,14 +59,14 @@ function stop(node: HTMLElement) {
   timers.delete(node);
 }
 
-/** "%42" in Turkish, "42%" elsewhere (the number format of the interface language). */
-export function percentText(p: number) {
-  return percent(p);
-}
-const PHRASES = ['Fırçalar hazırlanıyor…', 'Taslak çiziliyor…', 'Renkler ekleniyor…', 'Son rötuşlar…'];
-/** The line under the percentage: the step and the seconds, in the interface language. */
-export function progressLine(p: number, elapsedMs: number) {
-  return t(PHRASES[Math.min(PHRASES.length - 1, Math.floor(p / 25))]) + ' · ' + t('{n} sn').replace('{n}', String(Math.floor(elapsedMs / 1000)));
+/**
+ * v1.0.0: the line under "Görsel oluşturuluyor". The tool reports no progress, so no percentage is
+ * printed: only the time a picture usually still needs ("yaklaşık 20 sn kaldı"), and nothing once
+ * that time has passed.
+ */
+export function progressLine(elapsedMs: number, typical = DEFAULT_MS) {
+  const left = Math.round((typical - elapsedMs) / 5000) * 5;
+  return left >= 5 ? t('yaklaşık {n} sn kaldı').replace('{n}', String(left)) : '';
 }
 const relabel = new Set<() => void>();
 let listening = false;
@@ -86,25 +86,17 @@ export function showGenerating(node: HTMLElement) {
   started.set(node, Date.now());
   node.classList.add('image-card', 'image-generating');
   node.dataset.imageState = 'generating';
-  const canvas = el('div', 'image-canvas');
-  canvas.setAttribute('aria-hidden', 'true');
-  canvas.append(el('i', 'blob b1'), el('i', 'blob b2'), el('i', 'blob b3'), el('i', 'grain'));
+  // v1.0.0: a flat card with one thin bar and one short line (no blobs, grain, sweep, ring or
+  // printed percentage). The bar follows the estimate; for assistive technology the progress is
+  // indeterminate (no aria-valuenow), with the line as its text.
   const info = el('div', 'image-progress');
-  const ring = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  ring.setAttribute('viewBox', '0 0 44 44');
-  ring.classList.add('image-ring');
-  ring.innerHTML =
-    '<circle class="track" cx="22" cy="22" r="19"/><circle class="fill" cx="22" cy="22" r="19" pathLength="100"/>';
-  const percent = el('strong', 'image-percent', percentText(0));
   const label = el('span', 'image-label');
   const sub = el('small', 'image-sub');
   const bar = el('div', 'image-bar');
   bar.append(el('i'));
-  info.append(ring, percent, label, sub, bar);
+  info.append(label, sub, bar);
   info.setAttribute('role', 'progressbar');
-  info.setAttribute('aria-valuemin', '0');
-  info.setAttribute('aria-valuemax', '100');
-  node.replaceChildren(canvas, info);
+  node.replaceChildren(info);
   const typical = typicalMs();
   const words = () => {
     label.textContent = t('Görsel oluşturuluyor');
@@ -112,16 +104,18 @@ export function showGenerating(node: HTMLElement) {
   };
   const tick = () => {
     if (!node.isConnected || node.dataset.imageState !== 'generating') return stop(node);
+    // nothing to draw while the island is hidden; the next tick catches up
+    if (document.hidden) return;
     const elapsed = Date.now() - (started.get(node) || Date.now());
-    const p = estimate(elapsed, typical);
-    percent.textContent = percentText(p);
-    info.setAttribute('aria-valuenow', String(p));
-    node.style.setProperty('--progress', String(p));
-    sub.textContent = progressLine(p, elapsed);
+    node.style.setProperty('--progress', String(estimate(elapsed, typical)));
+    const line = progressLine(elapsed, typical);
+    if (sub.textContent !== line) sub.textContent = line;
+    if (line) info.setAttribute('aria-valuetext', line);
+    else info.removeAttribute('aria-valuetext');
   };
   words();
   tick();
-  timers.set(node, setInterval(tick, 250));
+  timers.set(node, setInterval(tick, 1000));
   const again = () => {
     if (!node.isConnected || node.dataset.imageState !== 'generating') return relabel.delete(again);
     words();
@@ -339,7 +333,8 @@ export function showImage(node: HTMLElement, dataUrl: string, actions: Actions) 
   if (meta) bar.append(meta);
   const words = () => {
     img.alt = t('Charles tarafından oluşturulan görsel');
-    img.title = t('Büyütmek için tıkla');
+    // the alt text is its name; the hint is a description (a title would replace the name)
+    img.setAttribute('aria-description', t('Büyütmek için tıkla'));
     if (meta) meta.textContent = t('{n} sn').replace('{n}', String(seconds));
     for (const f of labels) f();
   };

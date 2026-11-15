@@ -183,7 +183,7 @@ class Agent extends EventEmitter {
   }
   reset() {
     if (this.busy || this.requests.size)
-      throw new Error('Yeni konuşmadan önce çalışan işi durdurun.');
+      throw new Error('Yeni sohbetten önce çalışan işi durdurun.');
     this.threadId = null;
     this.turnId = null;
     this.items.clear();

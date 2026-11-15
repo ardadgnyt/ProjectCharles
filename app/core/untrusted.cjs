@@ -12,15 +12,29 @@
 const crypto = require('node:crypto');
 
 // bidi overrides / isolates, zero-width characters and other invisible format characters
-const INVISIBLE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g;
-const FAKE_TAG =
-  /<\s*\/?\s*(?:[a-z_]*veri(?:si)?|untrusted[a-z_-]*|data|mail[a-z_-]*|system|developer|assistant|user|instructions?|tool[a-z_-]*|im_start|im_end)\b[^>]{0,200}>/gi;
+// v1.0.0: also the line / paragraph separators (U+2028/2029, which some models read as a line
+// break) and the Unicode tag characters U+E0000 to U+E007F (invisible ASCII look-alikes)
+const INVISIBLE =
+  /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2069\ufeff\u{e0000}-\u{e007f}]/gu;
+// v1.0.0: the user-file tags (dosya_...) and ChatML markers (<|im_start|> and the like) too, and the
+// same tags written with fullwidth or small-form brackets (U+FF1C, U+FF1E, U+FE64, U+FE65). Only the brackets of a tag
+// that is caught are touched: the rest of the text is not normalised (NFKC would also change
+// ligatures and the fullwidth punctuation CJK writers really use).
+const OPEN = '[<\\uff1c\\ufe64]';
+const CLOSE = '[>\\uff1e\\ufe65]';
+const FAKE_TAG = new RegExp(
+  `${OPEN}\\s*\\/?\\s*(?:[a-z_]*veri(?:si)?|untrusted[a-z_-]*|data|mail[a-z_-]*|dosya[a-z_-]*|system|developer|assistant|user|instructions?|tool[a-z_-]*|im_start|im_end)\\b[^>\\uff1e\\ufe65]{0,200}${CLOSE}`,
+  'gi',
+);
+const CHATML = new RegExp(`${OPEN}\\|[^|<>\\n]{0,40}\\|${CLOSE}`, 'g');
+const BRACKETS = /[<>\uff1c\uff1e\ufe64\ufe65]/g;
 
 /** Text from outside with the tricks above removed (it stays readable). */
 function defuse(text, max = 70000) {
   return String(text ?? '')
     .replace(INVISIBLE, '')
-    .replace(FAKE_TAG, (m) => '[' + m.replace(/[<>]/g, '').trim() + ']')
+    .replace(CHATML, (m) => '[' + m.replace(BRACKETS, '').trim() + ']')
+    .replace(FAKE_TAG, (m) => '[' + m.replace(BRACKETS, '').trim() + ']')
     .slice(0, max);
 }
 

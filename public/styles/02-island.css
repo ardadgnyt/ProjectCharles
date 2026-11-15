@@ -1,0 +1,1627 @@
+/* 02-island · The island frame: its outline and glass, the top bar, the closed notch, Charles and the version
+   line, the hidden strip, docked and desktop-pet forms, the resize handle.
+   Merged in v1.0.0 (T37) from the release files, every rule in its original order; the load order is
+   in RULES.md / DEVELOPMENT.md. Colours, radii and type come from 00-tokens.css. */
+
+/* ── from 1-base.css ── */
+#pet {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  width: 104px;
+  height: 90px;
+  flex-shrink: 0;
+}
+#slime {
+  margin-top: -11px;
+  pointer-events: none;
+}
+.identity strong {
+  font-weight: var(--fw-strong);
+}
+.identity strong span {
+  font-size: var(--fs-i2);
+  letter-spacing: 1px;
+  color: var(--accent);
+  border: 1px solid var(--cream-25);
+  border-radius: var(--r-sm);
+  padding: 2px 5px;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+.identity small {
+  display: block;
+  color: var(--muted);
+  font-size: var(--fs-i3);
+  margin-top: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.compact .content {
+  display: none;
+}
+body.compact .window-actions {
+  display: none;
+}
+body.hidden-island header,
+body.hidden-island .content {
+  display: none;
+}
+body.compact #settings-toggle {
+  display: none;
+}
+/* (a settings rule, kept in this file for the cascade) */
+#settings-panel[open] {
+  display: flex;
+  flex-direction: column;
+}
+/* (a settings rule, kept in this file for the cascade) */
+#settings-panel .row {
+  flex-wrap: wrap;
+}
+/* (a dialogs rule, kept in this file for the cascade) */
+#sessions-panel .row {
+  flex-wrap: wrap;
+}
+/* (a chat rule, kept in this file for the cascade) */
+#composer textarea {
+  padding: 12px 3px;
+  min-height: 66px;
+  resize: none;
+  font-size: var(--fs-i4);
+}
+header > #sessions-toggle:hover {
+  background: #ffffff0c;
+  color: var(--accent);
+}
+body.compact header > #sessions-toggle {
+  display: none;
+}
+/* (a dialogs rule, kept in this file for the cascade) */
+#personal-panel[open] {
+  display: flex;
+  flex-direction: column;
+}
+/* (a dialogs rule, kept in this file for the cascade) */
+#personal-panel section {
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+/* (a dialogs rule, kept in this file for the cascade) */
+#personal-panel textarea,
+#personal-panel input:not([type="range"]):not([type="color"]),
+#history-search,
+.history-name {
+  background: #101216;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 9px;
+  color: #eee;
+  font: inherit;
+  max-width: 100%;
+  margin: 6px 0;
+}
+/* (a dialogs rule, kept in this file for the cascade) */
+#personal-panel textarea {
+  min-height: 65px;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+body.compact #mini-music {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-self: center;
+  gap: 2px;
+  width: 116px;
+  min-width: 0;
+  margin-right: 12px;
+  padding-left: 11px;
+  border-left: 1px solid #ffffff12;
+  -webkit-app-region: no-drag;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+#mini-music button[hidden] {
+  display: none;
+}
+body.compact .identity strong span {
+  font-size: var(--fs-i1);
+  padding: 2px 4px;
+  margin-left: 3px;
+}
+header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 20px 0 4px;
+  border-bottom-color: #ffffff0b;
+}
+header .identity strong {
+  letter-spacing: -0.65px;
+}
+body.compact header {
+  padding-left: 4px;
+}
+body.compact .identity {
+  min-width: 0;
+  flex: 1;
+}
+body.compact .identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html,
+body,
+header,
+#pet,
+#slime {
+  -webkit-app-region: no-drag;
+}
+
+/* ── from 2-panel-layout.css ── */
+header {
+  height: 80px;
+  padding-right: 10px;
+  border-bottom: 1px solid #202022;
+  gap: 5px;
+  background: #09090b;
+}
+.identity strong {
+  font-size: var(--fs-i6);
+  letter-spacing: -0.9px;
+}
+header #pet {
+  margin-right: 8px;
+}
+#slime {
+  width: 100px;
+  height: 100px;
+}
+#dock-toggle {
+  flex-shrink: 0;
+  padding: 0;
+  width: 24px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: #aaa;
+  font-size: 25px;
+  border-radius: var(--r-sm);
+}
+#dock-toggle:hover {
+  background: #202024;
+  color: #fff;
+}
+.window-actions {
+  gap: 1px;
+}
+.window-actions button {
+  padding: 5px 7px;
+}
+#resize-handle {
+  height: 10px;
+  flex-shrink: 0;
+  cursor: ns-resize;
+  touch-action: none;
+  position: relative;
+}
+#resize-handle:after {
+  content: "";
+  position: absolute;
+  left: calc(50% - 22px);
+  top: 3px;
+  width: 44px;
+  height: 3px;
+  border-radius: var(--r-sm);
+  background: #414145;
+}
+#resize-handle:hover:after,
+#resize-handle:focus-visible:after {
+  background: var(--accent);
+}
+body.compact #resize-handle,
+body.compact #ambient-card {
+  display: none;
+}
+body.compact header {
+  gap: 5px;
+  padding-right: 9px;
+}
+body.compact #pet {
+  margin-right: 8px;
+}
+body.compact .identity {
+  padding-left: 4px;
+}
+body.compact .identity small {
+  max-width: 145px;
+  font-size: var(--fs-i1);
+}
+body.compact #dock-toggle {
+  display: block;
+}
+body.docked-right .island {
+  border-radius: 0 0 0 25px;
+  border-right: 0;
+}
+body.docked-right {
+  padding-right: 0;
+}
+.status-viewport {
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+}
+.identity #status,
+body.compact .identity #status {
+  width: max-content;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+body.hidden-island {
+  padding: 0 8px;
+  background: transparent;
+}
+body.hidden-island .island {
+  background: #080809;
+  border: 0;
+  border-radius: 0 0 6px 6px;
+  box-shadow: none;
+  height: 6px;
+}
+body.hidden-island .island > * {
+  display: none !important;
+}
+/* (a base rule, kept in this file for the cascade) */
+#profile-transfer textarea {
+  background: #141416;
+  border: 1px solid #333;
+  border-radius: var(--r-md);
+  padding: 10px;
+  min-height: 110px;
+  max-height: 300px;
+  resize: vertical;
+  width: 100%;
+  font-size: var(--fs-i3);
+}
+/* (a base rule, kept in this file for the cascade) */
+#profile-transfer .profile-card label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  font-size: var(--fs-i3);
+}
+/* (a base rule, kept in this file for the cascade) */
+#profile-transfer .profile-card input:not([type="checkbox"]) {
+  width: 100%;
+  background: #141416;
+  color: #eee;
+  border: 1px solid #333;
+  border-radius: var(--r-md);
+  padding: 8px;
+  margin-bottom: 6px;
+}
+
+/* ── from 3-island.css ── */
+header,
+body.compact header {
+  position: relative;
+  display: block;
+  padding: 0;
+  height: 152px;
+}
+header #pet {
+  width: 110px;
+  height: 106px;
+  margin: 0;
+  padding: 0;
+}
+header #slime {
+  width: 120px;
+  height: 120px;
+  margin-top: -8px;
+}
+header .identity strong,
+body.compact .identity strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--fs-i6);
+  line-height: 25px;
+}
+header .identity strong span,
+body.compact .identity strong span {
+  display: inline-flex;
+  align-items: center;
+  line-height: 15px;
+  font-size: var(--fs-i1);
+  margin: 0;
+  padding: 1px 5px;
+  color: var(--color-badge);
+  border-color: var(--color-badge);
+  letter-spacing: 0.4px;
+}
+header > #settings-toggle,
+header > #sessions-toggle {
+  position: absolute;
+  top: 13px;
+  left: 13px;
+  margin: 0;
+  align-self: auto;
+}
+header > #sessions-toggle {
+  left: 47px;
+}
+.window-actions {
+  position: absolute;
+  right: 10px;
+  top: 13px;
+  display: flex;
+  align-items: center;
+}
+#dock-toggle,
+#dock-left {
+  position: absolute;
+  top: 65px;
+  width: 25px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #aaa;
+  font-size: 25px;
+}
+#dock-toggle {
+  right: 9px;
+}
+#dock-left {
+  left: 9px;
+}
+body.compact header {
+  height: 124px;
+  border: 0;
+}
+body.compact .character-center {
+  width: 150px;
+}
+body.compact #pet {
+  width: 90px;
+  margin: 0;
+}
+body.compact #slime {
+  margin-top: -7px;
+}
+body.compact .identity strong {
+  font-size: var(--fs-i6);
+  line-height: 23px;
+}
+body.compact #dock-toggle,
+body.compact #dock-left {
+  top: 46px;
+}
+body.compact #settings-toggle,
+body.compact #sessions-toggle,
+body.compact .window-actions {
+  display: none;
+}
+body.docked-left .island {
+  border-radius: 0 0 25px 0;
+  border-left: 0;
+}
+header > #sessions-toggle svg {
+  display: block;
+}
+header,
+#pet,
+#slime,
+.character-center {
+  transition:
+    height 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    top 0.3s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  header,
+  #pet,
+  #slime,
+  .character-center {
+    transition: none;
+  }
+
+}
+body.docked-left {
+  padding-left: 0;
+  left: 0;
+  right: auto;
+  transform: none;
+}
+header #pet,
+body.compact #pet {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+header #slime,
+body.compact #slime {
+  flex-shrink: 0;
+}
+header .identity,
+body.compact .identity {
+  flex: none;
+  width: 100%;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+body.docked-left {
+  transform-origin: 0 0;
+}
+body.docked-right {
+  left: auto;
+  right: 0;
+  transform: none;
+  transform-origin: 100% 0;
+}
+body.desktop-pet {
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  left: 0 !important;
+  transform: none !important;
+}
+body.desktop-pet header {
+  width: 180px;
+  height: 180px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+body.desktop-pet .character-center {
+  top: 0;
+  left: 0;
+  transform: none;
+  width: 180px;
+  height: 180px;
+  transition: none;
+}
+body.desktop-pet #pet,
+body.desktop-pet #slime {
+  width: 180px;
+  height: 180px;
+  margin: 0;
+  transition: none;
+  cursor: grab;
+  touch-action: none;
+}
+body.desktop-pet #pet:active {
+  cursor: grabbing;
+}
+/* Detached pet has no panel surface: leave only the transparent canvas. */
+body.desktop-pet .island,
+body.desktop-pet header {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+}
+body.desktop-pet .island::before,
+body.desktop-pet .island::after {
+  display: none !important;
+}
+
+/* ── from 4-polish.css ── */
+body:not(.desktop-pet) .island {
+  background: linear-gradient(150deg, #19191cf5, #101012fa);
+  border: 1px solid #ffffff12;
+  box-shadow:
+    inset 0 1px #ffffff05,
+    0 8px 28px #0003;
+  border-radius: 0 0 28px 28px;
+}
+header,
+body.compact header {
+  background: transparent;
+  border-bottom-color: #ffffff09;
+}
+header .identity strong,
+body.compact .identity strong {
+  justify-content: center;
+}
+header .identity .version-label,
+body.compact .identity .version-label {
+  display: block !important;
+  width: 100%;
+  max-width: none;
+  margin: 1px 0 0;
+  text-align: center;
+  font-size: var(--fs-i1);
+  line-height: 13px;
+  font-weight: var(--fw-regular);
+  overflow: visible;
+}
+body.compact .character-center {
+  top: 7px;
+}
+body.compact #pet {
+  height: 73px;
+}
+body.compact #slime {
+  width: 90px;
+  height: 90px;
+}
+body.compact #panel-pin {
+  display: none;
+}
+body.panel-transition .island {
+  backdrop-filter: none;
+}
+body.desktop-pet .island {
+  backdrop-filter: none !important;
+}
+/* Keep breathing room below the version; dialogs must not inherit the old centering transform. */
+/* (a base rule, kept in this file for the cascade) */
+body:not(.desktop-pet) .character-center {
+  top: 12px;
+}
+body:not(.desktop-pet) header #pet {
+  height: 86px;
+}
+body:not(.desktop-pet) header #slime {
+  width: 110px;
+  height: 110px;
+  margin-top: 0;
+}
+body.compact:not(.desktop-pet) .character-center {
+  top: 4px;
+}
+body.compact:not(.desktop-pet) #pet {
+  height: 66px;
+}
+body.compact:not(.desktop-pet) #slime {
+  width: 82px;
+  height: 82px;
+}
+header > #settings-toggle svg,
+header > #sessions-toggle svg,
+header > #panel-pin svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.6;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+header > #settings-toggle:hover,
+header > #sessions-toggle:hover,
+header > #panel-pin:hover {
+  background: #ffffff08;
+  color: #dedee4;
+}
+body.compact header > #settings-toggle,
+body.compact header > #sessions-toggle,
+body.compact header > #panel-pin {
+  display: none;
+}
+header > #panel-pin[aria-pressed="true"] {
+  background: var(--cream-08);
+  color: var(--accent);
+  border-color: var(--cream-12);
+  box-shadow: none;
+}
+body:not(.desktop-pet) header,
+body:not(.desktop-pet) .content {
+  background: transparent;
+}
+/* (a base rule, kept in this file for the cascade) */
+body.panel-transition .content {
+  display: none;
+}
+#dock-left,
+#dock-toggle,
+#dock-left:hover,
+#dock-toggle:hover,
+#dock-left:active,
+#dock-toggle:active {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+/* (a base rule, kept in this file for the cascade) */
+#folder .project-folder-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* (a base rule, kept in this file for the cascade) */
+#folder .project-folder-action {
+  font-size: var(--fs-i6);
+  color: #9999a5;
+  line-height: 18px;
+  flex: none;
+}
+
+/* ── from 5-design-system.css ── */
+/* --- Island surface -------------------------------------------------------
+   v0.4.4 drew an outer drop shadow (0 8px 28px) on the island. The window is
+   transparent and the body clips at its 8 px padding, so the blurred shadow
+   was cut off and showed up as a faint rectangle around the large panel.
+   The island now uses a hairline border and an inner highlight only. */
+body:not(.desktop-pet) .island,
+body:not(.desktop-pet):not(.hidden-island) .island {
+  background:
+    radial-gradient(120% 60% at 50% -10%, var(--cream-04), transparent 60%),
+    linear-gradient(180deg, #17171b 0%, var(--sb-surface) 55%);
+  border: 1px solid var(--sb-line);
+  border-top: 0;
+  border-radius: 0 0 var(--sb-radius-island) var(--sb-radius-island);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+}
+body.docked-left:not(.desktop-pet) .island {
+  border-left: 0;
+  border-radius: 0 0 var(--sb-radius-island) 0;
+}
+body.docked-right:not(.desktop-pet) .island {
+  border-right: 0;
+  border-radius: 0 0 0 var(--sb-radius-island);
+}
+body.hidden-island:not(.desktop-pet) .island {
+  background: #0d0d10;
+  border: 0;
+  border-radius: 0 0 8px 8px;
+  box-shadow: none;
+}
+/* --- Header and identity -------------------------------------------------- */
+header .identity strong,
+body.compact .identity strong {
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.4px;
+}
+header .identity .version-label,
+body.compact .identity .version-label {
+  color: var(--sb-accent);
+  opacity: 0.75;
+  letter-spacing: 0.6px;
+}
+header > #settings-toggle,
+header > #sessions-toggle,
+header > #panel-pin,
+.window-actions button {
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+header > #settings-toggle:hover,
+header > #sessions-toggle:hover,
+header > #panel-pin:hover,
+.window-actions button:hover {
+  color: var(--sb-text);
+}
+
+/* ── from 6-acrylic.css ── */
+/* --- Panel base: tinted acrylic with light glows and grain ---------------- */
+/* Header buttons: round glass on hover */
+header > #settings-toggle:hover,
+header > #sessions-toggle:hover,
+header > #panel-pin:hover,
+.window-actions button:hover {
+  background: var(--ac-glass-hover);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+/* v0.6.0: speaker button (Charles' sounds), clearly different from the Spotify controls */
+#sound svg,
+#mic-privacy svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* v0.6.2: desktop Slime as big as the studio preview (window 160 px, see app/core/desktop-pet.cjs) */
+body.desktop-pet header,
+body.desktop-pet .character-center,
+body.desktop-pet #pet,
+body.desktop-pet #slime {
+  width: 160px;
+  height: 160px;
+}
+/* v0.6.4: a little more room between Slime and the "Charles" name */
+body:not(.desktop-pet):not(.compact) header .identity {
+  margin-top: 8px;
+}
+body.compact:not(.desktop-pet) .identity {
+  margin-top: 4px;
+}
+/* v0.6.5: microphone privacy button, left of the speaker */
+#mic-privacy rect {
+  fill: currentColor;
+  fill-opacity: 0.25;
+}
+#mic-privacy.muted {
+  color: var(--sb-danger);
+  opacity: 0.85;
+}
+/* v0.6.5: no focus frame or hover box around Slime on the island (it looked like a bug and
+   cut the hat). The canvas itself reacts to clicks and hover.
+   v1.0.0: except the keyboard's focus ring (41-v0925.css), which this rule used to remove too. */
+#pet,
+#pet:hover,
+#pet:focus,
+#pet:focus-visible {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+#pet:not(:focus-visible) {
+  outline: none !important;
+}
+
+/* ── from 9-special.css ── */
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-modal button:not(.ws-icon):not(.ws-chip-ev):not(.ws-day-cell):not(.ws-picker-row) {
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: var(--r-md);
+  background: var(--ws-card-2);
+  color: var(--ws-text);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+
+/* ── from 10-noir.css ── */
+/* ── Island: warm black glass, still slightly see-through ─────────────────────── */
+body:not(.desktop-pet):not(.hidden-island) .island {
+  background:
+    var(--ac-grain-soft),
+    radial-gradient(90% 55% at 12% -8%, var(--ac-warm), transparent 62%),
+    radial-gradient(80% 50% at 105% 105%, var(--ac-cool), transparent 60%),
+    linear-gradient(180deg, rgba(8, 8, 7, 0.95) 0%, rgba(3, 3, 3, 0.96) 45%, rgba(0, 0, 0, 0.97) 100%);
+  border-color: var(--cream-12);
+  box-shadow:
+    inset 0 1px 0 var(--cream-04),
+    inset 0 -1px 0 var(--cream-02);
+}
+
+/* ── from 12-v077.css ── */
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-chat-view .ws-q-form button.ws-primary {
+  height: 30px;
+  margin-left: auto;
+  padding: 0 10px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-a2);
+}
+
+/* ── from 18-v0810.css ── */
+/* --- Shared: the acrylic island, its "ears" at the top edge ------------- */
+body.v10:not(.desktop-pet):not(.hidden-island) .island {
+  position: relative;
+  border-top: 0;
+  overflow: visible;
+}
+/* the inverse corners that make the island hang from the screen edge */
+body.v10:not(.desktop-pet):not(.hidden-island)::before,
+body.v10:not(.desktop-pet):not(.hidden-island)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  z-index: 3;
+}
+body.v10:not(.desktop-pet):not(.hidden-island)::before {
+  left: 0;
+  background: radial-gradient(circle at 0 100%, transparent 13.4px, var(--v10-panel-top) 14px);
+}
+body.v10:not(.desktop-pet):not(.hidden-island)::after {
+  right: 0;
+  background: radial-gradient(circle at 100% 100%, transparent 13.4px, var(--v10-panel-top) 14px);
+}
+body.v10.docked-left::before,
+body.v10.docked-right::after {
+  display: none;
+}
+body.v10[data-view='notch']:not(.desktop-pet) .island {
+  border-radius: 0 0 22px 22px;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+body.v10.desktop-pet #notch,
+body.v10.desktop-pet #shelf,
+body.v10.desktop-pet #island-bar,
+body.v10.desktop-pet .chat-nav,
+body.v10.hidden-island #notch,
+body.v10.hidden-island #shelf,
+body.v10.hidden-island #island-bar {
+  display: none !important;
+}
+/* --- Top bar (shelf and chat) ---------------------------------------------- */
+body.v10:not(.desktop-pet) header {
+  position: relative;
+  display: block !important;
+  height: 52px;
+  padding: 0 !important;
+  margin: 0;
+  background: transparent !important;
+  border: 0 !important;
+  flex: none;
+}
+body.v10 #island-bar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 4;
+}
+body.v10 #island-bar .ibar-side,
+body.v10 #island-bar .window-actions {
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+  position: static !important;
+  transform: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: 0 !important;
+}
+body.v10 #island-bar button {
+  position: relative !important;
+  inset: auto !important;
+  display: grid !important;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: #aeadb4 !important;
+  box-shadow: none !important;
+  font-size: 20px;
+  line-height: 1;
+  opacity: 1;
+  transform: none !important;
+  transition: background-color 0.15s,
+    color 0.15s;
+}
+body.v10 #island-bar button[hidden] {
+  display: none !important;
+}
+body.v10 #island-bar button svg {
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.6 !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+body.v10 #island-bar button:hover {
+  background: rgba(255, 255, 255, 0.065) !important;
+  color: var(--v10-ink) !important;
+}
+body.v10 #island-bar #panel-pin[aria-pressed='true'],
+body.v10[data-view='chat'] #island-bar #sessions-toggle {
+  background: rgba(255, 255, 255, 0.075) !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+  color: var(--v10-ink) !important;
+}
+body.v10 #island-bar #panel-pin[aria-pressed='true'] {
+  color: var(--v10-cream) !important;
+}
+body.v10 #island-bar #mic-privacy.muted {
+  color: var(--danger) !important;
+}
+body.v10 #island-bar #session-alert {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  color: var(--v10-cream);
+  font-size: var(--fs-i4);
+}
+/* --- Notch ----------------------------------------------------------------- */
+#notch {
+  display: none;
+}
+body.v10[data-view='notch']:not(.desktop-pet):not(.hidden-island) #notch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  cursor: pointer;
+  user-select: none;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+body.v10[data-view='notch']:not(.desktop-pet) header,
+body.v10[data-view='notch']:not(.desktop-pet) #shelf,
+body.v10[data-view='notch']:not(.desktop-pet) .content {
+  display: none !important;
+}
+#notch .notch-pet {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+}
+body.v10 #notch #pet {
+  position: static !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+#notch .notch-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  line-height: 1.15;
+}
+#notch .notch-name strong {
+  color: var(--v10-ink);
+  font-size: var(--fs-i5);
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.2px;
+}
+#notch .notch-status {
+  color: var(--v10-muted);
+  font-size: var(--fs-i2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#notch .notch-ctl {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #c9c6c1;
+  cursor: pointer;
+}
+#notch .notch-ctl:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--v10-ink);
+}
+#notch .notch-ctl svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#notch .notch-play {
+  width: 32px;
+  height: 32px;
+  margin: 0 2px;
+  background: var(--v10-cream);
+  color: var(--cream-ink);
+}
+#notch .notch-play:hover {
+  background: var(--v10-cream);
+  color: var(--cream-ink);
+  filter: brightness(1.05);
+}
+#notch .notch-play svg {
+  fill: currentColor;
+  stroke-width: 1.4;
+}
+#notch .notch-progress {
+  display: none;
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 5px;
+  height: 3px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+#notch .notch-progress i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--cream-deep), var(--v10-cream));
+}
+/* (a shelf rule, kept in this file for the cascade) */
+body.v10.music-on[data-view='notch'] #notch {
+  padding-bottom: 6px;
+}
+/* (a chat rule, kept in this file for the cascade) */
+body.v10[data-view='shelf']:not(.desktop-pet) .content,
+body.v10[data-view='shelf']:not(.desktop-pet) header > .character-center,
+body.v10[data-view='shelf']:not(.desktop-pet) header > .chat-nav {
+  display: none !important;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+body.v10 #shelf #pet {
+  position: static !important;
+  width: 108px !important;
+  height: 100px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+body.v10 #shelf #slime {
+  width: 128px !important;
+  height: 128px !important;
+  margin: -14px -10px !important;
+}
+/* --- Chat: the island grown into the chat panel -------------------------------- */
+body.v10[data-view='chat']:not(.desktop-pet) header > .character-center {
+  position: absolute !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  display: flex !important;
+  align-items: center !important;
+  width: auto !important;
+  margin: 0 !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) header #pet {
+  position: static !important;
+  flex: none;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) #toggle.identity {
+  position: static !important;
+  display: grid !important;
+  grid-template-columns: auto auto;
+  align-items: center;
+  row-gap: 2px;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) #toggle.identity strong {
+  grid-column: 1 / -1;
+  width: auto !important;
+  margin: 0 !important;
+  font-weight: var(--fw-strong) !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.5px;
+  color: var(--v10-ink);
+  text-align: left !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) #toggle .status-viewport::before {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok-strong);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--ok-strong) 55%, transparent);
+}
+body.v10.quota-blocked[data-view='chat'] #toggle .status-viewport::before {
+  background: var(--warn);
+  box-shadow: none;
+}
+/* (a chat rule, kept in this file for the cascade) */
+body.v10[data-view='chat']:not(.desktop-pet) .chat-nav {
+  position: absolute;
+  top: 70px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #b9b6b0;
+  cursor: pointer;
+  z-index: 2;
+}
+body.v10:not(.desktop-pet) .mode-row {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+}
+body.v10:not(.desktop-pet) .mode-row #new-chat {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 6px 4px 6px 10px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--v10-ink);
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+body.v10:not(.desktop-pet) .mode-row #new-chat:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+body.v10:not(.desktop-pet) .mode-row #new-chat svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+body.v10[data-view='chat']:not(.desktop-pet) .content {
+  border-top: 0;
+}
+body.v10[data-view='chat'] #toggle #status,
+body.v10[data-view='chat'] #toggle .version-label {
+  line-height: 18px !important;
+}
+/* The cream bar at the bottom: on the notch and the shelf a click opens the chat (the island
+   grows down); in the chat it sets the panel height by dragging. Not in the app window (v1.0.0:
+   there it was an invisible keyboard stop; 9-special.css hides it).
+   The two last exclusions share one :not() so the selector keeps its old weight (1,3,1): a third
+   :not() outranked `body.v10.music-on[data-view='notch'] #resize-handle { display: none !important }`
+   and put the bar under the closed island with music, pushing Charles down (perffix). */
+body.v10:not(.desktop-pet):not(.hidden-island, .workspace) #resize-handle {
+  display: block !important;
+  position: relative;
+  flex: none;
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  touch-action: none;
+  z-index: 6;
+}
+body.v10:not(.desktop-pet)[data-view='notch'] #resize-handle,
+body.v10:not(.desktop-pet)[data-view='shelf'] #resize-handle {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 160px;
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+body.v10[data-view='chat'] #resize-handle {
+  cursor: ns-resize;
+}
+body.v10:not(.desktop-pet) #resize-handle::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  width: 96px;
+  height: 4px;
+  border-radius: var(--r-sm);
+  background: var(--v10-cream);
+  opacity: 0.7;
+  transform: translateX(-50%);
+  box-shadow: 0 0 10px -2px var(--cream-45);
+  transition:
+    width 0.2s var(--v10-ease),
+    opacity 0.2s;
+}
+body.v10[data-view='notch'] #resize-handle::after {
+  height: 3px;
+}
+body.v10:not(.desktop-pet) #resize-handle:hover::after,
+body.v10:not(.desktop-pet) #resize-handle:focus-visible::after {
+  width: 124px;
+  opacity: 1;
+  background: var(--v10-cream);
+}
+/* status and version on one centred line */
+body.v10[data-view='chat']:not(.desktop-pet) #toggle .status-viewport {
+  order: 1;
+  display: inline-flex !important;
+  gap: 6px;
+  margin: 0 !important;
+  font-size: var(--fs-i4) !important;
+  color: var(--v10-muted) !important;
+  white-space: nowrap;
+  height: 18px !important;
+  align-items: center !important;
+  align-self: center;
+}
+body.v10[data-view='chat']:not(.desktop-pet) #toggle #status {
+  font-size: var(--fs-i4);
+  color: var(--v10-muted);
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none;
+}
+body.v10[data-view='chat']:not(.desktop-pet) #toggle .version-label {
+  order: 2;
+  display: inline !important;
+  margin: 0 !important;
+  font-size: var(--fs-i4) !important;
+  color: var(--v10-muted) !important;
+  white-space: nowrap;
+  align-self: center;
+}
+
+/* ── from 19-v0811.css ── */
+/* --- One shape for the island: the box and its top "ears" are the same element, so they
+   share the acrylic (colour, blur, see-through) and nothing shows between them. The box is
+   cut with a mask: rounded bottom corners, concave curves into the screen edge at the top. */
+body.v10:not(.desktop-pet):not(.hidden-island) {
+  --ear-l: 14px;
+  --ear-r: 14px;
+  --r: 26px;
+  padding: 0 14px 2px;
+}
+body.v10.docked-left:not(.desktop-pet):not(.hidden-island) {
+  --ear-l: 0px;
+  padding-left: 0;
+}
+body.v10.docked-right:not(.desktop-pet):not(.hidden-island) {
+  --ear-r: 0px;
+  padding-right: 0;
+}
+body.v10[data-view='notch']:not(.desktop-pet) {
+  --r: 20px;
+}
+body.v10:not(.desktop-pet):not(.hidden-island)::before,
+body.v10:not(.desktop-pet):not(.hidden-island)::after {
+  display: none !important;
+}
+/* --- Notch: only Slime when nothing plays; Slime, name, version and controls with music ---- */
+body.v10[data-view='notch']:not(.desktop-pet):not(.hidden-island) #notch {
+  padding: 0 14px 12px 10px;
+  gap: 9px;
+}
+#notch .notch-version {
+  font-size: var(--fs-i2);
+  color: var(--v10-muted);
+  line-height: 1.2;
+}
+body.v10 #notch .notch-pet {
+  width: 38px;
+  height: 38px;
+}
+/* a canvas larger than the slot: the dancing Slime is never cut at the canvas edge */
+body.v10 #notch #pet {
+  width: 38px !important;
+  height: 38px !important;
+}
+body.v10 #notch #slime {
+  width: 62px !important;
+  height: 62px !important;
+  margin: -12px !important;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+body.v10.music-on[data-view='notch'] #notch {
+  padding: 4px 16px 14px 12px !important;
+}
+body.v10[data-view='notch'] #resize-handle::after {
+  top: 2px;
+  width: 44px;
+}
+body.v10[data-view='notch'] #resize-handle {
+  width: 80px;
+  height: 9px;
+}
+body.v10[data-view='notch'] #resize-handle:hover::after {
+  width: 60px;
+}
+/* --- A normal-sized shelf (740 × 170) ------------------------------------------------------ */
+body.v10 header {
+  height: 40px !important;
+}
+body.v10 #island-bar {
+  height: 40px;
+  padding: 0 10px;
+}
+body.v10 #island-bar button {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: var(--r-md) !important;
+}
+body.v10 #island-bar button svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+/* chat: the same 40 px top bar */
+body.v10[data-view='shelf']:not(.desktop-pet) #resize-handle {
+  height: 16px !important;
+}
+body.v10[data-view='shelf']:not(.desktop-pet) #resize-handle::after {
+  top: 6px;
+}
+body.v10[data-view='notch']:not(.music-on) #notch {
+  justify-content: center;
+}
+body.v10:not(.desktop-pet):not(.hidden-island) .island {
+  margin: 0 calc(-1 * var(--ear-r)) 0 calc(-1 * var(--ear-l));
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  -webkit-mask: linear-gradient(#000 0 0) var(--ear-l) 0 / calc(100% - var(--ear-l) - var(--ear-r)) calc(100% - var(--r)) no-repeat,
+    linear-gradient(#000 0 0) calc(var(--ear-l) + var(--r)) 100% / calc(100% - var(--ear-l) - var(--ear-r) - 2 * var(--r)) var(--r) no-repeat,
+    radial-gradient(circle at 100% 0, #000 calc(var(--r) - 0.6px), transparent var(--r)) var(--ear-l) 100% / var(--r) var(--r) no-repeat,
+    radial-gradient(circle at 0 0, #000 calc(var(--r) - 0.6px), transparent var(--r)) calc(100% - var(--ear-r)) 100% / var(--r) var(--r) no-repeat,
+    radial-gradient(circle at 0 100%, transparent calc(var(--ear-l) - 0.6px), #000 var(--ear-l)) 0 0 / var(--ear-l) var(--ear-l) no-repeat,
+    radial-gradient(circle at 100% 100%, transparent calc(var(--ear-r) - 0.6px), #000 var(--ear-r)) 100% 0 / var(--ear-r) var(--ear-r) no-repeat;
+  mask: linear-gradient(#000 0 0) var(--ear-l) 0 / calc(100% - var(--ear-l) - var(--ear-r)) calc(100% - var(--r)) no-repeat,
+    linear-gradient(#000 0 0) calc(var(--ear-l) + var(--r)) 100% / calc(100% - var(--ear-l) - var(--ear-r) - 2 * var(--r)) var(--r) no-repeat,
+    radial-gradient(circle at 100% 0, #000 calc(var(--r) - 0.6px), transparent var(--r)) var(--ear-l) 100% / var(--r) var(--r) no-repeat,
+    radial-gradient(circle at 0 0, #000 calc(var(--r) - 0.6px), transparent var(--r)) calc(100% - var(--ear-r)) 100% / var(--r) var(--r) no-repeat,
+    radial-gradient(circle at 0 100%, transparent calc(var(--ear-l) - 0.6px), #000 var(--ear-l)) 0 0 / var(--ear-l) var(--ear-l) no-repeat,
+    radial-gradient(circle at 100% 100%, transparent calc(var(--ear-r) - 0.6px), #000 var(--ear-r)) 100% 0 / var(--ear-r) var(--ear-r) no-repeat;
+  padding-left: var(--ear-l) !important;
+  padding-right: var(--ear-r) !important;
+}
+
+/* ── from 20-v0812.css ── */
+/* ==========================================================================
+   20 · v0.8.12 — one even surface, chat header, fixes
+   ========================================================================== */
+/* --- One even black: no top-to-bottom shading and no glows in the corners (they made the
+   top and the bottom of the island look like two pieces). Nearly opaque, so the sharp edges
+   of the windows behind (a browser's tab strip…) no longer show through. */
+body.v10:not(.desktop-pet):not(.hidden-island) .island {
+  background: var(--ac-grain-soft), rgba(4, 4, 4, 0.985) !important;
+  backdrop-filter: none !important;
+}
+/* --- Notch with Slime only: Slime (with his hat) sits clear above the cream bar ----------- */
+body.v10[data-view='notch']:not(.music-on) #notch {
+  align-items: flex-start !important;
+  padding: 8px 0 0 !important;
+}
+body.v10[data-view='notch']:not(.music-on) #notch .notch-pet,
+body.v10[data-view='notch']:not(.music-on) #notch #pet {
+  width: 34px !important;
+  height: 34px !important;
+}
+body.v10[data-view='notch']:not(.desktop-pet) #resize-handle {
+  height: 12px !important;
+}
+/* --- Notch progress: follows the song directly, no slow fill after a seek ----------------- */
+#notch .notch-progress i {
+  transition: none !important;
+}
+/* --- Chat header: Slime in the middle, "Charles" below, then the green light and the version */
+body.v10[data-view='chat']:not(.desktop-pet) header > .character-center {
+  height: auto !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) #toggle.identity {
+  justify-content: center !important;
+  justify-items: center;
+  text-align: center !important;
+  column-gap: 6px;
+  max-width: none;
+}
+body.v10[data-view='chat']:not(.desktop-pet) #toggle.identity strong {
+  justify-self: center !important;
+  font-size: 21px !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) #toggle #status {
+  display: none !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) #toggle .status-viewport {
+  width: 7px;
+  max-width: 7px;
+  overflow: visible;
+}
+body.v10[data-view='chat']:not(.desktop-pet) #toggle .version-label::before {
+  content: none !important;
+}
+/* --- Bar buttons: no button looks pressed by itself -------------------------------------- */
+body.v10[data-view='chat'] #island-bar #sessions-toggle {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: #aeadb4 !important;
+}
+body.v10[data-view='chat'] #island-bar #sessions-toggle:hover {
+  background: rgba(255, 255, 255, 0.065) !important;
+  color: var(--v10-ink) !important;
+}
+body.v10 #island-bar button:focus:not(:focus-visible) {
+  outline: none;
+}
+/* --- Notch with Slime only: the cream bar a little lower -------------------------------- */
+body.v10[data-view='notch']:not(.desktop-pet) #resize-handle::after {
+  top: 6px;
+}
+
+/* ── from 21-v0813.css ── */
+/* ==========================================================================================
+   21 · v0.8.13 — a bigger Charles in the chat island
+   ========================================================================================== */
+/* Slime was small above the chat: noticeably bigger now, "Charles" and the version below. */
+body.v10[data-view='chat']:not(.desktop-pet) header {
+  height: 188px !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) header #pet {
+  width: 96px !important;
+  height: 96px !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) header #slime {
+  width: 124px !important;
+  height: 124px !important;
+  margin: -14px !important;
+}
+
+/* ── from 22-v0814.css ── */
+/* ==========================================================================================
+   22 · v0.8.14 — the weather sheet, Charles a little higher in the chat, the music card opens
+   Spotify
+   ========================================================================================== */
+/* --- Chat: Slime a little higher, more room above "Charles" ------------------------------- */
+body.v10[data-view='chat']:not(.desktop-pet) header > .character-center {
+  top: 28px !important;
+}
+body.v10[data-view='chat']:not(.desktop-pet) header #pet {
+  margin: 0 0 10px !important;
+}
+
+/* ── from 24-v091.css ── */
+/* ==========================================================================================
+   24 · v0.9.1 — no chat history button on the card shelf
+   ========================================================================================== */
+/* The history button belongs to the chat; on the shelf it is not shown. */
+
+/* ── from 29-v0913.css ── */
+/* the top bar on the home page: settings · pin · workspace | mic · sound · − · × */
+body.v10[data-view='shelf'] #island-bar #sessions-toggle {
+  display: none !important;
+}
+
+/* ── from 30-v0914.css ── */
+/* time is up: the island glows in cream */
+body.v10[data-view='notch']:has(#notch[data-tool='done']) .island {
+  animation: notch-glow 1.6s ease-in-out infinite;
+}
+@keyframes notch-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px var(--cream-35),
+      0 6px 22px -6px var(--cream-35);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px var(--cream-70),
+      0 8px 30px -4px var(--cream-55);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.v10[data-view='notch']:has(#notch[data-tool='done']) .island {
+    animation: none;
+    box-shadow: 0 0 0 1px var(--cream-55);
+  }
+
+}
+/* the music notch: the song instead of "Charles" */
+#notch .notch-track {
+  display: none;
+}
+.notch-track-cover svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.notch-track-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+.notch-track-cover.has-art .notch-track-art {
+  opacity: 1;
+}
+/* microphone switched off in the header: a clear red, and the voice card is unavailable */
+body.v10 #island-bar #mic-privacy.muted,
+#mic-privacy.muted {
+  color: var(--danger-strong) !important;
+  opacity: 1;
+  background: color-mix(in srgb, var(--danger-strong) 14%, transparent) !important;
+}
+
+/* ── from 35-v0918.css ── */
+/* --- Charles out of the panel: his place stays, empty ---------------------------------------- */
+body.pet-out #slime {
+  visibility: hidden;
+}
+body.pet-out #pet {
+  pointer-events: none;
+}
+
+/* ── from 37-v0920.css ── */
+/* 37 · v0.9.20 — Ayarlar → Görünüm → Charles adacık boyutu: Küçük is 3/4 of the island (2/3 until v0.9.26).
+   The window and its click area come from app/core/layout.cjs; here the content follows with zoom,
+   which lays things out at the new size (a transform would leave the old boxes behind). The ears
+   and corners are on body variables, so they are set in their own right and not zoomed.
+   v0.9.24: the whole island, not only the closed one. The app window, Charles on the desktop and the
+   plugin guide use the same page and keep their size; the thin strip has its own height below. */
+body.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active) main.island {
+  zoom: 0.75;
+}
+/* The island's shape is cut from pieces (19-v0811.css). Scaled down, their edges fall between two pixels and
+   a hairline of the desktop showed through, so here the middle pieces reach a pixel into the corners. */
+body.v10.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active) .island {
+  --mask-box:
+    linear-gradient(#000 0 0) var(--ear-l) 0 / calc(100% - var(--ear-l) - var(--ear-r)) calc(100% - var(--r) + 1px) no-repeat,
+    linear-gradient(#000 0 0) calc(var(--ear-l) + var(--r) - 1px) 100% / calc(100% - var(--ear-l) - var(--ear-r) - 2 * var(--r) + 2px) var(--r) no-repeat,
+    radial-gradient(circle at 100% 0, #000 calc(var(--r) - 0.6px), transparent var(--r)) var(--ear-l) 100% / var(--r) var(--r) no-repeat,
+    radial-gradient(circle at 0 0, #000 calc(var(--r) - 0.6px), transparent var(--r)) calc(100% - var(--ear-r)) 100% / var(--r) var(--r) no-repeat,
+    radial-gradient(circle at 0 100%, transparent calc(var(--ear-l) - 0.6px), #000 var(--ear-l)) 0 0 / var(--ear-l) var(--ear-l) no-repeat,
+    radial-gradient(circle at 100% 100%, transparent calc(var(--ear-r) - 0.6px), #000 var(--ear-r)) 100% 0 / var(--ear-r) var(--ear-r) no-repeat;
+  -webkit-mask: var(--mask-box);
+  mask: var(--mask-box);
+}
+body.v10.island-small[data-view='notch']:not(.desktop-pet):not(.hidden-island) {
+  --ear-l: 10px;
+  --ear-r: 10px;
+  --r: 15px;
+  padding: 0 10px 1px;
+}
+body.v10.island-small.docked-left[data-view='notch']:not(.desktop-pet):not(.hidden-island) {
+  --ear-l: 0px;
+  padding-left: 0;
+}
+body.v10.island-small.docked-right[data-view='notch']:not(.desktop-pet):not(.hidden-island) {
+  --ear-r: 0px;
+  padding-right: 0;
+}
+/* words at 3/4 of 10 px are hard to read: they keep their size in the smaller box (× 0.75 = 10 px, 9 px) */
+body.v10.island-small[data-view='notch'] .notch-track-title {
+  font-size: var(--fs-i4);
+}
+body.v10.island-small[data-view='notch'] .notch-track-artist {
+  font-size: var(--fs-i3);
+}
+body.island-small.hidden-island:not(.desktop-pet) .island {
+  height: 4px;
+  border-radius: 0 0 5px 5px;
+}
+
+/* ── from 44-v100-core.css ── */
+/* The dot left of the version under Charles' name (the chat view) said nothing while all was well:
+   it is gone, and the version stands centred alone. It still appears, in its warning colour, when the
+   chosen AI's allowance is used up (`quota-blocked`), which is the one state it ever reported. */
+body.v10[data-view='chat']:not(.desktop-pet):not(.quota-blocked) #toggle .status-viewport {
+  display: none !important;
+}
+/* the dot's column is empty now: without its gap the version is centred under the name */
+body.v10[data-view='chat']:not(.desktop-pet):not(.quota-blocked) #toggle {
+  column-gap: 0 !important;
+}

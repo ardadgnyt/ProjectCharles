@@ -5,7 +5,6 @@ export const english087: Record<string, string> = {
   "Yükleniyor…": "Loading…",
   "Okunamadı": "Could not be read",
   "Modül yok": "No modules",
-  "Henüz modül yok. Ayarlar → Modüller’den bir .zip modül yükleyebilirsin.": "No modules yet. You can install a .zip module in Settings → Modules.",
   "Gösterilecek modül yok. Düzenle ile modül ekleyebilirsin.": "No modules to show. Use Edit to add modules.",
   "Modülleri düzenle": "Edit modules",
   "Modül yerleşimi": "Module layout",

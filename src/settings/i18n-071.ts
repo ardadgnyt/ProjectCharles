@@ -63,7 +63,6 @@ export const english071: Record<string, string> = {
   'Mikrofonla Gemini’yle gerçek zamanlı konuş. Ücretsiz bir Gemini API anahtarı gerekir; ses Google’a gönderilir.':
     'Talk to Gemini in real time with your microphone. It needs a free Gemini API key; audio is sent to Google.',
   'Anahtar eklenmedi': 'No key yet',
-  '✓ Gemini Live bağlı': '✓ Gemini Live connected',
   Ses: 'Voice',
   'Anahtar ayarları': 'Key settings',
   'Faturalandırması kapalı bir Free Tier projesinin anahtarını kullan. Ücretsiz katmanda içerik ürün geliştirmek için kullanılabilir. Bilgisayar işlemleri bağlı GPT/Codex hesabına izin ayarlarınla aktarılır.':
@@ -72,10 +71,6 @@ export const english071: Record<string, string> = {
   'AI Studio’yu aç': 'Open AI Studio',
   'Kurmak için Charles ile kur’a bas.': 'Press Set up with Charles to set it up.',
   // plugins
-  '✓ Google bağlı': '✓ Google connected',
-  '✓ Microsoft bağlı': '✓ Microsoft connected',
-  '✓ Home Assistant bağlı': '✓ Home Assistant connected',
-  '✓ E-posta bağlı': '✓ Mail connected',
   // city picker
   'Hava durumu konumu': 'Weather location',
   'Adacıkta havası gösterilecek şehri veya ilçeyi seç.': 'Choose the city or district whose weather the island shows.',
@@ -89,7 +84,6 @@ export const english071: Record<string, string> = {
   Kulaklık: 'Headphones',
   'Korsan göz bandı': 'Pirate eye patch',
   Papyon: 'Bow tie',
-  'Çanlı kedi tasması': 'Leash',
   Tasma: 'Leash',
   'Batmış ok': 'Stuck arrow',
 };

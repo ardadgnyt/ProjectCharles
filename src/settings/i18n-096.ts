@@ -14,9 +14,6 @@ export const english096: Record<string, string> = {
   'EVREN hesabı': 'EVREN account',
   'EVREN API anahtarınla bağlan. Anahtar Windows güvenli şifrelemesiyle %APPDATA%\\Charles klasöründe saklanır; proje klasöründe ve sürüm paketinde tutulmaz.':
     'Connect with your EVREN API key. The key is stored with Windows encryption in %APPDATA%\\Charles - never in the project folder or the release package.',
-  'Bağlantı test edilince EVREN hesabındaki modeller model listesine eklenir; adları "EVREN · " diye başlar.':
-    'Once the connection is tested, the models in your EVREN account join the model list; their names start with "EVREN · ".',
-  'Evren Giriş Sayfası': 'EVREN login page',
   'Hesap kontrol ediliyor…': 'Checking account…',
   'Anahtar kaydedildi. Bağlantıyı test et\'e bas.': "Key saved. Press 'Test connection'.",
   'EVREN bağlantısı test ediliyor': 'Testing the EVREN connection',
@@ -25,8 +22,6 @@ export const english096: Record<string, string> = {
   'Kullanım şartları': 'Terms of use',
   'EVREN kullanım şartlarını okuyup kabul etmeni isteyebilir.':
     'EVREN may ask you to read and accept its usage terms.',
-  'Şartları kabul et': 'Accept terms',
-  'Şartlar kabul edildi.': 'Terms accepted.',
   // EVREN connection errors
   'EVREN API anahtarı eklenmemiş. Önce anahtarını kaydet.': 'No EVREN API key yet. Save your key first.',
   'EVREN anahtarı eklenmemiş': 'No EVREN API key yet',

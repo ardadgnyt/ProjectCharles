@@ -18,6 +18,7 @@ import { dropSlime } from './drop-slime';
 import { slimeIcon } from '../island/app-icon';
 import { roomActions } from './bridge';
 import { parseLook } from '../vendor/slime/shape';
+import { t } from '../settings/i18n';
 import { restore as restoreFeed, hold as holdFeed, release as releaseFeed } from '../chat/follow';
 
 export type WorkspaceDeps = {
@@ -166,18 +167,22 @@ export function workspaceUI(d: WorkspaceDeps) {
     review: (id) => void review.open(id),
     visible: () => on && view === 'chat',
   });
+  // v1.0.0 (T12): the queue row shows only while it has work; this button opens it to add the first
+  const queueB = iconButton('queue', 'İş kuyruğu', () => work.toggle());
+  // v1.0.0 (T12): "Sohbet | Proje" and "Yeni konuşma" sit in the chat's title row (moved in by apply)
+  const modeSlot = el('div', 'ws-chat-modes');
   const chatHead = el(
     'div',
     'ws-chat-head',
     back,
     el('i', 'ws-vsep'),
     el('div', 'ws-chat-heading', chatTitle, chatPath),
-    el('div', 'ws-chat-tools', findBox, findB, reviewB, panelB, moreB),
+    modeSlot,
+    el('div', 'ws-chat-tools', findBox, findB, reviewB, panelB, queueB, moreB),
   );
   const chatBody = el('div', 'ws-chat-body');
-  const hint = el('p', 'ws-composer-hint', 'Enter ile gönder · Shift + Enter ile yeni satır');
   const workBox = el('div', 'ws-work', work.now, work.queue);
-  const chat = el('div', 'ws-view ws-chat-view', chatHead, workBox, chatBody, hint, panelSide.element);
+  const chat = el('div', 'ws-view ws-chat-view', chatHead, workBox, chatBody, panelSide.element);
   chat.hidden = true;
   main.append(home, chat);
   const body = el('div', 'ws-body', side, main);
@@ -252,13 +257,40 @@ export function workspaceUI(d: WorkspaceDeps) {
   const contentHome = { parent: content.parentElement!, next: content.nextSibling };
   const pet = $('pet');
   const petHome = { parent: pet.parentElement!, next: pet.nextSibling };
+  // v1.0.0 (T12): the island's mode switch and "Yeni konuşma" visit the chat title row (same nodes,
+  // so their handlers and the renderer's state keep working) and go back to the island's mode row
+  let modesHome: [Element, Node, Node | null][] = [];
+  function borrowModes() {
+    for (const n of [document.querySelector('.mode-row > .mode-seg'), document.getElementById('new-chat')]) {
+      if (!n || n.parentElement === modeSlot) continue;
+      modesHome.push([n, n.parentElement!, n.nextSibling]);
+      modeSlot.append(n);
+    }
+  }
+  function returnModes() {
+    for (const [n, parent, next] of modesHome) parent.insertBefore(n, next?.parentNode === parent ? next : null);
+    modesHome = [];
+  }
+  // v1.0.0 (T22): no permanent key line under the message box. The page has no native tooltips
+  // (ui/no-native-tooltips.ts turns every title into an aria-label, which would rename the box and
+  // the send button), so the keys are the description of both while the app window is open.
+  const KEYS = 'Enter ile gönder · Shift + Enter ile yeni satır';
+  const keyTips = [$('prompt'), $('send')];
+  function keyTip() {
+    for (const e of keyTips) {
+      if (on) e.setAttribute('aria-description', t(KEYS));
+      else e.removeAttribute('aria-description');
+    }
+  }
+  document.addEventListener('charles-language', () => on && keyTip());
 
   function chatInfo() {
     const { room, path } = sidebar.active();
     chatTitle.textContent = room?.name || 'Yeni sohbet';
     chatTitle.translate = !room;
     chatPath.replaceChildren();
-    if (path.length) chatPath.append(icon('folder'), el('span', '', path.join(' / ')));
+    // v1.0.0: a chat in a project shows the project's icon (its path starts with the project)
+    if (path.length) chatPath.append(icon(room?.projectId ? 'project' : 'folder'), el('span', '', path.join(' / ')));
     crumb.textContent = view === 'chat' ? room?.name || 'Sohbet' : 'Çalışma alanı';
     crumb.translate = !(view === 'chat' && room);
   }
@@ -497,6 +529,8 @@ export function workspaceUI(d: WorkspaceDeps) {
       void avatar();
       petSlot.append(pet);
       chatBody.append(content);
+      borrowModes();
+      keyTip();
       void sidebar.refresh();
       // v0.9.25: an approval or a question that waits is shown, not hidden behind the home page
       if (document.querySelector('#requests .request')) showChat();
@@ -505,6 +539,8 @@ export function workspaceUI(d: WorkspaceDeps) {
       dashboard.hide();
       sidebar.closeMenu();
       clearFind();
+      returnModes();
+      keyTip();
       contentHome.parent.insertBefore(content, contentHome.next);
       petHome.parent.insertBefore(pet, petHome.next);
     }

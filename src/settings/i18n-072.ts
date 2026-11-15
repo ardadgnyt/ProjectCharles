@@ -65,8 +65,6 @@ export const english072: Record<string, string> = {
   'Resmî tatiller ve özel günler seçili dile göre otomatik gösterilir.':
     'Public holidays and special days follow the selected language automatically.',
   'Outlook etkinlikleri şimdilik yalnızca görüntülenir.': 'Outlook events are view-only for now.',
-  'Google Takvim’e eklemek için Ayarlar → Eklentiler → Google Takvim’i bağla. Şimdilik Charles hatırlatıcısı olarak kaydedilir.':
-    'To add to Google Calendar, connect it in Settings → Plugins → Google Calendar. For now it is saved as a Charles reminder.',
   'Hatırlatıcı için gelecekte bir zaman seç.': 'Pick a time in the future for the reminder.',
   'Silindi.': 'Deleted.',
   // smart home

@@ -27,8 +27,8 @@ using Microsoft.Win32;
 [assembly: AssemblyProduct("Charles")]
 [assembly: AssemblyCompany("HzPederPan")]
 [assembly: AssemblyDescription("Charles Setup")]
-[assembly: AssemblyVersion("0.9.27.0")]
-[assembly: AssemblyFileVersion("0.9.27.0")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
 
 namespace CharlesSetup {
 
@@ -704,7 +704,7 @@ class Wizard : Base {
   public static string Label(string v) {
     var m = Regex.Match(v ?? "", @"^(\d+\.\d+\.\d+)(?:-([a-z]+))?");
     if (!m.Success) return v ?? "";
-    return "v" + m.Groups[1].Value + (m.Groups[2].Value == "rc" ? " Release Candidate" : m.Groups[2].Value == "beta" ? " Beta" : "");
+    return "v" + m.Groups[1].Value + (m.Groups[2].Value == "rc" ? " Release Candidate" : m.Groups[2].Value == "beta" ? " Beta" : m.Groups[2].Value == "" ? " Stable" : "");
   }
   void PageLanguage() {
     Head.Text = Tx.T("langHead");

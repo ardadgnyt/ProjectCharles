@@ -66,6 +66,8 @@ class Watchdog {
           value: percent,
           app: '',
           text: `C: diskinde yalnızca ${(free / 1024 ** 3).toFixed(1)} GB (%${percent.toFixed(1)}) boş yer kaldı.`,
+          // v1.0.0: for the notification card's own (translated) sentence
+          freeGb: free / 1024 ** 3,
         });
     }
     for (const w of out) {

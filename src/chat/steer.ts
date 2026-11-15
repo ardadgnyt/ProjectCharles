@@ -10,6 +10,8 @@
 // v0.9.24: the box's files and photos go with it. GPT gets them in the running turn; a queued
 // instruction keeps them and they return to the box when it goes out or is pulled back.
 
+import { icon } from '../workspace/icons';
+
 export type SteerFile = { id: string; name: string; kind?: string; thumbnail?: string };
 type Held = { text: string; files: SteerFile[] };
 
@@ -66,8 +68,16 @@ export function steerUI(d: SteerDeps) {
       const body = document.createElement('button');
       body.type = 'button';
       body.className = 'steer-text';
-      body.textContent = files.length ? `${text}  📎 ${files.length}` : text;
-      body.title = d.t('Düzenlemek için tıkla');
+      body.textContent = text;
+      // v1.0.0: the number of files with the file icon (it was a paperclip emoji)
+      if (files.length) {
+        const count = document.createElement('span');
+        count.className = 'steer-files';
+        count.append(icon('file'), String(files.length));
+        count.setAttribute('aria-label', d.t('{n} dosya').replace('{n}', String(files.length)));
+        body.append(count);
+      }
+      body.setAttribute('aria-description', d.t('Düzenlemek için tıkla'));
       body.onclick = () => {
         queue.splice(i, 1);
         d.prompt.value = d.prompt.value ? d.prompt.value + '\n' + text : text;
@@ -90,7 +100,8 @@ export function steerUI(d: SteerDeps) {
         now.type = 'button';
         now.className = 'steer-now';
         now.textContent = d.t('Şimdi');
-        now.title = d.t('Yanıtı durdur ve bunu hemen gönder');
+        // v1.0.0: the hint is a description, not a title (titles become names: ui/no-native-tooltips.ts)
+        now.setAttribute('aria-description', d.t('Yanıtı durdur ve bunu hemen gönder'));
         now.onclick = () => {
           interjecting = true;
           now.disabled = true;

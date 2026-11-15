@@ -1,0 +1,182 @@
+/* 08-tour · The welcome tour (onboarding) over the island.
+   Merged in v1.0.0 (T37) from the release files, every rule in its original order; the load order is
+   in RULES.md / DEVELOPMENT.md. Colours, radii and type come from 00-tokens.css. */
+
+/* ── from 6-acrylic.css ── */
+.tour.closing {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+body.compact .tour,
+body.desktop-pet .tour,
+body.hidden-island .tour {
+  display: none;
+}
+/* speech-bubble tail pointing up at Slime */
+.tour-card::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateX(-50%) rotate(45deg);
+  border-left: 1px solid var(--ac-edge);
+  border-top: 1px solid var(--ac-edge);
+  background: rgb(10, 9, 8);
+}
+.tour-dots {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.tour-dots i {
+  width: 18px;
+  height: 4px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.12);
+}
+.tour-colors {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.tour-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.tour .slime-swatch {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--r-md);
+  border: 2px solid var(--swatch-edge);
+  background:
+    radial-gradient(60% 40% at 32% 26%, rgba(255, 255, 255, 0.75), transparent 70%),
+    linear-gradient(180deg, var(--swatch-top), var(--swatch));
+  cursor: pointer;
+}
+.tour .slime-swatch[aria-checked='true'] {
+  box-shadow:
+    0 0 0 2px #1d1d23,
+    0 0 0 4px rgba(255, 255, 255, 0.85);
+}
+.tour-mini {
+  width: fit-content;
+}
+.tour-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.tour-actions .primary {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--sb-accent);
+  color: var(--cream-ink);
+  font: inherit;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+
+/* ── from 7-settings-v070.css ── */
+/* ── Welcome tour: pick any AI ─────────────────────────────────────────────────── */
+.tour-ai {
+  display: grid;
+  gap: 8px;
+  margin: -2px 0 12px;
+}
+/* v1.0.0: every provider of the model menu (seven): two columns of compact rows */
+.tour-ai-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.tour-ai-option:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+.tour .tour-ai-option[aria-pressed='true'] {
+  border-color: var(--cream-70) !important;
+  background: var(--cream-12) !important;
+}
+.tour-ai-option i {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+}
+.tour-ai-text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.tour-ai-text strong {
+  font-size: var(--fs-i4);
+}
+/* v1.0.0: the line says what is needed (a plan, chat mode only): it wraps, it is not cut off */
+.tour-ai-text small {
+  font-size: var(--fs-i2);
+  line-height: 1.3;
+  color: var(--sb-muted);
+}
+
+/* ── from 40-v0924.css ── */
+/* --- The welcome card: a low island scrolls instead of cutting off the buttons ----------------------- */
+.tour {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ── from 53-v100-dtour.css ── */
+/* --- Welcome tour: Charles and the header's icons stay clear and usable above the layer ---------
+   (.tour is z-index 50 in .island's stacking context; these are their own positioned boxes there:
+   the chat view's .character-center and the shelf's .charles-pet carry a transform, #island-bar is
+   absolute) */
+body.onboarding header > .character-center,
+body.onboarding #shelf .charles-pet,
+body.onboarding #island-bar {
+  z-index: 51;
+}
+/* the chat view's centre box also holds the name, version and status line: under the layer they were
+   dimmed out of sight; above it they would stand over the card, so they step aside meanwhile */
+body.onboarding header > .character-center > :not(#pet) {
+  visibility: hidden;
+}
+/* --- Welcome tour: the whole tour ends with the × in the card's corner (src/island/onboarding.ts) --- */
+.tour-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--sb-muted);
+  cursor: pointer;
+}
+.tour-close svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.tour-close:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--sb-text);
+}
+.tour-close:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 1px;
+}

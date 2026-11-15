@@ -4,6 +4,7 @@
 // page's storage; the closed island shows the timer (src/island/shelf.ts → notch).
 import { el, icon } from '../workspace/icons';
 import { Sound } from '../vendor/core/sound';
+import { t } from '../settings/i18n';
 
 export type Mode = 'focus' | 'break' | 'countdown' | 'stopwatch';
 export type Finished = { mode: Mode; title: string; sub: string; action: string; next: Mode | null };
@@ -27,7 +28,8 @@ const MODES: [Mode, string][] = [
 /** the break is part of Odak (no tab of its own) */
 const tabOf = (m: Mode): Mode => (m === 'break' ? 'focus' : m);
 const BREAKS = [5, 10, 15, 20, 30];
-const LABEL: Record<Mode, string> = { focus: 'ODAK', break: 'MOLA', countdown: 'GERİ SAYIM', stopwatch: 'KRONOMETRE' };
+// v1.0.0: normal case (it was spaced capitals)
+export const LABEL: Record<Mode, string> = { focus: 'Odak', break: 'Mola', countdown: 'Geri sayım', stopwatch: 'Kronometre' };
 // the break length is chosen beside the focus length (and asked again when focus ends)
 const CHIPS: Record<Exclude<Mode, 'stopwatch'>, number[]> = { focus: [25, 50, 90], break: [5, 10, 15], countdown: [1, 5, 10, 30] };
 const KEY = 'charles-timer';
@@ -70,7 +72,8 @@ function load(): Saved {
       label: String(v.label || '').slice(0, 120),
       cycle: Math.max(0, Math.min(SESSIONS - 1, Number(v.cycle) || 0)),
       run: v.run && ['focus', 'break', 'countdown', 'stopwatch'].includes(v.run.mode) ? v.run : null,
-      finished: v.finished || null,
+      // a finish saved by an older version still says "Odak bitti!"
+      finished: v.finished ? { ...v.finished, title: String(v.finished.title || '').replace(/!$/, '') } : null,
     };
   } catch {
     return structuredClone(DEFAULTS);
@@ -248,11 +251,11 @@ export function timerTool({ api, onChange }: Deps) {
     st.run = null;
     if (r.mode === 'focus') {
       st.cycle = (st.cycle + 1) % SESSIONS;
-      st.finished = { mode: 'focus', title: 'Odak bitti!', sub: `Sırada ${st.minutes.break} dk mola`, action: 'Molaya başla', next: 'break' };
+      st.finished = { mode: 'focus', title: 'Odak bitti', sub: `Sırada ${st.minutes.break} dk mola`, action: 'Molaya başla', next: 'break' };
     } else if (r.mode === 'break') {
-      st.finished = { mode: 'break', title: 'Mola bitti!', sub: `Tekrar odaklan · ${st.minutes.focus} dk`, action: 'Odaklan', next: 'focus' };
+      st.finished = { mode: 'break', title: 'Mola bitti', sub: `Tekrar odaklan · ${st.minutes.focus} dk`, action: 'Odaklan', next: 'focus' };
     } else {
-      st.finished = { mode: 'countdown', title: 'Süre doldu!', sub: st.label || `${Math.round(r.total / 60000)} dk geri sayım`, action: 'Tamam', next: null };
+      st.finished = { mode: 'countdown', title: 'Süre doldu', sub: st.label || `${Math.round(r.total / 60000)} dk geri sayım`, action: 'Tamam', next: null };
     }
     save();
     if (st.sound) {
@@ -342,7 +345,9 @@ export function timerTool({ api, onChange }: Deps) {
       b.classList.toggle('on', on);
       b.setAttribute('aria-selected', String(on));
       b.disabled = busy() && !on;
-      b.title = busy() && !on ? 'Önce zamanlayıcıyı sıfırla' : '';
+      // why a tab is disabled, for screen readers (no `title`: src/ui/no-native-tooltips.ts)
+      if (busy() && !on) b.setAttribute('aria-description', t('Önce zamanlayıcıyı sıfırla'));
+      else b.removeAttribute('aria-description');
     }
     ringLabel.textContent = LABEL[mode];
     // middle
@@ -436,7 +441,8 @@ export function timerTool({ api, onChange }: Deps) {
     const frac = ended ? 0 : mode === 'stopwatch' ? (left % 60000) / 60000 : total ? left / total : 1;
     ringValue.setAttribute('stroke-dashoffset', (RING * (1 - frac)).toFixed(1));
     ringSub.textContent =
-      st.finished && !r ? st.finished.title : r && !running() ? 'Duraklatıldı' : mode === 'stopwatch' ? (r ? 'Çalışıyor' : 'Hazır') : `${Math.round(total / 60000)} dk'dan`;
+      // v1.0.0: no "50 dk'dan" under a countdown (the chosen chip already says it)
+      st.finished && !r ? st.finished.title : r && !running() ? 'Duraklatıldı' : mode === 'stopwatch' ? (r ? 'Çalışıyor' : 'Hazır') : '';
     ring.classList.toggle('paused', !!r && !running());
     const text = ringTime.textContent + ringSub.textContent + String(running()) + String(!!st.finished);
     if (text !== lastText) {

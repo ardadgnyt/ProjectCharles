@@ -73,7 +73,7 @@ Unknown fields, unknown permissions, missing fields or a bad id are refused with
 | `files` | `files.save` / `files.pick` — save a file to the user's computer and read files the user picks, always through Windows' own Save / Open window (Charles 0.9.12+). Shown to the user as: “Kaydet penceresiyle bilgisayarına dosya kaydedebilir, Aç penceresiyle seçtiğin dosyaları okuyabilir. Neyin ve nereye kaydedileceğini, hangi dosyanın açılacağını her seferinde sen seçersin; modül başka hiçbir dosyana erişemez.” |
 | `storage` *(always)* | Files in the module's own data folder only. |
 | `slime` *(always)* | `slime.emote`, `slime.react`, `slime.look` — Slime's expressions and reactions, and reading his look. |
-| `notify` *(always)* | `notify` — a short message in Charles' notification bubble. |
+| `notify` *(always)* | `notify` — a short message on one of Charles' notification cards (a click opens the module). |
 
 Before installing, the user sees the name, version, author, description and every permission
 explained, and chooses **Install** or **Cancel**.
@@ -142,7 +142,8 @@ const r = await C.files.save({
 });
 // → { saved: true, name: 'Eldoria.zip', size: 482113 }   — never the full path
 // → { saved: false }                                    — the user cancelled (not an error)
-// Charles shows “Kaydedildi: Eldoria.zip” in its bubble; a click shows the file in its folder.
+// Charles shows a “File saved” card with the module's name and Eldoria.zip; its button,
+// “Show in folder” (as a click on the card), shows the file in its folder.
 
 const p = await C.files.pick({ filters: [{ name: 'Evren paketi', extensions: ['zip'] }], multiple: false, encoding: 'binary' });
 // → { picked: true, files: [{ name, size, data }] }  data: Uint8Array ('binary'), text ('utf8') or base64

@@ -12,7 +12,8 @@ const validCity = (c) =>
 /** Keeps the valid values of a saved companion.json and drops the rest. */
 function sanitize(v) {
   const out = { ...v };
-  for (const k of ['setup', 'observeApps', 'aiSuggestions'])
+  // lowMemory: v1.0.0 "Düşük bellek modu", read before ready by core/low-memory.cjs
+  for (const k of ['setup', 'observeApps', 'aiSuggestions', 'lowMemory'])
     if (out[k] !== undefined && typeof out[k] !== 'boolean') delete out[k];
   if (out.side !== undefined && !['left', 'center', 'right'].includes(out.side)) delete out.side;
   if (out.height !== undefined) {
@@ -58,7 +59,7 @@ class Preferences {
   }
   update(value) {
     if (!value || typeof value !== 'object') throw Error('Geçersiz tercih.');
-    for (const key of ['setup', 'observeApps', 'aiSuggestions'])
+    for (const key of ['setup', 'observeApps', 'aiSuggestions', 'lowMemory'])
       if (typeof value[key] === 'boolean') this.data[key] = value[key];
     if (['tr', 'en', 'de', 'fr', 'es', 'zh'].includes(value.language)) this.data.language = value.language;
     if (['left', 'center', 'right'].includes(value.side)) this.data.side = value.side;

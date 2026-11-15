@@ -15,10 +15,12 @@ import { bindFileDropTargets } from './drop-target';
 import { fileRack } from './file-rack';
 import { shareSheet } from './share';
 import { usageAll } from './usage-all';
+import { BAR_LIVE, BAR_REST, voiceBars as barsCanvas } from './voice-bars';
 import { modeSegment } from './mode-seg';
 import { weatherView } from './weather-view';
+import { t as tr } from '../settings/i18n';
 import { colorPicker } from './color-picker';
-import { timerTool, type TimerInfo } from './timer';
+import { timerTool, LABEL as TIMER_LABEL, type TimerInfo } from './timer';
 import { hub } from './tools-hub';
 import { weeklySummaryUI } from '../settings/weekly-summary';
 
@@ -219,7 +221,6 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   askInput.setAttribute('aria-label', 'Charles’a bir şey sor');
   askInput.maxLength = 100000;
   const askMic = button('h13-ask-btn', 'Konuş', svg('mic'));
-  askMic.title = 'Konuş';
   // v0.9.14: dictation right into this box (the chat does not open)
   askMic.onclick = () => {
     const recording = document.body.dataset.voicePhase === 'recording';
@@ -238,12 +239,27 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   const voiceIcon = el('span', 'h13-voice-icon', svg('mic'));
   const voiceTitle = el('strong', 'h13-voice-title', 'Sesli sohbet');
   const voiceSub = el('small', 'h13-voice-sub', 'Dokun ve konuş');
+  // v1.0.0: the bars are one canvas in whole device pixels (src/island/voice-bars.ts), so they
+  // are equally thick and evenly spaced at every display scale and on the Small island
   const voiceBars = el('span', 'h13-voice-bars');
-  const BAR_SHAPE = [0.4, 0.55, 0.7, 0.55, 0.85, 1, 0.85, 0.55, 0.7, 0.55, 0.4];
-  for (let i = 0; i < BAR_SHAPE.length; i++) voiceBars.append(el('i'));
-  const bars = [...voiceBars.children] as HTMLElement[];
+  const bars = barsCanvas(() => (window.devicePixelRatio || 1) * ((voiceBars as any).currentCSSZoom || 1));
+  voiceBars.append(bars.canvas);
+  // during a call the card also holds the end button: the two outer bars make room for it
+  const LIVE = BAR_LIVE.slice(1, -1);
+  let level = 0;
+  // The level arrives with every frame of the call. Each bar moves a part of the way to its new
+  // height (what the 90 ms CSS transition did for the old boxes), so the wave flows instead of jumping.
+  let flow: number[] = [];
+  const paintBars = () => {
+    if (!liveOn()) {
+      flow = [];
+      return bars.set(BAR_REST);
+    }
+    const aim = LIVE.map((shape) => (level ? Math.max(0.25, Math.min(1, 0.25 + level * shape * (0.8 + Math.random() * 0.4))) : 0.22));
+    flow = aim.map((v, i) => (flow[i] === undefined ? v : flow[i] + (v - flow[i]) * 0.3));
+    bars.set(flow);
+  };
   const voiceEnd = button('h13-voice-end', 'Sesli sohbeti bitir', svg('x'));
-  voiceEnd.title = 'Sesli sohbeti bitir';
   const voiceBtn = el('div', 'h13-voice', voiceIcon, el('span', 'h13-voice-text', voiceTitle, voiceSub), voiceBars, voiceEnd);
   voiceBtn.tabIndex = 0;
   voiceBtn.setAttribute('role', 'button');
@@ -251,7 +267,7 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   const pressCall = () => {
     const call = document.getElementById('voice-call') as HTMLButtonElement | null;
     if (call) call.click();
-    else notice('Sesli sohbet için Ayarlar → AI Modelleri bölümünden Gemini Live’ı etkinleştir.');
+    else notice('Sesli görüşme için Ayarlar’daki AI Modelleri sayfasında Gemini Live’ı aç.');
   };
   const liveOn = () => document.body.dataset.liveVoice === 'active';
   // v0.9.14: with the microphone switched off (header), the voice card does nothing
@@ -283,12 +299,17 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     voiceBtn.setAttribute('aria-pressed', String(on));
     voiceTitle.textContent = !on ? 'Sesli sohbet' : charlesTalking ? 'Charles konuşuyor' : 'Dinliyor…';
     voiceSub.textContent = on ? `Sesli sohbet · ${callClock()}` : 'Dokun ve konuş';
+    // the state's colour is in CSS; the canvas reads it again
+    if (!on) level = 0;
+    paintBars();
+    bars.refresh();
   };
   document.addEventListener('charles-live-level', (e: any) => {
     const d = e.detail;
     const l = Math.max(0, Math.min(1, Number(typeof d === 'object' ? d?.level : d) || 0));
     const who = !!(typeof d === 'object' && d?.charles);
-    bars.forEach((b, i) => (b.style.transform = l ? `scaleY(${Math.max(0.25, Math.min(1, 0.25 + l * BAR_SHAPE[i] * (0.8 + Math.random() * 0.4))).toFixed(3)})` : ''));
+    level = l;
+    paintBars();
     voiceBtn.classList.toggle('speaking', l > 0.08);
     if (who !== charlesTalking) {
       charlesTalking = who;
@@ -320,12 +341,25 @@ export function islandShelf({ api, notice, attempt }: Deps) {
       window.clearInterval(voiceTimer);
       voiceTimer = 0;
       charlesTalking = false;
-      bars.forEach((b) => (b.style.transform = ''));
     }
     paintVoice();
   };
   new MutationObserver(syncVoice).observe(body, { attributes: true, attributeFilter: ['data-live-voice'] });
   syncVoice();
+  // another display scale, the Small island or the shelf coming on screen: the same bars, drawn again
+  // for the new pixels (nothing runs between these events)
+  let barsFor = '';
+  new MutationObserver(() => {
+    const now = body.dataset.view + (body.classList.contains('island-small') ? ' small' : '') + (body.classList.contains('workspace') ? ' window' : '');
+    if (now === barsFor) return;
+    barsFor = now;
+    // the zoom of the new size applies with the next layout; the shelf's own opening motion ends later
+    requestAnimationFrame(() => bars.refresh());
+    window.setTimeout(() => bars.refresh(), 450);
+  }).observe(body, { attributes: true, attributeFilter: ['class', 'data-view'] });
+  // the card changed size (a longer title in another language, the end button): the bars moved
+  new ResizeObserver(() => bars.refresh()).observe(voiceBtn);
+  window.addEventListener('resize', () => bars.refresh());
   const askSend = button('h13-ask-btn h13-ask-send', 'Gönder', svg('arrowUp'));
   askSend.type = 'submit';
   ask.append(askInput, askMic, askSend);
@@ -406,7 +440,7 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     heightFrame = requestAnimationFrame(() => {
       if (view !== 'shelf') return;
       const bar = document.getElementById('island-bar');
-      // the shelf's own height (its content is drawn smaller with CSS zoom: see 29-v0913.css)
+      // the shelf's own height (its content is drawn smaller with CSS zoom: see 04-shelf.css)
       // v0.9.24: the welcome card asks for room of its own (src/island/onboarding.ts)
       const h = Math.max(Math.ceil((bar?.offsetHeight || 40) + shelf.offsetHeight + 17), Number(body.dataset.tourHeight) || 0);
       if (Math.abs(h - sentHeight) < 2) return;
@@ -471,16 +505,21 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   }
 
   // ── Dosyalar: two tiles, then Dönüştür | Gönder ────────────────────────────
-  const tile = (kind: 'convert' | 'share' | 'rack', name: string, title: string, text: string) => {
-    const t = el('button', 'h13-tile', el('span', 'h13-tile-icon', svg(name)), el('span', 'h13-tile-text', el('strong', '', title), el('small', '', text)), el('span', 'h13-tile-go', svg('chevronRight')));
+  // v1.0.0: three low buttons, icon and name (they stay drop targets). The description lines left
+  // the page; screen readers still get them as aria-description (no `title`: the page turns every
+  // title into the element's name, src/ui/no-native-tooltips.ts).
+  const tile = (kind: 'convert' | 'share' | 'rack', name: string, title: string, hint: string) => {
+    const t = el('button', 'h13-tile', el('span', 'h13-tile-icon', svg(name)), el('strong', 'h13-tile-name', title));
     t.type = 'button';
     t.dataset.drop = kind;
     t.setAttribute('aria-label', title + ' · dosya bırak veya seç');
+    t.dataset.hint = hint;
+    t.setAttribute('aria-description', tr(hint));
     return t;
   };
   const convertTile = tile('convert', 'refresh', 'Dönüştür', 'Görsel, belge ve arşivleri başka formata çevir');
   const shareTile = tile('share', 'send', 'Gönder', 'Yakındaki cihaza Quick Share ile gönder');
-  const rackTile = tile('rack', 'folder', 'Dosya Rafı', 'Dosyaları sakla, istediğin yere sürükle');
+  const rackTile = tile('rack', 'folder', 'Dosya rafı', 'Dosyaları sakla, istediğin yere sürükle');
   const tiles = el('div', 'h13-tiles', convertTile, shareTile, rackTile);
   tiles.dataset.kind = 'files';
   const filesBack = button('h13-back', 'Geri', svg('chevronLeft'));
@@ -506,6 +545,8 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   let subClose: (() => void) | null = null;
   filesBack.onclick = () => openFiles('home');
   function openFiles(sub: 'home' | 'convert' | 'share' | 'rack', onSubClose?: () => void) {
+    // the descriptions follow the language chosen since the page started
+    for (const b of [convertTile, shareTile, rackTile]) b.setAttribute('aria-description', tr(b.dataset.hint || ''));
     const leaving = subClose;
     subClose = null;
     if (filesSub !== sub || openKind !== 'files') leaving?.();
@@ -733,11 +774,13 @@ export function islandShelf({ api, notice, attempt }: Deps) {
     ['monitor', 'pulse', 'Sistem izleyici'],
   ];
   const monitor = systemMonitor(api);
-  // v0.9.14: icon and name only (no description); long names wrap
+  // v1.0.0: icon and name on one line where it fits (a long name takes a second line)
   const toolTile = (sub: Exclude<ToolsSub, 'home'>, name: string, title: string) => {
-    const t = el('button', 'h13-tt', el('span', 'h13-tt-icon', svg(name)), el('strong', 'h13-tt-name', title));
+    const t = el('button', 'h13-tt', el('span', 'h13-tt-icon', svg(name)), el('span', 'h13-tt-name', title));
     t.type = 'button';
     t.dataset.sub = sub;
+    // v1.0.0 (tips): the whole name as a tooltip, shown only while the tile cuts it (ui/tooltip.ts)
+    t.dataset.tip = title;
     t.onclick = () => openTools(sub);
     return t;
   };
@@ -772,7 +815,8 @@ export function islandShelf({ api, notice, attempt }: Deps) {
           const name = el('span', 'h13-mod-name', m.name);
           name.translate = false;
           const b = button('h13-mod', m.name + ' · Aç', el('span', 'h13-mod-icon', ic), name);
-          b.title = m.description || m.name;
+          // the name is visible; the module's own description is extra (no `title`)
+          if (m.description) b.setAttribute('aria-description', String(m.description));
           b.onclick = () => void attempt(() => api.modulesOpen(m.id));
           return b;
         }),
@@ -781,11 +825,11 @@ export function islandShelf({ api, notice, attempt }: Deps) {
   }
   const toolsBack = button('h13-back', 'Geri', svg('chevronLeft'));
   toolsBack.onclick = () => openTools('home');
-  const toolsIcon = el('span', 'h13-tools-icon');
+  // v1.0.0: back arrow and title only (no framed icon box)
   const toolsTitle = el('strong', 'h13-tools-title');
   const toolsSlot = el('span', 'h13-files-tools');
   const toolsBody = el('div', 'h13-tools-body');
-  const toolsView = el('div', 'h13-files h13-tools', el('div', 'h13-files-head', toolsBack, toolsIcon, toolsTitle, toolsSlot), toolsBody);
+  const toolsView = el('div', 'h13-files h13-tools', el('div', 'h13-files-head', toolsBack, toolsTitle, toolsSlot), toolsBody);
   toolsView.dataset.kind = 'tools';
   function openTools(sub: ToolsSub) {
     toolsSub = sub;
@@ -795,7 +839,6 @@ export function islandShelf({ api, notice, attempt }: Deps) {
       return;
     }
     const meta = TOOLS.find(([id]) => id === sub)!;
-    toolsIcon.replaceChildren(svg(meta[1]));
     toolsTitle.textContent = meta[2];
     const card = CARD[sub] ? hub.cards?.[CARD[sub]!] : undefined;
     if (card) {
@@ -828,7 +871,7 @@ export function islandShelf({ api, notice, attempt }: Deps) {
       svgRing.setAttribute('viewBox', '0 0 32 32');
       const frac = t.mode === 'stopwatch' ? (t.ms % 60000) / 60000 : t.total ? t.ms / t.total : 0;
       svgRing.innerHTML = `<circle class="track" cx="16" cy="16" r="13"/><circle class="value" cx="16" cy="16" r="13" transform="rotate(-90 16 16)" stroke-dasharray="${NR.toFixed(1)}" stroke-dashoffset="${(NR * (1 - frac)).toFixed(1)}"/>`;
-      const label = { focus: 'ODAK', break: 'MOLA', countdown: 'GERİ SAYIM', stopwatch: 'KRONOMETRE' }[t.mode];
+      const label = TIMER_LABEL[t.mode];
       const play = button('notch-tool-btn', t.running ? 'Duraklat' : 'Devam et', svg(t.running ? 'pause' : 'play'));
       play.onclick = (e) => {
         e.stopPropagation();

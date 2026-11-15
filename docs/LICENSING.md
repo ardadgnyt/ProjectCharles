@@ -6,6 +6,8 @@ Quick Share protocol handling was adapted from MultiDrop, including a JavaScript
 
 The previous character-engine attribution was removed based on the maintainer's statement that the earlier engine had been completely replaced. This statement has not been independently established through a full historical source-comparison audit. Other dependency license notices remain intact.
 
-Both update and setup packages include src/, app/, build scripts, package-lock.json and the code license. Follow DEVELOPMENT.md to build. When publishing, make this exact corresponding source available with the binaries. No remote publication is performed by packaging.
+The update package (`npm run release:pack`) includes src/, app/, test/, the build scripts, package-lock.json and the code license. Since v1.0.0 the installer (`CharlesSetup.exe`, built by scripts/package.py) leaves out src/, test/ and scripts/ and carries app/, the built dist/, package-lock.json and the code license. Follow DEVELOPMENT.md to build.
+
+The complete corresponding source of every published version is in the public repository https://github.com/ardadgnyt/ProjectCharles, under the release of the same version. That is where a copy installed with `CharlesSetup.exe` gets its source from; the update package of the same version carries it as well. When publishing, push the exact source the binaries were built from together with the release. No remote publication is performed by packaging.
 
 The named artwork and branding have separate terms in LICENSE-ASSETS.md. Those terms do not restrict the GPL rights in the source code. Dependency licenses are listed in THIRD-PARTY-NOTICES.md.

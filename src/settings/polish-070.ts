@@ -3,14 +3,14 @@
 //  • Weather card gets a heading like every other card.
 //  • Buttons that sit next to each other are put in one wrapping row with a gap
 //    (they used to touch: "Eğitimi başlat|Algılamayı test et", "Kaydet|Bağlantıyı test et|…").
-//  • The services card shows only the GitHub "coming soon" row.
+// v1.0.0: the developer services card ("GitHub · coming soon") is gone.
 
 const GLOBE =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 5.7 12 3Z"/></svg>';
 
 // Rows that already lay their buttons out themselves.
 const OWN_LAYOUT =
-  '#screen-cards,.row,.provider-actions,.guide-nav,.button-row,.utility-actions,.studio-tabs,.studio-options,.studio-segment,.studio-colors,.expression-list,.expression-group,.ai-questions,.utility-item,nav,#settings-categories,.coming-soon,.service-card .row,.memory-item-actions,.ai-pick';
+  '#screen-cards,.row,.provider-actions,.guide-nav,.button-row,.utility-actions,.studio-tabs,.studio-options,.studio-segment,.ai-questions,.utility-item,nav,#settings-categories,.ai-pick';
 
 function groupButtons(root: ParentNode) {
   for (const parent of root.querySelectorAll<HTMLElement>('.settings-page, .settings-page *')) {
@@ -58,16 +58,6 @@ export function settingsPolish() {
     const h = document.createElement('h3');
     h.textContent = 'Hava durumu';
     weather.prepend(h);
-  }
-  // Services card: GitHub only (see extras.ts)
-  const pause = document.getElementById('pause-services')?.closest('.row') as HTMLElement | null;
-  if (pause) pause.hidden = true;
-  const services = document.getElementById('extra-settings');
-  if (services) {
-    for (const p of services.querySelectorAll<HTMLElement>('.hint'))
-      if (/şifrelenerek saklanır/.test(p.textContent || '')) p.hidden = true;
-    const h = services.querySelector('h3');
-    if (h) h.textContent = 'Geliştirici servisleri';
   }
   // Button rows, now and whenever a settings page renders new controls
   const panel = document.getElementById('settings-panel');

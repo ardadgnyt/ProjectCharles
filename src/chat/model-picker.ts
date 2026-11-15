@@ -24,11 +24,11 @@ export function clampMenu(menu: HTMLElement) {
 // panel beside it with that provider's models. The rows no longer repeat the provider's name.
 export const PROVIDERS: [string, string][] = [
   ['gpt', 'OpenAI'],
-  ['gemini', 'AntiGravity'],
+  ['gemini', 'Antigravity'],
   ['claude', 'Claude'],
   ['cursor', 'Cursor'],
   ['abacus', 'Abacus AI'],
-  ['evren', 'Evren'],
+  ['evren', 'EVREN'],
   ['copilot', 'GitHub Copilot'],
 ];
 const PREFIX = /^(?:Cursor|Antigravity|AntiGravity|Gemini|Claude|Abacus AI|EVREN|Evren|GitHub Copilot|OpenAI)\s*·\s*/;

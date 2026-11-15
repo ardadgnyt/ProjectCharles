@@ -15,8 +15,8 @@ export function weatherView(api: any, pickCity: () => void, sendHeight: () => vo
   const wrap = el('div', 'weather-sheet h13-weather');
   wrap.dataset.kind = 'weather';
   function load() {
+    // icon only: its name is the aria-label (no `title`, src/ui/no-native-tooltips.ts)
     const change = button('weather-change', 'Şehri değiştir', svg('location'));
-    change.title = 'Şehri değiştir';
     change.onclick = pickCity;
     if (!wrap.childElementCount) wrap.append(el('p', 'weather-note', 'Tahmin yükleniyor…'));
     void Promise.resolve(api.weatherForecast?.())
@@ -75,7 +75,7 @@ export function weatherView(api: any, pickCity: () => void, sendHeight: () => vo
               'span',
               'weather-day-sky',
               el('span', 'weather-day-emoji', d.emoji || '🌤️'),
-              el('small', 'weather-day-rain' + (Number(d.rain) >= 40 ? ' wet' : ''), Number.isFinite(d.rain) && d.rain > 0 ? '%' + d.rain : ''),
+              el('small', 'weather-day-rain' + (Number(d.rain) >= 50 ? ' wet' : ''), Number.isFinite(d.rain) && d.rain > 0 ? '%' + d.rain : ''),
             ),
             el('span', 'weather-day-temps', el('b', '', deg(d.max)), el('small', '', deg(d.min))),
           );

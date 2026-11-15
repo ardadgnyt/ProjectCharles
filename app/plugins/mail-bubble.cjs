@@ -10,6 +10,17 @@ const { BrowserWindow, ipcMain, screen } = require('electron');
 const WIDTH = 380;
 const MAX_VISIBLE = 3;
 const GAP = 8;
+// v1.0.0 (perffix P4): the card window's page process (~25 MB private, ~105 MB working set) used to
+// stay for good after the first card. It closes this long after the last card has gone;
+// ensureWindow() opens it again for the next one.
+const CLOSE_AFTER = 150000;
+
+/** v1.0.0 (perffix P4): whether the empty card window may be destroyed now. Never while a card is
+ *  listed (shown, or held back by the full-screen guard, a focus session or a suppression), while a
+ *  WhatsApp reply is being written, while a card action is still running, or while it is on screen. */
+function mayCloseCards({ items = 0, composing = false, actions = 0, visible = false } = {}) {
+  return items === 0 && !composing && actions === 0 && !visible;
+}
 
 /**
  * v0.9.18: where the cards go. Under the island when they fit there; a panel too tall for that used
@@ -34,8 +45,10 @@ class MailBubble {
   // anchor(): { x, y, width, height } of the visible island in screen coordinates.
   // onOpen(item): called when the user clicks a bubble.
   // onWhatsApp(action, args): v0.8.8 WhatsApp cards (reply, quick replies, open the chat…).
-  constructor({ anchor, onOpen, onWhatsApp = null, language = () => 'tr', fullscreen = () => false }) {
+  // onDismiss(id): v1.0.0 (bughunt) the user closed a card (main.cjs drops what waited for it).
+  constructor({ anchor, onOpen, onWhatsApp = null, onDismiss = null, language = () => 'tr', fullscreen = () => false }) {
     this.anchor = anchor;
+    this.onDismiss = onDismiss;
     this.fullscreen = fullscreen;
     this.language = language;
     this.onOpen = onOpen;
@@ -47,6 +60,9 @@ class MailBubble {
     this.suppressed = false;
     this.held = false;
     this.composing = false;
+    this.actions = 0;
+    this.closeTimer = null;
+    this.closeAfter = CLOSE_AFTER;
     // v0.8.13: what the user closed stays closed. A closed mail / reminder never comes back;
     // a closed WhatsApp chat comes back only with a newer message (not for its photo or the
     // group's name arriving a moment later).
@@ -94,7 +110,12 @@ class MailBubble {
           return { ok: true, value: true };
         }
         if (!this.onWhatsApp) throw Error('WhatsApp kapalı.');
-        return { ok: true, value: await this.onWhatsApp(String(action), args || {}) };
+        this.actions++;
+        try {
+          return { ok: true, value: await this.onWhatsApp(String(action), args || {}) };
+        } finally {
+          this.actions--;
+        }
       } catch (e) {
         return { ok: false, error: e.message };
       }
@@ -148,6 +169,9 @@ class MailBubble {
     this.dismissed.set(id, { time: Date.now(), last: item?.last || null });
     if (this.dismissed.size > 500) this.dismissed.delete(this.dismissed.keys().next().value);
     this.remove(id);
+    try {
+      this.onDismiss?.(id);
+    } catch {}
   }
 
   /** v0.9.14: a focus session with "Bildirimleri sustur": the cards wait until it ends. */
@@ -199,10 +223,40 @@ class MailBubble {
     this.window.on('closed', () => {
       this.window = null;
       this.ready = null;
+      this.wordsSent = null;
       this.composing = false;
     });
-    this.ready = this.window.loadURL('charles://app/bubble.html');
+    // v1.0.0 (bughunt): a page that failed to load is not kept: its window goes and the next card
+    // event makes a new one (one try per event; a rejected `ready` used to fail every later card)
+    const w = this.window;
+    this.ready = w.loadURL('charles://app/bubble.html').catch((e) => {
+      if (this.window === w) {
+        this.window = null;
+        this.ready = null;
+        this.wordsSent = null;
+      }
+      if (!w.isDestroyed()) w.destroy();
+      throw e;
+    });
     return this.ready;
+  }
+
+  /** v1.0.0 (perffix P4): one timer from the moment the last card goes; a new card cancels it. */
+  closeLater() {
+    clearTimeout(this.closeTimer);
+    this.closeTimer = null;
+    if (!this.window || this.window.isDestroyed()) return;
+    this.closeTimer = setTimeout(() => {
+      this.closeTimer = null;
+      const w = this.window;
+      if (!w || w.isDestroyed()) return;
+      const state = { items: this.items.length, composing: this.composing, actions: this.actions, visible: w.isVisible() };
+      if (mayCloseCards(state)) w.destroy();
+      // a reply being written or an action still running: ask again later (a card coming back
+      // cancels this through render())
+      else if (!state.items) this.closeLater();
+    }, this.closeAfter);
+    this.closeTimer.unref?.();
   }
 
   async render() {
@@ -210,20 +264,31 @@ class MailBubble {
       this.height = 0;
       this.composing = false;
       this.place();
+      this.closeLater();
       return;
     }
-    await this.ensureWindow();
+    clearTimeout(this.closeTimer);
+    this.closeTimer = null;
+    try {
+      await this.ensureWindow();
+    } catch {
+      return; // the next card event tries again (see ensureWindow)
+    }
     if (!this.window || this.window.isDestroyed()) return;
     // WhatsApp chats share one card (v0.8.8), the rest are bubbles as before
     const wa = this.items.filter((i) => i.kind === 'whatsapp');
     if (!wa.length) this.composing = false;
     const rest = this.items.filter((i) => i.kind !== 'whatsapp');
+    const language = String(this.language() || 'tr');
     this.window.webContents.send('bubble-items', {
       items: rest.slice(0, MAX_VISIBLE),
       more: Math.max(0, rest.length - MAX_VISIBLE),
       wa,
-      language: String(this.language() || 'tr'),
+      language,
+      // v1.0.0: the card texts of this language (notice-text.cjs); the page keeps no table
+      words: language === this.wordsSent ? null : require('./notice-text.cjs').words(language),
     });
+    this.wordsSent = language;
   }
 
   /** v0.9.19: where the cards are now, or null when none is on screen. */
@@ -311,8 +376,9 @@ class MailBubble {
   }
 
   destroy() {
+    clearTimeout(this.closeTimer);
     if (this.window && !this.window.isDestroyed()) this.window.destroy();
   }
 }
 
-module.exports = { MailBubble, bubbleSpot };
+module.exports = { MailBubble, bubbleSpot, mayCloseCards, CLOSE_AFTER };

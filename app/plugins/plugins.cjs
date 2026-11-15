@@ -340,7 +340,7 @@ class Plugins {
   }
   async token(id) {
     let t = this.data.tokens[id];
-    if (!t) throw Error('Hesap bağlı değil. Ayarlar → Eklentiler bölümünde ilgili hesabı bağla.');
+    if (!t) throw Error('Hesap bağlı değil. Ayarlar’daki Eklentiler sayfasında ilgili hesabı bağla.');
     if (t.expires > Date.now() + 60000) return t.access_token;
     const c = this.oauthConfig(id),
       epoch = this.epoch[id] || 0;
@@ -383,9 +383,9 @@ class Plugins {
     const message =
       e.reason === 'invalid_grant'
         ? name +
-          ' oturumunun süresi doldu ya da izin geri alındı. Ayarlar → Eklentiler → ' +
+          ' oturumunun süresi doldu ya da izin geri alındı. Ayarlar’daki Eklentiler sayfasında ' +
           name +
-          ' ile giriş yap. (Google projesi “Testing / Test” durumundaysa oturum 7 günde bir sona erer; Charles ile kur’un son adımı bunu kalıcı yapmayı anlatıyor.)'
+          ' ile giriş yap’a bas. (Google projesi “Testing / Test” durumundaysa oturum 7 günde bir sona erer; Charles ile kur’un son adımı bunu kalıcı yapmayı anlatıyor.)'
         : name +
           ' istemci kimliği veya gizli anahtarı artık geçerli değil. Charles ile kur’dan yeni bir gizli anahtar (Add secret) oluşturup kimlikle birlikte yapıştır.';
     if (epoch === (this.epoch[id] || 0)) {
@@ -409,7 +409,7 @@ class Plugins {
       ];
       if (!kinds.length)
         throw Error(
-          'Henüz mail hesabı bağlı değil. Ayarlar → Eklentiler bölümünden bir hesap bağla.',
+          'Henüz mail hesabı bağlı değil. Ayarlar’daki Eklentiler sayfasından bir hesap bağla.',
         );
       for (const source of kinds) {
         try {
@@ -541,7 +541,7 @@ class Plugins {
       const c = this.data.configs.home;
       if (!c?.token)
         throw Error(
-          'Home Assistant bağlı değil. Ayarlar → Eklentiler → Home Assistant bölümünde sunucu adresini ve uzun ömürlü erişim token’ını kaydet, ardından Bağlantıyı test et düğmesini kullan.',
+          'Home Assistant bağlı değil. Ayarlar’daki Eklentiler sayfasında Home Assistant kartına sunucu adresini ve uzun ömürlü erişim token’ını kaydet, sonra Bağlantıyı kontrol et’e bas.',
         );
       const data = await this.json(c.url + '/api/states', {
         headers: { Authorization: 'Bearer ' + c.token },
@@ -584,7 +584,7 @@ class Plugins {
         ...(this.data.configs.school?.password ? ['school'] : []),
       ];
       if (!kinds.length)
-        throw Error('Henüz mail hesabı bağlı değil. Ayarlar → Eklentiler bölümünden bir hesap bağla.');
+        throw Error('Henüz mail hesabı bağlı değil. Ayarlar’daki Eklentiler sayfasından bir hesap bağla.');
       for (const source of kinds) {
         try {
           const items = await this.search(source, s);
@@ -639,7 +639,7 @@ class Plugins {
     const c = this.data.configs.school;
     if (!c?.password)
       throw Error(
-        'Okul e-postası bağlı değil. Ayarlar → Eklentiler → Okul e-postası bölümünde POP3/IMAP sunucusu, e-posta adresi ve şifreni kaydet.',
+        'Okul e-postası bağlı değil. Ayarlar’daki Eklentiler sayfasında Okul e-postası kartına POP3/IMAP sunucusunu, e-posta adresini ve şifreni kaydet.',
       );
     // v0.9.25: the answer says how far a POP3 search looked (CH-426: an older mail got only
     // "bulamadım", with no word about the limit)
@@ -701,7 +701,7 @@ class Plugins {
     const c = this.data.configs.school;
     if (!c?.password)
       throw Error(
-        'Okul e-postası bağlı değil. Ayarlar → Eklentiler → Okul e-postası bölümünde POP3/IMAP sunucusu, e-posta adresi ve şifreni kaydet.',
+        'Okul e-postası bağlı değil. Ayarlar’daki Eklentiler sayfasında Okul e-postası kartına POP3/IMAP sunucusunu, e-posta adresini ve şifreni kaydet.',
       );
     if (c.protocol === 'pop3') {
       this.schoolQueue = (this.schoolQueue || Promise.resolve())
@@ -890,7 +890,7 @@ class Plugins {
     return body;
   }
   async calendarUpdate(id, ev) {
-    if (!this.data.tokens.gcal) throw Error('Etkinlik düzenlemek için Ayarlar → Eklentiler → Google Takvim’i bağla.');
+    if (!this.data.tokens.gcal) throw Error('Etkinlik düzenlemek için Ayarlar’daki Eklentiler sayfasında Google Takvim’i bağla.');
     if (typeof id !== 'string' || !/^[\w-]{1,200}$/.test(id)) throw Error('Geçersiz etkinlik.');
     const r = await this.json('https://www.googleapis.com/calendar/v3/calendars/primary/events/' + encodeURIComponent(id), {
       method: 'PATCH',
@@ -901,7 +901,7 @@ class Plugins {
     return { id: r.id, title: r.summary };
   }
   async calendarDelete(id) {
-    if (!this.data.tokens.gcal) throw Error('Etkinlik silmek için Ayarlar → Eklentiler → Google Takvim’i bağla.');
+    if (!this.data.tokens.gcal) throw Error('Etkinlik silmek için Ayarlar’daki Eklentiler sayfasında Google Takvim’i bağla.');
     if (typeof id !== 'string' || !/^[\w-]{1,200}$/.test(id)) throw Error('Geçersiz etkinlik.');
     const r = await this.fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/' + encodeURIComponent(id), {
       method: 'DELETE',
@@ -919,7 +919,7 @@ class Plugins {
   }
   async calendarAdd(ev) {
     if (!this.data.tokens.gcal)
-      throw Error('Etkinlik eklemek için Ayarlar → Eklentiler → Google Takvim’i bağla.');
+      throw Error('Etkinlik eklemek için Ayarlar’daki Eklentiler sayfasında Google Takvim’i bağla.');
     const body = this.eventBody(ev);
     if (typeof ev.uid === 'string' && /^[a-v0-9]{5,1024}$/.test(ev.uid)) body.id = ev.uid;
     const r = await this.json('https://www.googleapis.com/calendar/v3/calendars/primary/events', {

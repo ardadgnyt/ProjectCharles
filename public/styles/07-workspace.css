@@ -1,0 +1,7877 @@
+/* 07-workspace · The app window (body.workspace): title bar, sidebar, home page cards and edit mode, chat view,
+   side panel, work queue, modals, and the app-window forms of shared parts.
+   Merged in v1.0.0 (T37) from the release files, every rule in its original order; the load order is
+   in RULES.md / DEVELOPMENT.md. Colours, radii and type come from 00-tokens.css. */
+
+/* ── from 6-acrylic.css ── */
+/* --- v0.6.2: welcome tour (src/island/onboarding.ts) ------------------------ */
+/* (a tour rule, kept in this file for the cascade) */
+.tour {
+  position: fixed;
+  /* v1.0.0: the layer dims and blurs the whole island evenly (no top edge); Charles and the icon
+     bar stand above it (53-v100-dtour.css). The card starts under his measured bottom edge:
+     --tour-top, set by onboarding.ts place(). */
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: calc(var(--tour-top, 98px) + 10px) 18px 18px;
+  background: rgba(10, 9, 8, 0.8);
+  backdrop-filter: blur(10px);
+  animation: charles-fade 0.25s ease;
+}
+/* (a tour rule, kept in this file for the cascade) */
+.tour-card {
+  position: relative;
+  width: min(100%, 420px);
+  padding: 18px 18px 14px;
+  border-radius: var(--r-xl);
+  /* v1.0.0: the Settings dialog's warm black surface and edge, one flat fill, no light blob */
+  border: 1px solid var(--ac-edge);
+  background: rgb(10, 9, 8);
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.8);
+}
+/* (a tour rule, kept in this file for the cascade) */
+.tour-dots i.done {
+  background: var(--cream-45);
+}
+/* (a tour rule, kept in this file for the cascade) */
+.tour-dots i.on {
+  background: var(--sb-accent);
+}
+/* (a tour rule, kept in this file for the cascade) */
+.tour-title {
+  margin: 0 28px 6px 0;
+  font-size: var(--fs-i6);
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.2px;
+}
+/* (a tour rule, kept in this file for the cascade) */
+.tour-text {
+  min-height: 60px;
+  margin: 0 0 12px;
+  color: rgba(236, 236, 241, 0.86);
+  font-size: var(--fs-i4);
+  line-height: 1.55;
+}
+/* (a tour rule, kept in this file for the cascade) */
+.tour-mini,
+.tour-secondary {
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--ac-edge);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--sb-text);
+  font: inherit;
+  font-size: var(--fs-i3);
+  cursor: pointer;
+}
+
+/* ── from 7-settings-v070.css ── */
+/* (a tour rule, kept in this file for the cascade) */
+.tour-ai-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 7px 11px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--ac-edge);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--sb-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+/* (a tour rule, kept in this file for the cascade) */
+.tour-ai-status {
+  min-height: 1.4em;
+  margin: 0;
+  font-size: var(--fs-i3);
+  color: var(--sb-muted);
+}
+
+/* ── from 9-special.css ── */
+#history-list .folder-icon svg,
+.ws-folder-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+/* ── Island: the "open as app" button next to "Paneli açık tut" ─────────────────── */
+#workspace-open {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--sb-muted, #9a9aa2);
+}
+#workspace-open svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linejoin: round;
+}
+#workspace-open:hover {
+  color: var(--sb-text, #f2f2f5);
+  background: rgba(255, 255, 255, 0.06);
+}
+header > #workspace-open {
+  position: absolute;
+  left: 113px;
+  top: 12px;
+  z-index: 3;
+}
+body.compact header > #workspace-open,
+body.desktop-pet header > #workspace-open,
+body.hidden-island header > #workspace-open {
+  display: none;
+}
+/* ══ Workspace window ═══════════════════════════════════════════════════════════ */
+#workspace svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* While the app window is open the island itself is not drawn. */
+body.workspace {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  transform: none !important;
+  animation: none !important;
+  background: transparent !important;
+  overflow: hidden !important;
+}
+body.workspace main.island {
+  display: contents !important;
+}
+body.workspace main.island > header,
+body.workspace #resize-handle,
+body.workspace #mini-music {
+  display: none !important;
+}
+/* ── Title bar ─────────────────────────────────────────────────────────────── */
+.ws-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 10px 0 18px;
+  border-bottom: 1px solid var(--ws-line);
+  /* v0.7.4: a real Windows window: Windows drags it, so Snap works; its own minimize,
+     maximize and close buttons sit at the right (titleBarOverlay), so leave room for them */
+  -webkit-app-region: drag;
+  user-select: none;
+  padding-right: 150px;
+}
+.ws-titlebar button,
+.ws-titlebar input {
+  -webkit-app-region: no-drag;
+}
+.ws-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.ws-brand-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+.ws-brand strong {
+  font-size: var(--fs-a5);
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.3px;
+}
+.ws-sep {
+  display: block;
+  width: 1px;
+  height: 20px;
+  margin: 0 6px;
+  background: var(--ws-line-2);
+}
+.ws-crumb {
+  color: var(--ws-muted);
+  font-size: var(--fs-a3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 420px;
+}
+.ws-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+#workspace .ws-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: #c9c6c2;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+#workspace .ws-icon svg {
+  width: 19px;
+  height: 19px;
+}
+#workspace .ws-icon:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ws-text);
+}
+#workspace .ws-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.ws-island {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  margin: 0 4px;
+  padding: 0 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--cream-45) !important;
+  background: var(--cream-04) !important;
+  color: var(--ws-accent) !important;
+  font-weight: var(--fw-strong) !important;
+  font-size: var(--fs-a2) !important;
+  cursor: pointer;
+}
+.ws-island svg {
+  width: 18px;
+  height: 18px;
+}
+.ws-island:hover {
+  background: var(--cream-12) !important;
+}
+#workspace .ws-win {
+  width: 44px;
+  border-radius: var(--r-md);
+}
+#workspace .ws-win svg {
+  width: 17px;
+  height: 17px;
+}
+/* ── Body: left column + main area ───────────────────────────────────────── */
+.ws-body {
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
+  padding: 14px;
+}
+#workspace.no-side .ws-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+#workspace.no-side .ws-side {
+  display: none;
+}
+.ws-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+.ws-card {
+  border: 1px solid var(--ws-line);
+  border-radius: var(--r-xl);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.022), transparent 40%) var(--ws-card);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+.ws-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+}
+.ws-card-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: var(--fs-a5);
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.2px;
+}
+.ws-card-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--ws-accent);
+}
+.ws-card-icon svg {
+  width: 24px;
+  height: 24px;
+}
+/* profile */
+.ws-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 20px 16px 18px;
+  background: radial-gradient(90% 70% at 50% 20%, rgba(255, 255, 255, 0.05), transparent 70%) var(--ws-card);
+}
+.ws-pet-slot {
+  display: grid;
+  place-items: center;
+  height: 132px;
+}
+.ws-name {
+  font-size: var(--fs-a6);
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.5px;
+}
+.ws-version {
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+}
+.ws-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ws-green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok-strong) 14%, transparent);
+}
+.ws-dot.off,
+.off > .ws-dot {
+  background: var(--warn);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 14%, transparent);
+}
+/* chats */
+.ws-chats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  padding: 16px 14px 12px;
+}
+.ws-chats .ws-card-head {
+  padding: 0 4px;
+}
+/* v1.0.0 (T21): a row like the chats under it (icon and text, a surface on hover); cream is kept for
+   Send. The icon stays in the accent colour so it is found at once in an empty list. */
+.ws-new {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  padding: 0 8px !important;
+  border: 0 !important;
+  border-radius: var(--r-md) !important;
+  background: transparent !important;
+  color: var(--ws-text) !important;
+  font-weight: var(--fw-strong) !important;
+  font-size: var(--fs-a3) !important;
+  text-align: left;
+  cursor: pointer;
+}
+.ws-new svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+  color: var(--ws-accent);
+}
+.ws-new:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+.ws-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--ws-line);
+  border-radius: var(--r-md);
+  background: var(--ws-field);
+  color: var(--ws-muted);
+}
+.ws-search svg {
+  width: 17px;
+  height: 17px;
+}
+.ws-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0 !important;
+  outline: 0;
+  background: transparent !important;
+  color: var(--ws-text);
+  font: inherit;
+  padding: 0 !important;
+}
+.ws-tree {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 -6px;
+  padding: 0 6px;
+  scrollbar-width: thin;
+}
+.ws-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 6px 6px;
+}
+.ws-section-toggle,
+.ws-section-title {
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  color: #bcb8b3 !important;
+  font-size: var(--fs-a3) !important;
+  font-weight: var(--fw-strong) !important;
+  cursor: pointer;
+}
+.ws-section-title {
+  cursor: default;
+}
+.ws-recent {
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ws-line);
+}
+#workspace .ws-add {
+  width: 30px;
+  height: 30px;
+}
+.ws-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 1px 0;
+  padding-left: calc(var(--depth, 0) * 22px);
+  border-radius: var(--r-md);
+}
+.ws-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  padding: 0 8px !important;
+  border: 0 !important;
+  border-radius: var(--r-md) !important;
+  background: transparent !important;
+  color: var(--ws-body) !important;
+  font-size: var(--fs-a3) !important;
+  text-align: left;
+  cursor: pointer;
+}
+.ws-row-main > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: #a9a6a2;
+}
+.ws-row-main > svg.ws-chevron {
+  width: 15px;
+  height: 15px;
+  margin-right: -2px;
+}
+.ws-folder-icon {
+  display: inline-grid;
+  color: #bdb9b4;
+}
+.ws-row-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.ws-row.on {
+  background: var(--cream-08);
+  box-shadow: inset 2px 0 0 var(--ws-accent);
+}
+.ws-row.on .ws-row-main,
+.ws-row.on .ws-row-main > svg {
+  color: var(--ws-text) !important;
+}
+.ws-row.drop {
+  outline: 1px dashed var(--ws-accent);
+}
+#workspace .ws-more {
+  width: 30px;
+  height: 30px;
+  opacity: 0;
+}
+.ws-row:hover .ws-more,
+.ws-row.on .ws-more,
+.ws-more:focus-visible {
+  opacity: 1 !important;
+}
+.ws-kids {
+  position: relative;
+}
+.ws-kids::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 2px;
+  bottom: 8px;
+  width: 1px;
+  background: var(--ws-line-2);
+}
+.ws-empty {
+  margin: 6px 8px 10px;
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+  line-height: 1.45;
+}
+.ws-kids .ws-empty {
+  padding-left: 30px;
+}
+.ws-inline {
+  flex: 1;
+  height: 34px;
+  margin: 2px 0;
+  padding: 0 10px !important;
+  border: 1px solid var(--ws-accent) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--ws-field) !important;
+  color: var(--ws-text) !important;
+  font: inherit;
+  outline: 0;
+}
+.ws-conn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 6px 2px;
+  border-top: 1px solid var(--ws-line);
+}
+.ws-conn div {
+  display: grid;
+  line-height: 1.3;
+}
+.ws-conn strong {
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+  color: var(--ws-body);
+}
+.ws-conn small {
+  font-size: var(--fs-a1);
+  color: var(--ws-muted);
+}
+.ws-chats svg.spin {
+  animation: ws-spin 1.1s linear infinite;
+}
+@keyframes ws-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* menus */
+.ws-menu {
+  position: fixed;
+  z-index: 40;
+  min-width: 190px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: var(--r-lg);
+  background: #1c1d22;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+}
+.ws-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-radius: var(--r-sm) !important;
+  background: transparent !important;
+  text-align: left;
+  font-size: var(--fs-a2) !important;
+  cursor: pointer;
+}
+.ws-menu button svg {
+  width: 16px;
+  height: 16px;
+  color: var(--ws-muted);
+}
+.ws-menu button:hover,
+.ws-menu button:focus-visible {
+  background: rgba(255, 255, 255, 0.07) !important;
+  outline: 0;
+}
+/* ── Main area ──────────────────────────────────────────────────────────── */
+.ws-main {
+  min-width: 0;
+  min-height: 0;
+}
+.ws-view {
+  height: 100%;
+  min-height: 0;
+}
+.ws-view[hidden] {
+  display: none !important;
+}
+/* Genel bakış */
+.ws-home {
+  display: grid;
+  grid-template-columns: minmax(330px, 0.82fr) minmax(400px, 1.18fr);
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.ws-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.ws-dash {
+  padding: 16px 18px;
+}
+.ws-dash .ws-card-head {
+  margin-bottom: 12px;
+}
+.ws-pill-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+}
+.ws-pill-state .ws-dot {
+  width: 7px;
+  height: 7px;
+  background: #66645f;
+  box-shadow: none;
+}
+.ws-pill-state.on .ws-dot {
+  background: var(--ws-green);
+}
+.ws-chip,
+.ws-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+}
+.ws-chip {
+  border: 1px solid var(--ws-line-2);
+  color: var(--ws-body);
+}
+.ws-badge {
+  background: var(--ws-accent);
+  color: var(--ws-accent-ink);
+}
+.ws-time {
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ws-list {
+  display: grid;
+}
+.ws-muted {
+  color: var(--ws-muted);
+}
+/* music */
+.ws-music-body {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 18px;
+  align-items: center;
+}
+.ws-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: var(--r-md);
+  background: linear-gradient(145deg, #2a3a3a, #1a2026);
+  color: rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+}
+.ws-art > svg {
+  width: 42px;
+  height: 42px;
+}
+.ws-art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ws-music-info {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.ws-track {
+  font-size: var(--fs-a5);
+  font-weight: var(--fw-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-artist {
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-music-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0 8px;
+}
+#workspace .ws-music-controls .ws-icon.on {
+  color: var(--ws-accent);
+}
+#workspace .ws-play {
+  width: 46px;
+  height: 46px;
+  border-radius: 50% !important;
+}
+.ws-progress {
+  position: relative;
+  height: 4px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+}
+.ws-progress i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: var(--r-sm);
+  background: var(--ws-accent);
+}
+.ws-times {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ws-muted);
+  font-variant-numeric: tabular-nums;
+}
+/* reminders */
+.ws-rem {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  border-top: 1px solid var(--ws-line);
+}
+.ws-rem:first-child {
+  border-top: 0;
+}
+.ws-check {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0 !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: var(--r-sm) !important;
+  background: transparent !important;
+  color: transparent !important;
+  cursor: pointer;
+}
+.ws-check svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2.4;
+}
+.ws-check:hover,
+.ws-check.on {
+  border-color: var(--ok-strong) !important;
+  background: var(--ok-strong) !important;
+  color: #0e2a20 !important;
+}
+.ws-rem-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-rem-form {
+  display: grid;
+  grid-template-columns: 1fr 190px;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.ws-rem-form input {
+  height: 36px;
+  padding: 0 10px !important;
+  border: 1px solid var(--ws-line-2) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--ws-field) !important;
+  color: var(--ws-text) !important;
+  color-scheme: dark;
+}
+.ws-rem-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+/* calendar */
+.ws-month-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.ws-month {
+  margin-right: 8px;
+  color: var(--ws-body);
+  font-size: var(--fs-a3);
+}
+.ws-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 4px;
+  text-align: center;
+}
+.ws-wd {
+  padding-bottom: 6px;
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+}
+.ws-day-cell.today.busy::after {
+  bottom: -5px;
+}
+.ws-next-event {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 12px;
+  padding: 0 12px !important;
+  border: 1px solid var(--ws-line) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--ws-field) !important;
+  text-align: left;
+  cursor: pointer;
+}
+.ws-next-event:disabled {
+  cursor: default;
+}
+.ws-next-event .ws-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--ws-accent);
+  box-shadow: none;
+}
+.ws-next-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-next-event > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--ws-muted);
+}
+/* mail */
+.ws-mail-row {
+  display: grid;
+  grid-template-columns: 44px 120px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 68px;
+  padding: 8px 6px !important;
+  border: 0 !important;
+  border-top: 1px solid var(--ws-line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  text-align: left;
+  cursor: pointer;
+}
+.ws-mail-row:first-child {
+  border-top: 0 !important;
+}
+.ws-mail-row:hover {
+  background: rgba(255, 255, 255, 0.025) !important;
+}
+.ws-avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #2c2f4a;
+  color: #c9cdf5;
+  font-size: var(--fs-a2);
+  font-weight: var(--fw-strong);
+}
+.ws-mail-row:nth-child(2) .ws-avatar {
+  background: #22324a;
+  color: #b8d3f5;
+}
+.ws-mail-row:nth-child(3) .ws-avatar {
+  background: #2a2a2e;
+  color: #e6e3df;
+}
+.ws-avatar svg {
+  width: 20px;
+  height: 20px;
+}
+.ws-mail-from {
+  font-weight: var(--fw-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-mail-text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.ws-mail-text strong,
+.ws-mail-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-mail-text strong {
+  font-weight: var(--fw-strong);
+  font-size: var(--fs-a2);
+}
+.ws-mail-text small {
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+}
+.ws-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 0 2px !important;
+  border: 0 !important;
+  border-top: 1px solid var(--ws-line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--ws-body) !important;
+  font-size: var(--fs-a2) !important;
+  cursor: pointer;
+}
+.ws-link svg {
+  width: 15px;
+  height: 15px;
+}
+/* message box on the dashboard */
+.ws-ask-card {
+  padding: 10px;
+}
+.ws-ask {
+  display: flex;
+  align-items: center;
+}
+#workspace .ws-ask .ws-icon:first-child {
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: 50%;
+}
+.ws-ask input {
+  flex: 1;
+  height: 46px;
+  padding: 0 14px !important;
+  border: 1px solid var(--ws-line) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--ws-field) !important;
+  color: var(--ws-text) !important;
+  font: inherit;
+  font-size: var(--fs-a3);
+  outline: 0;
+}
+.ws-ask input:focus {
+  border-color: var(--cream-45) !important;
+}
+.ws-model {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px !important;
+  border: 1px solid var(--ws-line-2) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--ws-card-2) !important;
+  font-size: var(--fs-a2) !important;
+  cursor: pointer;
+}
+.ws-model span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-model svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+#workspace .ws-send {
+  width: 46px;
+  height: 46px;
+  border-radius: 50% !important;
+  background: var(--ws-accent) !important;
+  color: var(--ws-accent-ink) !important;
+}
+#workspace .ws-send svg {
+  stroke-width: 2.3;
+}
+/* smart home */
+.ws-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.ws-tiles > .ws-empty,
+.ws-tiles > button:not(.ws-tile) {
+  grid-column: 1 / -1;
+}
+.ws-tile.on .ws-tile-icon {
+  color: #f5c84c;
+}
+.ws-tile-icon svg {
+  width: 21px;
+  height: 21px;
+}
+.ws-tile-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+.ws-tile-text strong {
+  font-size: var(--fs-a2);
+  font-weight: var(--fw-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-tile.on .ws-tile-text small {
+  color: var(--ws-accent);
+}
+.ws-temp {
+  color: var(--ws-text) !important;
+  font-size: var(--fs-a5) !important;
+  font-weight: var(--fw-strong);
+}
+.ws-tile.on .ws-switch {
+  background: var(--ws-accent);
+}
+.ws-tile.on .ws-switch::after {
+  transform: translateX(18px);
+  background: #fff;
+}
+.ws-scenes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+.ws-scenes:empty {
+  display: none;
+}
+.ws-scene.primary {
+  background: var(--ws-accent) !important;
+  color: var(--ws-accent-ink) !important;
+  font-weight: var(--fw-strong);
+}
+.ws-scene svg {
+  width: 17px;
+  height: 17px;
+}
+/* usage */
+.ws-usage-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 48px 132px;
+  align-items: center;
+  gap: 14px;
+  min-height: 44px;
+  border-top: 1px solid var(--ws-line);
+}
+.ws-usage-row:first-child {
+  border-top: 0;
+}
+.ws-prov {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: var(--fw-strong);
+}
+.ws-prov-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--r-sm);
+  background: var(--c);
+  transform: rotate(45deg);
+}
+.ws-meter {
+  position: relative;
+  height: 9px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.ws-meter i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: var(--r-md);
+  background: var(--c);
+  transition: width 0.4s;
+}
+.ws-pct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ws-reset {
+  display: grid;
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.ws-usage-row.off {
+  opacity: 0.6;
+}
+/* ── Chat view ──────────────────────────────────────────────────────────── */
+.ws-chat-view {
+  display: grid;
+  border: 1px solid var(--ws-line);
+  border-radius: var(--r-xl);
+  background: var(--ws-card);
+  overflow: hidden;
+}
+.ws-chat-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 70px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--ws-line);
+}
+.ws-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px 0 8px !important;
+  border: 0 !important;
+  border-radius: var(--r-md) !important;
+  background: transparent !important;
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+.ws-back svg {
+  width: 18px;
+  height: 18px;
+}
+.ws-back:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+.ws-vsep {
+  width: 1px;
+  height: 36px;
+  background: var(--ws-line-2);
+}
+.ws-chat-heading {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.ws-chat-title {
+  font-size: var(--fs-a5);
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-chat-heading .ws-inline {
+  font-size: var(--fs-a4);
+  max-width: 480px;
+}
+.ws-chat-path {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+}
+.ws-chat-path:empty {
+  display: none;
+}
+.ws-chat-path svg {
+  width: 15px;
+  height: 15px;
+}
+.ws-chat-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ws-find {
+  width: 220px;
+  height: 34px;
+  padding: 0 12px !important;
+  border: 1px solid var(--ws-line-2) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--ws-field) !important;
+  color: var(--ws-text) !important;
+  outline: 0;
+}
+.ws-chat-body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+body.workspace .ws-chat-body .setup {
+  padding: 10px 28px 0 !important;
+  max-width: 1040px;
+  width: 100%;
+  margin: 0 auto !important;
+  box-sizing: border-box;
+}
+body.workspace .ws-chat-body .conversation {
+  flex: 1;
+  min-height: 0;
+  display: flex !important;
+  flex-direction: column;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+body.workspace .ws-chat-body #composer-plus,
+body.workspace .ws-chat-body #voice-mic,
+body.workspace .ws-chat-body #voice-call,
+body.workspace .ws-chat-body #send {
+  width: 42px !important;
+  min-width: 42px !important;
+}
+body.workspace .ws-chat-body #stop[hidden],
+body.workspace .ws-chat-body #voice-mic[hidden] {
+  display: none !important;
+}
+body.workspace .ws-chat-body .model-picker {
+  display: flex !important;
+  align-items: center !important;
+  height: 42px !important;
+}
+/* user: against the right edge, the time on its left; its colours are the island's (39-v0923.css) */
+body.workspace #feed .message.user {
+  position: relative;
+  width: fit-content !important;
+  margin-left: auto !important;
+  margin-right: 0 !important;
+  max-width: min(80%, 680px) !important;
+  padding: 10px 14px !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  /* content-visibility: auto (4-polish.css) clips paint to the bubble: the time and the
+     edit button sit outside it */
+  content-visibility: visible !important;
+}
+/* the edit button sits outside the bubble, on its left, and shows on hover */
+body.workspace #feed .message.user .edit-message {
+  position: absolute;
+  left: -36px;
+  top: 50%;
+  margin: -14px 0 0 !important;
+  color: var(--ws-muted) !important;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+body.workspace #feed .message.user:hover .edit-message,
+body.workspace #feed .message.user .edit-message:focus-visible {
+  opacity: 1;
+}
+body.workspace #feed .message.user[data-ws-meta]::after {
+  content: attr(data-ws-meta);
+  position: absolute;
+  right: calc(100% + 42px);
+  top: 12px;
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+}
+body.workspace #feed .message.user.steer {
+  background: var(--cream-18) !important;
+  color: var(--ws-text) !important;
+  border: 1px dashed var(--cream-45) !important;
+}
+/* Charles: avatar, name and the model */
+body.workspace #feed .message.agent:not(.progress-message) {
+  position: relative;
+  padding: 34px 0 6px 58px !important;
+  background: var(--ws-avatar) no-repeat 0 0 / 40px 40px !important;
+  border: 0 !important;
+  max-width: 100% !important;
+}
+body.workspace #feed .message.agent:not(.progress-message)::before {
+  content: 'Charles';
+  position: absolute;
+  left: 58px;
+  top: 6px;
+  font-size: var(--fs-a4);
+  font-weight: var(--fw-strong);
+  color: var(--ws-text);
+}
+body.workspace #feed .message.agent[data-ws-meta]:not([data-ws-meta='']):not(.progress-message)::after {
+  content: attr(data-ws-meta);
+  position: absolute;
+  left: 132px;
+  top: 7px;
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ws-body);
+  font-size: var(--fs-a1);
+  line-height: 18px;
+}
+body.workspace #feed .message.ws-hit {
+  outline: 1px dashed var(--cream-45);
+  outline-offset: 6px;
+}
+body.workspace #feed .message.ws-hit-now {
+  outline: 2px solid var(--ws-accent);
+}
+body.workspace #feed #welcome {
+  margin-top: 8vh;
+}
+/* ── Settings in the app window: a roomy window with a side menu ─────────── */
+/* v1.0.0: below the title bar (Windows draws its caption buttons over its top right), with the same
+   margin above and below as on the sides */
+body.workspace #settings-panel[open] {
+  position: fixed !important;
+  inset: env(titlebar-area-height, 52px) 0 0 !important;
+  margin: auto !important;
+  width: min(1100px, 92vw) !important;
+  height: min(780px, calc(100vh - env(titlebar-area-height, 52px) - 8vw)) !important;
+  max-width: none !important;
+  max-height: none !important;
+  display: grid !important;
+  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-rows: 64px minmax(0, 1fr);
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  border-radius: var(--r-xl) !important;
+  background: #121317 !important;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6) !important;
+  transform: none !important;
+  overflow: hidden !important;
+}
+body.workspace #settings-panel::backdrop {
+  background: rgba(5, 6, 8, 0.55);
+  backdrop-filter: blur(3px);
+}
+body.workspace #settings-panel[open] > .settings-heading {
+  grid-column: 1 / -1;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px 0 24px !important;
+  margin: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+body.workspace #settings-panel[open] > .settings-heading h2 {
+  font-size: var(--fs-a5) !important;
+}
+body.workspace #settings-panel[open] #settings-categories {
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  gap: 2px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  margin: 0 !important;
+  padding: 14px 10px !important;
+  border: 0 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
+  mask-image: none !important;
+}
+body.workspace #settings-panel[open] #settings-categories button {
+  display: flex !important;
+  align-items: center;
+  gap: 11px;
+  width: 100% !important;
+  height: 38px !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  border-radius: var(--r-md) !important;
+  background: transparent !important;
+  font-size: var(--fs-a3) !important;
+  text-align: left;
+  white-space: nowrap;
+  box-shadow: none !important;
+}
+body.workspace #settings-panel[open] #settings-categories button::before,
+body.workspace #settings-panel[open] #settings-categories button::after {
+  display: none !important;
+}
+body.workspace #settings-panel[open] #settings-categories button[aria-pressed='true'] {
+  font-weight: var(--fw-strong);
+}
+#settings-categories .ws-nav-icon {
+  display: none;
+}
+body.workspace #settings-categories .ws-nav-icon {
+  display: block;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+body.workspace #settings-panel[open] > .settings-body {
+  min-height: 0;
+  overflow-y: auto !important;
+  max-height: none !important;
+  height: auto !important;
+  padding: 22px 30px 30px !important;
+}
+body.workspace #settings-panel[open] .settings-page {
+  max-width: 760px;
+}
+/* the sessions dialog is not needed in the app window: the list is on the left */
+body.workspace #sessions-panel[open] {
+  position: fixed !important;
+  inset: env(titlebar-area-height, 52px) 0 0 !important;
+  margin: auto !important;
+  width: min(640px, 90vw) !important;
+  height: min(640px, calc(100vh - env(titlebar-area-height, 52px) - 10vw)) !important;
+  transform: none !important;
+}
+/* resize edges */
+.ws-edge {
+  position: absolute;
+  z-index: 30;
+  -webkit-app-region: no-drag;
+}
+#workspace.maximized .ws-edge {
+  display: none;
+}
+.ws-edge-n,
+.ws-edge-s {
+  left: 10px;
+  right: 10px;
+  height: 6px;
+  cursor: ns-resize;
+}
+.ws-edge-n {
+  top: 0;
+}
+.ws-edge-s {
+  bottom: 0;
+}
+.ws-edge-e,
+.ws-edge-w {
+  top: 10px;
+  bottom: 10px;
+  width: 6px;
+  cursor: ew-resize;
+}
+.ws-edge-e {
+  right: 0;
+}
+.ws-edge-w {
+  left: 0;
+}
+.ws-edge-ne,
+.ws-edge-nw,
+.ws-edge-se,
+.ws-edge-sw {
+  width: 12px;
+  height: 12px;
+}
+.ws-edge-ne {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+.ws-edge-sw {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+.ws-edge-nw {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+.ws-edge-se {
+  bottom: 0;
+  right: 0;
+  cursor: nwse-resize;
+}
+@media (max-width: 1260px) {
+  .ws-body {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+  .ws-home {
+    grid-template-columns: 1fr;
+  }
+  .ws-mail-row {
+    grid-template-columns: 40px 1fr auto;
+  }
+  .ws-mail-from {
+    display: none;
+  }
+  .ws-usage-row {
+    grid-template-columns: 100px 1fr 48px;
+  }
+  .ws-usage-row .ws-reset {
+    display: none;
+  }
+
+}
+/* ── SpecialBeta round 2 ─────────────────────────────────────────────────────── */
+/* calendar: days are buttons, a chosen day lists its events, + adds an event */
+.ws-day-cell:not(.empty):hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+.ws-day-cell.today {
+  font-weight: var(--fw-strong);
+  background: var(--ws-accent) !important;
+  color: var(--ws-accent-ink) !important;
+}
+.ws-day-cell.selected:not(.today) {
+  box-shadow: inset 0 0 0 1.5px var(--ws-accent);
+}
+.ws-day-list {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--ws-line);
+  border-radius: var(--r-md);
+  background: var(--ws-field);
+}
+.ws-day-list[hidden],
+.ws-next-event[hidden] {
+  display: none !important;
+}
+.ws-day-head {
+  margin-bottom: 4px;
+  color: var(--ws-body);
+  font-weight: var(--fw-strong);
+  font-size: var(--fs-a2);
+}
+.ws-day-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+}
+.ws-day-item .ws-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--ws-accent);
+  box-shadow: none;
+}
+.ws-day-item.reminder .ws-dot {
+  background: var(--ok-strong);
+}
+.ws-day-list .ws-empty {
+  margin: 0;
+}
+.ws-ev-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr 130px;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.ws-ev-form[hidden] {
+  display: none;
+}
+.ws-ev-form > input:first-child {
+  grid-column: 1 / -1;
+}
+.ws-ev-form.locked > input,
+.ws-ev-form.locked > select {
+  display: none;
+}
+.ws-ev-form input,
+.ws-ev-form select {
+  height: 36px;
+  padding: 0 10px !important;
+  border: 1px solid var(--ws-line-2) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--ws-field) !important;
+  color: var(--ws-text) !important;
+  color-scheme: dark;
+  min-width: 0;
+}
+.ws-ev-form .ws-rem-actions {
+  align-items: center;
+}
+.ws-ev-form .ws-rem-actions .ws-empty {
+  flex: 1;
+  margin: 0;
+}
+.ws-calendar.synced .ws-card-head h2::after {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 8px;
+  border-radius: 50%;
+  background: var(--ws-green);
+  vertical-align: middle;
+}
+/* mail: newest mails */
+.ws-mail-row.unread .ws-mail-text strong::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--ws-accent);
+  vertical-align: middle;
+}
+.ws-link.back svg {
+  transform: rotate(180deg);
+}
+/* smart home: smooth switches, edit mode, device picker */
+.ws-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 66px;
+  padding: 10px 12px !important;
+  border: 1px solid var(--ws-line) !important;
+  border-radius: var(--r-lg) !important;
+  background: var(--ws-card-2) !important;
+  text-align: left;
+  position: relative;
+  contain: layout paint;
+}
+.ws-tile.toggle {
+  cursor: pointer;
+  user-select: none;
+}
+.ws-tile.toggle:focus-visible {
+  outline: 2px solid var(--ws-accent);
+  outline-offset: 2px;
+}
+.ws-switch {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 22px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.15);
+  transition: background-color 0.18s ease;
+}
+.ws-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #d8d8dc;
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+.ws-tile-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ws-muted);
+  transition: color 0.18s ease;
+}
+.ws-tile-text small {
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+  transition: none;
+}
+.ws-scene.pressed,
+.ws-tile.pressed {
+  transform: scale(0.97);
+  transition: transform 0.12s;
+}
+#workspace .ws-home-card.editing .ws-tile,
+#workspace .ws-home-card.editing .ws-scene {
+  outline: 1px dashed var(--cream-35);
+  outline-offset: -1px;
+  cursor: default;
+}
+.ws-tile-edit {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--r-md);
+  background: rgba(15, 16, 19, 0.92);
+}
+.ws-scene .ws-tile-edit {
+  top: -12px;
+  right: -6px;
+  transform: none;
+}
+.ws-scene {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  border: 1px solid var(--ws-line) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--ws-card-2) !important;
+  cursor: pointer;
+  position: relative;
+}
+#workspace .ws-mini {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-sm);
+}
+#workspace .ws-mini svg {
+  width: 14px;
+  height: 14px;
+}
+.ws-home-card.editing .ws-tile .ws-switch {
+  display: none;
+}
+.ws-home-card.editing .ws-tile-text {
+  padding-right: 84px;
+}
+.ws-home-card.editing .ws-tile-add .ws-tile-text {
+  padding-right: 0;
+}
+.ws-tile-add {
+  justify-content: center;
+  border-style: dashed !important;
+  color: var(--ws-accent) !important;
+  cursor: pointer;
+}
+.ws-tile-add .ws-tile-icon {
+  color: var(--ws-accent);
+}
+.ws-picker {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: var(--r-lg);
+  background: var(--ws-field);
+}
+.ws-picker[hidden] {
+  display: none;
+}
+.ws-picker-head {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ws-picker-head input {
+  flex: 1;
+  height: 36px;
+  padding: 0 10px !important;
+  border: 1px solid var(--ws-line-2) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--ws-card) !important;
+  color: var(--ws-text) !important;
+}
+.ws-picker-list {
+  display: grid;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.ws-picker-row {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 8px !important;
+  border: 0 !important;
+  border-radius: var(--r-md) !important;
+  background: transparent !important;
+  text-align: left;
+  cursor: pointer;
+}
+.ws-picker-row:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+.ws-picker-row svg {
+  width: 17px;
+  height: 17px;
+  color: var(--ws-muted);
+}
+.ws-picker-row strong {
+  font-weight: var(--fw-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-picker-row small {
+  color: var(--ws-muted);
+}
+/* usage: rings like the island */
+.ws-usage-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.ws-usage-col {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 10px 6px 8px;
+  border: 1px solid var(--ws-line);
+  border-radius: var(--r-lg);
+  background: var(--ws-card-2);
+}
+.ws-usage-col .ws-prov {
+  font-size: var(--fs-a2);
+}
+.ws-usage-col.off {
+  opacity: 0.55;
+}
+.ws-rings {
+  display: flex;
+  gap: 6px;
+}
+.ws-ring {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  width: 64px;
+}
+.ws-ring svg {
+  width: 58px;
+  height: 58px;
+}
+.ws-ring circle {
+  fill: none;
+  stroke-width: 5;
+}
+.ws-ring.low circle.value {
+  stroke: var(--danger);
+}
+.ws-ring-pct {
+  position: absolute;
+  top: 0;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-a2);
+  font-weight: var(--fw-strong);
+  font-variant-numeric: tabular-nums;
+}
+.ws-ring-label {
+  margin-top: 3px;
+  color: var(--ws-body);
+  font-size: var(--fs-a1);
+  white-space: nowrap;
+}
+.ws-ring-reset {
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+  white-space: nowrap;
+  min-height: 14px;
+}
+.ws-usage-note {
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+  text-align: center;
+  min-height: 0;
+}
+.ws-usage-note:empty {
+  display: none;
+}
+@media (max-width: 1260px) {
+  .ws-usage-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+}
+/* ── App window: side panel (files, code, terminal) ──────────────────────────── */
+.ws-chat-view.with-panel > .ws-chat-head {
+  grid-column: 1;
+}
+.ws-chat-view > .ws-panel {
+  grid-column: 2;
+}
+.ws-panel {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  border-left: 1px solid var(--ws-line);
+}
+.ws-panel[hidden] {
+  display: none !important;
+}
+.ws-panel-split {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  z-index: 3;
+}
+.ws-panel-split:hover {
+  background: linear-gradient(90deg, transparent 3px, var(--cream-45) 3px 5px, transparent 5px);
+}
+.ws-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 8px 0 10px;
+  border-bottom: 1px solid var(--ws-line);
+}
+.ws-panel-tabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ws-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 220px;
+  height: 32px;
+  padding: 0 4px 0 10px;
+  border-radius: var(--r-md);
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+  cursor: pointer;
+  flex: none;
+}
+.ws-tab svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.ws-tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.ws-tab.on {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ws-text);
+}
+#workspace .ws-tab-x {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-sm);
+}
+#workspace .ws-tab-x svg {
+  width: 13px;
+  height: 13px;
+}
+.ws-panel-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 8px 0 14px;
+  border-bottom: 1px solid var(--ws-line);
+}
+.ws-panel-bar[hidden] {
+  display: none;
+}
+.ws-panel-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ws-panel-crumbs svg {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+.ws-panel-crumbs .last {
+  color: var(--ws-text);
+  font-weight: var(--fw-strong);
+}
+#workspace .ws-panel-actions .ws-icon.done {
+  color: var(--ok-strong);
+}
+.ws-open-wrap {
+  position: relative;
+}
+.ws-open-wrap[hidden] {
+  display: none;
+}
+.ws-open-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  margin-left: 4px;
+  padding: 0 10px !important;
+  border: 1px solid var(--ws-line-2) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--ws-card-2) !important;
+  font-size: var(--fs-a2) !important;
+  cursor: pointer;
+}
+.ws-open-menu svg {
+  width: 15px;
+  height: 15px;
+}
+.ws-open-menu svg:first-child {
+  color: var(--ws-accent);
+}
+.ws-open-list {
+  position: absolute !important;
+  right: 0;
+  top: 38px;
+  min-width: 220px;
+}
+.ws-open-list[hidden] {
+  display: none;
+}
+.ws-panel-body {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+.ws-panel-note {
+  margin: 10px 14px 0;
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+}
+.ws-code-view {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  min-width: max-content;
+  padding: 12px 0 24px;
+  font: 12.5px/1.65 'Cascadia Code', Consolas, 'Courier New', monospace;
+}
+.ws-gutter,
+.ws-code {
+  margin: 0;
+  font: inherit;
+  white-space: pre;
+  /* v0.7.3: the global pre rule (max-height 200px) cut the panel after ~10 lines */
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+  max-height: none;
+  overflow: visible;
+}
+.ws-gutter {
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+  padding: 0 14px 0 16px;
+  color: #5d5b58;
+  text-align: right;
+  user-select: none;
+}
+.ws-code {
+  padding-right: 24px;
+  color: #e6e3df;
+}
+.ws-term {
+  margin: 0;
+  min-height: 100%;
+  -webkit-user-select: text;
+  user-select: text;
+  max-height: none;
+  overflow: visible;
+  padding: 14px 16px;
+  color: #d8e6d6;
+  font: 12.5px/1.6 'Cascadia Code', Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ws-panel-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 80px 30px;
+  color: var(--ws-muted);
+  text-align: center;
+}
+.ws-panel-empty svg {
+  width: 34px;
+  height: 34px;
+}
+.ws-panel-empty strong {
+  color: var(--ws-text);
+}
+.ws-panel-empty p {
+  max-width: 320px;
+  margin: 0;
+  font-size: var(--fs-a2);
+  line-height: 1.5;
+}
+#workspace .ws-panel-close {
+  width: 30px;
+  height: 30px;
+}
+.ws-chat-view > :not(.ws-panel) {
+  grid-column: 1;
+}
+/* side panel: selection tools, edit bar, open menu */
+.ws-sel-bar {
+  position: absolute;
+  z-index: 8;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--ws-line-2);
+  border-radius: var(--r-md);
+  background: #26272c;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.ws-sel-bar[hidden],
+.ws-edit-bar[hidden] {
+  display: none;
+}
+.ws-sel-bar button {
+  height: 34px;
+  padding: 0 14px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--ws-text) !important;
+  font-size: var(--fs-a2) !important;
+  cursor: pointer;
+}
+.ws-sel-bar button + button {
+  border-left: 1px solid var(--ws-line-2) !important;
+}
+.ws-sel-bar button:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+.ws-edit-bar {
+  position: absolute;
+  z-index: 8;
+  left: 12px;
+  right: 12px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 16px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: var(--r-xl);
+  background: #1e1f23;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+}
+.ws-edit-bar input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: 0 !important;
+  outline: 0;
+  background: transparent !important;
+  color: var(--ws-text) !important;
+  font: inherit;
+  font-size: var(--fs-a3);
+  padding: 0 !important;
+}
+#workspace .ws-edit-bar .ws-send {
+  width: 38px;
+  height: 38px;
+  background: #e8e6e3 !important;
+  color: #1b1b1d !important;
+}
+/* v0.7.4: the search row under the panel toolbar */
+.ws-panel-findrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 14px;
+  border-bottom: 1px solid var(--ws-line);
+  color: var(--ws-muted);
+}
+.ws-panel-findrow[hidden] {
+  display: none;
+}
+.ws-panel-findrow > svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.ws-panel-find {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 10px !important;
+  border: 1px solid var(--ws-line-2) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--ws-field) !important;
+  color: var(--ws-text) !important;
+}
+.ws-panel-find::-webkit-search-cancel-button {
+  display: none;
+}
+.ws-find-count {
+  flex: none;
+  min-width: 34px;
+  font-size: var(--fs-a1);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+#workspace .ws-find-x {
+  width: 28px;
+  height: 28px;
+  flex: none;
+}
+#workspace .ws-panel-actions .ws-icon.on {
+  color: var(--ws-accent);
+  background: var(--ws-card-2);
+}
+.ws-panel-bar .ws-panel-crumbs {
+  flex: 1;
+}
+.ws-panel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+.ws-panel-find[hidden] {
+  display: none;
+}
+.ws-menu-sep[hidden] {
+  display: none !important;
+}
+.ws-menu-sep {
+  display: block;
+  height: 1px;
+  margin: 6px 8px;
+  background: var(--ws-line-2);
+}
+.ws-open-list button[hidden] {
+  display: none !important;
+}
+.ws-open-list .app-vscode {
+  color: #3fa2f0 !important;
+}
+.ws-open-list .app-github {
+  color: #b892f5 !important;
+}
+.ws-open-list .app-default {
+  color: #f2c14e !important;
+}
+.ws-open-list .app-notepadpp {
+  color: #8fd16a !important;
+}
+/* ── Large panels over the app window (calendar / smart home editors) ─────────── */
+.ws-modal-back {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  /* v1.0.0: the panels start below the title bar and its caption buttons */
+  padding: calc(env(titlebar-area-height, 52px) + 28px) 28px 28px;
+  background: rgba(4, 5, 7, 0);
+  backdrop-filter: blur(0);
+  transition: background 0.18s, backdrop-filter 0.18s;
+}
+.ws-modal-back[hidden] {
+  display: none;
+}
+.ws-modal-back.in {
+  background: rgba(4, 5, 7, 0.55);
+  backdrop-filter: blur(3px);
+}
+.ws-modal {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(1180px, 100%);
+  max-height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--r-xl);
+  background: #121317;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transform: translateY(10px) scale(0.985);
+  transition: opacity 0.18s, transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  overflow: hidden;
+}
+.ws-modal-back.in .ws-modal {
+  opacity: 1;
+  transform: none;
+}
+.ws-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px 16px 24px;
+  border-bottom: 1px solid var(--ws-line);
+}
+.ws-modal-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--cream-12);
+  color: var(--ws-accent);
+}
+.ws-modal-icon svg {
+  width: 26px;
+  height: 26px;
+}
+.ws-modal-titles {
+  flex: 1;
+  min-width: 0;
+}
+.ws-modal-titles h2 {
+  margin: 0;
+  font-size: var(--fs-a5);
+  font-weight: var(--fw-strong);
+}
+.ws-modal-titles p {
+  margin: 3px 0 0;
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+}
+.ws-modal-body {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+.ws-modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 64px;
+  padding: 0 20px 0 24px;
+  border-top: 1px solid var(--ws-line);
+}
+.ws-foot-status {
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+}
+.ws-foot-actions {
+  display: inline-flex;
+  gap: 10px;
+}
+#workspace button.ws-primary svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+}
+#workspace .ws-modal button.ws-danger svg {
+  width: 16px;
+  height: 16px;
+}
+#workspace .ws-modal button[hidden] {
+  display: none !important;
+}
+.ws-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  margin-left: auto;
+  padding: 0 14px !important;
+  border: 1px solid var(--ws-line-2) !important;
+  border-radius: var(--r-md) !important;
+  background: transparent !important;
+  color: var(--ws-body) !important;
+  font-size: var(--fs-a2) !important;
+  cursor: pointer;
+}
+.ws-edit-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.ws-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+.ws-edit-btn[hidden] {
+  display: none;
+}
+/* ── Calendar card (v0.7.2) ─────────────────────────────────────────────────── */
+.ws-calendar .ws-card-head {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ws-line);
+}
+.ws-cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 2px 0 10px;
+}
+.ws-cal-title {
+  font-size: var(--fs-a4);
+  font-weight: var(--fw-strong);
+  text-transform: capitalize;
+}
+.ws-calendar .ws-cal-grid {
+  row-gap: 2px;
+}
+.ws-calendar .ws-wd {
+  text-transform: capitalize;
+}
+.ws-day-cell {
+  position: relative;
+  justify-self: center;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: var(--fs-a3);
+  font-variant-numeric: tabular-nums;
+  border: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  font: inherit;
+  cursor: pointer;
+  flex-direction: column;
+  gap: 2px;
+}
+.ws-day-cell.other {
+  color: #57565a !important;
+}
+.ws-day-cell.holiday:not(.today) .ws-day-num {
+  color: #e6a3e6;
+}
+.ws-dots {
+  position: absolute;
+  bottom: -1px;
+  display: flex;
+  gap: 3px;
+}
+.ws-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+.ws-day-cell.busy::after {
+  content: '';
+  position: absolute;
+  bottom: 1px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ws-accent);
+  display: none;
+}
+.ws-cal-sep {
+  display: block;
+  height: 1px;
+  margin: 14px 0 12px;
+  background: var(--ws-line);
+}
+.ws-cal-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ws-cal-list-head strong {
+  font-size: var(--fs-a4);
+}
+.ws-cal-list-head small {
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+}
+.ws-cal-list {
+  display: grid;
+  gap: 8px;
+}
+.ws-ev-row {
+  display: grid;
+  grid-template-columns: 4px 64px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 0 6px 0 0;
+  border: 1px solid var(--ws-line);
+  border-radius: var(--r-md);
+  background: var(--ws-card-2);
+  overflow: hidden;
+}
+.ws-ev-bar {
+  align-self: stretch;
+  margin: 10px 0 10px 10px;
+  width: 4px;
+  border-radius: var(--r-sm);
+}
+.ws-ev-time {
+  padding-left: 8px;
+  font-size: var(--fs-a4);
+  font-weight: var(--fw-strong);
+  font-variant-numeric: tabular-nums;
+}
+.ws-ev-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.ws-ev-text strong {
+  font-size: var(--fs-a3);
+  font-weight: var(--fw-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-ev-text small {
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+}
+.ws-ev-row .ws-more {
+  opacity: 1 !important;
+}
+/* ── Calendar editor ("Takvimi düzenle") ─────────────────────────────────────── */
+.ws-cal-editor .ws-modal {
+  height: min(820px, 100%);
+}
+.ws-cal-editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 370px;
+  min-height: 100%;
+}
+.ws-cal-left {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  border-right: 1px solid var(--ws-line);
+}
+.ws-cal-tools {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--ws-line);
+}
+.ws-cal-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.ws-cal-step .ws-cal-title {
+  font-size: var(--fs-a5);
+  min-width: 150px;
+  text-align: center;
+}
+.ws-big-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-auto-rows: minmax(92px, 1fr);
+}
+.ws-big-grid > .ws-wd {
+  display: grid;
+  place-items: center;
+  height: 44px;
+  border-bottom: 1px solid var(--ws-line);
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+  text-transform: capitalize;
+}
+.ws-big-grid > .ws-day-cell:nth-child(7n) {
+  border-right: 0 !important;
+}
+.ws-big-grid > .ws-day-cell.today {
+  background: var(--cream-04) !important;
+  color: inherit !important;
+}
+.ws-big-grid > .ws-day-cell.selected {
+  box-shadow: inset 0 0 0 1.5px var(--cream-55);
+}
+.ws-big-grid .ws-day-num {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin: 0 0 4px 2px;
+  border-radius: 50%;
+  font-size: var(--fs-a3);
+}
+.ws-big-grid .today .ws-day-num {
+  background: var(--ws-accent);
+  color: var(--ws-accent-ink);
+  font-weight: var(--fw-strong);
+}
+.ws-chips {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.ws-chip-ev {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 22px;
+  padding: 0 6px !important;
+  border: 1px solid var(--ws-line) !important;
+  border-radius: var(--r-sm) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  font-size: var(--fs-a1) !important;
+  text-align: left;
+  cursor: pointer;
+}
+.ws-chip-ev i {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.ws-chip-ev span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-chip-ev:hover,
+.ws-chip-ev.on {
+  border-color: var(--cream-45) !important;
+}
+.ws-more-ev {
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+  padding-left: 4px;
+}
+.ws-big-grid.week {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+}
+.ws-week-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 8px;
+  border-right: 1px solid var(--ws-line);
+  min-width: 0;
+}
+.ws-week-col:last-child {
+  border-right: 0;
+}
+.ws-week-head {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding-bottom: 8px;
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+  text-transform: capitalize;
+}
+.ws-week-head strong {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--ws-text);
+  font-size: var(--fs-a4);
+}
+.ws-week-head.today strong {
+  background: var(--ws-accent);
+  color: var(--ws-accent-ink);
+}
+.ws-chip-ev.big {
+  display: grid;
+  grid-template-columns: 6px 1fr;
+  height: auto;
+  padding: 6px 8px !important;
+  row-gap: 2px;
+}
+.ws-chip-ev.big small {
+  color: var(--ws-muted);
+}
+.ws-chip-ev.big span {
+  grid-column: 2;
+  white-space: normal;
+}
+.ws-cal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 20px 20px;
+  overflow-y: auto;
+}
+.ws-seg-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+#workspace .ws-seg button {
+  height: 34px !important;
+  padding: 0 20px !important;
+  border: 0 !important;
+  border-radius: var(--r-md) !important;
+  background: transparent !important;
+  color: var(--ws-body) !important;
+}
+.ws-form-label {
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+  letter-spacing: 0.08em;
+}
+.ws-form-heading {
+  margin-top: -6px;
+  font-size: var(--fs-a5);
+  font-weight: var(--fw-strong);
+}
+.ws-field {
+  display: grid;
+  gap: 6px;
+  color: var(--ws-body);
+  font-size: var(--fs-a2);
+}
+.ws-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.ws-field-row[hidden] {
+  display: none;
+}
+.ws-field input,
+.ws-field select,
+.ws-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 42px;
+  padding: 0 12px !important;
+  border: 1px solid var(--ws-line-2) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--ws-field) !important;
+  color: var(--ws-text) !important;
+  font: inherit;
+  font-size: var(--fs-a3);
+  color-scheme: dark;
+}
+.ws-field textarea {
+  padding: 10px 12px !important;
+  resize: vertical;
+}
+.ws-field :disabled {
+  opacity: 0.6;
+}
+.ws-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-a2);
+}
+.ws-ghost {
+  height: 38px !important;
+}
+/* ── Smart home card (v0.7.2) ───────────────────────────────────────────────── */
+.ws-home-head {
+  align-items: flex-start !important;
+}
+.ws-head-text {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+}
+.ws-head-text h2 {
+  margin: 0;
+}
+.ws-home-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ws-line);
+}
+.ws-home-grid > .ws-empty,
+.ws-home-grid > button:not(.ws-ht) {
+  grid-column: 1 / -1;
+}
+.ws-ht {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 6px;
+  min-height: 118px;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--ws-line);
+  border-radius: var(--r-lg);
+  background: var(--ws-card-2);
+  contain: layout paint;
+  user-select: none;
+}
+.ws-ht.toggle,
+.ws-ht.action {
+  cursor: pointer;
+}
+.ws-ht:focus-visible {
+  outline: 2px solid var(--ws-accent);
+  outline-offset: 2px;
+}
+.ws-ht-icon {
+  color: #bdb9b4;
+  transition: color 0.18s;
+}
+.ws-ht-icon svg {
+  width: 30px;
+  height: 30px;
+}
+.ws-ht.on .ws-ht-icon {
+  color: var(--ws-accent);
+}
+.ws-ht-name {
+  font-size: var(--fs-a3);
+  font-weight: var(--fw-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-ht-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ws-ht-state {
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+}
+.ws-ht.value .ws-ht-state {
+  color: var(--ws-text);
+  font-size: var(--fs-a5);
+  font-weight: var(--fw-strong);
+}
+.ws-ht .ws-switch {
+  width: 44px;
+  height: 24px;
+}
+.ws-ht .ws-switch::after {
+  width: 18px;
+  height: 18px;
+}
+.ws-ht.on .ws-switch {
+  background: var(--ws-accent);
+}
+.ws-ht.on .ws-switch::after {
+  transform: translateX(20px);
+  background: #fff;
+}
+.ws-run {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--cream-12);
+  color: var(--ws-accent);
+}
+.ws-run svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+.ws-ht.pressed {
+  transform: scale(0.97);
+  transition: transform 0.12s;
+}
+.ws-home-count {
+  display: block;
+  margin-top: 12px;
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+}
+/* ── Smart home editor ("Akıllı evi düzenle") ────────────────────────────────── */
+.ws-home-editor .ws-modal {
+  width: min(900px, 100%);
+}
+.ws-board-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 14px;
+}
+.ws-board-head h3 {
+  margin: 0;
+  font-size: var(--fs-a5);
+}
+.ws-board-head p {
+  margin: 4px 0 0;
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+}
+.ws-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 24px;
+}
+.ws-cell {
+  position: relative;
+  display: grid;
+  align-content: space-between;
+  min-height: 120px;
+  padding: 16px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: var(--r-lg);
+  background: var(--ws-card-2);
+  cursor: grab;
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+}
+.ws-cell:active {
+  cursor: grabbing;
+}
+.ws-cell.dragging {
+  opacity: 0.35;
+}
+.ws-cell strong {
+  font-size: var(--fs-a3);
+  font-weight: var(--fw-strong);
+}
+.ws-cell-icon {
+  color: var(--ws-accent);
+}
+.ws-cell-icon svg {
+  width: 30px;
+  height: 30px;
+}
+.ws-grip {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  color: #8f8d8a;
+}
+.ws-grip svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 3.2;
+}
+#workspace .ws-cell-x {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 28px;
+  height: 28px;
+  opacity: 0;
+}
+.ws-cell:hover .ws-cell-x,
+.ws-cell-x:focus-visible {
+  opacity: 1 !important;
+}
+.ws-slot {
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  border: 1.5px dashed var(--ws-accent) !important;
+  background: var(--cream-04) !important;
+  color: var(--ws-accent);
+  cursor: default;
+}
+.ws-slot svg {
+  width: 24px;
+  height: 24px;
+}
+.ws-free {
+  border: 1.5px dashed var(--ws-line-2) !important;
+  background: transparent !important;
+  cursor: pointer;
+}
+.ws-free:hover {
+  border-color: var(--cream-45) !important;
+}
+.ws-board-note {
+  margin: 16px 24px 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ws-line);
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+}
+.ws-picker-modal .ws-modal {
+  width: min(560px, 100%);
+  height: min(620px, 100%);
+}
+.ws-picker-search {
+  display: block;
+  width: calc(100% - 48px);
+  box-sizing: border-box;
+  height: 42px;
+  margin: 16px 24px 10px;
+  padding: 0 14px !important;
+  border: 1px solid var(--ws-line-2) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--ws-field) !important;
+  color: var(--ws-text) !important;
+}
+.ws-picker-modal .ws-picker-list {
+  max-height: none;
+  padding: 0 16px 12px;
+}
+.ws-picker-modal .ws-picker-row {
+  grid-template-columns: 40px 1fr 20px;
+  min-height: 52px;
+  padding: 0 10px !important;
+}
+.ws-picker-modal .ws-picker-row .ws-cell-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.ws-picker-text {
+  display: grid;
+  min-width: 0;
+}
+.ws-picker-text strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-picker-text small {
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+}
+@media (max-width: 1260px) {
+  .ws-cal-editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
+.ws-big-grid:not(.week) {
+  grid-template-rows: 44px;
+  grid-auto-rows: minmax(84px, 1fr);
+}
+.ws-big-grid > .ws-day-cell {
+  position: relative;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  width: auto;
+  height: auto;
+  min-height: 92px;
+  padding: 8px 6px 6px !important;
+  border-radius: 0 !important;
+  border-right: 1px solid var(--ws-line) !important;
+  border-bottom: 1px solid var(--ws-line) !important;
+  cursor: pointer;
+  justify-self: stretch !important;
+  align-self: stretch !important;
+  display: flex !important;
+}
+#workspace .ws-modal button:not(.ws-icon):not(.ws-chip-ev):not(.ws-day-cell):not(.ws-picker-row) {
+  font-size: var(--fs-a3);
+}
+/* v0.7.4: reminder card — over the island panel and the app window */
+/* (a notify rule, kept in this file for the cascade) */
+.reminder-alert {
+  position: fixed;
+  left: 50%;
+  top: 92px;
+  z-index: 200;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px 14px;
+  width: min(440px, calc(100vw - 32px));
+  padding: 16px 16px 14px;
+  border: 1px solid var(--cream-55);
+  border-radius: var(--r-xl);
+  background: linear-gradient(180deg, #2a2420, #1b1918);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  color: #f3eee9;
+  transform: translateX(-50%);
+  animation: reminder-in 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+/* (a notify rule, kept in this file for the cascade) */
+.reminder-alert-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r-lg);
+  background: var(--cream-18);
+  font-size: 24px;
+}
+/* v0.7.4: the app window is a normal Windows window (Windows draws the frame, the rounded
+   corners and the minimize / maximize / close buttons) */
+#workspace {
+  --ws-accent: var(--sb-accent, var(--cream));
+  --ws-accent-ink: var(--cream-ink);
+  --ws-green: var(--ok-strong);
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 52px 1fr;
+  color: var(--ws-text);
+  overflow: hidden;
+  font-size: var(--fs-a3);
+  -webkit-font-smoothing: antialiased;
+  z-index: 5;
+  border: 0;
+  border-radius: 0;
+}
+#workspace .ws-win,
+#workspace .ws-title-actions > .ws-sep:last-of-type,
+#workspace .ws-edge {
+  display: none !important;
+}
+
+/* ── from 10-noir.css ── */
+/* ── App window ─────────────────────────────────────────────────────────────── */
+#workspace {
+  --ws-bg: #010101;
+  --ws-card: #090908;
+  --ws-card-2: #100f0e;
+  --ws-field: #121110;
+  --ws-line: var(--cream-08);
+  --ws-line-2: var(--cream-12);
+  --ws-text: #f6efe6;
+  --ws-body: #ddd4c9;
+  --ws-muted: #978c80;
+  background: radial-gradient(120% 90% at 0% 0%, #0a0806 0%, var(--ws-bg) 55%) var(--ws-bg);
+}
+.ws-panel {
+  background: #070707;
+}
+.ws-term {
+  background: #020202;
+}
+
+/* ── from 11-fit.css ── */
+/* v0.7.6 — the app window when it is narrow (snapped to half the screen, side panel open…).
+   The cards size themselves from their own width (container queries) instead of the screen
+   width, so nothing spills out of a card and the overview never scrolls sideways. */
+.ws-home-view {
+  container: ws-home / inline-size;
+}
+#workspace .ws-home {
+  overflow-x: hidden;
+}
+#workspace .ws-col > *,
+#workspace .ws-home > * {
+  min-width: 0;
+}
+#workspace .ws-dash {
+  container-type: inline-size;
+  min-width: 0;
+}
+@container ws-home (max-width: 820px) {
+  #workspace .ws-home {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+}
+@container ws-home (min-width: 821px) {
+  #workspace .ws-home {
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  }
+
+}
+/* two columns only when both have room */
+/* Spotify */
+#workspace .ws-music-body {
+  grid-template-columns: 150px minmax(0, 1fr);
+}
+#workspace .ws-music-controls {
+  gap: 4px;
+  min-width: 0;
+}
+#workspace .ws-music-controls > * {
+  flex-shrink: 1;
+  min-width: 0;
+}
+@container (max-width: 470px) {
+  #workspace .ws-music-body {
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 14px;
+  }
+  #workspace .ws-play {
+    width: 40px;
+    height: 40px;
+  }
+
+}
+@container (max-width: 340px) {
+  #workspace .ws-music-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #workspace .ws-art {
+    display: none;
+  }
+
+}
+/* remaining usage: 4 providers in a row when they fit, else 2 × 2 */
+@container (min-width: 640px) {
+  #workspace .ws-usage-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+}
+#workspace .ws-usage-col {
+  min-width: 0;
+}
+#workspace .ws-rings {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+@container (max-width: 330px) {
+  #workspace .ws-usage-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+}
+/* e-mails and reminders: long names are cut with "…" instead of pushing the time out */
+#workspace .ws-mail-row > *,
+#workspace .ws-list > * > * {
+  min-width: 0;
+}
+@container (max-width: 520px) {
+  #workspace .ws-mail-row {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+  #workspace .ws-mail-from {
+    display: none;
+  }
+
+}
+/* smart home tiles */
+#workspace .ws-home-grid {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+
+/* ── from 12-v077.css ── */
+/* v0.7.7 — app window: refresh animation, customizable home page and its cards, "Şu an ne
+   yapıyorum?", work queue, change review, Slime on file drop, title bar drag fix. */
+/* ── refresh arrow turns while loading ──────────────────────────────────────── */
+@keyframes ws-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+#workspace .ws-icon.spinning svg {
+  animation: ws-spin 0.85s linear infinite;
+  transform-origin: 50% 50%;
+}
+@media (prefers-reduced-motion: reduce) {
+  #workspace .ws-icon.spinning svg {
+    animation-duration: 2.4s;
+  }
+
+}
+/* ── title bar ───────────────────────────────────────────────────────────── */
+#workspace .ws-titlebar.ws-drag-reset {
+  -webkit-app-region: no-drag;
+}
+/* Windows resizes the window itself since v0.7.4; the old edges only got in the way */
+#workspace .ws-edge {
+  display: none !important;
+}
+#workspace[data-view='chat'] .ws-edit-home {
+  display: none;
+}
+/* ── customizable home page ──────────────────────────────────────────────── */
+.ws-home-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+.ws-home-view > .ws-home {
+  flex: 1;
+}
+.ws-home-editbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px 12px 16px;
+  border: 1px solid var(--cream-25);
+  border-radius: var(--r-lg);
+  background: linear-gradient(90deg, var(--cream-12), var(--cream-02));
+  animation: ws-pop 0.22s ease;
+}
+.ws-home-editbar[hidden] {
+  display: none;
+}
+.ws-home-editbar-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  background: var(--cream-12);
+  color: var(--ws-accent);
+}
+.ws-home-editbar-icon svg {
+  width: 19px;
+  height: 19px;
+}
+.ws-home-editbar-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.ws-home-editbar-text small {
+  color: var(--ws-muted);
+}
+@keyframes ws-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.ws-card-chrome {
+  display: none;
+}
+.ws-home.editing {
+  padding-top: 10px;
+}
+.ws-home.editing .ws-col {
+  min-height: 160px;
+  padding: 6px;
+  margin: -6px;
+  border-radius: var(--r-xl);
+  outline: 1px dashed var(--cream-12);
+  outline-offset: -1px;
+}
+.ws-home.editing .ws-card {
+  position: relative;
+  cursor: grab;
+  user-select: none;
+  animation: ws-wiggle 0.5s ease;
+}
+.ws-home.editing .ws-card::after {
+  /* the card's own buttons do nothing while editing */
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border-radius: inherit;
+  background: rgba(0, 0, 0, 0.18);
+  box-shadow: inset 0 0 0 1px var(--cream-18);
+  transition: background 0.15s;
+}
+.ws-home.editing .ws-card:hover::after {
+  background: var(--cream-04);
+  box-shadow: inset 0 0 0 1.5px var(--cream-45);
+}
+.ws-home.editing .ws-card.dragging {
+  opacity: 0.35;
+}
+.ws-home.editing .ws-card-chrome {
+  /* sits on the top edge of the card, so it hides none of its content */
+  position: absolute;
+  top: -14px;
+  right: 16px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: var(--r-lg);
+  background: rgba(10, 9, 8, 0.92);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+.ws-card-grip {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--ws-muted);
+  cursor: grab;
+}
+.ws-card-grip svg {
+  width: 17px;
+  height: 17px;
+}
+#workspace .ws-card-chrome .ws-card-x:hover {
+  background: color-mix(in srgb, var(--danger) 14%, transparent) !important;
+  color: var(--danger-soft);
+}
+@keyframes ws-wiggle {
+  30% {
+    transform: rotate(-0.4deg);
+  }
+  60% {
+    transform: rotate(0.4deg);
+  }
+}
+#workspace .ws-card-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 74px;
+  border: 1.5px dashed var(--cream-25);
+  border-radius: var(--r-xl);
+  background: var(--cream-02);
+  color: var(--ws-accent);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+#workspace .ws-card-add:hover {
+  border-color: var(--cream-55);
+  background: var(--cream-08);
+}
+#workspace .ws-card-add:active {
+  transform: scale(0.99);
+}
+.ws-card-add svg {
+  width: 18px;
+  height: 18px;
+}
+.ws-card-slot {
+  display: grid;
+  place-items: center;
+  min-height: 70px;
+  border: 1.5px dashed var(--ws-accent);
+  border-radius: var(--r-xl);
+  background: var(--cream-08);
+  color: var(--ws-accent);
+  font-size: var(--fs-a2);
+  font-weight: var(--fw-strong);
+}
+.ws-home-empty {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 10px;
+  min-height: 360px;
+  padding: 40px 20px;
+  border: 1.5px dashed var(--cream-18);
+  border-radius: var(--r-xl);
+  text-align: center;
+}
+.ws-home-empty[hidden] {
+  display: none;
+}
+.ws-home-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 4px;
+  border-radius: var(--r-xl);
+  background: var(--cream-12);
+  color: var(--ws-accent);
+}
+.ws-home-empty-icon svg {
+  width: 28px;
+  height: 28px;
+}
+.ws-home-empty strong {
+  font-size: var(--fs-a5);
+}
+.ws-home-empty small {
+  max-width: 360px;
+  color: var(--ws-muted);
+  font-size: var(--fs-a3);
+}
+/* card picker */
+.ws-card-picker .ws-modal {
+  width: min(760px, 100%);
+  height: min(700px, 100%);
+}
+.ws-card-picker .ws-modal-body {
+  padding: 18px 24px 22px;
+  overflow-y: auto;
+}
+.ws-picker-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+.ws-picker-top small {
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+}
+.ws-seg {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: var(--r-md);
+  background: var(--ws-field);
+}
+#workspace .ws-modal .ws-seg button.on {
+  background: var(--ws-accent) !important;
+  color: var(--ws-accent-ink) !important;
+}
+.ws-card-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+#workspace .ws-modal button.ws-card-option:hover {
+  border-color: var(--cream-45) !important;
+  background: var(--cream-04) !important;
+  transform: translateY(-1px);
+}
+#workspace .ws-modal button.ws-card-option.added {
+  border-color: var(--cream-25) !important;
+  background: var(--cream-08) !important;
+}
+.ws-card-option-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ws-accent);
+}
+.ws-card-option-icon svg {
+  width: 21px;
+  height: 21px;
+}
+.ws-card-option-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.ws-card-option-text strong {
+  font-size: var(--fs-a3);
+}
+.ws-card-option-text small {
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+  line-height: 1.35;
+}
+.ws-card-option-state {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--ws-line-2);
+  color: var(--ws-muted);
+}
+.ws-card-option.added .ws-card-option-state {
+  border-color: transparent;
+  background: var(--ws-accent);
+  color: var(--ws-accent-ink);
+}
+.ws-card-option-state svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.4;
+}
+/* ── extra cards ─────────────────────────────────────────────────────────── */
+.ws-cmd-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+.ws-cmd-wrap {
+  position: relative;
+  display: grid;
+}
+#workspace .ws-cmd {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--ws-line);
+  border-radius: var(--r-lg);
+  background: var(--ws-card-2);
+  color: var(--ws-text);
+  font-weight: var(--fw-strong);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+}
+#workspace .ws-cmd:hover {
+  border-color: var(--cream-35);
+  background: var(--cream-04);
+}
+#workspace .ws-cmd:active {
+  transform: scale(0.98);
+}
+.ws-cmd svg {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  color: var(--ws-accent);
+}
+.ws-cmd span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#workspace .ws-cmd-add {
+  border-style: dashed;
+  background: transparent;
+  color: var(--ws-muted);
+}
+#workspace .ws-cmd-x {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2a2522;
+  color: var(--danger-soft);
+}
+#workspace .ws-cmd-x svg {
+  width: 12px;
+  height: 12px;
+}
+.ws-cmd-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+.ws-cmd-suggest small {
+  color: var(--ws-muted);
+}
+#workspace .ws-cmd-suggest .ws-chip {
+  cursor: pointer;
+  background: transparent;
+}
+#workspace .ws-cmd-suggest .ws-chip:hover {
+  border-color: var(--cream-45);
+}
+.ws-cmd-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.ws-cmd-form[hidden] {
+  display: none;
+}
+.ws-cmd-form input,
+.ws-cmd-form textarea,
+.ws-notes-area,
+.ws-now-steer input,
+.ws-q-form input:not([type='checkbox']) {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: var(--r-md);
+  background: var(--ws-field);
+  color: var(--ws-text);
+  font: inherit;
+  outline: none;
+}
+.ws-cmd-form textarea {
+  resize: vertical;
+}
+.ws-cmd-form :focus,
+.ws-notes-area:focus,
+.ws-now-steer input:focus,
+.ws-q-form input:focus {
+  border-color: var(--cream-45);
+}
+.ws-notes-status {
+  margin-left: auto;
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+}
+.ws-notes-area {
+  display: block;
+  min-height: 150px;
+  resize: vertical;
+  line-height: 1.55;
+  background: linear-gradient(transparent 0, transparent) var(--ws-field);
+}
+.ws-sysms {
+  display: grid;
+  gap: 14px;
+}
+.ws-sysm {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  grid-template-areas: 'icon name value' 'icon bar bar' 'icon sub sub';
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 5px;
+}
+.ws-sysm[hidden] {
+  display: none;
+}
+.ws-sysm-icon {
+  grid-area: icon;
+  display: grid;
+  place-items: center;
+  align-self: start;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ws-accent);
+}
+.ws-sysm-icon svg {
+  width: 16px;
+  height: 16px;
+}
+.ws-sysm-name {
+  grid-area: name;
+  font-weight: var(--fw-strong);
+  font-size: var(--fs-a3);
+}
+.ws-sysm-value {
+  grid-area: value;
+  font-variant-numeric: tabular-nums;
+}
+.ws-sysm-bar {
+  grid-area: bar;
+  height: 7px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.ws-sysm-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--cream-deep), var(--ws-accent));
+  transition: width 0.6s ease;
+}
+.ws-sysm.high .ws-sysm-bar i {
+  background: linear-gradient(90deg, var(--warn), var(--danger));
+}
+.ws-sysm-sub {
+  grid-area: sub;
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+}
+.ws-sys-foot {
+  display: block;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ws-line);
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+}
+.ws-info {
+  display: grid;
+  grid-template-columns: minmax(110px, auto) minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0;
+  font-size: var(--fs-a2);
+}
+.ws-info dt {
+  color: var(--ws-muted);
+}
+.ws-info dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+/* ── "Şu an ne yapıyorum?" ───────────────────────────────────────────────── */
+.ws-work {
+  display: grid;
+  gap: 8px;
+  padding: 10px 18px 0;
+}
+.ws-now {
+  position: relative;
+  padding: 12px 14px 12px 16px;
+  border: 1px solid var(--cream-18);
+  border-radius: var(--r-lg);
+  background:
+    radial-gradient(120% 140% at 0% 0%, var(--cream-08), transparent 55%),
+    var(--ws-card);
+  overflow: hidden;
+  animation: ws-pop 0.25s ease;
+}
+.ws-now[hidden] {
+  display: none;
+}
+.ws-now::before {
+  /* a thin running line while Charles works */
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--ws-accent), transparent);
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  opacity: 0;
+}
+.ws-now[data-phase='running']::before {
+  opacity: 0.8;
+  animation: ws-run 1.6s linear infinite;
+}
+@keyframes ws-run {
+  from {
+    background-position: -40% 0;
+  }
+  to {
+    background-position: 140% 0;
+  }
+}
+.ws-now-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+}
+.ws-now-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ws-accent);
+  box-shadow: 0 0 0 4px var(--cream-12);
+}
+.ws-now[data-phase='running'] .ws-now-dot {
+  animation: ws-breathe 1.4s ease-in-out infinite;
+}
+.ws-now.waiting .ws-now-dot {
+  background: var(--warn);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--warn) 18%, transparent);
+}
+.ws-now[data-phase='done'] .ws-now-dot {
+  background: var(--ws-green, var(--ok-strong));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok-strong) 14%, transparent);
+}
+.ws-now[data-phase='stopped'] .ws-now-dot,
+.ws-now[data-phase='failed'] .ws-now-dot {
+  background: var(--danger);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 15%, transparent);
+}
+@keyframes ws-breathe {
+  50% {
+    transform: scale(0.7);
+    opacity: 0.6;
+  }
+}
+.ws-now-heading {
+  font-size: var(--fs-a3);
+}
+.ws-now-clock,
+.ws-now-eta {
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+  font-variant-numeric: tabular-nums;
+}
+.ws-now-eta {
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--cream-12);
+  color: var(--ws-accent);
+}
+.ws-now-eta[hidden] {
+  display: none;
+}
+.ws-now-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+#workspace .ws-now-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--ws-body);
+  font-size: var(--fs-a2);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+#workspace .ws-now-btn.danger:hover {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+#workspace .ws-now-btn[hidden] {
+  display: none;
+}
+.ws-now-btn svg {
+  width: 14px;
+  height: 14px;
+}
+#workspace .ws-now-fold {
+  width: 30px;
+  height: 30px;
+}
+.ws-now-fold svg {
+  transition: transform 0.2s;
+}
+.ws-now:not(.folded) .ws-now-fold svg {
+  transform: rotate(180deg);
+}
+.ws-now-body {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0 0 19px;
+}
+.ws-now.folded .ws-now-body {
+  display: none;
+}
+.ws-now-task {
+  margin: 0;
+  color: var(--ws-body);
+  font-size: var(--fs-a2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-now-task::before {
+  content: '“';
+  color: var(--ws-muted);
+}
+.ws-now-task::after {
+  content: '”';
+  color: var(--ws-muted);
+}
+.ws-now-task[hidden] {
+  display: none;
+}
+.ws-now-step {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.ws-now-step-label {
+  font-weight: var(--fw-strong);
+  font-size: var(--fs-a3);
+}
+.ws-now-step-detail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 7px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+}
+.ws-now-step-detail[hidden] {
+  display: none;
+}
+.ws-now-step-count {
+  margin-left: auto;
+  color: var(--ws-muted);
+  white-space: nowrap;
+}
+.ws-now-steps {
+  display: flex;
+  gap: 4px;
+}
+.ws-now-steps[hidden] {
+  display: none;
+}
+.ws-now-steps i {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.08);
+}
+.ws-now-steps i.done {
+  background: var(--ws-accent);
+}
+.ws-now-steps i.now {
+  background: linear-gradient(90deg, var(--ws-accent), var(--cream-25));
+  animation: ws-breathe 1.4s ease-in-out infinite;
+}
+.ws-now-files {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.ws-now-files[hidden] {
+  display: none;
+}
+.ws-now-files > small {
+  color: var(--ws-muted);
+  margin-right: 2px;
+}
+#workspace .ws-now-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 200px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: var(--r-md);
+  background: var(--ws-card-2);
+  color: var(--ws-body);
+  font-size: var(--fs-a1);
+  cursor: pointer;
+}
+.ws-now-file span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-now-file svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+}
+.ws-now-wait {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+  color: var(--warn-soft);
+  font-size: var(--fs-a2);
+}
+.ws-now-wait[hidden] {
+  display: none;
+}
+.ws-now-wait > svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.ws-now-steer {
+  display: flex;
+  gap: 8px;
+}
+.ws-now-steer[hidden] {
+  display: none;
+}
+/* ── work queue ─────────────────────────────────────────────────────────── */
+.ws-queue {
+  border: 1px solid var(--ws-line);
+  border-radius: var(--r-lg);
+  background: var(--ws-card);
+}
+#workspace .ws-q-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ws-body);
+  cursor: pointer;
+}
+.ws-q-head > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--ws-muted);
+}
+.ws-q-head > svg:last-child {
+  margin-left: auto;
+  transition: transform 0.2s;
+}
+.ws-queue.open .ws-q-head > svg:last-child {
+  transform: rotate(180deg);
+}
+.ws-q-head strong {
+  font-size: var(--fs-a2);
+}
+.ws-q-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--r-pill);
+  background: var(--ws-accent);
+  color: var(--ws-accent-ink);
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+  line-height: 20px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.ws-q-count[hidden] {
+  display: none;
+}
+.ws-q-body {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+  max-height: 44vh;
+  overflow-y: auto;
+}
+.ws-q-body[hidden] {
+  display: none;
+}
+.ws-q-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ws-q-after-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ws-q-after-opt[hidden] {
+  display: none;
+}
+.ws-q-after-opt input {
+  accent-color: var(--ws-accent);
+}
+.ws-q-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ws-q-list > .ws-empty {
+  padding: 6px 2px;
+}
+.ws-q-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto 20px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 8px 9px 10px;
+  border: 1px solid var(--ws-line);
+  border-radius: var(--r-lg);
+  background: var(--ws-card-2);
+  transition: border-color 0.15s, opacity 0.15s;
+}
+.ws-q-card[draggable='true'] {
+  cursor: grab;
+}
+.ws-q-card.dragging {
+  opacity: 0.35;
+}
+.ws-q-card.drop-before {
+  box-shadow: 0 -2px 0 var(--ws-accent);
+}
+.ws-q-card.drop-after {
+  box-shadow: 0 2px 0 var(--ws-accent);
+}
+.ws-q-card.running {
+  border-color: var(--cream-45);
+  background: var(--cream-08);
+}
+.ws-q-card.done {
+  opacity: 0.6;
+}
+.ws-q-num {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+}
+.ws-q-card.running .ws-q-num {
+  background: var(--ws-accent);
+  color: var(--ws-accent-ink);
+}
+.ws-q-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.ws-q-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-a3);
+}
+.ws-q-card.done .ws-q-text {
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 255, 255, 0.3);
+}
+.ws-q-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-a1);
+}
+.ws-q-status {
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ws-muted);
+  font-weight: var(--fw-strong);
+}
+.ws-q-status.running {
+  background: var(--cream-18);
+  color: var(--ws-accent);
+}
+.ws-q-status.done {
+  background: color-mix(in srgb, var(--ok-strong) 12%, transparent);
+  color: var(--ok);
+}
+.ws-q-status.failed,
+.ws-q-status.stopped {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger-soft);
+}
+.ws-q-status.blocked {
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  color: var(--warn);
+}
+.ws-q-dep {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ws-muted);
+}
+.ws-q-dep.wrong {
+  color: var(--warn);
+}
+.ws-q-dep svg {
+  width: 12px;
+  height: 12px;
+}
+.ws-q-actions {
+  display: flex;
+  gap: 2px;
+}
+#workspace .ws-q-actions .ws-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+}
+.ws-q-grip {
+  color: var(--ws-muted);
+  opacity: 0.6;
+}
+.ws-q-grip svg {
+  width: 15px;
+  height: 15px;
+}
+.ws-q-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+#workspace .ws-q-foot .ws-link {
+  width: auto;
+  margin: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: var(--fs-a2);
+}
+#workspace .ws-q-auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ws-body);
+  font-size: var(--fs-a2);
+  cursor: pointer;
+}
+.ws-q-auto i {
+  position: relative;
+  width: 30px;
+  height: 18px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.14);
+  transition: background 0.2s;
+}
+.ws-q-auto i::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+}
+.ws-q-auto.on i {
+  background: var(--ws-accent);
+}
+.ws-q-auto.on i::after {
+  transform: translateX(12px);
+}
+/* ── change review ─────────────────────────────────────────────────────── */
+.ws-review-modal .ws-modal {
+  width: min(1240px, 100%);
+  height: min(820px, 100%);
+}
+.ws-review-modal .ws-modal-body {
+  padding: 0;
+  overflow: hidden;
+}
+.ws-review {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+.ws-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-right: 1px solid var(--ws-line);
+  overflow-y: auto;
+}
+#workspace .ws-modal button.ws-review-item.on {
+  border-color: var(--cream-25) !important;
+}
+.ws-review-item.undone {
+  opacity: 0.55;
+}
+.ws-review-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-md);
+}
+.ws-review-icon svg {
+  width: 16px;
+  height: 16px;
+}
+.ws-review-name {
+  display: grid;
+  min-width: 0;
+}
+.ws-review-name strong,
+.ws-review-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-review-name strong {
+  font-size: var(--fs-a3);
+}
+.ws-review-path {
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+  direction: rtl;
+  text-align: left;
+}
+.ws-review-meta {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+}
+.ws-review-tag {
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  color: var(--ws-body);
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+}
+.ws-review-detail {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+.ws-review-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--ws-line);
+}
+.ws-review-head:empty {
+  display: none;
+}
+.ws-review-title {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.ws-review-title strong {
+  font-size: var(--fs-a4);
+}
+.ws-review-title small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+}
+.ws-review-counts {
+  display: inline-flex;
+  gap: 8px;
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+  font-variant-numeric: tabular-nums;
+}
+.ws-review-counts b.add {
+  color: var(--ok);
+}
+.ws-review-counts b.del {
+  color: var(--danger-soft);
+}
+#workspace .ws-modal button.ws-review-undo.confirm {
+  color: var(--danger-soft) !important;
+}
+.ws-review-undo svg {
+  width: 16px;
+  height: 16px;
+}
+.ws-review-noundo {
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+}
+.ws-review-view {
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 0 18px;
+}
+.ws-review-none {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 80px 20px;
+  color: var(--ws-muted);
+  text-align: center;
+}
+.ws-review-none svg {
+  width: 30px;
+  height: 30px;
+}
+.ws-diff {
+  font: 12.5px/1.55 'Cascadia Code', Consolas, 'SFMono-Regular', monospace;
+  min-width: max-content;
+}
+.ws-diff-line {
+  display: grid;
+  grid-template-columns: 48px 48px 22px auto;
+}
+.ws-diff-line code {
+  font: inherit;
+  white-space: pre;
+  padding-right: 24px;
+}
+.ws-diff-n {
+  padding-right: 10px;
+  text-align: right;
+  user-select: none;
+}
+.ws-diff-sign {
+  color: var(--ws-muted);
+  user-select: none;
+}
+.ws-diff-line.add .ws-diff-sign,
+.ws-diff-line.add code {
+  color: var(--ok-soft);
+}
+.ws-diff-line.del .ws-diff-sign,
+.ws-diff-line.del code {
+  color: var(--danger-soft);
+}
+.ws-diff-skip {
+  margin: 4px 0;
+  padding: 3px 18px;
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+}
+.ws-paras {
+  display: grid;
+  gap: 10px;
+  padding: 6px 18px;
+}
+.ws-para {
+  padding: 12px 14px;
+  border: 1px solid var(--ws-line);
+  border-radius: var(--r-md);
+}
+.ws-para p {
+  margin: 4px 0 0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.ws-para small {
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+}
+.ws-para.changed {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.ws-para.add {
+  border-color: color-mix(in srgb, var(--ok-strong) 30%, transparent);
+  background: color-mix(in srgb, var(--ok-strong) 6%, transparent);
+}
+.ws-para.del {
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+  background: color-mix(in srgb, var(--danger) 6%, transparent);
+}
+.ws-para.del p {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--danger-soft) 50%, transparent);
+}
+.ws-para del {
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--danger) 22%, transparent);
+  color: var(--danger-soft);
+  text-decoration-color: color-mix(in srgb, var(--danger-soft) 60%, transparent);
+}
+.ws-para ins {
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--ok-strong) 20%, transparent);
+  color: var(--ok-soft);
+  text-decoration: none;
+}
+.ws-review-images {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 8px 18px;
+}
+.ws-review-image {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin: 0;
+}
+.ws-review-image img,
+.ws-review-noimg {
+  width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border: 1px solid var(--ws-line);
+  border-radius: var(--r-lg);
+  background:
+    repeating-conic-gradient(rgba(255, 255, 255, 0.04) 0 25%, transparent 0 50%) 0 0 / 18px 18px,
+    #0a0a09;
+}
+.ws-review-noimg {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  color: var(--ws-muted);
+}
+.ws-review-image figcaption {
+  color: var(--ws-muted);
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+  text-align: center;
+}
+@media (max-width: 900px) {
+  .ws-review {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .ws-review-list {
+    max-height: 170px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ws-line);
+  }
+  .ws-para.changed,
+  .ws-review-images {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+}
+/* ── Charles takes the dropped file (drop-slime.ts draws him on the canvas) ─── */
+.ws-drop-target {
+  position: relative;
+}
+.ws-drop-slime {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  pointer-events: none;
+  z-index: 3;
+}
+body.workspace.dropping .ws-drop-target > svg,
+body.ws-gulp .ws-drop-target > svg {
+  opacity: 0;
+}
+body.workspace.dropping .ws-drop-slime,
+body.ws-gulp .ws-drop-slime {
+  display: block;
+}
+body.workspace.dropping .ws-drop-target,
+body.ws-gulp .ws-drop-target {
+  background: var(--cream-12) !important;
+}
+/* the message box glows while a file is over the window */
+body.workspace.dropping #composer,
+body.workspace.dropping .ws-ask {
+  box-shadow: 0 0 0 2px var(--cream-35);
+}
+/* ── v0.7.8: "Şu an ne yapıyorum?" and the work queue side by side, more compact ── */
+.ws-chat-view .ws-work {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 14px 0;
+}
+.ws-chat-view .ws-work > .ws-now {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px 8px 12px;
+  border-radius: var(--r-lg);
+}
+.ws-chat-view .ws-work > .ws-queue {
+  flex: 0 0 300px;
+  min-width: 0;
+  border-radius: var(--r-lg);
+}
+/* nothing running: the queue alone takes the row */
+.ws-chat-view .ws-work:has(> .ws-now[hidden]) > .ws-queue {
+  flex: 1 1 auto;
+}
+.ws-chat-view .ws-now-head {
+  gap: 8px;
+  min-height: 28px;
+}
+.ws-chat-view .ws-now-heading {
+  font-size: var(--fs-a2);
+  white-space: nowrap;
+}
+.ws-chat-view .ws-now-clock,
+.ws-chat-view .ws-now-eta {
+  font-size: var(--fs-a1);
+}
+#workspace .ws-chat-view .ws-now-btn {
+  height: 26px;
+  padding: 0 8px;
+  gap: 5px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-a1);
+}
+#workspace .ws-chat-view .ws-now-fold {
+  width: 26px;
+  height: 26px;
+}
+.ws-chat-view .ws-now-body {
+  gap: 5px;
+  padding: 5px 0 0 17px;
+}
+.ws-chat-view .ws-now-task {
+  font-size: var(--fs-a1);
+}
+.ws-chat-view .ws-now-step-label {
+  font-size: var(--fs-a2);
+}
+.ws-chat-view .ws-now-steps i {
+  height: 3px;
+}
+#workspace .ws-chat-view .ws-now-file {
+  height: 22px;
+  padding: 0 7px;
+  font-size: var(--fs-a1);
+}
+.ws-chat-view .ws-now-wait {
+  padding: 5px 8px;
+  font-size: var(--fs-a1);
+}
+#workspace .ws-chat-view .ws-q-head {
+  height: 44px;
+  padding: 0 10px;
+}
+.ws-chat-view .ws-q-body {
+  gap: 7px;
+  padding: 0 8px 8px;
+  max-height: 210px;
+}
+.ws-chat-view .ws-q-form {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ws-chat-view .ws-q-form input:not([type='checkbox']) {
+  flex: 1 1 100%;
+  padding: 7px 10px;
+  font-size: var(--fs-a2);
+}
+.ws-chat-view .ws-q-after-opt {
+  font-size: var(--fs-a1);
+}
+.ws-chat-view .ws-q-card {
+  grid-template-columns: 22px minmax(0, 1fr) auto 14px;
+  gap: 7px;
+  padding: 6px 6px 6px 8px;
+  border-radius: var(--r-md);
+}
+.ws-chat-view .ws-q-num {
+  width: 20px;
+  height: 20px;
+  font-size: var(--fs-a1);
+}
+.ws-chat-view .ws-q-text {
+  font-size: var(--fs-a2);
+}
+#workspace .ws-chat-view .ws-q-actions .ws-icon {
+  width: 24px;
+  height: 24px;
+}
+/* the queue's head lines up with the work panel's head */
+.ws-chat-view .ws-q-head strong {
+  font-size: var(--fs-a2);
+}
+@container ws-chat (max-width: 700px) {
+  .ws-chat-view .ws-work {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ws-chat-view .ws-work > .ws-queue {
+    flex: none;
+  }
+
+}
+/* a narrow window: one under the other again */
+/* ── v0.7.9: the chat starts at the top again ──────────────────────────────────
+   v0.7.7 put the work strip between the chat head and the chat, but the chat view kept its
+   three rows (head · chat · hint): the strip took the stretching row and pushed the chat,
+   the mode picker and the first messages far down. Rows: head · strip · chat (v1.0.0: the key hint
+   under the box became the box's tooltip). */
+.ws-chat-view {
+  container: ws-chat / inline-size;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+.ws-chat-view > .ws-chat-head {
+  grid-row: 1;
+}
+.ws-chat-view > .ws-work {
+  grid-row: 2;
+}
+.ws-chat-view > .ws-chat-body {
+  grid-row: 3;
+}
+.ws-chat-view > .ws-panel {
+  grid-row: 1 / span 3;
+}
+/* nothing to show in the strip (nothing running, an empty queue): it takes no room */
+.ws-chat-view .ws-work:not(:has(> .ws-now:not([hidden]))):not(:has(> .ws-queue:not([hidden]))) {
+  display: none;
+}
+
+/* ── from 14-v080.css ── */
+/* v0.8.0: "Kalan kullanım" — the user picks which AIs the card shows */
+#workspace .ws-usage { position: relative; }
+#workspace .ws-usage-grid { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
+#workspace .ws-usage-col[hidden] { display: none; }
+#workspace .ws-usage-menu {
+  position: absolute;
+  z-index: 20;
+  top: 48px;
+  right: 12px;
+  display: grid;
+  gap: 2px;
+  min-width: 240px;
+  padding: 8px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: var(--r-lg);
+  background: var(--ws-card-2);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+#workspace .ws-usage-menu[hidden] { display: none; }
+#workspace .ws-usage-opt {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: var(--r-md);
+  color: var(--ws-text);
+  font-size: var(--fs-a2);
+  cursor: pointer;
+}
+#workspace .ws-usage-opt:hover { background: var(--ws-field); }
+#workspace .ws-usage-opt small { color: var(--ws-body); opacity: 0.7; font-size: var(--fs-a1); }
+#workspace .ws-usage-opt .ws-prov-dot { width: 9px; height: 9px; border-radius: var(--r-sm); }
+#workspace .ws-usage-all {
+  grid-template-columns: auto 1fr;
+  margin-bottom: 4px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--ws-line);
+  border-radius: var(--r-md) var(--r-md) 0 0;
+}
+#workspace .ws-usage-opt input { margin: 0; accent-color: var(--cream-strong); }
+#workspace .ws-usage-empty { margin: 4px 0 0; color: var(--ws-body); opacity: 0.7; font-size: var(--fs-a2); }
+#workspace .ws-usage-empty[hidden] { display: none; }
+
+/* ── from 15-v085.css ── */
+body.workspace #feed .steer-pending { margin-right: 0; }
+
+/* ── from 16-v087.css ── */
+/* v0.8.7: "Modüller" card on the home page of the app window */
+.ws-mod-tile.off {
+  opacity: 0.62;
+}
+.ws-mod-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  object-fit: cover;
+}
+.ws-picker-row .ws-mod-icon {
+  width: 24px;
+  height: 24px;
+}
+.ws-mod-letter {
+  background: var(--cream-18);
+  color: var(--ws-accent);
+  font-size: var(--fs-a4);
+  font-weight: var(--fw-strong);
+}
+.ws-mod-tile .ws-ht-state {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.ws-mod-tile.on .ws-ht-state {
+  color: var(--ws-accent);
+}
+.ws-mod-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  height: 28px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: var(--r-lg);
+  background: var(--cream-12);
+  color: var(--ws-accent);
+  font: inherit;
+  font-size: var(--fs-a2);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+.ws-mod-open svg {
+  width: 11px;
+  height: 11px;
+  fill: currentColor;
+}
+.ws-mod-open:hover:not(:disabled) {
+  background: var(--cream-25);
+}
+.ws-mod-open:focus-visible {
+  outline: 2px solid var(--ws-accent);
+  outline-offset: 2px;
+}
+.ws-mod-open:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* ── from 17-v088.css ── */
+/* v0.8.8: Projects in the chat list */
+.ws-project-icon {
+  color: var(--ws-accent);
+}
+.ws-project-row .ws-project-new {
+  opacity: 0;
+}
+.ws-project-row:hover .ws-project-new,
+.ws-project-row:focus-within .ws-project-new {
+  opacity: 1;
+}
+.ws-project-modal .ws-modal-body {
+  padding: 16px 24px 8px;
+}
+.ws-project-note {
+  margin: 0 0 12px;
+  color: var(--ws-muted);
+  font-size: var(--fs-a2);
+  line-height: 1.5;
+}
+.ws-project-instr {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 180px;
+  resize: vertical;
+  padding: 12px 14px !important;
+  border: 1px solid var(--ws-line-2) !important;
+  border-radius: var(--r-md) !important;
+  background: var(--ws-field) !important;
+  color: var(--ws-text) !important;
+  font: inherit;
+  font-size: var(--fs-a3);
+  line-height: 1.5;
+}
+.ws-project-instr:focus {
+  outline: 2px solid var(--ws-accent);
+  outline-offset: 1px;
+}
+/* v0.8.8: "Adacığa dön" stays on one line */
+.ws-island {
+  white-space: nowrap;
+  flex: none;
+}
+.ws-island span {
+  white-space: nowrap;
+}
+
+/* ── from 26-v096.css ── */
+/* v0.9.6 — the effort dropdown beside the model picker. It works like the model menu: one
+   button showing the chosen level, and clicking it opens the levels above the composer.
+   The rows are the model's own levels, spelled as the provider spells them; "Otomatik" is
+   always first, and a model with no levels keeps it and locks the button. */
+/* (a base rule, kept in this file for the cascade) */
+.effort-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: none;
+  min-width: 0;
+  background-color: var(--ac-glass);
+  border: 1px solid var(--ac-edge);
+  border-top-color: var(--ac-edge-top);
+  backdrop-filter: var(--ac-blur);
+  -webkit-backdrop-filter: var(--ac-blur);
+  border-radius: var(--r-pill);
+}
+/* (a chat rule, kept in this file for the cascade) */
+#effort-button:disabled {
+  cursor: default;
+}
+/* (a chat rule, kept in this file for the cascade) */
+#effort-menu[hidden] {
+  display: none;
+}
+/* The multiline bar gets one more auto column right after the model picker. These run after
+   3-island.css, which pins the other slots to the old seven-column grid. */
+/* (a chat rule, kept in this file for the cascade) */
+#composer-bar.multiline {
+  grid-template-columns: 32px minmax(0, 1fr) auto auto 30px 34px auto auto;
+}
+/* the app window: the effort picker sits exactly like the model picker beside it (same
+   height, same vertical centre, same type size) */
+body.workspace .ws-chat-body .effort-picker {
+  display: flex !important;
+  align-items: center !important;
+  height: 42px !important;
+}
+/* (a chat rule, kept in this file for the cascade) */
+#model-submenu[hidden] {
+  display: none;
+}
+body.workspace .ws-chat-body #model-submenu button,
+body.workspace .ws-chat-body #model-menu button {
+  font-size: var(--fs-a2);
+}
+/* v0.9.6: Windows Firewall hint in the sharing sheet */
+/* (a shelf rule, kept in this file for the cascade) */
+.share-firewall {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid var(--cream-18);
+  border-radius: var(--r-md);
+  background: var(--cream-04);
+}
+
+/* ── from 27-v098.css ── */
+/* v0.9.8 — app window on narrow sizes, window dragging fallback, EVREN card. */
+/* ── App window: the chat never runs out of the window ───────────────────────────
+   Without a column template the chat view's single column was sized to its widest content
+   (a wide table, a formula, a long code line): on a narrow window the messages and the
+   message box were cut off on the right. */
+.ws-chat-view:not(.with-panel) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.ws-chat-view.with-panel {
+  grid-template-columns: minmax(0, 1fr) min(var(--panel-w, 520px), 48%);
+}
+.ws-chat-view > *,
+body.workspace .ws-chat-body #feed,
+body.workspace .ws-chat-body .conversation,
+body.workspace .ws-chat-body > .content {
+  min-width: 0;
+}
+body.workspace .ws-chat-body #feed table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+body.workspace .ws-chat-body #feed .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+/* the message box keeps all its buttons; the model name gives way first */
+body.workspace .ws-chat-body #composer-bar {
+  min-width: 0;
+}
+body.workspace .ws-chat-body #composer-bar .model-picker,
+body.workspace .ws-chat-body #composer-bar .effort-picker {
+  min-width: 0;
+  flex-shrink: 1;
+}
+body.workspace .ws-chat-body #composer-bar #model-button {
+  min-width: 0;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 1100px) {
+  .ws-body {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+  body.workspace .ws-chat-body #feed {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+
+}
+@media (max-width: 900px) {
+  #workspace:not(.side-shown) .ws-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #workspace:not(.side-shown) .ws-side {
+    display: none;
+  }
+  #workspace.side-shown .ws-body {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+}
+
+/* ── from 28-v099.css ── */
+/* App window at its smallest: a long chat name in the title bar (padding-right keeps room for
+   Windows' caption buttons) made the title bar — and with it the whole window's single grid
+   column — wider than the window, so everything was cut off on the right. */
+#workspace {
+  grid-template-columns: minmax(0, 1fr);
+}
+#workspace .ws-titlebar {
+  min-width: 0;
+}
+#workspace .ws-brand {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+#workspace .ws-crumb {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+#workspace .ws-title-actions {
+  flex: none;
+}
+@media (max-width: 900px) {
+  #workspace .ws-island span {
+    display: none;
+  }
+
+}
+/* the chat head's long title gives way to its buttons */
+#workspace .ws-chat-head > * {
+  min-width: 0;
+}
+#workspace .ws-chat-tools {
+  flex: none;
+}
+/* The chat in the app window ignores the island's own view. If the island had switched to its
+   card shelf or its closed notch meanwhile (a notification, a timer), the island stylesheet hid
+   the chat that now lives in the app window: an opened chat or a new one showed an empty page
+   without the message box until you went back to the island and returned. */
+body.workspace.v10[data-view]:not(.desktop-pet) #workspace .ws-chat-body > .content,
+body.workspace #workspace .ws-chat-body > .content {
+  display: flex !important;
+}
+
+/* ── from 30-v0914.css ── */
+/* ==========================================================================
+   Renk seçici (.cp13)
+   ========================================================================== */
+/* (a shelf rule, kept in this file for the cascade) */
+.cp13 {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr) minmax(0, 1.25fr);
+  gap: 14px;
+  color: var(--v10-ink, #f3eee7);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.cp13-square {
+  position: relative;
+  height: 128px;
+  border-radius: var(--r-md);
+  background:
+    linear-gradient(to top, #000, transparent),
+    linear-gradient(to right, #fff, var(--hue, #f80));
+  cursor: crosshair;
+  touch-action: none;
+  outline-offset: 2px;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.cp13-hue {
+  position: relative;
+  height: 12px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, #f00, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00);
+  cursor: pointer;
+  touch-action: none;
+  outline-offset: 2px;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.cp13-big {
+  display: flex;
+  align-items: flex-end;
+  height: 92px;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  color: #1b1712;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  box-shadow: 0 10px 26px -14px var(--picked, #000);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.cp13-hint {
+  font-size: var(--fs-i1);
+  color: var(--v10-faint, #6f6c69);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.cp13-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 4px 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.025);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.cp13-label {
+  width: 30px;
+  flex: none;
+  font-size: var(--fs-i1);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.6px;
+  color: var(--v10-faint, #6f6c69);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.cp13-value {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--v10-ink, #f3eee7);
+  font: 600 12px/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.cp13-copy {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: #a9a49d;
+  cursor: pointer;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.cp13-sec {
+  font-size: var(--fs-i1);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.9px;
+  color: var(--v10-faint, #6f6c69);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.cp13-clear {
+  height: 20px;
+  min-height: 0;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: #9d988f;
+  font: inherit;
+  font-size: var(--fs-i2);
+  cursor: pointer;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.cp13-empty {
+  font-size: var(--fs-i2);
+  color: var(--v10-faint, #6f6c69);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.cp13-screen {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  min-height: 0;
+  padding: 0 12px 0 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--v10-cream, var(--cream));
+  color: var(--cream-ink);
+  font: inherit;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+.ws-colors .cp13,
+.cp13.narrow {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.ws-colors .cp13-values {
+  grid-column: 1 / -1;
+}
+.ws-colors .cp13 > :nth-child(2) {
+  padding-right: 0;
+  border-right: 0;
+}
+/* ==========================================================================
+   Zamanlayıcı (.tm13)
+   ========================================================================== */
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13 {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) 150px;
+  align-items: center;
+  gap: 16px;
+  color: var(--v10-ink, #f3eee7);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-tab {
+  height: 26px;
+  min-height: 0;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: #cfcac3;
+  font: inherit;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-ring-label {
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-regular);
+  color: var(--v10-muted, #a29e98);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-ring-time {
+  font-size: 27px;
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-ring-sub {
+  font-size: var(--fs-i1);
+  color: var(--v10-muted, #a29e98);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.025);
+  color: #cfcac3;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-task-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--v10-ink, #f3eee7);
+  font: inherit;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-task-tag,
+.tm13-key {
+  flex: none;
+  font-size: var(--fs-i2);
+  color: var(--v10-faint, #6f6c69);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-chip {
+  height: 27px;
+  min-height: 0;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: #e3dfd8;
+  font: inherit;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-next {
+  font-size: var(--fs-i2);
+  color: var(--v10-muted, #a29e98);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-lap-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 10px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.025);
+  font-size: var(--fs-i3);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-reset,
+.tm13-go {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  min-height: 0;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  font: inherit;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+  white-space: nowrap;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-reset {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: #e3dfd8;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-go {
+  border: 0;
+  background: var(--v10-cream, var(--cream));
+  color: var(--cream-ink);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--fs-i3);
+  color: #cfcac3;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-switch {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  min-height: 0;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  transition: background-color 0.18s;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+/* the app window's narrower card */
+.ws-timer .tm13 {
+  grid-template-columns: 120px minmax(0, 1fr);
+}
+.ws-timer .tm13-ring {
+  width: 120px;
+  height: 120px;
+}
+.ws-timer .tm13-right {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  padding-left: 0;
+  border-left: 0;
+}
+.ws-timer .tm13-buttons {
+  grid-column: 1 / -1;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.notch-tool-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.notch-tool-kind {
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-regular);
+  color: var(--v10-muted);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.notch-tool-sub,
+.notch-tool-ok {
+  overflow: hidden;
+  font-size: var(--fs-i2);
+  color: var(--v10-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.notch-tool-ok {
+  color: var(--ok);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.notch-tool-time {
+  flex: none;
+  font-size: 20px;
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.notch-tool-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--v10-cream);
+  color: var(--cream-ink);
+  cursor: pointer;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.notch-tool-hex {
+  font: 700 13.5px/1.2 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.notch-tool-check {
+  flex: none;
+  color: var(--ok);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.notch-tool-title {
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.notch-tool-action {
+  flex: none;
+  height: 30px;
+  min-height: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--v10-cream);
+  color: var(--cream-ink);
+  font: inherit;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+  cursor: pointer;
+}
+/* ==========================================================================
+   The app window's cards (Renk seçici · Zamanlayıcı · Dosyalar · Hava durumu)
+   ========================================================================== */
+.ws-tools13 .ws-card-head .ws-tool-slot {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+}
+.ws-tools13 .ws-tool-body {
+  min-width: 0;
+}
+.ws-tools13 .ws-tool-body:empty::before {
+  content: '…';
+  color: var(--v10-faint, #6f6c69);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-done-title {
+  font-size: var(--fs-i5);
+  font-weight: var(--fw-strong);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-skip {
+  height: 30px;
+  min-height: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: #e3dfd8;
+  font: inherit;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+.ws-tools13 .tm13-go:disabled,
+.ws-tools13 .conv-go:disabled {
+  opacity: 0.5;
+}
+/* (a island rule, kept in this file for the cascade) */
+/* (a island rule, kept in this file for the cascade) */
+.notch-track-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+/* (a island rule, kept in this file for the cascade) */
+/* (a island rule, kept in this file for the cascade) */
+/* the song's name fits on the music notch */
+/* (a island rule, kept in this file for the cascade) */
+.notch-track-title {
+  overflow: hidden;
+  color: var(--v10-ink);
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--fs-i2);
+  letter-spacing: -0.1px;
+}
+/* (a island rule, kept in this file for the cascade) */
+.notch-track-artist {
+  overflow: hidden;
+  color: var(--v10-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--fs-i1);
+}
+/* (a island rule, kept in this file for the cascade) */
+.notch-track-cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
+  color: #8f8a84;
+  width: 27px;
+  height: 27px;
+  border-radius: var(--r-sm);
+}
+/* "Özel süre": no blue selection, no spin arrows */
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-chip-input {
+  width: 64px;
+  text-align: center;
+  outline: 0;
+  border-color: var(--cream-45);
+  appearance: textfield;
+  -moz-appearance: textfield;
+  caret-color: var(--v10-cream, var(--cream));
+  color: var(--v10-ink, #f3eee7);
+  background: transparent;
+  box-shadow: none;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.tm13-switch.on i {
+  transform: translateX(14px);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+/* app window, Dosyalar card: Dönüştür / Gönder always at the right; "Dosya alımı" sits to their left */
+.ws-tools13.ws-files .ws-card-head .ws-tool-slot {
+  margin-left: auto;
+}
+.ws-tools13 .ws-files-seg {
+  margin-left: 14px;
+}
+/* mail avatars: one neutral, not a colour per row */
+.ws-avatar,
+.ws-mail-row:nth-child(2) .ws-avatar,
+.ws-mail-row:nth-child(3) .ws-avatar {
+  background: rgba(255, 255, 255, 0.07);
+  color: #e6e3df;
+}
+/* the app window's play button matches the island's: a cream disc */
+#workspace .ws-play {
+  border: 0 !important;
+  background: var(--ws-accent) !important;
+  color: var(--ws-accent-ink) !important;
+}
+#workspace .ws-play:hover {
+  filter: brightness(1.06);
+}
+/* the app window's message box: the field keeps room for its text */
+.ws-ask {
+  gap: 6px;
+}
+.ws-ask input {
+  min-width: 160px;
+}
+.ws-model {
+  flex: 0 1 auto;
+  max-width: 132px;
+}
+#workspace ::-webkit-scrollbar-track {
+  background: transparent;
+}
+#workspace ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+#workspace .ws-tree,
+#workspace .ws-home,
+body.workspace .ws-chat-body #feed,
+#workspace .ws-panel-body,
+.ws-modal-body {
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+}
+.ws-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+.ws-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ws-modal-body::-webkit-scrollbar-thumb {
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.14);
+}
+.ws-modal-body::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+}
+
+/* ── from 31-v0914-cards.css ── */
+/* GENERATED (v0.9.14): the island's converter / sender / weather / usage styles for the app
+   window's cards (.ws-tools13). The originals are scoped to #shelf; see 18–30. */
+.ws-tools13 .conv-files {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+.ws-tools13 .conv-file-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+.ws-tools13 .conv-row-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ws-tools13 .conv-row-state {
+  color: var(--v10-muted);
+  white-space: nowrap;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ws-tools13 .conv-row-bar {
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.ws-tools13 .conv-row-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--v10-cream);
+  transition: width 0.3s;
+}
+.ws-tools13 .conv-row.ok .conv-row-state {
+  color: var(--ok);
+}
+.ws-tools13 .conv-row.ok .conv-row-bar i {
+  background: var(--ok);
+}
+.ws-tools13 .conv-row.failed .conv-row-state {
+  color: var(--danger);
+}
+.ws-tools13 .conv-row.failed .conv-row-bar i {
+  background: var(--danger);
+}
+.ws-tools13 .conv-row-single .conv-row-name {
+  display: none;
+}
+.ws-tools13 .conv-row-single .conv-row-state {
+  grid-column: 1 / -1;
+  max-width: none;
+}
+.ws-tools13 .conv:not(.running):not(.done) .conv-row-single {
+  display: none;
+}
+.ws-tools13 .conv-chip:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+}
+.ws-tools13 .conv-chip.on {
+  background: var(--v10-cream);
+  border-color: transparent;
+  color: var(--cream-ink);
+}
+.ws-tools13 .conv-chip:disabled:not(.on) {
+  opacity: 0.45;
+}
+.ws-tools13 .conv-opts:empty {
+  display: none;
+}
+.ws-tools13 .conv-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.ws-tools13 .conv-seg-btn.on {
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+}
+.ws-tools13 .conv-check input {
+  accent-color: var(--v10-cream);
+}
+.ws-tools13 .conv-go,
+.ws-tools13 .conv-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 0;
+  border-radius: var(--r-pill);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+.ws-tools13 .conv-go:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.ws-tools13 .conv-go:disabled {
+  opacity: 0.45;
+  cursor: default;
+  box-shadow: none;
+}
+.ws-tools13 .conv-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+.ws-tools13 .conv-progress-label {
+  text-align: center;
+  font-size: var(--fs-a2);
+  color: var(--v10-muted);
+}
+.ws-tools13 .conv.running .conv-progress-label::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  vertical-align: -1px;
+  border-radius: 50%;
+  border: 2px solid var(--cream-25);
+  border-top-color: var(--v10-cream);
+  animation: v10-spin 0.8s linear infinite;
+}
+.ws-tools13 .conv-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: var(--fs-a3);
+  font-weight: var(--fw-strong);
+  color: var(--ok);
+}
+.ws-tools13 .conv {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: minmax(0, 170px) minmax(0, 1fr) 132px;
+  gap: 12px;
+}
+.ws-tools13 .conv-file {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+}
+.ws-tools13 .conv-kind {
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, var(--cream-25), var(--cream-04));
+  border: 1px solid var(--cream-18);
+  color: var(--v10-cream);
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-md);
+}
+.ws-tools13 .conv-kind svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  width: 17px;
+  height: 17px;
+}
+.ws-tools13 .conv-file-text strong {
+  font-weight: var(--fw-strong);
+  color: var(--v10-ink, #f3eee7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .conv-file-text small {
+  color: var(--v10-muted);
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .conv-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 8px;
+  color: #cfcbc5;
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .conv-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.ws-tools13 .conv-group-name {
+  margin-right: 3px;
+  color: var(--v10-faint);
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .conv-opts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.ws-tools13 .conv-opt {
+  display: flex;
+  align-items: center;
+  color: #d8d4ce;
+  font-size: var(--fs-a1);
+  gap: 5px;
+}
+.ws-tools13 .conv-opt > small {
+  color: var(--v10-faint);
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .conv-seg-btn {
+  min-height: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: #bdb9b3;
+  cursor: pointer;
+  height: 20px;
+  padding: 0 7px;
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .conv-select {
+  min-height: 0;
+  border-radius: var(--r-pill);
+  height: 22px;
+  padding: 0 20px 0 8px;
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .conv-action {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+.ws-tools13 .conv-go {
+  border: 0;
+  background: var(--v10-cream);
+  color: var(--cream-ink);
+  box-shadow: 0 8px 22px -12px var(--cream-70);
+  height: 34px;
+  font-size: var(--fs-a2);
+  gap: 6px;
+}
+.ws-tools13 .conv-ghost {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #d8d4ce;
+  height: 26px;
+  font-size: var(--fs-a1);
+  gap: 5px;
+}
+.ws-tools13 .conv-go svg,
+.ws-tools13 .conv-ghost svg,
+.ws-tools13 .conv-result svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  width: 13px;
+  height: 13px;
+}
+.ws-tools13 .conv-progress-label,
+.ws-tools13 .conv-result {
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .conv-note,
+.ws-tools13 .conv-empty {
+  color: var(--v10-muted);
+  margin: 0;
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .conv-formats {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  padding-right: 4px;
+  gap: 4px;
+}
+.ws-tools13 .conv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.ws-tools13 .conv-chip {
+  min-height: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e6e2dc;
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: background-color 0.15s,
+    color 0.15s,
+    transform 0.15s;
+  padding: 0 9px;
+  font-size: var(--fs-a1);
+  height: 21px;
+}
+.ws-tools13 .conv-list {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  min-height: 0;
+  padding-right: 4px;
+  gap: 3px;
+}
+.ws-tools13 .conv-files .conv-opts {
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+.ws-tools13 .conv-files .conv-opt {
+  gap: 4px;
+}
+.ws-tools13 .conv-files .conv-select {
+  height: 21px;
+  padding: 0 18px 0 7px;
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .conv-files .conv-check {
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .conv.running .conv-files .conv-opts,
+.ws-tools13 .conv.done .conv-files .conv-opts {
+  display: none;
+}
+.ws-tools13 .conv-files .conv-list {
+  flex: 1;
+}
+.ws-tools13 .share-sheet *,
+.ws-tools13 .share-sheet *::before { box-sizing: border-box;
+}
+.ws-tools13 .share-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;
+}
+.ws-tools13 .share-files { gap: 2px; padding-right: 10px; border-right: 1px solid #ffffff12; overflow-y: auto;
+}
+.ws-tools13 .share-sheet button { font: inherit; cursor: pointer; flex-shrink: 0; transition: background .15s, border-color .15s;
+}
+.ws-tools13 .share-sheet button:focus-visible { outline: 2px solid #a7caff; outline-offset: -2px;
+}
+.ws-tools13 .share-sheet button:hover { border-color: #ffffff38; background-color: #ffffff14;
+}
+.ws-tools13 .share-sheet svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+.ws-tools13 .share-pick-empty { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 30px; flex: 1; border: 1px dashed #ffffff2a; border-radius: var(--r-md); background: #ffffff04; color: #e1e5ee; padding: 6px;
+}
+.ws-tools13 .share-file-head { display: flex; align-items: center; gap: 7px; min-width: 0;
+}
+.ws-tools13 .share-file-icon { display: grid; place-items: center; width: 27px; height: 27px; flex: none; color: #a7caff; background: #a7caff12; border-radius: var(--r-md);
+}
+.ws-tools13 .share-file-meta { display: flex; align-items: baseline; gap: 5px; min-width: 0;
+}
+.ws-tools13 .share-file-head .share-file-icon { width: 22px; height: 22px;
+}
+.ws-tools13 .share-file-meta strong { font-size: var(--fs-a1); font-weight: var(--fw-strong); overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.ws-tools13 .share-file-meta small {
+  flex: none;
+  color: #a2a7b3;
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .share-file-actions,
+.ws-tools13 .share-transfer-btns { display: flex; gap: 5px; flex-wrap: wrap;
+}
+.ws-tools13 .share-mini-btn,
+.ws-tools13 .share-scan-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 22px; padding: 2px 7px; border: 1px solid #ffffff18; border-radius: var(--r-sm); color: #e1e5ee; background: #ffffff06; font-size: var(--fs-a1) !important;
+}
+.ws-tools13 .share-mini-btn svg { width: 11px; height: 11px;
+}
+.ws-tools13 .share-mode-box { margin-top: auto; display: flex; flex-direction: column; gap: 2px; flex: none;
+}
+.ws-tools13 .share-mode-head { display: flex; align-items: center; gap: 5px; min-width: 0; line-height: 10px;
+}
+.ws-tools13 .share-mode-dot { width: 5px; height: 5px; flex: none; border-radius: 50%; background: var(--ok);
+}
+.ws-tools13 .share-mode-dot.off { background: #858998;
+}
+.ws-tools13 .share-mode-dot.auto { background: #a7caff;
+}
+.ws-tools13 .share-mode-title { font-size: var(--fs-a1); color: #b8bfcc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ws-tools13 .share-mode-seg { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); padding: 2px; gap: 2px; background: #00000024; border: 1px solid #ffffff0d; border-radius: var(--r-md);
+}
+.ws-tools13 .share-mode-pill { min-width: 0; height: 18px; padding: 0 2px; border: 0; border-radius: var(--r-sm); color: #969dab; background: transparent; font-size: var(--fs-a1) !important;
+}
+.ws-tools13 .share-file-actions .share-mini-btn { min-height: 18px; padding: 0 6px;
+}
+.ws-tools13 .share-mode-pill.active { color: #e5edf9; background: #ffffff16;
+}
+.ws-tools13 .share-mode-pill.active.everyone { color: var(--ok); background: color-mix(in srgb, var(--ok) 9%, transparent);
+}
+.ws-tools13 .share-mode-pill.active.auto { color: #b8d4ff; background: #a7caff16;
+}
+.ws-tools13 .share-center { gap: 5px;
+}
+.ws-tools13 .share-peers-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none;
+}
+.ws-tools13 .share-peers-head small { color: #b8bfcc; font-size: var(--fs-a1);
+}
+.ws-tools13 .share-peers-list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #ffffff25 transparent;
+}
+.ws-tools13 .share-peers-empty { display: flex; align-items: center; gap: 10px; min-height: 42px; height: 100%; padding: 8px 12px; color: #a2a7b3; border: 1px solid #ffffff0d; border-radius: var(--r-md); background: #080808; font-size: var(--fs-a1);
+}
+.ws-tools13 .share-peers-empty svg { color: var(--v10-cream, var(--cream)); width: 20px; height: 20px;
+}
+.ws-tools13 .share-peer { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 6px 9px; border: 1px solid #ffffff12; border-radius: var(--r-md); background: #ffffff04; color: #e1e5ee; text-align: left;
+}
+.ws-tools13 .share-peer.selected { border-color: #a7caff55;
+}
+.ws-tools13 .share-peer-icon { width: 26px; height: 26px; display: grid; place-items: center; border-radius: var(--r-md); background: #ffffff08; color: #a7caff; flex: none;
+}
+.ws-tools13 .share-peer-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+}
+.ws-tools13 .share-peer-text strong { font-size: var(--fs-a1); font-weight: var(--fw-strong); white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
+}
+.ws-tools13 .share-peer-text small { font-size: var(--fs-a1); color: #969dab;
+}
+.ws-tools13 .share-peer-go { color: #a7caff;
+}
+.ws-tools13 .share-badge { flex: none; padding: 2px 6px; border-radius: var(--r-sm); font-size: var(--fs-a1); font-weight: var(--fw-regular); white-space: nowrap;
+}
+.ws-tools13 .share-badge.quickshare { background: #a7caff12; color: #a7caff;
+}
+.ws-tools13 .share-badge.airdrop { background: #ffffff0a; color: #c9cad1;
+}
+.ws-tools13 .share-offer,
+.ws-tools13 .share-transfer { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: 1px solid #ffffff12; border-radius: var(--r-lg); background: #ffffff04; overflow-y: auto;
+}
+.ws-tools13 .share-offer { border-color: #a7caff45; background: #a7caff08;
+}
+.ws-tools13 .share-offer-top,
+.ws-tools13 .share-transfer-top { display: flex; align-items: center; gap: 7px; min-width: 0; flex: none;
+}
+.ws-tools13 .share-offer-top strong,
+.ws-tools13 .share-transfer-top strong { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: var(--fs-a1); font-weight: var(--fw-strong);
+}
+.ws-tools13 .share-pin { margin-left: auto; color: #b8d4ff; font: 600 10px ui-monospace, monospace; white-space: nowrap; flex: none;
+}
+.ws-tools13 .share-offer-files,
+.ws-tools13 .share-transfer-file { color: #aeb5c2; font-size: var(--fs-a1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none;
+}
+.ws-tools13 .share-offer-actions,
+.ws-tools13 .share-transfer-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; flex: none;
+}
+.ws-tools13 .share-offer-actions { justify-content: flex-end;
+}
+.ws-tools13 .share-transfer-foot > small { min-width: 0; font-size: var(--fs-a1); color: #b8bfcc; overflow-wrap: anywhere;
+}
+.ws-tools13 .share-transfer.error .share-transfer-foot > small { color: var(--danger-soft);
+}
+.ws-tools13 .share-transfer.done .share-transfer-foot > small { color: var(--ok);
+}
+.ws-tools13 .share-btn-primary,
+.ws-tools13 .share-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 26px; padding: 3px 12px; border: 1px solid #ffffff20; border-radius: var(--r-md); font-size: var(--fs-a1);
+}
+.ws-tools13 .share-btn-primary { background: #b8d4ff; color: #142238; border-color: transparent;
+}
+.ws-tools13 .share-btn-primary:hover { background: #d4e5ff !important;
+}
+.ws-tools13 .share-btn-ghost { background: transparent; color: #c5cbd6;
+}
+.ws-tools13 .share-bar { flex: none; height: 4px; width: 100%; border-radius: var(--r-md); background: #ffffff0e; overflow: hidden;
+}
+.ws-tools13 .share-bar i { display: block; height: 100%; border-radius: inherit; background: #a7caff; transition: width .18s;
+}
+.ws-tools13 .share-sheet.over { outline: 1px dashed var(--v10-cream); outline-offset: -2px; border-radius: var(--r-md); background: var(--cream-04);
+}
+.ws-tools13 .conv.conv13 {
+  display: grid;
+  grid-template-columns: 206px minmax(0, 1fr);
+  gap: 13px;
+  min-height: 128px;
+}
+.ws-tools13 .conv13 .conv-left {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.ws-tools13 .conv13 .conv-file {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: var(--r-md);
+  background: var(--h13-well);
+}
+.ws-tools13 .conv13 .conv-kind {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-md);
+}
+.ws-tools13 .conv13 .conv-file-text strong {
+  font-size: var(--fs-a2);
+}
+.ws-tools13 .conv13 .conv-file-text small {
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .conv13 .conv-list {
+  max-height: 64px;
+}
+.ws-tools13 .conv13 .conv-drop,
+.ws-tools13 .share-sheet .share-drop-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: 1;
+  min-height: 40px;
+  margin: 0;
+  padding: 7px 10px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.15);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: #b9b4ad;
+  font: inherit;
+  font-size: var(--fs-a1);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s,
+    color 0.15s;
+}
+.ws-tools13 .conv13 .conv-drop.big,
+.ws-tools13 .share-sheet .share-drop-area {
+  flex-direction: column;
+  min-height: 120px;
+}
+.ws-tools13 .conv13 .conv-drop:hover,
+.ws-tools13 .conv13 .conv-drop.over,
+.ws-tools13 .conv13.over .conv-drop,
+.ws-tools13 .share-sheet .share-drop-area:hover,
+.ws-tools13 .share-sheet.over .share-drop-area {
+  border-color: var(--v10-cream);
+  background: var(--cream-04);
+  color: var(--v10-ink, #f3eee7);
+}
+.ws-tools13 .conv13 .conv-drop svg,
+.ws-tools13 .share-sheet .share-drop-area svg {
+  width: 16px;
+  height: 16px;
+}
+.ws-tools13 .conv13 .conv-drop.big svg,
+.ws-tools13 .share-sheet .share-drop-area svg {
+  width: 20px;
+  height: 20px;
+  padding: 6px;
+  box-sizing: content-box;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+}
+.ws-tools13 .conv13.running .conv-drop,
+.ws-tools13 .conv13.done .conv-drop {
+  display: none;
+}
+.ws-tools13 .conv13 .conv-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.ws-tools13 .conv13 .conv-formats {
+  flex: 1;
+  overflow: visible;
+  padding: 0;
+}
+.ws-tools13 .conv13 .conv-formats-empty {
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.015);
+}
+.ws-tools13 .conv13 .conv-chips {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
+}
+.ws-tools13 .conv13 .conv-group {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+}
+.ws-tools13 .conv13 .conv-group-name {
+  margin: 0;
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+  color: var(--v10-faint);
+}
+.ws-tools13 .conv13 .conv-group-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.ws-tools13 .conv13 .conv-chip {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .conv13 .conv-chip.on,
+.ws-tools13 .conv13 .conv-chip.on:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+}
+.ws-tools13 .conv13 .conv-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+}
+.ws-tools13 .conv13 .conv-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ws-tools13 .conv13 .conv-opts:empty {
+  display: block;
+}
+.ws-tools13 .conv13 .conv-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+.ws-tools13 .conv13 .conv-opt > small {
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.4px;
+}
+.ws-tools13 .conv13 .conv-opt.conv-check {
+  flex-direction: row;
+  align-items: center;
+  align-self: flex-end;
+  height: 28px;
+}
+.ws-tools13 .conv13 .conv-select {
+  height: 28px;
+  min-width: 100px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .conv13 .conv-action {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-left: auto;
+}
+.ws-tools13 .conv13 .conv-go {
+  height: 34px;
+  padding: 0 18px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-a2);
+}
+.ws-tools13 .conv13 .conv-ghost {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .share-sheet {
+  display: grid;
+  width: 100%;
+  color: var(--v10-ink, #f4f3f0);
+  line-height: 1.35;
+  grid-template-columns: 206px minmax(0, 1fr);
+  gap: 13px;
+  height: auto;
+  min-height: 128px;
+  font-size: var(--fs-a1);
+  overflow: visible;
+}
+.ws-tools13 .share-sheet .share-files {
+  gap: 7px;
+  padding-right: 0;
+  border-right: 0;
+}
+.ws-tools13 .share-sheet .share-file-head {
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: var(--r-md);
+  background: var(--h13-well);
+}
+.ws-tools13 .share-sheet .share-file-head .share-file-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-md);
+}
+.ws-tools13 .share-sheet .share-file-meta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.ws-tools13 .share-sheet .share-file-meta strong {
+  max-width: 100%;
+  font-size: var(--fs-a2);
+}
+.ws-tools13 .share-sheet .share-file-meta small {
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .share-sheet .share-file-actions .share-mini-btn,
+.ws-tools13 .share-sheet .share-mini-btn,
+.ws-tools13 .share-sheet .share-scan-btn {
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .share-sheet .share-mini-btn svg,
+.ws-tools13 .share-sheet .share-scan-btn svg {
+  width: 12px;
+  height: 12px;
+}
+.ws-tools13 .share-sheet .share-center {
+  gap: 7px;
+}
+.ws-tools13 .share-sheet .share-peers-head small {
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.9px;
+  color: var(--v10-faint);
+}
+.ws-tools13 .share-sheet .share-peers-list {
+  flex: none;
+  max-height: 150px;
+  gap: 5px;
+}
+.ws-tools13 .share-sheet .share-peers-empty {
+  min-height: 48px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.015);
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .share-sheet .share-peer {
+  min-height: 46px;
+  padding: 6px 6px 6px 8px;
+  gap: 10px;
+  border-radius: var(--r-md);
+  background: var(--h13-well);
+}
+.ws-tools13 .share-sheet .share-peer-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-md);
+  color: var(--v10-cream);
+  background: var(--cream-08);
+}
+.ws-tools13 .share-sheet .share-peer-icon svg {
+  width: 15px;
+  height: 15px;
+}
+.ws-tools13 .share-sheet .share-peer-text strong {
+  font-size: var(--fs-a2);
+}
+.ws-tools13 .share-sheet .share-peer-text small {
+  font-size: var(--fs-a1);
+  color: var(--v10-muted);
+}
+.ws-tools13 .share-sheet .share-peer-send {
+  flex: none;
+  height: 30px;
+  min-height: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+}
+.ws-tools13 .share-sheet .share-peer-send:hover {
+  background: var(--v10-cream) !important;
+  filter: brightness(1.06);
+}
+.ws-tools13 .share-sheet .share-peers-hint {
+  font-size: var(--fs-a1);
+  color: var(--v10-faint);
+}
+.ws-tools13 .share-sheet .share-offer-top strong,
+.ws-tools13 .share-sheet .share-transfer-top strong {
+  font-size: var(--fs-a2);
+}
+.ws-tools13 .share-sheet .share-offer-files,
+.ws-tools13 .share-sheet .share-transfer-file,
+.ws-tools13 .share-sheet .share-transfer-foot > small {
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .share-sheet .share-btn-primary,
+.ws-tools13 .share-sheet .share-btn-ghost {
+  min-height: 30px;
+  padding: 0 14px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .share-sheet .share-firewall small {
+  font-size: var(--fs-a1);
+}
+.ws-tools13 .share-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 28px;
+  min-height: 0;
+  padding: 0 4px 0 9px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: #cfcac3;
+  font: inherit;
+  font-size: var(--fs-a1);
+  cursor: pointer;
+}
+.ws-tools13 .share-switch:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+}
+.ws-tools13 .share-switch:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.ws-tools13 .share-switch-track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.14);
+  transition: background-color 0.18s;
+}
+.ws-tools13 .share-switch-track i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e9e5df;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s var(--v10-ease);
+}
+.ws-tools13 .share-switch.on .share-switch-track {
+  background: var(--v10-cream);
+}
+.ws-tools13 .share-switch.on .share-switch-track i {
+  transform: translateX(14px);
+  background: #1b1712;
+}
+
+/* ── from 34-v0916.css ── */
+/* app window: no mask around it, the page is the window */
+body.workspace .image-lightbox {
+  position: fixed;
+}
+
+/* ── from 35-v0918.css ── */
+/* (a base rule, kept in this file for the cascade) */
+.release-notes-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 20px 8px;
+  font-size: var(--fs-i4);
+  line-height: 1.5;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.sm-seg-btn,
+.sm-pill {
+  padding: 4px 9px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: rgba(245, 238, 229, 0.72);
+  font: inherit;
+  font-size: var(--fs-i3);
+  white-space: nowrap;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.sm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.sm-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.035);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.sm-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(245, 238, 229, 0.72);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.sm-name {
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+}
+/* v1.0.0: a long processor or graphics card name takes a second line instead of "…" */
+/* (a shelf rule, kept in this file for the cascade) */
+.sm-sub {
+  display: -webkit-box;
+  overflow: hidden;
+  color: rgba(245, 238, 229, 0.55);
+  font-size: var(--fs-i2);
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.sm-gpu-pick {
+  max-width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--r-sm);
+  background: #1a1917;
+  color: inherit;
+  font-size: var(--fs-i2);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.sm-stat-label {
+  color: rgba(245, 238, 229, 0.55);
+  font-size: var(--fs-i2);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.sm-value {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-strong);
+  line-height: 1.1;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.sm-axis,
+.sm-scope {
+  color: rgba(245, 238, 229, 0.45);
+  font-size: var(--fs-i2);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.sm-others {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  color: rgba(245, 238, 229, 0.62);
+  font-size: var(--fs-i3);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.sm-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 14px;
+  min-width: 0;
+  color: rgba(245, 238, 229, 0.6);
+  font-size: var(--fs-i3);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.sm-top-title {
+  color: rgba(245, 238, 229, 0.55);
+  font-size: var(--fs-i2);
+}
+/* (a base rule, kept in this file for the cascade) */
+#content-context[hidden] {
+  display: none;
+}
+/* (a base rule, kept in this file for the cascade) */
+.cc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+/* (a base rule, kept in this file for the cascade) */
+.cc-close {
+  flex: none;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: var(--fs-i5);
+  line-height: 1;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.sm-bg-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(245, 238, 229, 0.62);
+  font-size: var(--fs-i2);
+}
+
+/* ── from 38-v0922.css ── */
+#settings-panel,
+#settings-categories,
+.settings-body,
+.ws-modal,
+.ws-modal-body,
+.ws-review-list,
+.ws-review-view {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ch-scroll) transparent;
+}
+body.workspace #settings-panel[open],
+.ws-modal {
+  border-color: var(--sb-line-strong) !important;
+  background: var(--ch-surface) !important;
+}
+body.workspace #settings-panel::backdrop,
+body.workspace #release-notes::backdrop,
+.ws-modal-back {
+  background: rgba(0, 0, 0, 0.62);
+}
+body.workspace #settings-panel[open] > .settings-heading {
+  border-bottom-color: var(--sb-line);
+}
+body.workspace #settings-panel[open] #settings-categories {
+  border-right-color: var(--sb-line) !important;
+  background: var(--ch-rail) !important;
+}
+body.workspace #settings-panel[open] #settings-categories button {
+  color: var(--sb-muted) !important;
+}
+body.workspace #settings-panel[open] #settings-categories button:hover {
+  background: var(--ch-control) !important;
+  color: var(--sb-text) !important;
+}
+body.workspace #settings-panel[open] #settings-categories button[aria-pressed='true'] {
+  background: var(--sb-accent-soft) !important;
+  color: var(--sb-accent) !important;
+}
+/* fields */
+/* (a settings rule, kept in this file for the cascade) */
+#settings-panel input:not([type='checkbox']):not([type='range']):not([type='color']),
+#settings-panel select,
+#settings-panel textarea {
+  border-color: var(--sb-line-strong);
+  background: var(--ch-field);
+  color: var(--sb-text);
+}
+/* the app window's large panels */
+.ws-modal-head,
+.ws-modal-foot {
+  border-color: var(--sb-line);
+  background: var(--ch-surface);
+}
+.ws-modal-body {
+  background: var(--ch-surface);
+}
+#workspace .ws-modal button:not(.ws-primary):not(.ws-card-option):not(.ws-review-item):not(.ws-review-undo.confirm):hover {
+  border-color: var(--sb-line-strong);
+}
+/* Review changes */
+.ws-review-list {
+  border-right-color: var(--sb-line);
+  background: var(--ch-rail);
+}
+.ws-review-head {
+  border-bottom-color: var(--sb-line);
+  background: var(--ch-surface);
+}
+.ws-review-view {
+  background: var(--ch-surface);
+}
+#workspace .ws-modal button.ws-review-item {
+  background: transparent !important;
+}
+#workspace .ws-modal button.ws-review-item:hover {
+  background: var(--ch-control) !important;
+}
+#workspace .ws-modal button.ws-review-item.on {
+  background: var(--sb-accent-soft) !important;
+}
+#workspace .ws-modal button.ws-review-undo {
+  border-color: var(--sb-line-strong) !important;
+  background: var(--ch-control) !important;
+}
+#workspace .ws-modal button.ws-review-undo:hover {
+  background: var(--ch-control-hover) !important;
+}
+#workspace .ws-modal button.ws-review-undo.confirm {
+  border-color: color-mix(in srgb, var(--danger) 50%, transparent) !important;
+  background: color-mix(in srgb, var(--danger) 14%, transparent) !important;
+}
+.ws-review-icon {
+  background: var(--ch-control);
+  color: var(--sb-accent);
+}
+.ws-review-tag {
+  background: var(--ch-control-hover);
+}
+.ws-diff-n {
+  color: var(--cream-25);
+}
+.ws-diff-skip {
+  background: var(--ch-card);
+}
+.ws-diff-line.add {
+  background: color-mix(in srgb, var(--ok-strong) 12%, transparent);
+}
+.ws-diff-line.del {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+.ws-diff code {
+  color: var(--sb-text);
+}
+.ws-diff-line.add code {
+  color: var(--ok-soft);
+}
+.ws-diff-line.del code {
+  color: var(--danger-soft);
+}
+.ws-diff ::selection,
+.ws-paras ::selection {
+  background: var(--cream-25);
+}
+.ws-para {
+  border-color: var(--sb-line);
+  background: var(--ch-card);
+}
+/* --- Bas-konuş: what happened to the chosen key stands in the card ------------------------------ */
+/* (a base rule, kept in this file for the cascade) */
+.ptt-status {
+  margin: 0;
+  font-size: var(--fs-i3);
+  line-height: 1.4;
+  color: var(--sb-muted);
+}
+/* --- Attachments: a band of their own at the top of the message box ----------------------------- */
+/* (a chat rule, kept in this file for the cascade) */
+#attachments:not(:empty) {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: 0 -2px 6px;
+  padding: 3px 2px 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
+  border-bottom: 1px solid var(--sb-line);
+}
+/* (a chat rule, kept in this file for the cascade) */
+#composer .attachment-preview {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 68px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-lg);
+  background: var(--ch-card);
+  color: var(--sb-muted);
+  box-shadow: none;
+}
+/* (a chat rule, kept in this file for the cascade) */
+#composer .attachment-file {
+  align-content: center;
+  gap: 2px;
+}
+/* (a chat rule, kept in this file for the cascade) */
+.attachment-badge {
+  font-size: var(--fs-i1);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.03em;
+}
+/* (a chat rule, kept in this file for the cascade) */
+#composer .attachment-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.74);
+  color: #f5eee5;
+  font-size: var(--fs-i4);
+  line-height: 1;
+}
+/* (a chat rule, kept in this file for the cascade) */
+.attachment-tip {
+  position: absolute;
+  z-index: 40;
+  bottom: calc(100% + 6px);
+  left: 0;
+  max-width: min(320px, 100%);
+  padding: 6px 9px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-md);
+  background: var(--ch-field);
+  color: var(--sb-text);
+  font-size: var(--fs-i2);
+  line-height: 15px;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+/* (a chat rule, kept in this file for the cascade) */
+.attachment-name {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--sb-text);
+  font-size: var(--fs-i2);
+  line-height: 14px;
+  overflow-wrap: anywhere;
+}
+/* (a base rule, kept in this file for the cascade) */
+#drop-actions:not([hidden]) {
+  margin-bottom: 6px;
+}
+/* (a base rule, kept in this file for the cascade) */
+.sent-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 260px;
+  max-width: 100%;
+  padding: 10px 16px 10px 10px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-xl);
+  background: var(--ch-card);
+}
+/* (a base rule, kept in this file for the cascade) */
+.sent-file-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--ch-rail);
+  color: var(--sb-muted);
+}
+/* (a base rule, kept in this file for the cascade) */
+.sent-file-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* ── from 39-v0923.css ── */
+/* --- The same message in both places: only what the app window's width asks for differs ---------- */
+body.workspace #feed .message.user {
+  border: 1px solid var(--ch-bubble-line) !important;
+  border-top-color: var(--ch-bubble-top) !important;
+  border-radius: var(--ch-bubble-radius) !important;
+  background: var(--ch-bubble) !important;
+  color: var(--ch-bubble-text) !important;
+}
+body.workspace #feed .message.user.with-files {
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+}
+body.workspace #feed .message.user.with-files > .user-text {
+  padding: 10px 14px;
+}
+body.workspace #feed .message.user.editing {
+  width: min(100%, 560px) !important;
+  max-width: 100% !important;
+}
+/* the box's corners are rounder here: the cards keep clear of them */
+body.workspace .ws-chat-body #attachments:not(:empty),
+body.workspace .ws-chat-body #drop-actions:not([hidden]) {
+  margin-right: 14px;
+  margin-left: 14px;
+}
+body.workspace .ws-chat-body #attachments:not(:empty) {
+  margin-top: 6px;
+}
+@media (max-height: 640px) {
+  body.workspace .ws-chat-body .attachment-card {
+    grid-template-rows: 46px auto;
+  }
+  body.workspace .ws-chat-body #composer .attachment-preview {
+    height: 46px;
+  }
+  body.workspace .ws-chat-body .attachment-name {
+    -webkit-line-clamp: 1;
+  }
+
+}
+
+/* ── from 40-v0924.css ── */
+/* v0.9.24 */
+/* --- The time beside a message in the app window ----------------------------------------------------
+   It stands outside the bubble with `right: calc(100% + 42px)`: an absolute box there has no width of
+   its own to take, so it was as narrow as its smallest piece, and next to a message with many files
+   the digits fell under one another. It is one line, as wide as its words. */
+body.workspace #feed .message.user[data-ws-meta]::after {
+  width: max-content;
+  max-width: none;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+  line-height: 18px;
+}
+/* --- Sohbet | Proje in the app window: as on the island. The app window's general button colour won
+   over the segment's own, so the chosen word was white on cream. */
+body.workspace .mode-row .mode-seg-btn {
+  color: #b3aea7 !important;
+}
+body.workspace .mode-row .mode-seg-btn:hover:not(.on):not(:disabled) {
+  color: var(--v10-ink, #f3eee7) !important;
+}
+body.workspace .mode-row .mode-seg-btn.on,
+body.workspace .mode-row .mode-seg-btn.on:hover,
+body.workspace .mode-row .mode-seg-btn.on:focus-visible {
+  background: var(--v10-cream, var(--cream)) !important;
+  color: var(--cream-ink) !important;
+}
+body.workspace .mode-row .mode-seg-btn:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 1px;
+}
+/* The picture view stands under the title bar: Windows draws its own buttons above the page, so a
+   view from the very top lay under them, along with its close button. 52px = titleBarOverlay height. */
+body.workspace .image-lightbox {
+  inset: 52px 0 0;
+}
+
+/* ── from 42-v0926.css ── */
+/* v0.9.26 RC */
+/* --- Settings → Shortcuts: each row says what happened to its key ------------------------------ */
+/* (a settings rule, kept in this file for the cascade) */
+.shortcut-status {
+  grid-column: 1 / -1;
+  margin: -2px 0 2px;
+  font-size: var(--fs-i2);
+  line-height: 1.4;
+  color: var(--sb-muted, #a9a39a);
+  overflow-wrap: anywhere;
+}
+/* (a dialogs rule, kept in this file for the cascade) */
+.image-lightbox-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  max-width: 100%;
+  margin: 0;
+  padding: 5px 14px 5px 11px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--ac-edge);
+  border-top-color: var(--ac-edge-top);
+  background: var(--ac-glass-strong, var(--ac-glass));
+  color: var(--sb-text);
+  font: inherit;
+  font-size: var(--fs-i3);
+  line-height: 1.25;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+/* (a dialogs rule, kept in this file for the cascade) */
+.image-lightbox-status {
+  max-width: min(520px, 100%);
+  padding: 3px 10px;
+  border-radius: var(--r-md);
+  background: rgba(8, 8, 10, 0.55);
+  color: var(--sb-muted, #c9c2b8);
+  font-size: var(--fs-i2);
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.conv-folder-name {
+  display: block;
+  max-width: 22em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--sb-muted, #a9a39a);
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.conv-color {
+  width: 44px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--ac-edge, #ffffff22);
+  border-radius: var(--r-md);
+  background: none;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.conv-notes .conv-note {
+  margin: 0;
+  font-size: var(--fs-i2);
+  line-height: 1.4;
+  color: var(--sb-muted, #a9a39a);
+  overflow-wrap: anywhere;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.conv-order-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-i3);
+}
+/* checking OCR text or table cells before they are saved */
+/* (a shelf rule, kept in this file for the cascade) */
+.conv-review {
+  position: absolute;
+  inset: 8px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--ac-edge, #ffffff22);
+  background: var(--sb-panel, #141416);
+  box-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.8);
+  min-width: 0;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.conv-review-text {
+  flex: 1;
+  min-height: 120px;
+  width: 100%;
+  resize: none;
+  font: 12px/1.45 Consolas, 'Cascadia Mono', monospace;
+}
+
+/* ── from 43-v0927.css ── */
+/* (a settings rule, kept in this file for the cascade) */
+.shortcut-status-page {
+  display: block;
+  min-height: 16px;
+  margin-top: 6px;
+}
+body.workspace #feed .steps {
+  margin-left: 58px;
+}
+
+/* ── from 47-v100-summary.css ── */
+/* v1.0.0: weekly summary and usage summary (src/settings/weekly-summary.ts). One look for
+   Ayarlar → Haftalık özet (island and app window) and the island's Araçlar → Kullanım özeti.
+   Flat sections with hairlines, no cards inside the card; main numbers large, the rest quiet. */
+/* (a settings rule, kept in this file for the cascade) */
+:is(#settings-panel, #shelf) .wsum {
+  --wsum-ink: var(--sb-text, #ececf1);
+  --wsum-muted: var(--sb-muted, #9a9aa6);
+  --wsum-faint: #6f6f7a;
+  --wsum-line: rgba(255, 255, 255, 0.07);
+  --wsum-accent: var(--sb-accent, var(--cream));
+  --wsum-accent-dim: var(--cream-35);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  color: var(--wsum-ink);
+  font-size: var(--fs-i3);
+  line-height: 1.4;
+}
+/* (a settings rule, kept in this file for the cascade) */
+:is(#settings-panel, #shelf) .wsum .wsum-fact dt {
+  color: var(--wsum-muted);
+  min-width: 0;
+}
+
+/* ── from 48-v100-picker.css ── */
+body.workspace #settings-panel .dm-popup {
+  font-size: var(--fs-a2);
+}
+body.workspace #settings-panel .dm-trigger .dm-name {
+  font-size: var(--fs-a3);
+}
+
+/* ── from 49-v100-panel.css ── */
+/* v1.0.0: the app window (panel). One quieter card language for the home page, the side column and
+   the chat view. Everything is scoped to #workspace, so the island and its borrowed cards (shelf) keep
+   their own look. Values come from the existing tokens (5-design-system.css, 10-noir.css):
+   card radius --sb-radius-card (--r-lg, 14px), controls --r-md (10px), card padding 16px, card titles 15px/600,
+   header icons 18px, header controls 30px tall. No new colours. */
+#workspace {
+  --pn-radius: var(--sb-radius-card);
+  --pn-radius-ctl: var(--r-md);
+  --pn-pad: 16px;
+  --pn-ctl: 30px;
+}
+/* ── Cards: flat, one radius, one padding, one title size ─────────────────────────────────────── */
+body.workspace #workspace .ws-card {
+  border-radius: var(--pn-radius);
+  border-color: var(--ws-line);
+  background: var(--ws-card);
+  box-shadow: none;
+}
+body.workspace #workspace .ws-dash {
+  padding: var(--pn-pad);
+}
+body.workspace #workspace .ws-ask-card {
+  padding: 10px;
+}
+body.workspace #workspace .ws-dash .ws-card-head {
+  min-height: var(--pn-ctl);
+  margin-bottom: 12px;
+  padding: 0;
+  gap: 10px;
+}
+body.workspace #workspace .ws-card-head h2 {
+  font-size: var(--fs-a4);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0;
+}
+body.workspace #workspace .ws-card-icon {
+  width: 20px;
+  height: 20px;
+}
+body.workspace #workspace .ws-card-icon svg {
+  width: 18px;
+  height: 18px;
+}
+/* header controls: icon buttons, edit buttons and chips share one height */
+body.workspace #workspace .ws-card-head .ws-icon {
+  width: var(--pn-ctl);
+  height: var(--pn-ctl);
+  border-radius: var(--pn-radius-ctl);
+}
+body.workspace #workspace .ws-card-head .ws-icon svg {
+  width: 17px;
+  height: 17px;
+}
+body.workspace #workspace .ws-edit-btn {
+  height: var(--pn-ctl);
+  padding: 0 10px !important;
+  gap: 6px;
+  border: 0 !important;
+  border-radius: var(--pn-radius-ctl) !important;
+  background: transparent !important;
+  color: var(--ws-body) !important;
+  font-size: var(--fs-a2) !important;
+}
+body.workspace #workspace .ws-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: var(--ws-text) !important;
+}
+body.workspace #workspace .ws-edit-btn svg {
+  width: 15px;
+  height: 15px;
+}
+/* the mail count: a quiet number, not a cream button-like pill */
+body.workspace #workspace .ws-badge {
+  height: 22px;
+  padding: 0 8px;
+  background: var(--sb-accent-soft);
+  color: var(--ws-accent);
+  font-size: var(--fs-a1);
+}
+/* status beside a title: text only; an "off" status is said by the card's body already */
+body.workspace #workspace .ws-card-head .ws-pill-state .ws-dot {
+  display: none;
+}
+body.workspace #workspace .ws-card-head .ws-pill-state:not(.on) {
+  display: none;
+}
+body.workspace #workspace .ws-head-text {
+  gap: 2px;
+}
+body.workspace #workspace .ws-head-text .ws-pill-state {
+  font-size: var(--fs-a1);
+}
+body.workspace #workspace .ws-home-head {
+  align-items: center !important;
+}
+/* ── Spotify: no second "Spotify" and no big empty cover while nothing plays ─────────────────── */
+body.workspace #workspace .ws-track {
+  font-size: var(--fs-a4);
+}
+body.workspace #workspace .ws-music:has(.ws-pill-state:not(.on)) .ws-track {
+  display: none;
+}
+@container (min-width: 341px) {
+  body.workspace #workspace .ws-music:has(.ws-pill-state:not(.on)) .ws-music-body {
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 14px;
+  }
+  body.workspace #workspace .ws-music:has(.ws-pill-state:not(.on)) .ws-art {
+    align-self: start;
+    border-radius: var(--pn-radius-ctl);
+  }
+  body.workspace #workspace .ws-music:has(.ws-pill-state:not(.on)) .ws-art > svg {
+    width: 24px;
+    height: 24px;
+  }
+
+}
+body.workspace #workspace .ws-music-controls {
+  margin: 8px 0 6px;
+}
+body.workspace #workspace .ws-times {
+  font-size: var(--fs-a1);
+}
+/* ── Reminders: the static "Upcoming" label looked like a button and did nothing ────────────── */
+body.workspace #workspace .ws-reminders .ws-card-head .ws-chip {
+  display: none;
+}
+/* ── Calendar: no unexplained green dot, no rule under the title, a quieter month title ──────── */
+body.workspace #workspace .ws-calendar.synced .ws-card-head h2::after {
+  display: none;
+}
+body.workspace #workspace .ws-calendar .ws-card-head {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+body.workspace #workspace .ws-cal-title {
+  font-size: var(--fs-a3);
+  font-weight: var(--fw-strong);
+}
+body.workspace #workspace .ws-cal-nav {
+  margin: 0 0 8px;
+}
+body.workspace #workspace .ws-cal-list-head strong {
+  font-size: var(--fs-a3);
+}
+body.workspace #workspace .ws-ev-row {
+  min-height: 50px;
+  border-radius: var(--pn-radius-ctl);
+}
+body.workspace #workspace .ws-ev-time {
+  font-size: var(--fs-a3);
+}
+/* ── Mail ─────────────────────────────────────────────────────────────────────────────────────── */
+body.workspace #workspace .ws-mail-row {
+  min-height: 60px;
+}
+body.workspace #workspace .ws-avatar {
+  width: 36px;
+  height: 36px;
+  font-size: var(--fs-a1);
+}
+body.workspace #workspace .ws-link {
+  font-size: var(--fs-a2) !important;
+}
+/* ── Smart home and modules: no rule under the head; the connect button is a button, not a bar ─ */
+body.workspace #workspace .ws-home-grid {
+  padding-top: 0;
+  border-top: 0;
+}
+body.workspace #workspace .ws-home-grid > button:not(.ws-ht) {
+  justify-self: start;
+  height: 34px;
+  padding: 0 14px !important;
+  border-radius: var(--pn-radius-ctl) !important;
+}
+body.workspace #workspace .ws-ht {
+  border-radius: var(--r-md);
+}
+/* dpanel T19: the smart home devices are rows in the card (icon · name · state · switch), not six
+   boxes inside a box. The island's Araçlar shelf keeps its own tiles (outside #workspace). */
+body.workspace #workspace .ws-home-card .ws-home-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+body.workspace #workspace .ws-home-card .ws-ht {
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  grid-template-rows: none;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 4px 6px;
+  border: 0;
+  border-top: 1px solid var(--ws-line);
+  border-radius: 0;
+  background: transparent;
+}
+body.workspace #workspace .ws-home-card .ws-ht:first-child {
+  border-top: 0;
+}
+body.workspace #workspace .ws-home-card .ws-ht.toggle:hover,
+body.workspace #workspace .ws-home-card .ws-ht.action:hover {
+  background: var(--ws-card-2);
+}
+body.workspace #workspace .ws-home-card .ws-ht-icon {
+  display: grid;
+}
+body.workspace #workspace .ws-home-card .ws-ht-icon svg {
+  width: 20px;
+  height: 20px;
+}
+body.workspace #workspace .ws-home-card .ws-ht-name {
+  font-size: var(--fs-a3);
+  font-weight: var(--fw-regular);
+}
+body.workspace #workspace .ws-home-card .ws-ht-foot {
+  justify-content: flex-end;
+  gap: 12px;
+}
+body.workspace #workspace .ws-home-card .ws-ht.value .ws-ht-state {
+  font-size: var(--fs-a3);
+  font-weight: var(--fw-strong);
+}
+body.workspace #workspace .ws-home-card .ws-ht .ws-switch {
+  width: 40px;
+  height: 22px;
+}
+body.workspace #workspace .ws-home-card .ws-ht .ws-switch::after {
+  width: 16px;
+  height: 16px;
+}
+body.workspace #workspace .ws-home-card .ws-ht.on .ws-switch::after {
+  transform: translateX(18px);
+}
+body.workspace #workspace .ws-home-card .ws-run {
+  width: 26px;
+  height: 26px;
+}
+/* the modules card says its count in the head already */
+body.workspace #workspace .ws-modules-card .ws-home-count {
+  display: none;
+}
+/* ── Remaining usage: providers sit in the card, not in boxes inside it ──────────────────────── */
+body.workspace #workspace .ws-usage-col {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 4px 0;
+}
+/* ── Message box ──────────────────────────────────────────────────────────────────────────────── */
+body.workspace #workspace .ws-ask .ws-icon:first-child,
+body.workspace #workspace .ws-ask .ws-send {
+  width: 42px;
+  height: 42px;
+}
+body.workspace #workspace .ws-ask input {
+  height: 42px;
+  border-radius: var(--pn-radius-ctl) !important;
+}
+body.workspace #workspace .ws-model {
+  border-radius: var(--pn-radius-ctl) !important;
+}
+/* ── Edit mode: a single-column page stacked its two columns on top of each other ───────────── */
+body.workspace #workspace .ws-home {
+  grid-auto-rows: minmax(max-content, auto);
+  gap: 16px;
+  /* the scroll bar sits in the window's right margin, not against the cards: the cards end 14 px
+     from the window edge (as the chat card and as on the left) and 8 px before the bar */
+  margin-right: -14px;
+  padding-right: 8px;
+  scrollbar-gutter: stable;
+}
+/* dpanel T19: the message box across the full width above the two columns; 16 px between cards */
+body.workspace #workspace .ws-col {
+  gap: 16px;
+}
+body.workspace #workspace .ws-home-top {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+body.workspace #workspace .ws-home.editing .ws-home-top .ws-card {
+  cursor: default;
+}
+body.workspace #workspace .ws-home-top .ws-card-grip {
+  display: none;
+}
+/* its × stays clear of the send button at the box's right end */
+body.workspace #workspace .ws-home.editing .ws-home-top .ws-card-chrome {
+  right: 110px;
+}
+body.workspace #workspace .ws-home-editbar {
+  border-radius: var(--pn-radius);
+}
+body.workspace #workspace .ws-card-add,
+body.workspace #workspace .ws-card-slot {
+  border-radius: var(--pn-radius);
+}
+/* ── Side column: one "new chat" control, a smaller profile block ───────────────────────────── */
+body.workspace #workspace .ws-chats > .ws-card-head .ws-icon {
+  display: none;
+}
+body.workspace #workspace .ws-chats {
+  padding: 14px 12px 10px;
+  gap: 10px;
+}
+body.workspace #workspace .ws-chats > .ws-card-head {
+  min-height: 24px;
+}
+body.workspace #workspace .ws-search {
+  height: 36px;
+  border-radius: var(--pn-radius-ctl);
+}
+body.workspace #workspace .ws-profile {
+  padding: 10px 14px 12px;
+  background: var(--ws-card);
+}
+body.workspace #workspace .ws-pet-slot {
+  height: 96px;
+}
+body.workspace #workspace .ws-pet-slot #pet {
+  width: 110px !important;
+  height: 96px !important;
+}
+body.workspace #workspace .ws-pet-slot #slime {
+  width: 118px !important;
+  height: 118px !important;
+  margin: -10px 0 0 -4px !important;
+}
+body.workspace #workspace .ws-name {
+  font-size: var(--fs-a5);
+  letter-spacing: -0.2px;
+}
+body.workspace #workspace .ws-version {
+  font-size: var(--fs-a1);
+}
+/* ── Chat view ────────────────────────────────────────────────────────────────────────────────── */
+body.workspace #workspace .ws-chat-view {
+  border-radius: var(--pn-radius);
+}
+body.workspace #workspace .ws-chat-head {
+  min-height: 60px;
+}
+body.workspace #workspace .ws-chat-title {
+  font-size: var(--fs-a4);
+}
+/* the work queue while closed: a slim line, not a box inside the chat card */
+body.workspace #workspace .ws-chat-view .ws-work > .ws-queue:not(.open) {
+  border-color: transparent;
+  background: transparent;
+}
+body.workspace #workspace .ws-chat-view .ws-queue:not(.open) .ws-q-head {
+  height: 32px;
+}
+/* a narrow chat (side panel open, small window): the text gets its own line above the buttons,
+   instead of being squeezed to nothing between the model and effort pickers */
+body.workspace .ws-chat-body {
+  container: pn-chat / inline-size;
+}
+@container pn-chat (max-width: 600px) {
+  body.workspace .ws-chat-body #composer-bar {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) repeat(5, auto);
+    align-items: end !important;
+    row-gap: 4px !important;
+    border-radius: var(--r-xl) !important;
+  }
+  body.workspace .ws-chat-body #composer-bar > #prompt {
+    grid-row: 1;
+    grid-column: 1 / -1;
+    width: 100% !important;
+  }
+  body.workspace .ws-chat-body #composer-bar > .model-picker {
+    justify-self: end;
+    min-width: 0;
+    max-width: 100%;
+  }
+/* polish D6: no room here for "Efor" before "Otomatik" (the 1fr column is already 0 px and the
+     label ran under the chevron); the word is aria-hidden, so the button's name is unchanged */
+  body.workspace .ws-chat-body #effort-button .effort-prefix {
+    display: none;
+  }
+/* the model button ran 12 px past its own column into the effort picker ("Otomatik · OpenAI"):
+     it keeps to its column and ends in "…" there */
+  body.workspace .ws-chat-body #composer-bar #model-button {
+    max-width: 100%;
+  }
+
+}
+@container pn-chat (max-width: 600px) {
+  body.workspace .ws-chat-body #attachments:not(:empty) {
+    margin-bottom: 2px;
+    padding: 4px 2px 6px;
+  }
+  body.workspace .ws-chat-body .attachment-card {
+    flex: 0 0 176px;
+    grid-template-columns: 56px minmax(0, 1fr);
+    grid-template-rows: 40px;
+    align-items: center;
+    column-gap: 8px;
+    width: 176px;
+  }
+  body.workspace .ws-chat-body #composer .attachment-preview {
+    width: 56px;
+    height: 40px;
+    border-radius: var(--r-md);
+  }
+  body.workspace .ws-chat-body #composer .attachment-file svg {
+    width: 18px;
+    height: 18px;
+  }
+  body.workspace .ws-chat-body #composer .attachment-remove {
+    top: -4px;
+    right: auto;
+    left: 42px;
+    width: 18px;
+    height: 18px;
+    font-size: var(--fs-a1);
+  }
+  body.workspace .ws-chat-body #drop-actions:not([hidden]) {
+    margin-bottom: 0;
+    padding: 2px 0 4px;
+    gap: 4px;
+  }
+  body.workspace .ws-chat-body #composer #drop-actions button {
+    padding: 3px 8px;
+  }
+
+}
+/* polish D7: in a narrow chat (side panel open) an attachment card and its suggestion row took
+   about 165 px of a 720 px window and left the message list ~136 px. Same parts, laid out tighter:
+   the card is a small picture with its name beside it, the suggestion row has less padding. */
+/* ── dpanel T12: one control row above the chat ───────────────────────────────────────────────────
+   "Sohbet | Proje" and "Yeni konuşma" are moved into the chat title row (workspace.ts); the island's
+   mode row and the setup block take no room while they have nothing else to show. */
+body.workspace #workspace .ws-chat-modes {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+body.workspace #workspace .ws-chat-modes:empty {
+  display: none;
+}
+body.workspace #workspace .ws-chat-modes .mode-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--ws-line);
+  border-radius: var(--pn-radius-ctl);
+  background: var(--ws-field);
+}
+body.workspace #workspace .ws-chat-modes .mode-seg-btn {
+  height: 24px;
+  min-height: 0;
+  padding: 0 11px !important;
+  border: 0 !important;
+  border-radius: var(--r-sm) !important;
+  background: transparent !important;
+  color: var(--ws-muted) !important;
+  font: inherit;
+  font-size: var(--fs-a2) !important;
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+  cursor: pointer;
+}
+body.workspace #workspace .ws-chat-modes .mode-seg-btn:hover:not(.on):not(:disabled) {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: var(--ws-text) !important;
+}
+body.workspace #workspace .ws-chat-modes .mode-seg-btn.on {
+  background: var(--ws-accent) !important;
+  color: var(--ws-accent-ink) !important;
+}
+body.workspace #workspace .ws-chat-modes .mode-seg-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+body.workspace #workspace .ws-chat-modes .mode-seg-btn:focus-visible,
+body.workspace #workspace .ws-chat-modes #new-chat:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 1px;
+}
+body.workspace #workspace .ws-chat-modes #new-chat {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: var(--pn-ctl);
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-radius: var(--pn-radius-ctl) !important;
+  background: transparent !important;
+  color: var(--ws-body) !important;
+  font-size: var(--fs-a2) !important;
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+  cursor: pointer;
+}
+body.workspace #workspace .ws-chat-modes #new-chat:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: var(--ws-text) !important;
+}
+body.workspace #workspace .ws-chat-modes #new-chat svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+@container ws-chat (max-width: 760px) {
+  body.workspace #workspace .ws-chat-modes #new-chat {
+    gap: 0;
+    padding: 0 7px !important;
+    font-size: 0 !important;
+  }
+
+}
+/* a narrow chat: "Yeni konuşma" keeps its icon (its name stays for screen readers) */
+body.workspace .ws-chat-body .mode-row:not(:has(> #notice:not([hidden]))) {
+  display: none !important;
+}
+body.workspace .ws-chat-body .setup:not(:has(#notice:not([hidden]))):not(:has(> #folder:not([hidden]))):not(:has(> #open-project:not([hidden]))) {
+  display: none !important;
+}
+/* ── dpanel: "Düzeni sıfırla" in the home page's edit bar: a quiet secondary control ─────────── */
+body.workspace #workspace .ws-home-editbar .ws-home-reset {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px !important;
+  border: 1px solid var(--ws-line-2) !important;
+  border-radius: var(--pn-radius-ctl) !important;
+  background: transparent !important;
+  color: var(--ws-body) !important;
+  font-size: var(--fs-a2) !important;
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+  cursor: pointer;
+}
+body.workspace #workspace .ws-home-editbar .ws-home-reset:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: var(--ws-text) !important;
+}
+body.workspace #workspace .ws-home-editbar .ws-home-reset:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+body.workspace #workspace .ws-home-editbar .ws-home-reset-yes {
+  color: var(--ws-text) !important;
+}
+body.workspace #workspace .ws-home-editbar .ws-home-reset svg {
+  width: 15px;
+  height: 15px;
+}
+/* ── dpanel: the release notes start below the title bar (its caption buttons), like Settings ─── */
+body.workspace #release-notes[open] {
+  inset: env(titlebar-area-height, 52px) 0 0;
+  max-height: min(560px, calc(100vh - env(titlebar-area-height, 52px) - 32px));
+}
+
+/* ── from 52-v100-dchat.css ── */
+/* (a dialogs rule, kept in this file for the cascade) */
+.history-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  display: grid;
+  gap: 2px;
+  min-width: 190px;
+  padding: 6px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-lg);
+  background: var(--sb-surface-raised);
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.7);
+}
+.markdown .file-cite > svg,
+.steer-files > svg,
+.ws-rem-kind {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* (a chat rule, kept in this file for the cascade) */
+.steer-files {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  color: var(--sb-muted);
+  vertical-align: -2px;
+}
+.ws-rem-kind {
+  margin-right: 5px;
+  vertical-align: -2px;
+  color: var(--ws-muted, var(--sb-muted));
+}
+/* --- Keyboard (CH-532): a skip button to the message box, and a ring on every stop --- */
+/* (a base rule, kept in this file for the cascade) */
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  z-index: 1000;
+  min-height: 0;
+  padding: 7px 12px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-md);
+  background: var(--sb-surface-raised);
+  color: var(--sb-text);
+  font-size: var(--fs-i3);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+/* only where the message box is on screen: the island's chat and the app window's chat view */
+body:not(.workspace):not([data-view='chat']) .skip-link,
+body.workspace:has(#workspace[data-view='home']) .skip-link {
+  display: none;
+}
+/* --- The model for the next message: one muted line above the model picker (chat/model-note.ts) --- */
+/* (a chat rule, kept in this file for the cascade) */
+.model-note {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 16px);
+  max-width: min(320px, 70vw);
+  overflow: hidden;
+  color: var(--sb-muted);
+  font-size: var(--fs-i2);
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+/* the app window's message box has more room above the picker */
+body.workspace .model-note {
+  bottom: calc(100% + 30px);
+}
+
+/* ── from 54-v100-tips.css ── */
+/* (a dialogs rule, kept in this file for the cascade) */
+#charles-tip.on {
+  opacity: 1;
+}

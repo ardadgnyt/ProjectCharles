@@ -2,6 +2,7 @@
 // tool (`abacusai`), which whoever has an Abacus AI account installs; Charles finds it, opens a
 // console for /login and tests the connection with one tiny message; the account's models are
 // then read from the CLI and listed under Abacus AI in the model menu.
+import { READY, showConnected, stateLine } from './connected-state';
 const DOCS = 'https://abacus.ai/help/abacusai-desktop/cli-installation';
 type Status = { id: string; installed: boolean; signedIn: boolean };
 
@@ -24,55 +25,62 @@ export function abacusCard(api: any, notice: (s: string) => void, changed: () =>
   const note = el(
     'p',
     'hint',
-    'Abacus AI hesabın varsa resmi Abacus AI komut satırı aracıyla bağlan. Araç Charles ile gelmez: önce Abacus AI’ın kurulum sayfasındaki adımlarla kur, sonra Abacus AI ile giriş’e bas ve açılan pencerede /login yaz. Nasıl yapılacağını bilmiyorsan Charles ile kur’a bas; Slime adım adım anlatır. Sohbet modunda salt okunur çalışır.',
+    'Abacus AI’ın resmi komut satırı aracıyla bağlan. Araç Charles ile gelmez; Kurulum sayfası’ndaki adımlarla kur, sonra Abacus AI ile giriş’e bas ve açılan pencerede /login yaz. Sohbette salt okunur çalışır.',
   );
   const actions = el('div', 'row provider-actions');
   const docs = btn('Kurulum sayfası');
   docs.onclick = () => void api.openLink(DOCS).catch((e: Error) => notice(e.message));
-  // same order as the other accounts: Charles ile kur · sign in / ✓ connected · test
-  const setup = btn('Charles ile kur', 'primary');
+  // same order as the other accounts: Charles ile kur · sign in (while not connected) · test
+  // v1.0.0: "Charles ile kur" is neutral; the sign-in is the card's one cream button
+  const setup = btn('Charles ile kur');
   setup.onclick = () => void guide('abacus-login');
-  const login = btn('Abacus AI ile giriş');
+  const login = btn('Abacus AI ile giriş', 'primary');
   login.id = 'provider-login-abacus';
   login.dataset.name = 'Abacus AI';
-  const test = btn('Bağlantıyı test et');
+  const test = btn('Bağlantıyı kontrol et');
   actions.append(setup, login, test, docs);
-  const result = el('p', 'hint');
-  result.setAttribute('role', 'status');
+  const result = stateLine();
   result.textContent = 'Hesap kontrol ediliyor…';
 
   // v0.9.8: no "Abacus AI · …" naming note any more: the model menu groups models by provider
-  section.append(title, note, actions, result);
+  section.append(title, note, actions, result.el);
   let busy = false;
+  // a sign-in error stays until the next deliberate action or a connection (as in cli-card.ts)
+  let refusal = '';
 
   function update(s: Status) {
-    if (!busy)
+    if (s.signedIn) refusal = '';
+    result.connected = !!s.signedIn;
+    if (!busy && !refusal)
       result.textContent = s.signedIn
-        ? 'Bağlı · Modeller kullanıma hazır'
+        ? READY
         : !s.installed
-          ? 'Abacus AI bu bilgisayarda bulunamadı. Kurulum sayfasındaki adımlarla kurduktan sonra Bağlantıyı test et’e bas.'
-          : 'Kurulu · Giriş yaptıktan sonra Bağlantıyı test et’e bas.';
+          ? 'Abacus AI bu bilgisayarda bulunamadı. Kurulum sayfası’ndaki adımlarla kur, sonra Bağlantıyı kontrol et’e bas.'
+          : 'Araç kurulu. Giriş yaptıktan sonra Bağlantıyı kontrol et’e bas.';
     login.disabled = !s.installed || !!s.signedIn;
     test.disabled = !s.installed || busy;
-    login.classList.toggle('connected', !!s.signedIn);
-    login.textContent = s.signedIn ? '✓ Abacus AI bağlı' : 'Abacus AI ile giriş';
+    showConnected(login, !!s.signedIn, 'Abacus AI ile giriş');
   }
   login.onclick = async () => {
     login.disabled = true;
+    refusal = '';
     result.textContent = 'Giriş penceresi açılıyor…';
     try {
       const r = await api.providersLogin('abacus');
       result.textContent = r.signedIn
-        ? 'Bağlı · Modeller kullanıma hazır'
-        : 'Giriş penceresi açıldı. /login yazıp hesabınla giriş yap, sonra /exit yaz ve burada Bağlantıyı test et’e bas.';
+        ? READY
+        : 'Giriş penceresi açıldı. /login yazıp hesabınla giriş yap, sonra /exit yaz ve burada Bağlantıyı kontrol et’e bas.';
     } catch (e) {
+      result.connected = false;
       result.textContent = (e as Error).message;
+      refusal = result.textContent;
     } finally {
       login.disabled = false;
     }
   };
   test.onclick = async () => {
     busy = true;
+    refusal = '';
     test.disabled = true;
     result.textContent = 'Abacus AI’a kısa bir deneme mesajı gönderiliyor…';
     try {

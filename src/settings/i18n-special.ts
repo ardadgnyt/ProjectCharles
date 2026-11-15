@@ -57,7 +57,6 @@ export const englishSpecial: Record<string, string> = {
   'Silmeyi onayla': 'Confirm delete',
   Bağlı: 'Connected',
   'Bağlı değil': 'Not connected',
-  'Tüm servisler hazır.': 'All services ready.',
   'Ayarlar → AI Modelleri’nden bir hesap bağla.': 'Connect an account in Settings → AI models.',
   'Sohbetler henüz hazır değil.': 'Chats are not ready yet.',
   // chat view
@@ -95,9 +94,6 @@ export const englishSpecial: Record<string, string> = {
   Cu: 'Fr',
   Ct: 'Sa',
   Pz: 'Su',
-  'Yaklaşan etkinlik yok.': 'No upcoming events.',
-  'Google veya Outlook takvimini Eklentiler’den bağlayabilirsin.':
-    'You can connect Google or Outlook Calendar in Plugins.',
   'Önemli e-postalar': 'Important emails',
   'Tümünü gör': 'See all',
   'Charles bu e-postayı anlatsın': 'Let Charles explain this email',
@@ -118,9 +114,7 @@ export const englishSpecial: Record<string, string> = {
   'Gösterilecek ışık, priz veya sahne bulunamadı.': 'No lights, plugs or scenes found.',
   Açık: 'On',
   Kapalı: 'Off',
-  'Kalan kullanım': 'Remaining usage',
   '5 saatlik': '5-hour',
-  'Yenile ile göster': 'Press refresh to show',
   'Bilgi yok': 'No data',
   // extra instructions
   Şimdi: 'Now',
@@ -161,15 +155,12 @@ export const englishSpecial: Record<string, string> = {
   'Çalışma alanındaki takvim Google Takvim’inle eşitlenir: etkinliklerin ay görünümünde görünür, yeni etkinlik eklediğinde Google Takvim’e kaydedilir. Yukarıdaki Google eklentisinin uygulama kaydını kullanır.':
     'The workspace calendar syncs with your Google Calendar: your events show in the month view and new events are saved to Google Calendar. It uses the app registration of the Google plugin above.',
   'Google Takvim’e bağlan': 'Connect Google Calendar',
-  '✓ Google Takvim bağlı': '✓ Google Calendar connected',
-  'Bağlı. Etkinlikleri Çalışma alanı → Takvim’den ekleyebilirsin.': 'Connected. Add events in Workspace → Calendar.',
   'Bağlanınca Google, Charles’ın takvimine etkinlik ekleyip düzenleyebilmesi için izin ister.':
     'When you connect, Google asks for permission for Charles to add and edit events in your calendar.',
   'Önce yukarıdaki Google eklentisini “Charles ile kur” ile kur.': 'First set up the Google plugin above with “Set up with Charles”.',
   'Tarayıcıda Google hesabını seçip izin ver…': 'Pick your Google account in the browser and allow access…',
   'Önce yukarıdaki Google eklentisini “Charles ile kur” ile kur; Google Takvim aynı uygulama kaydını kullanır.':
     'First set up the Google plugin above with “Set up with Charles”; Google Calendar uses the same app registration.',
-  'Etkinlik eklemek için Ayarlar → Eklentiler → Google Takvim’i bağla.': 'To add events, connect Settings → Plugins → Google Calendar.',
   'Etkinliğe bir ad ver.': 'Give the event a name.',
   'Geçerli bir başlangıç zamanı seç.': 'Pick a valid start time.',
 };

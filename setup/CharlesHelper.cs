@@ -226,14 +226,23 @@ class ForegroundWorker : Worker {
   var t = new Thread(Loop, 1 << 20); t.IsBackground = true; t.Start();
   ready.WaitOne();
  }
- /** A window covering its whole monitor (a game, a video, a presentation), not the desktop itself. */
- static bool FullScreen(IntPtr h) {
-  if (h == IntPtr.Zero) return false;
+ [DllImport("user32.dll")] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr c);
+ // QA only: CHARLES_QA_FG_UNREADABLE=1 makes every front window count as unreadable (a protected game)
+ static readonly bool qaUnreadable = Environment.GetEnvironmentVariable("CHARLES_QA_FG_UNREADABLE") == "1";
+ /**
+  * v1.0.0 (taskbar): what the front window is. `covers`: it covers its whole monitor (a game, a video, a
+  * presentation; not the desktop itself). `readable`: its rect and monitor could be read. `mon`: that
+  * monitor in physical pixels, so Charles can tell "full screen on my display" from "on the other one".
+  */
+ static bool Front(IntPtr h, out bool readable, out RECT mon) {
+  readable = false; mon = new RECT();
+  if (h == IntPtr.Zero || qaUnreadable) return false;
   var c = new StringBuilder(64); GetClassName(h, c, 64);
-  var cls = c.ToString(); if (cls == "Progman" || cls == "WorkerW" || cls == "Shell_TrayWnd") return false;
   RECT r; if (!GetWindowRect(h, out r)) return false;
   var mi = new MONITORINFO(); mi.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
   if (!GetMonitorInfo(MonitorFromWindow(h, 2), ref mi)) return false;
+  readable = true; mon = mi.rcMonitor;
+  var cls = c.ToString(); if (cls == "Progman" || cls == "WorkerW" || cls == "Shell_TrayWnd") return false;
   return r.Left <= mi.rcMonitor.Left && r.Top <= mi.rcMonitor.Top && r.Right >= mi.rcMonitor.Right && r.Bottom >= mi.rcMonitor.Bottom;
  }
  static string AppName(uint pid) {
@@ -247,16 +256,42 @@ class ForegroundWorker : Worker {
   using (var g = Process.GetProcessById((int)pid)) return g.ProcessName;
  }
  void Report(bool always) {
-  var h = GetForegroundWindow(); var full = FullScreen(h);
+  // v1.0.0: "is a full-screen program running?" is asked two ways, and neither needs to know which
+  // program it is: the window in front covers its monitor, or Windows itself says a full-screen
+  // program has the screen (its own answer to "may a notification show now?"). A window laid over
+  // such a program drops it to the desktop.
+  var h = GetForegroundWindow();
+  bool readable; RECT mon; var covers = Front(h, out readable, out mon);
+  var quns = Quns();
+  var full = covers || (!readable && WindowsSaysFull(quns));
   if (!always && h == lastWindow && full == lastFull) return;
   lastWindow = h; lastFull = full;
   uint pid; GetWindowThreadProcessId(h, out pid);
   Follow(pid);
-  try {
-   if (h == IntPtr.Zero || pid == 0) throw new InvalidOperationException();
-   Emit("{\"app\":" + Json.S(AppName(pid)) + ",\"pid\":" + pid + ",\"window\":" + h.ToInt64() + ",\"full\":" + Json.B(full) + ",\"live\":" + Json.B(live) + "}");
-  } catch { Emit("{\"app\":\"\",\"live\":" + Json.B(live) + "}"); }
+  if (h == IntPtr.Zero || pid == 0) { Emit("{\"app\":\"\",\"live\":" + Json.B(live) + "}"); return; }
+  // v1.0.0: a program whose name cannot be read (a game behind an anti-cheat driver refuses the
+  // question) is still reported with its window and "full". It used to be reported as nothing at
+  // all, which read as "not full screen": the island and its cards then came up over the game.
+  string name = "";
+  try { name = AppName(pid); } catch {}
+  // v1.0.0 (taskbar): also how it was decided and on which monitor (physical pixels); an older
+  // Charles reads only "full"
+  var where = readable ? ",\"mon\":[" + mon.Left + "," + mon.Top + "," + mon.Right + "," + mon.Bottom + "]" : "";
+  Emit("{\"app\":" + Json.S(name) + ",\"pid\":" + pid + ",\"window\":" + h.ToInt64() + ",\"full\":" + Json.B(full) +
+   ",\"covers\":" + Json.B(covers) + ",\"readable\":" + Json.B(readable) + ",\"quns\":" + quns + where + ",\"live\":" + Json.B(live) + "}");
  }
+ [DllImport("shell32.dll")] static extern int SHQueryUserNotificationState(out int state);
+ /** Windows' notification state (QUNS_*), or 0 when it cannot be read. */
+ static int Quns() {
+  try { int state; return SHQueryUserNotificationState(out state) == 0 ? state : 0; } catch { return 0; }
+ }
+ /**
+  * v1.0.0 (taskbar): Windows' word counts only for a front window that cannot be read itself, and only
+  * QUNS_RUNNING_D3D_FULL_SCREEN (3, exclusive full screen) and QUNS_PRESENTATION_MODE (4). QUNS_BUSY (2)
+  * is also what a full-screen video on ANOTHER display reports while an ordinary window is in front:
+  * counting it kept the island behind ordinary windows for as long as that video ran.
+  */
+ static bool WindowsSaysFull(int quns) { return quns == 3 || quns == 4; }
  /** Size changes only of the program in front: entering full screen in a video moves no focus. */
  void Follow(uint pid) {
   if (pid == placedPid) return;
@@ -283,6 +318,9 @@ class ForegroundWorker : Worker {
   Native.MSG m;
   Native.PeekMessage(out m, IntPtr.Zero, 0, 0, 0); // the thread's message queue exists from here on
   thread = Native.GetCurrentThreadId();
+  // v1.0.0 (taskbar): rects in physical pixels on every monitor (per-monitor aware v2), the same
+  // pixels Electron's screen.screenToDipRect takes
+  try { SetThreadDpiAwarenessContext(new IntPtr(-4)); } catch {}
   ready.Set();
   Hook();
   Report(true);

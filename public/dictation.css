@@ -17,7 +17,7 @@ body {
   height: 100%;
   padding: 8px 16px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   background: #161513;
 }
 .row {
@@ -31,7 +31,7 @@ body {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #edc9a9;
+  background: var(--cream);
 }
 .recording .dot {
   background: #5fd8a4;
@@ -57,7 +57,7 @@ body {
   flex: none;
   margin-left: auto;
   color: rgba(245, 238, 229, 0.55);
-  font-size: 11px;
+  font-size: var(--fs-i2);
 }
 .result {
   display: -webkit-box;
@@ -65,7 +65,7 @@ body {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   color: rgba(245, 238, 229, 0.8);
-  font-size: 12px;
+  font-size: var(--fs-i3);
 }
 .actions {
   display: flex;
@@ -75,14 +75,14 @@ body {
 button {
   padding: 3px 11px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: none;
   color: inherit;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-i3);
 }
 button.primary {
   border-color: transparent;
-  background: #f1dcc4;
-  color: #161513;
+  background: var(--cream-strong);
+  color: var(--cream-ink);
 }

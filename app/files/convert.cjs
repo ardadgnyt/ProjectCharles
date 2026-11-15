@@ -114,6 +114,45 @@ function uniquePath(dir, base, ext) {
     n++;
   }
 }
+// v1.0.0: the temporary name of one job (two jobs on the same file and target used to share one),
+// keeping the result's extension at the end (ffmpeg and Office choose the format from it)
+function partPath(dir, base, ext) {
+  const id = require('node:crypto').randomBytes(4).toString('hex');
+  return path.join(dir, `${base}.${id}.part${ext ? '.' + ext : ''}`);
+}
+/**
+ * v1.0.0: moves a finished temporary file or folder to a free name picked now, at the end of the
+ * job (not at its start), and never replaces anything: a file is hard-linked (fails if the name
+ * was taken meanwhile) or copied with COPYFILE_EXCL; a folder is renamed (Windows refuses an
+ * existing name). A name taken in between is skipped for the next free one.
+ */
+function settle(tmp, dir, base, ext) {
+  const folder = fs.statSync(tmp).isDirectory();
+  for (let tries = 0; tries < 50; tries++) {
+    const out = uniquePath(dir, base, ext);
+    try {
+      if (folder) fs.renameSync(tmp, out);
+      else {
+        try {
+          fs.linkSync(tmp, out);
+        } catch (e) {
+          if (e.code === 'EEXIST') throw e;
+          try {
+            fs.copyFileSync(tmp, out, fs.constants.COPYFILE_EXCL);
+          } catch (c) {
+            if (c.code !== 'EEXIST') fs.rmSync(out, { force: true }); // a half copy is ours
+            throw c;
+          }
+        }
+        fs.rmSync(tmp, { force: true });
+      }
+      return out;
+    } catch (e) {
+      if (e.code !== 'EEXIST' && !fs.existsSync(out)) throw e;
+    }
+  }
+  throw Error('Sonuç için boş bir dosya adı bulunamadı.');
+}
 
 // ── text, data and subtitles ─────────────────────────────────────────────────
 function parseDelimited(text, sep) {
@@ -635,6 +674,9 @@ class Converter {
     for (const id of ops.batchTargets(paths))
       if (!targets.some((t) => t.id === id) && (id.startsWith('arc-') ? require('./archive.cjs').available() : this.opsAvailable(paths[0], id, encoders)))
         targets.push({ id, label: ops.LABELS[id], group: ops.GROUPS[id] });
+    // v1.0.0: packing into one ZIP is then offered once, by archive.cjs (tar.exe, or Charles' own
+    // writer for names tar.exe cannot hold); the in-memory "zip" stays only where tar.exe is missing
+    if (ops.batchTargets(paths).includes('arc-zip') && targets.some((t) => t.id === 'arc-zip')) targets = targets.filter((t) => t.id !== 'zip');
     // every target carries its choices and notes (the sheet draws them)
     targets = targets.map((t) => ({ ...t, ...ops.schema(paths, t.id, { ocrLangs: this.engines?.ocrLangs || [] }) }));
     const kinds = [...new Set(files.map((f) => f.kind))];
@@ -882,22 +924,21 @@ class Converter {
     cancelled();
     const note = (text) => { if (opts.notes && !opts.notes.includes(text)) opts.notes.push(text); };
     if (target === 'png') {
-      const out = uniquePath(dir, base + ' slaytları', '');
-      const tmp = out + '.part';
-      fs.mkdirSync(tmp, { recursive: true });
+      const tmp = partPath(dir, base + ' slaytları', '');
+      fs.mkdirSync(tmp);
+      let out;
       try {
         const pictures = await this.deps.slides.pictures(deck, { width: opts.size || 1920, signal, progress: (p) => progress(0.2 + p * 0.75) });
         pictures.forEach((png, i) => fs.writeFileSync(path.join(tmp, `Slayt ${String(deck.slides[i].number).padStart(2, '0')}.png`), png));
-        fs.renameSync(tmp, out);
+        out = settle(tmp, dir, base + ' slaytları', '');
       } finally {
         fs.rmSync(tmp, { recursive: true, force: true });
       }
       if (slides.undrawn(deck).length) note(`Şu slaytlardaki bazı görseller çizilemedi: ${slides.undrawn(deck).join(', ')}.`);
       return out;
     }
-    const out = uniquePath(dir, base, target);
     // keeps its extension: PowerPoint adds one to a name that does not end in it
-    const tmp = `${out}.part.${target}`;
+    const tmp = partPath(dir, base, target);
     try {
       if (target === 'pdf') {
         const made = await this.deps.slides.pdf(f.path, deck, tmp, { signal, progress });
@@ -913,8 +954,7 @@ class Converter {
       } else if (target === 'txt') fs.writeFileSync(tmp, slides.deckText(deck) + '\n');
       else if (target === 'md') fs.writeFileSync(tmp, slides.deckMarkdown(deck));
       else throw Error('Bu biçime dönüştürülemiyor.');
-      fs.renameSync(tmp, out);
-      return out;
+      return settle(tmp, dir, base, target);
     } finally {
       fs.rmSync(tmp, { force: true });
     }
@@ -1058,7 +1098,7 @@ function detectSeparator(text) {
 }
 
 module.exports = {
-  Converter, KINDS, kindOf, targetsFor, commonTargets, uniquePath, ffmpegArgs, runFFmpeg, ffmpegEncoders,
+  Converter, KINDS, kindOf, targetsFor, commonTargets, uniquePath, partPath, settle, ffmpegArgs, runFFmpeg, ffmpegEncoders,
   parseDelimited, writeDelimited, tableToObjects, objectsToTable, srtToVtt, vttToSrt, htmlToText, htmlToMarkdown,
   docxFromBlocks, docxToBlocks, blocksFromMarkdown, blocksFromText, pdfBlocks, pdfFromJpegs, jpegSize, icoFromPngs, zipFiles, unzipTo,
   // v0.9.26: for app/files/convert-run.cjs

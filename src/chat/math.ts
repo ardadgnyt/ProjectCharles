@@ -1,5 +1,26 @@
-import katex from 'katex';
+import { katexNow, loadKatex } from './katex-source';
 
+// v1.0.0 (perf2 P9.3): in the page KaTeX is loaded on the first formula. Until it is there a formula
+// is a placeholder (its source, like a formula still being typed); answers wait for it instead
+// (markdown.ts, mathReady), other texts get their placeholders replaced when it arrives.
+let unavailable = false;
+let renderFormula: ((source: string, displayMode: boolean) => string) | null = null;
+function fillWaiting() {
+  if (!renderFormula) return;
+  for (const el of [...document.querySelectorAll<HTMLElement>('.math-wait')]) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = renderFormula(el.dataset.src || '', el.dataset.display === '1');
+    el.replaceWith(tpl.content);
+  }
+}
+/** Resolves when formulas can be drawn (KaTeX loaded, or it failed and they stay as source). */
+export function mathReady(): Promise<void> {
+  if (katexNow() || unavailable) return Promise.resolve();
+  return loadKatex().then(
+    () => {},
+    () => void (unavailable = true),
+  );
+}
 const COPY_ICON =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>';
 
@@ -7,6 +28,18 @@ const COPY_ICON =
 export function mathPlugin(md: any) {
   const render = (source: string, displayMode: boolean) => {
     const tex = md.utils.escapeHtml(source.trim());
+    const katex = katexNow();
+    if (!katex) {
+      if (unavailable) return '<code class="math-pending">' + md.utils.escapeHtml(source) + '</code>';
+      void mathReady().then(() => {
+        fillWaiting();
+        requestAnimationFrame(fillWaiting);
+      });
+      return (
+        '<span class="math-wait" data-src="' + md.utils.escapeHtml(source) + '" data-display="' + (displayMode ? '1' : '0') +
+        '"><code class="math-pending">' + md.utils.escapeHtml(source) + '</code></span>'
+      );
+    }
     let html: string;
     try {
       html = katex.renderToString(source, {
@@ -24,17 +57,19 @@ export function mathPlugin(md: any) {
     return displayMode
       ? '<span class="math-display" data-tex="' +
           tex +
-          '" data-display="1"><button type="button" class="math-copy" data-answer-action="math" title="Formülü kopyala" aria-label="Formülü kopyala">' +
+          '" data-display="1"><button type="button" class="math-copy" data-answer-action="math" data-tip="Formülü kopyala" aria-label="Formülü kopyala">' +
           COPY_ICON +
           '</button>' +
           html +
           '</span>'
       : '<span class="math-inline" data-answer-action="math" data-tex="' +
           tex +
-          '" title="Formülü kopyalamak için tıkla">' +
+          // (data-tip, not title: answers are merged in again on every streamed frame, markdown.ts)
+          '" data-tip="Formülü kopyalamak için tıkla" aria-description="Formülü kopyalamak için tıkla">' +
           html +
           '</span>';
   };
+  renderFormula = render;
   md.inline.ruler.before('escape', 'charles_math', (state: any, silent: boolean) => {
     const p = state.pos, rest = state.src.slice(p);
     const open = rest.startsWith('\\(') ? '\\(' : rest.startsWith('\\[') ? '\\[' : rest.startsWith('$$') ? '$$' : rest[0] === '$' ? '$' : '';

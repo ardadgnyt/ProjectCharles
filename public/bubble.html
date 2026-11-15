@@ -3,10 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <title>Charles · Bildirim</title>
+    <link rel="stylesheet" href="styles/00-tokens.css" />
     <link rel="stylesheet" href="bubble.css" />
+    <link rel="stylesheet" href="styles/09-notify.css" />
   </head>
-  <body>
-    <main id="stack" aria-live="polite"></main>
+  <body class="notice-cards">
+    <!-- the WhatsApp logo is fetched with the page (the load event waits for it), so the first card
+         of a new card window shows it at once -->
+    <img class="wa-preload" hidden alt="" src="images/whatsapp-mark-20.png" srcset="images/whatsapp-mark-20.png 1x, images/whatsapp-mark-40.png 2x, images/whatsapp-mark-60.png 3x" />    <main id="stack" aria-live="polite"></main>
     <script src="bubble.js"></script>
   </body>
 </html>

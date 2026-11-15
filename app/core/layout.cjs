@@ -22,7 +22,7 @@ const CHAT_WIDTH = 620;
 // island shrank before, and that is on screen only while music plays, so with nothing playing the
 // choice seemed to do nothing. The app window, Charles' own window and module windows stay as they are.
 // v0.9.27: Small is 3/4 of Large (it was 2/3, too small to read on a laptop screen). The page zooms
-// by the same number (37-v0920.css, src/island/island-size.ts); test/v0927 keeps the three together.
+// by the same number (02-island.css, src/island/island-size.ts); test/v0927 keeps the three together.
 const ISLAND_SMALL = 0.75;
 // The width stays even: a centred island with an odd one sits on half a pixel, and the desktop showed
 // through thin lines between its tiles.

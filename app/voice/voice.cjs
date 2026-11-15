@@ -92,7 +92,8 @@ class Voice {
       );
     });
   }
-  async transcribe(value, { max = MAX_WAVE } = {}) {
+  // `empty: true` (the wake check) returns '' for a clip without words instead of throwing
+  async transcribe(value, { max = MAX_WAVE, empty = false } = {}) {
     if (!this.available()) throw Error('Yerel ses modeli bulunamadı. Ses kurulumunu çalıştır.');
     if (this.job) throw Error('Ses işlemi zaten çalışıyor.');
     const b = validateWave(value, max);
@@ -122,7 +123,7 @@ class Voice {
         .trim()
         .replace(/\[.*?\]/g, '')
         .trim();
-      if (!text) throw Error('Konuşma anlaşılamadı. Yeniden deneyebilirsin.');
+      if (!text && !empty) throw Error('Konuşma anlaşılamadı. Yeniden deneyebilirsin.');
       return text;
     } finally {
       for (const f of [file, prefix + '.txt'])

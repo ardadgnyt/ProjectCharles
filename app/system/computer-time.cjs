@@ -49,12 +49,29 @@ class ComputerTime {
     writeStore(this.file, this.data);
     this.dirty = false;
   }
-  read(start, end) {
+  /**
+   * Totals and apps of [start, end). With `days` ([{ start, end }], v1.0.0) also each day's totals;
+   * a day with no interval at all says `measured: false` (Charles was not open), never a zero.
+   */
+  read(start, end, days) {
     let computerSeconds = 0,
       activeSeconds = 0;
     const apps = new Map();
+    const perDay = Array.isArray(days)
+      ? days.map((d) => ({ start: d.start, end: Math.min(d.end, end), computer: 0, active: 0, measured: false }))
+      : null;
+    let measured = false;
     for (const r of this.data.intervals) {
       const seconds = Math.max(0, Math.min(end, r.end) - Math.max(start, r.start)) / 1000;
+      if (r.end > start && r.start < end) measured = true;
+      if (perDay)
+        for (const d of perDay) {
+          if (!(r.end > d.start && r.start < d.end)) continue;
+          const part = Math.max(0, Math.min(d.end, r.end) - Math.max(d.start, r.start)) / 1000;
+          d.measured = true;
+          d.computer += part;
+          if (r.active) d.active += part;
+        }
       computerSeconds += seconds;
       if (r.active) activeSeconds += seconds;
       if (r.app && seconds) {
@@ -64,7 +81,18 @@ class ComputerTime {
         apps.set(r.app, row);
       }
     }
+    const extra = perDay
+      ? {
+          computerMeasured: measured,
+          computerDays: perDay.map((d) => ({
+            measured: d.measured,
+            computerSeconds: Math.round(d.computer),
+            activeSeconds: Math.round(d.active),
+          })),
+        }
+      : {};
     return {
+      ...extra,
       computerSeconds: Math.round(computerSeconds),
       activeSeconds: Math.round(activeSeconds),
       computerTrackingSince: this.data.since,

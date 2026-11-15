@@ -2,6 +2,14 @@ import { english0922, patterns0922 } from './i18n-0922';
 import { english0925, patterns0925 } from './i18n-0925';
 import { english0926, patterns0926 } from './i18n-0926';
 import { english0927, patterns0927 } from './i18n-0927';
+import { english100Panel, patterns100Panel } from './i18n-100-panel';
+import { english100Picker, patterns100Picker } from './i18n-100-picker';
+import { english100Summary, patterns100Summary } from './i18n-100-summary';
+import { english100Settings, patterns100Settings } from './i18n-100-settings';
+import { english100Core, patterns100Core } from './i18n-100-core';
+import { english100DShelf, patterns100DShelf } from './i18n-100-dshelf';
+import { english100DChat, patterns100DChat } from './i18n-100-dchat';
+import { english100DTour, patterns100DTour } from './i18n-100-dtour';
 import { english063, englishPatterns } from './i18n-063';
 import { english070 } from './i18n-070';
 import { english071 } from './i18n-071';
@@ -43,11 +51,8 @@ const english: Record<string, string> = {
   Performans: 'Performance',
   Sohbet: 'Chat',
   SOHBET: 'CHAT',
-  'Proje · Kod yaz': 'Project · Code',
-  'Yeni konuşma': 'New chat',
   'Charles’a bir şey sor…': 'Ask Charles…',
   'Aklında ne var?': 'What’s on your mind?',
-  'Bir fikir, küçük bir soru, yeni bir şey.': 'An idea, a quick question, something new.',
   'Sohbet edelim': 'Let’s chat',
   'Birlikte planlayalım': 'Let’s plan',
   Gönder: 'Send',
@@ -69,12 +74,10 @@ const english: Record<string, string> = {
   Sil: 'Delete',
   Yenile: 'Refresh',
   'Varsayılana dön': 'Reset to default',
-  'Charles adacık boyutu': 'Charles island size',
   'Büyük': 'Large',
   'Bağlı değil': 'Not connected',
   'Bağlantı kayıtlı': 'Connection saved',
   'Giriş yapılmadı': 'Not signed in',
-  'Bağlı · Modeller kullanıma hazır': 'Connected · Models ready',
   'Bağlantıyı kontrol et': 'Check connection',
   'Hesaba bağlan': 'Connect account',
   'Bağlantıyı kaldır': 'Disconnect',
@@ -86,12 +89,10 @@ const english: Record<string, string> = {
   'Ayarları kaydet': 'Save settings',
   Sesler: 'Sounds',
   'Panel davranışı ve sesler': 'Panel behavior and sounds',
-  'Ses ve ekran': 'Voice and screen',
   'Yanıtları sesli oku': 'Read responses aloud',
   'Hava durumu': 'Weather',
   'Konum seç': 'Choose location',
   'Şimdilik geç': 'Skip for now',
-  'Ana yapay zekâ sistemi': 'Primary AI provider',
   'GPT hesabı': 'GPT account',
   'Antigravity hesabı': 'Antigravity account',
   'Claude hesabı': 'Claude account',
@@ -104,19 +105,13 @@ const english: Record<string, string> = {
   'Cursor ile giriş': 'Sign in with Cursor',
   'Hesap kontrol ediliyor…': 'Checking account…',
   'Giriş bekleniyor': 'Waiting for sign-in',
-  'Bağlantıyı test et': 'Test connection',
   'Anahtarı sil': 'Delete key',
   'Gemini Live sesi': 'Gemini Live voice',
   'Gemini varsayılanı': 'Gemini default',
   'Gemini Live · sesli görüşme': 'Gemini Live · voice conversation',
-  'AI Studio’da ücretsiz anahtar oluştur': 'Create a free key in AI Studio',
   'Gemini API anahtarı': 'Gemini API key',
   'Mikrofon düğmesinde Gemini Live kullan': 'Enable Gemini Live voice conversations',
   'Projem Free Tier; faturalandırması kapalı': 'My project uses Free Tier; billing is disabled',
-  'Yeni anahtar henüz kaydedilmedi. Önce Kaydet’e bas, ardından bağlantıyı test et.':
-    'Save the new key before testing the connection.',
-  'Sesi seçip Kaydet’e bas. Yeni ses sonraki görüşmede kullanılır; açık görüşme kaydederken sonlandırılır.':
-    'Choose a voice and save. It applies to the next conversation; saving ends the current call.',
   'Hey Charles diyerek sesli görüşmeyi başlat': 'Start a voice conversation with Hey Charles',
   'Hey Charles eğitimi': 'Hey Charles training',
   'Eğitimi başlat': 'Start training',
@@ -143,11 +138,7 @@ const english: Record<string, string> = {
   'Ekrandan alan seç': 'Capture screen region',
   'Kısayolları kaydet': 'Save shortcuts',
   'Kısayollar herhangi bir uygulamadayken çalışır.': 'Shortcuts work from any application.',
-  'Kısayolu yaz veya alana odaklanıp tuşlara bas. Boş bırakırsan devre dışı kalır.':
-    'Type a shortcut or focus the field and press the keys. Leave it blank to disable.',
   'Geçen hafta': 'Last week',
-  'Pazartesi sabahı haftalık özeti göster': 'Show weekly summary on Monday morning',
-  'Özeti yenile': 'Refresh summary',
   'Çalışma süresi': 'Active task time',
   Oturumlar: 'Sessions',
   İşlemler: 'Tasks',
@@ -156,11 +147,8 @@ const english: Record<string, string> = {
   'Silinen satır': 'Lines removed',
   Komutlar: 'Commands',
   'İzin istekleri': 'Approval requests',
-  'En çok kullanılan ajan': 'Top agent',
   Proje: 'Project',
   'En yoğun gün': 'Busiest day',
-  'En uzun işlem': 'Longest task',
-  'En uzun oturum': 'Longest session',
   'Charles açıkken kaydedilen işlemler kullanılır. Pazartesi 09.00’da veya sonraki açılışta gösterilir. Süre, isteklerin çalıştığı süredir; bilgisayar başında geçirilen toplam süre değildir.':
     'Uses activity recorded while Charles is running. Shown Monday at 09:00 or on the next launch. Time measures running tasks, not your total time at the computer.',
   Renkler: 'Colors',
@@ -196,18 +184,14 @@ const english: Record<string, string> = {
   'Uygulama kullanımını kaydet': 'Record resource usage',
   'Kullanım geçmişini temizle': 'Clear usage history',
   'Evet, kayıtları sil': 'Yes, delete records',
-  'Bağlantı kurulum rehberi': 'Connection setup guide',
   'Mail, takvim ve Drive bağlantıları salt okunurdur. Hesap bilgileri Windows şifrelemesiyle saklanır. Gelen içerikler kendi başına komut çalıştırmaz.':
     'Mail, calendar and Drive connections are read-only. Credentials use Windows encryption. Incoming content cannot run commands on its own.',
-  'Önemli mail ve takvim bildirimleri': 'Important mail and calendar notifications',
   'Önemli kelimeler': 'Important keywords',
   'Bildirimleri kaydet': 'Save notifications',
-  'Listele / Yenile': 'List / Refresh',
   'Charles’a sor': 'Ask Charles',
   Uygula: 'Apply',
   'IMAP sunucusu': 'IMAP server',
   'TLS portu': 'TLS port',
-  'E-posta / kullanıcı adı': 'Email / username',
   'Şifre / uygulama şifresi': 'Password / app password',
   'Okul e-postası': 'School email',
   'Okul e-postası · IMAP': 'School email · IMAP',
@@ -215,8 +199,6 @@ const english: Record<string, string> = {
   'Kayıtlı · değiştirmek için gir': 'Saved · enter a replacement',
   'Charles açıkken 5 dakikada bir kontrol edilir. İlk kontrol bildirim göndermez. Önem etiketi veya bu kelimeler eşleşirse bildirim gelir; yeni takvim olayları da bildirilir.':
     'Checked every 5 minutes while Charles is running. The first check establishes a baseline. Important flags, keyword matches and new calendar events trigger notifications.',
-  'ShazamKit’in resmi Windows SDK’sı bulunmadığından bu sürümde bağlanamaz. ChatGPT’deki Shazam oturumu Charles’a aktarılamaz.':
-    'ShazamKit has no official Windows SDK, so it cannot connect in this release. ChatGPT’s Shazam session cannot be transferred to Charles.',
   'Bağlantı başarılı. Gemini Live sesli görüşmeye hazır.':
     'Connection successful. Gemini Live is ready.',
   'Sesi durdur': 'Stop audio',
@@ -274,26 +256,15 @@ Object.assign(english, {
   'Sulafat · Sıcak': 'Sulafat · Warm',
   'Anahtar eklenmedi. Mevcut yerel ses kullanılacak.':
     'No API key saved. Local dictation is available.',
-  'Baş dönmesi': 'Dizzy',
-  Şaşkınlık: 'Surprised',
-  'Göz kırpma': 'Wink',
-  Düşünme: 'Thinking',
-  Çalışma: 'Working',
   Tamamlandı: 'Completed',
-  'Yalnızca karakterin tepkisini gösterir. Yaklaşık 3 saniye sonra\n              normal ifadesine döner.':
-    'Shows a character reaction for about 3 seconds, then returns to the normal expression.',
   Yazı: 'Text',
   Saydamlık: 'Opacity',
-  'Charles hangi ekranda görünsün?': 'Which screen should Charles use?',
   'Ana ekran · Windows ana ekranı': 'Main screen · Windows primary display',
   'Faremin olduğu ekran · Açılışta ve ekran değişiminde':
     'Pointer screen · At startup and when displays change',
   'Ekranları yenile': 'Refresh displays',
-  'ChatGPT’den beni tanı': 'Get to know me from ChatGPT',
-  'ChatGPT’den kişisel bilgi aktarımı': 'Import personal context from ChatGPT',
   'Her kullanıcı kendi ChatGPT hesabından bir özet alır. Otomatik eşitleme yapılmaz. Bilgiler bu Windows kullanıcısının Charles hafızasına kaydedilir; ChatGPT hesabını değiştirmek bu yerel kayıtları otomatik değiştirmez.':
     'Each user obtains a summary from their own ChatGPT account. There is no automatic sync. The imported information is saved for this Windows user; switching ChatGPT accounts does not change the local memory.',
-  '1 · Soru paketini ChatGPT’ye gönder': '1 · Send the questionnaire to ChatGPT',
   'Aşağıdaki paketi kopyalayıp kendi ChatGPT sohbetine yapıştır. Yanıtın tamamını al. Charles kendiliğinden mesaj göndermez.':
     'Copy the questionnaire into your own ChatGPT chat and copy the entire response back. Charles does not send the message automatically.',
   '2 · Yanıtı buraya yapıştır': '2 · Paste the response here',
@@ -326,8 +297,6 @@ Object.assign(english, {
   'Bağlantı ayarlarını kaydet': 'Save connection settings',
   'Google JSON dosyasını içe aktar': 'Import Google JSON file',
   'Google JSON dosyasını seç': 'Select Google JSON file',
-  'Yeni mail ve takvim bildirimleri': 'New mail and calendar notifications',
-  'Bilgiler kayıtlı · bağlantıyı test et': 'Settings saved · test the connection',
   'Hesap bağlı': 'Account connected',
   'Tuşları kaydet': 'Record keys',
   'Tuşlara bas…': 'Press your shortcut…',
@@ -337,11 +306,6 @@ Object.assign(english, {
   Sonraki: 'Next',
   'Daha sonra': 'Later',
   'Kurulumu bitir': 'Finish setup',
-  'Bilgisayarda toplam süre': 'Total computer time',
-  'Aktif bilgisayar kullanımı': 'Active computer use',
-  'Charles işlem süresi': 'Charles task time',
-  'Okul e-posta adresin': 'Your school email address',
-  'IMAP sunucu adresi': 'IMAP server address',
   'Google OAuth istemci kimliği': 'Google OAuth client ID',
   'Google masaüstü istemci gizli anahtarı': 'Google desktop client secret',
   'Home Assistant sunucu adresi': 'Home Assistant server URL',
@@ -350,14 +314,9 @@ Object.assign(english, {
   '2 · Gmail erişimi': '2 · Gmail access',
   '3 · Takvim erişimi': '3 · Calendar access',
   '4 · Drive erişimi': '4 · Drive access',
-  '5 · İzin ekranı': '5 · Consent screen',
   '6 · Masaüstü uygulaması': '6 · Desktop application',
-  '7 · Charles’a bağla': '7 · Connect to Charles',
   '1 · Microsoft uygulama kaydı': '1 · Microsoft app registration',
   '2 · Hesap türü': '2 · Account type',
-  '3 · Masaüstü bağlantısı': '3 · Desktop connection',
-  '4 · Posta ve takvim izinleri': '4 · Mail and calendar permissions',
-  '5 · Charles’a bağla': '5 · Connect to Charles',
   'İlk bağlantıda bir defalık uygulama kaydı gerekir. Charles adım adım yardımcı olur. Sonraki girişlerde doğrudan hesabını seçebilirsin.':
     'The first connection requires a one-time app registration. Charles guides you through it. Later sign-ins go straight to account selection.',
   'Hesaplarını burada bağla. Mail okumak veya özetlemek için sohbetten ya da sesli görüşmeden iste. Örneğin: “Okul maillerimi özetle”.':
@@ -365,17 +324,34 @@ Object.assign(english, {
   'Kaydet düğmesine tıkla, ardından kısayol tuşlarına birlikte bas. Esc ile vazgeç.':
     'Click Record keys, then press the shortcut together. Press Esc to cancel.',
 });
-Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089, english0810, english0811, english0814, english0815, english092, english096, english0913, english0914, english0915, english0916, english0918, english0919, english0922, english0925, english0926, english0927);
+Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089, english0810, english0811, english0814, english0815, english092, english096, english0913, english0914, english0915, english0916, english0918, english0919, english0922, english0925, english0926, english0927, english100Core, english100Settings, english100Summary, english100Picker, english100Panel, english100DShelf, english100DChat, english100DTour);
 
 // v0.6.3: look-up that ignores line breaks/indentation from the HTML, then the patterns
 // (texts with numbers or names inside).
 const collapsed = new Map<string, string>();
 for (const [k, v] of Object.entries(english)) collapsed.set(k.replace(/\s+/g, ' ').trim(), v);
-const allPatterns = [...englishPatterns, ...specialPatterns, ...patterns072, ...patterns077, ...patterns080, ...patterns085, ...patterns087, ...patterns088, ...patterns0810, ...patterns092, ...patterns096, ...patterns0913, ...patterns0914, ...patterns0922, ...patterns0925, ...patterns0926, ...patterns0927];
+const allPatterns = [...englishPatterns, ...specialPatterns, ...patterns072, ...patterns077, ...patterns080, ...patterns085, ...patterns087, ...patterns088, ...patterns0810, ...patterns092, ...patterns096, ...patterns0913, ...patterns0914, ...patterns0922, ...patterns0925, ...patterns0926, ...patterns0927, ...patterns100Core, ...patterns100Settings, ...patterns100Summary, ...patterns100Picker, ...patterns100Panel, ...patterns100DShelf, ...patterns100DChat, ...patterns100DTour];
 // v0.9.22: a pattern is a short interface text with a number or a name in it. Without this limit
 // every line of a command's output went through all of them.
 const PATTERN_MAX = 600;
 const patternResults = new Map<string, string | undefined>();
+// v1.0.0: what a pattern made, as a template for the other languages: the English with {a}, {b}, …
+// where the captured parts go, and those parts (still Turkish). "Sonraki mesaj: X" →
+// "Next message: {a}" + ['X'].
+type PatternMade = { template: string; parts: string[] };
+const patternMade = new Map<string, PatternMade | undefined>();
+const SLOTS = 'abcdefgh';
+function templateOf(fn: (...m: string[]) => string, m: string[]): PatternMade | undefined {
+  if (m.length < 2 || m.length > SLOTS.length + 1) return undefined;
+  try {
+    // a group the match left out (an optional part) stays undefined, so the pattern's function
+    // leaves out its text as it does for the English, and the template has no slot for it
+    const template = fn(m[0], ...m.slice(1).map((v, i) => (v === undefined ? (v as unknown as string) : '{' + SLOTS[i] + '}')));
+    return typeof template === 'string' && /\{[a-h]\}/.test(template) ? { template, parts: m.slice(1) } : undefined;
+  } catch {
+    return undefined;
+  }
+}
 function toEnglish(source: string): string | undefined {
   const key = source.replace(/\s+/g, ' ').trim();
   if (!key) return undefined;
@@ -384,15 +360,18 @@ function toEnglish(source: string): string | undefined {
   if (key.length > PATTERN_MAX) return undefined;
   if (patternResults.has(key)) return patternResults.get(key);
   let result: string | undefined;
+  let made: PatternMade | undefined;
   for (const [re, fn] of allPatterns) {
     const m = key.match(re);
     if (m) {
       result = fn(...(m as unknown as string[]));
+      made = templateOf(fn, [...m] as string[]);
       break;
     }
   }
-  if (patternResults.size >= 4000) patternResults.clear();
+  if (patternResults.size >= 4000) (patternResults.clear(), patternMade.clear());
   patternResults.set(key, result);
+  patternMade.set(key, made);
   return result;
 }
 
@@ -407,12 +386,43 @@ export const LANGUAGES: [Language, string][] = [
   ['es', 'Español'],
   ['zh', '中文（简体）'],
 ];
-const fromEnglishTables: Partial<Record<Language, Record<string, string>>> = {
+// v1.0.0 (perf2 P9.2): in the page bundle these four imports are empty: scripts/build.mjs writes
+// each table to dist/lang/<code>.js and the page loads only the one in use (loadLanguage) before
+// it applies that language. Tests and tools that bundle this file get the tables as before.
+// A script (not fetch) because a script added before the page's load event holds that event, and
+// the window is shown after it: at start-up the table is in before anything is on screen.
+const fromEnglishTables: Partial<Record<Language, Record<string, string> | undefined>> = {
   de: german,
   fr: french,
   es: spanish,
   zh: chinese,
 };
+const tablesLoading = new Map<Language, Promise<void>>();
+/** Makes `language`'s table available to t(); resolves (never rejects) once it is in or failed. */
+export function loadLanguage(language: Language): Promise<void> {
+  if (language === 'tr' || language === 'en' || fromEnglishTables[language]) return Promise.resolve();
+  let loading = tablesLoading.get(language);
+  if (!loading) {
+    (window as any).charlesLanguageTable ??= (code: Language, table: Record<string, string>) => {
+      if (!(code in fromEnglishTables) || !table || typeof table !== 'object') return;
+      fromEnglishTables[code] = table;
+      collapsedTables.delete(code);
+    };
+    loading = new Promise<void>((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'lang/' + language + '.js';
+      // a missing file leaves that language in English (as a missing row does)
+      script.onload = script.onerror = () => {
+        script.remove();
+        if (!fromEnglishTables[language]) tablesLoading.delete(language);
+        resolve();
+      };
+      document.head.append(script);
+    });
+    tablesLoading.set(language, loading);
+  }
+  return loading;
+}
 const collapsedTables = new Map<Language, Map<string, string>>();
 function fromEnglish(language: Language, en: string): string {
   const table = fromEnglishTables[language];
@@ -444,7 +454,25 @@ function translated(language: Language, source: string): string | undefined {
   if (language === 'tr') return undefined;
   const en = toEnglish(source);
   if (en === undefined) return undefined;
-  return language === 'en' ? en : fromEnglish(language, en);
+  if (language === 'en') return en;
+  const out = fromEnglish(language, en);
+  if (out !== en) return out;
+  // v1.0.0: a pattern-made text with no row of its own: its template's row, with the captured
+  // parts put back (each in this language when it is an interface text itself)
+  const made = patternMade.get(source.replace(/\s+/g, ' ').trim());
+  return made ? (fromTemplate(language, made) ?? en) : en;
+}
+function fromTemplate(language: Language, made: PatternMade): string | undefined {
+  const row = fromEnglish(language, made.template);
+  if (row === made.template) return undefined;
+  // a slot with no value never reaches the page: the caller shows the English instead
+  let missing = false;
+  const out = row.replace(/\{([a-h])\}/g, (all, slot: string) => {
+    const part = made.parts[SLOTS.indexOf(slot)];
+    if (part === undefined) return ((missing = true), all);
+    return translated(language, part) ?? part;
+  });
+  return missing ? undefined : out;
 }
 
 let currentLanguage: Language = 'tr';
@@ -456,11 +484,6 @@ export function uiLanguage() {
 export function t(text: string): string {
   return translated(currentLanguage, text) ?? text;
 }
-/** An English text (from the island engine) in the UI language. */
-export function fromEnglishText(en: string): string {
-  return currentLanguage === 'tr' || currentLanguage === 'en' ? en : fromEnglish(currentLanguage, en);
-}
-
 export function languageUI(api: any) {
   let language: Language = 'tr';
   // a text we wrote earlier in any language → still the same Turkish source
@@ -507,7 +530,7 @@ export function languageUI(api: any) {
       if (current !== next) node.textContent = next;
     }
     const elements =
-      root instanceof Element ? [root, ...root.querySelectorAll('[aria-label],[placeholder],[title]')] : [];
+      root instanceof Element ? [root, ...root.querySelectorAll('[aria-label],[placeholder],[title],[aria-description],[data-tip]')] : [];
     for (const el of elements) {
       if (el.closest('#feed .message,.plugin-results,.history-entry,[translate="no"]')) continue;
       let saved = attributes.get(el);
@@ -515,7 +538,7 @@ export function languageUI(api: any) {
         saved = new Map();
         attributes.set(el, saved);
       }
-      for (const key of ['aria-label', 'placeholder', 'title']) {
+      for (const key of ['aria-label', 'placeholder', 'title', 'aria-description', 'data-tip']) {
         const current = el.getAttribute(key);
         if (!current) continue;
         const old = saved.get(key),
@@ -528,26 +551,35 @@ export function languageUI(api: any) {
       }
     }
   }
+  let translatedOnce = false;
   function apply(value: string) {
     language = (LANGUAGES.find(([code]) => code === value)?.[0] || 'tr') as Language;
+    if (language !== 'tr') translatedOnce = true;
     currentLanguage = language;
     select.value = language;
     document.documentElement.lang = language;
     translate(document.body);
     document.dispatchEvent(new CustomEvent('charles-language', { detail: language }));
+    // v1.0.0 (perf2): start-up timing, and a hint so the next start loads this table at once
+    performance.mark('charles-language');
+    try {
+      localStorage.setItem(LANGUAGE_HINT, language);
+    } catch {}
   }
   const watching = {
     childList: true,
     subtree: true,
     characterData: true,
     attributes: true,
-    attributeFilter: ['aria-label', 'placeholder', 'title'],
+    attributeFilter: ['aria-label', 'placeholder', 'title', 'aria-description', 'data-tip'],
   };
   // v0.9.22: each added message used to walk the whole chat again (the record's target is the list
   // it was added to), so opening a long chat froze the panel for seconds. Only what changed is
   // read now, and in Turkish nothing has to be done: the page is written in it.
+  // v1.0.0 (perf2): unless another language was used in this session: a panel built then and kept
+  // off the page (the shelf's panels are detached when closed) comes back in that language
   const observer = new MutationObserver((records) => {
-    if (language === 'tr') return;
+    if (language === 'tr' && !translatedOnce) return;
     observer.disconnect();
     const changed = new Set<Node>();
     for (const r of records) {
@@ -558,10 +590,24 @@ export function languageUI(api: any) {
     observer.observe(document.body, watching);
   });
   observer.observe(document.body, watching);
-  select.onchange = () =>
-    void api.companionSave({ language: select.value }).then(() => apply(select.value));
-  void api.companionRead().then((v: any) => apply(v.language || v.preferences?.language || 'tr'));
+  // v1.0.0 (perf2 P9.2): a language is applied only once its table is in (a local file), so nothing
+  // is drawn half in English; the last choice wins when the list is changed quickly.
+  const valid = (v: string) => (LANGUAGES.find(([code]) => code === v)?.[0] || 'tr') as Language;
+  let choice = 0;
+  const choose = (value: string, saved: Promise<unknown> = Promise.resolve()) => {
+    const mine = ++choice;
+    return Promise.all([saved, loadLanguage(valid(value))]).then(() => {
+      if (mine === choice) apply(value);
+    });
+  };
+  select.onchange = () => void choose(select.value, api.companionSave({ language: select.value }));
+  try {
+    const hint = localStorage.getItem(LANGUAGE_HINT);
+    if (hint) void loadLanguage(valid(hint));
+  } catch {}
+  void api.companionRead().then((v: any) => choose(v.language || v.preferences?.language || 'tr'));
 }
+const LANGUAGE_HINT = 'charles-language';
 
 /** The English for a Turkish UI text, if there is one (tests). */
 export function englishFor(text: string): string | undefined {
@@ -571,4 +617,30 @@ export function englishFor(text: string): string | undefined {
 /** Every Turkish → English pair (tests, translation tooling). */
 export function englishEntries(): [string, string][] {
   return Object.entries(english);
+}
+
+/** A Turkish UI text in any language, or undefined (tests, translation tooling). */
+export function translatedFor(language: Language, text: string): string | undefined {
+  return translated(language, text);
+}
+
+/** An English text in German, French, Spanish or Chinese, as `t()` would make it (tests). */
+export function fromEnglishIn(language: Language, en: string): string {
+  return fromEnglish(language, en);
+}
+
+/** The Turkish → English patterns (translation tooling: .qa/h100/polish/pattern-gaps.cjs). */
+export function patternEntries(): [RegExp, (...m: string[]) => string][] {
+  return allPatterns as [RegExp, (...m: string[]) => string][];
+}
+
+/** What `t()` shows in `language` for a pattern match `m` (m[0] the text, then the groups,
+ *  undefined for a group the match left out) of the pattern function `fn` (tests, tooling). */
+export function patternTranslatedFor(language: Language, fn: (...m: string[]) => string, m: (string | undefined)[]): string {
+  const en = fn(...(m as string[]));
+  if (language === 'tr' || language === 'en') return en;
+  const out = fromEnglish(language, en);
+  if (out !== en) return out;
+  const made = templateOf(fn, m as string[]);
+  return made ? (fromTemplate(language, made) ?? en) : en;
 }

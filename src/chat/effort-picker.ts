@@ -60,6 +60,21 @@ function currentEffort(model: EffortModel, option: HTMLOptionElement | undefined
   return value ? (model.efforts || []).find((e) => e.value === value) || null : null;
 }
 
+/** v1.0.0: the button's label. The automatic level gets a small "Efor" before it, so it does not
+ *  read as a second "Otomatik" right after the model's "Otomatik · OpenAI". The prefix is hidden
+ *  from screen readers: the button's accessible name stays the level's own name. */
+export function effortLabel(button: HTMLElement, level: string) {
+  if (level) {
+    button.textContent = level;
+    return;
+  }
+  const prefix = document.createElement('span');
+  prefix.className = 'effort-prefix';
+  prefix.setAttribute('aria-hidden', 'true');
+  prefix.textContent = 'Efor';
+  button.replaceChildren(prefix, document.createTextNode('Otomatik'));
+}
+
 export function effortPicker(select: HTMLSelectElement) {
   const panel = document.getElementById('effort-picker');
   const button = document.getElementById('effort-button') as HTMLButtonElement | null;
@@ -118,7 +133,7 @@ export function effortPicker(select: HTMLSelectElement) {
   function sync() {
     const model = chosen();
     const current = model ? currentEffort(model, select.selectedOptions[0]) : null;
-    button.textContent = current?.label || 'Otomatik';
+    effortLabel(button, current?.label || '');
     // A model with no levels keeps "Otomatik" and the panel is locked on it.
     button.disabled = select.disabled || !model;
     if (button.disabled) close();

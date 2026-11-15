@@ -56,8 +56,6 @@ export const english063: Record<string, string> = {
     'Microphone turned off. Hey Charles, dictation and voice conversation will not listen until you turn it back on.',
   'Mikrofon açıldı.': 'Microphone turned on.',
   'Devam etmeden önce bir sorum var': 'One question before I continue',
-  'Devam etmeden önce birkaç sorum var': 'A few questions before I continue',
-  'Ya da kendi yanıtını yaz…': 'Or write your own answer…',
   'Yanıtını yaz…': 'Write your answer…',
   'Ses seviyen': 'Your voice level',
   // island, music, sessions
@@ -67,7 +65,6 @@ export const english063: Record<string, string> = {
   '5 saat': '5 hours',
   Haftalık: 'Weekly',
   haftalık: 'weekly',
-  '＋ Yeni sohbet': '＋ New chat',
   'Oturumu kapat': 'Close session',
   'Konuşmalar bu bilgisayarda, Charles içinde saklanır.': 'Chats are stored on this computer, inside Charles.',
   'Paneli açık tut': 'Keep panel open',
@@ -89,7 +86,6 @@ export const english063: Record<string, string> = {
   'Karaktere dokun': 'Touch the character',
   'Codex kotasını yenile': 'Refresh Codex quota',
   'Oturumları kapat': 'Close sessions',
-  'Ayrı bir iş başlat': 'Start a separate task',
   'Seçili oturumu kapat': 'Close selected session',
   'Sohbetlerde ara': 'Search chats',
   'Sohbetlerde ara…': 'Search chats…',
@@ -113,7 +109,6 @@ export const english063: Record<string, string> = {
   '● Yerel uygulama': '● Local app',
   '● Bağlantı kapalı': '● Connection closed',
   '● Codex bağlı': '● Codex connected',
-  '+ Klasör': '+ Folder',
   'Klasör veya sohbet adı': 'Folder or chat name',
   Klasörsüz: 'No folder',
   'Klasörde göster': 'Show in folder',
@@ -145,10 +140,6 @@ export const english063: Record<string, string> = {
   'Görsel oluşturma sona erdi.': 'Image creation finished.',
   'Görsel aracı tamamlandı; bu sonuç doğrudan önizlenemiyor.':
     'The image tool finished; this result cannot be previewed directly.',
-  'Fırçalar hazırlanıyor…': 'Getting the brushes ready…',
-  'Taslak çiziliyor…': 'Sketching…',
-  'Son rötuşlar…': 'Final touches…',
-  'Tamamlandı!': 'Done!',
   'Albüm kapağı': 'Album cover',
   Araç: 'Tool',
   'Düşünme özeti': 'Thinking summary',
@@ -157,7 +148,6 @@ export const english063: Record<string, string> = {
   'Çalışıyorum…': 'Working…',
   Çalışıyor: 'Working',
   'Komut çalışıyor…': 'Running command…',
-  'Belgeyi okuyorum 📖': 'Reading the document 📖',
   'Yanıtını hazırlıyorum…': 'Preparing your answer…',
   'Yanıtını bekliyorum': 'Waiting for your answer',
   'Onayını bekliyorum': 'Waiting for your approval',
@@ -200,10 +190,6 @@ export const english063: Record<string, string> = {
   'Önce etkin işlemi bitir.': 'Finish the active task first.',
   'Önce etkin yanıtın tamamlanmasını bekle.': 'Wait for the current answer to finish first.',
   'Önce hesap bağla': 'Connect an account first',
-  'Bağlı başka bir yapay zekâ yok; Ayarlar → Yapay zekâ bölümünden ekleyebilirsin.':
-    'No other AI is connected; you can add one in Settings → AI.',
-  'Yeni konuşma hazır.': 'New chat ready.',
-  'Yeni konuşma. Seçili proje üzerinden başlayabiliriz.': 'New chat. We can start on the selected project.',
   'Yeni sohbet. Ne konuşalım?': 'New chat. What shall we talk about?',
   'Senin küçük kod arkadaşın.': 'Your little coding buddy.',
   'Seçili projede kod yazılır. Codex izin istediğinde burada karar verirsin.':
@@ -235,11 +221,7 @@ export const english063: Record<string, string> = {
   'Hava durumu için şehir veya ilçe seç.': 'Choose a city or district for the weather.',
   Ara: 'Search',
   'Aranıyor…': 'Searching…',
-  'Bir konum seç.': 'Choose a location.',
   'Sonuç bulunamadı. Başka bir şehir/ilçe adı dene.': 'No results. Try another city or district name.',
-  'Hava durumu için seçilen konum Open-Meteo’ya gönderilir. Aktif uygulama ve AI önerilerini Ayarlar’dan kapatabilirsin.':
-    'The chosen location is sent to Open-Meteo for the weather. You can turn off active-app and AI suggestions in Settings.',
-  'Şimdilik geç / Kapat': 'Skip for now / Close',
   'Şehir veya ilçe': 'City or district',
   'Şehir seç': 'Choose city',
   'Hava durumu konumunu seç': 'Choose weather location',
@@ -295,7 +277,6 @@ export const english063: Record<string, string> = {
   'Bağlantı kurulamadı.': 'Could not connect.',
   'Bağlantı kapandı': 'Connection closed',
   'Bağlantıyı iptal et': 'Cancel connection',
-  'Bağlı · Yenile ile verileri al': 'Connected · press Refresh to load data',
   'Yeniden bağlan': 'Reconnect',
   'Anahtar Windows şifrelemesiyle kayıtlı. Ücretsiz kota Google hesabına göre değişir.':
     'The key is stored with Windows encryption. The free quota depends on your Google account.',
@@ -334,37 +315,10 @@ export const english063: Record<string, string> = {
   Belirgin: 'Forward',
   Nazik: 'Gentle',
 
-  // Ayarlar → Görünüm: expressions
-  'Mimikleri dene': 'Try expressions',
-  'Bir mimiğe tıkla; yandaki Slime yaklaşık 3 saniye gösterir.':
-    'Click an expression; the Slime beside it shows it for about 3 seconds.',
-  'Mimik önizlemesi': 'Expression preview',
-  Özel: 'Special',
-  Mimikler: 'Expressions',
-  Kalpler: 'Hearts',
-  Gururlanma: 'Proud',
-  Esneme: 'Yawn',
-  Mutluluk: 'Happy',
-  Huysuzlanma: 'Grumpy',
-  Hareketler: 'Moves',
-  Selamlama: 'Greeting',
-  'Dosya alma': 'Taking a file',
-  'İş başında': 'At work',
-  'Büyüteçle araştırma': 'Searching with a magnifier',
-  'Bilgisayarda kod yazma': 'Coding on a laptop',
-  'Belge okuma': 'Reading a document',
-  'Komut çalıştırma': 'Running a command',
-  'Çizim yapma': 'Drawing',
-  'Fikir bulma (ampul)': 'Getting an idea (light bulb)',
-  'Çalışma ifadeleri': 'Work expressions',
+  // Ayarlar → Görünüm (v1.0.0: the "Mimikleri dene" rows are gone with that test panel;
+  // Bekleme and Hata stay for the chat's step cards)
   Bekleme: 'Idle',
-  'Onay bekleme': 'Waiting for approval',
-  'Soru sorma': 'Asking a question',
   Hata: 'Error',
-  'Limit doldu': 'Limit reached',
-  Uyuma: 'Sleeping',
-  'Denenecek mimik': 'Expression to try',
-  Dene: 'Try',
   Panel: 'Panel',
   Karakter: 'Character',
   Vurgu: 'Accent',
@@ -392,7 +346,6 @@ export const english063: Record<string, string> = {
   Yok: 'None',
   Muz: 'Banana',
   'Hepsini çıkar': 'Take everything off',
-  'Charles böyle görünüyor': 'This is how Charles looks',
   Kaydedilmedi: 'Not saved',
   'Balkabağı şapkayla birlikte takılamaz; şapka çıkarıldı.':
     'The pumpkin cannot be worn with a hat; the hat was taken off.',
@@ -408,7 +361,6 @@ export const english063: Record<string, string> = {
 
   // Ayarlar → Hafıza
   'Soru paketini oku': 'Read the questionnaire',
-  'Soru paketini kopyala': 'Copy the questionnaire',
   'Bilgileri incele': 'Review the information',
   'Yanıtlarda hatırlamasını istediğin bilgileri ekle.': 'Add information you want remembered in answers.',
   Temizle: 'Clear',
@@ -447,12 +399,8 @@ export const english063: Record<string, string> = {
   'Mail sunucu adresi': 'Mail server address',
   'E-posta adresin': 'Your email address',
   'Mail protokolü': 'Mail protocol',
-  'Görünüm ve bağlantılar': 'Appearance and connections',
-  'Anahtarların bu bilgisayarda şifrelenerek saklanır.': 'Your keys are stored encrypted on this computer.',
-  'API anahtarı / token': 'API key / token',
   'n8n adresi': 'n8n address',
   'https://n8n.adresin.com': 'https://n8n.your-domain.com',
-  'Kaydedildi. Bağlantıyı test edebilirsin.': 'Saved. You can test the connection.',
   'Bağlantı başarılı. Posta kutusu okunabiliyor.': 'Connection successful. The mailbox can be read.',
   'Bağlantı başarılı · ': 'Connection successful · ',
   'Yapılandırma kaydedildi. Şimdi Google ile giriş yap.': 'Configuration saved. Now sign in with Google.',
@@ -488,8 +436,6 @@ export const english063: Record<string, string> = {
   'İstemci oluştur / Create client → Masaüstü uygulaması / Desktop app seç. Adını Charles yapıp oluştur.':
     'Create client → choose Desktop app. Name it Charles and create it.',
   '8 · JSON dosyasını indir': '8 · Download the JSON file',
-  'Charles istemcisini açıp JSON indir / Download JSON’a bas. İndirdiğin dosyayı sonraki adımda seçeceğiz.':
-    'Open the Charles client and press Download JSON. You will choose that file in the next step.',
   '9 · Dosyayı seç ve hesabına giriş yap': '9 · Choose the file and sign in',
   'JSON dosyasını seç, ardından Google ile giriş yap. Test kullanıcısı olarak eklediğin hesabı kullan. Test kullanıcısı kaynaklı 403 hatasında 6. adıma dön.':
     'Choose the JSON file, then sign in with Google. Use the account you added as a test user. For a 403 error about test users, go back to step 6.',
@@ -505,7 +451,6 @@ export const english063: Record<string, string> = {
   '4 · Masaüstü oturumuna izin ver': '4 · Allow desktop sign-in',
   'Authentication → Supported accounts yanındaki Ayarlar / Settings: Allow public client flows’u Evet yapıp kaydet. Bulamazsan üstteki old experience bağlantısında Gelişmiş ayarlar’a bak.':
     'Authentication → Settings next to Supported accounts: set Allow public client flows to Yes and save. If you cannot find it, look under Advanced settings in the old experience link at the top.',
-  '5 · İzinleri ekle': '5 · Add permissions',
   'API permissions → İzin ekleyin → Microsoft Graph → Temsilci izinleri / Delegated permissions. Mail.Read ve Calendars.Read’i ekle. Mevcut User.Read kalsın.':
     'API permissions → Add a permission → Microsoft Graph → Delegated permissions. Add Mail.Read and Calendars.Read. Keep the existing User.Read.',
   '6 · Uygulama kimliğini kopyala': '6 · Copy the application ID',
@@ -516,7 +461,6 @@ export const english063: Record<string, string> = {
     'Paste the client ID you copied and sign in with Microsoft. Choose the mail account to connect and approve the permissions.',
 
   // Ayarlar → Haftalık özet
-  'Bu hafta · şu ana kadar': 'This week · so far',
   'Bu hafta': 'This week',
   'Pazartesi sabahı özet göster': 'Show the summary on Monday morning',
   'Charles açıkken ölçülür. Uyku ve kilit süresi dahil edilmez.':
@@ -524,41 +468,21 @@ export const english063: Record<string, string> = {
   'Nasıl hesaplanır?': 'How is it calculated?',
   'Özet Pazartesi 09.00’da veya sonraki açılışta gösterilir. Aktif süre için son 5 dakikada klavye veya fare hareketi gerekir. Charles kapalıyken geçen süre hesaplanmaz. Uygulama süreleri 15 saniyede bir kaydedilir.':
     'The summary appears Monday at 09:00 or at the next launch. Active time needs keyboard or mouse activity in the last 5 minutes. Time while Charles is closed is not counted. App times are recorded every 15 seconds.',
-  'Önde açık olan uygulamalar. Yalnızca adları ve süreleri bu bilgisayarda saklanır.':
-    'Apps in the foreground. Only their names and times are stored on this computer.',
   'Bu dönem için henüz uygulama verisi yok.': 'No app data for this period yet.',
   'Haftalık özet': 'Weekly summary',
 
   // Ayarlar → Kısayollar
   'Ctrl, Alt veya Windows tuşuyla birlikte bir tuşa bas.': 'Press a key together with Ctrl, Alt or Windows.',
-  'Kısayol yakalandı. Kısayolları kaydet düğmesiyle uygula.': 'Shortcut captured. Apply it with Save shortcuts.',
   '. İlgili satırdan farklı bir tuş birleşimi kaydet.': '. Record a different key combination in that row.',
 
   // onboarding (welcome tour)
-  'Merhaba! Ben Charles 👋': 'Hi! I’m Charles 👋',
-  'Masaüstünde yaşayan küçük bir Slime’ım. Sohbet ederim, maillerine bakarım, hatırlatma kurarım, bilgisayarında işlerini yaparım. Birkaç adımda beni hazırlayalım mı?':
-    'I’m a little Slime living on your desktop. I chat, check your mail, set reminders and get things done on your computer. Shall we set me up in a few steps?',
-  Başlayalım: 'Let’s start',
-  'Önce bir yapay zekâ bağlayalım': 'First, let’s connect an AI',
-  'Konuşabilmem için ChatGPT hesabınla giriş yap; tarayıcıda açılacak sayfadan onaylaman yeterli. Claude, Antigravity veya Cursor kullanıyorsan onları sonra Ayarlar → Hesap’tan ekleyebilirsin.':
-    'Sign in with your ChatGPT account so I can talk; just approve on the page that opens in your browser. If you use Claude, Antigravity or Cursor, you can add them later in Settings → Account.',
   'Şimdilik geç': 'Skip for now',
   'ChatGPT ile giriş yap': 'Sign in with ChatGPT',
   'Tarayıcıda girişi tamamla; ben buradayım.': 'Finish signing in in your browser; I’ll be here.',
-  'Rengimi sen seç': 'You pick my color',
-  'Yedi rengim var. İstersen bıyık da takabilirim. Daha fazla aksesuar Ayarlar → Görünüm → Slime stüdyosu’nda.':
-    'I come in seven colors. I can wear a moustache too. More accessories are in Settings → Appearance → Slime studio.',
   Devam: 'Continue',
-  'Bıyık tak 🥸': 'Add a moustache 🥸',
   'Bıyığı çıkar': 'Remove the moustache',
   '“Hey Charles” de, gelirim': 'Say “Hey Charles” and I’ll come',
-  'Bu açıkken “Hey Charles” dediğinde sesli görüşme başlar. Uyandırma sözü bilgisayarında aranır; açık olduğu sürece mikrofon dinlemede kalır. İstediğin zaman Ayarlar → Genel’den kapatabilirsin.':
-    'While this is on, saying “Hey Charles” starts a voice conversation. The wake phrase is detected on your computer; the microphone keeps listening while it is on. You can turn it off any time in Settings → General.',
   'Şimdilik kapalı kalsın': 'Keep it off for now',
-  'Hazırız! 🎉': 'We’re ready! 🎉',
-  'Beni adacıktan sürükleyip masaüstüne bırakabilirsin; fırlatırsan duvarlardan sekerim. Bir şey sormak için buraya yazman ya da “Hey Charles” demen yeterli. Hadi başlayalım!':
-    'You can drag me off the island onto the desktop; throw me and I bounce off the walls. To ask something, just type here or say “Hey Charles”. Let’s go!',
-  'Hadi başlayalım': 'Let’s go',
   'Tanışmayı atla': 'Skip the tour',
   'Charles ile tanışma': 'Meet Charles',
 };
@@ -586,11 +510,6 @@ export const englishPatterns: [RegExp, (...m: string[]) => string][] = [
   [/^ChatGPT · bağlı$/, () => 'ChatGPT · connected'],
   [/^(.+) · Otomatik \((.+)\)$/, (_, a, b) => `${a} · Auto (${b})`],
   [/^Otomatik · (.+)$/, (_, n) => `Auto · ${n}`],
-  [
-    /^Varsayılan model: (.+)\. Sonraki mesajında kullanılacak\.$/,
-    (_, n) =>
-      `Default model: ${n.replace(/Otomatik/g, 'Auto').replace('Önce hesap bağla', 'Connect an account first')}. It will be used for your next message.`, // v0.7.1: the model name was left in Turkish
-  ],
   [/^Konum kaydedildi: (.+)\.$/, (_, n) => `Location saved: ${n}.`],
   [/^(\d+) (Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|Eylül|Ekim|Kasım|Aralık)$/, (_, d, m) => `${MONTH_EN[m]} ${d}`],
   [

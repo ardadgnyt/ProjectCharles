@@ -83,7 +83,7 @@ function textAnswer(name, stdout, stderr, code, noise = null) {
   const said = stripAnsi(stderr).slice(-1500);
   // a refusal is told apart from an answer by the exit code first; an answer about "login" is an answer
   const refusal = code ? said + '\n' + text.slice(0, 400) : !text ? said : '';
-  if (refusal && NEEDS_LOGIN.test(refusal)) return { text: '', error: `${name} oturumu açık değil. Ayarlar → AI Modelleri → ${name} kartından giriş yap, sonra Bağlantıyı kontrol et’e bas.`, reason: 'login' };
+  if (refusal && NEEDS_LOGIN.test(refusal)) return { text: '', error: `${name} oturumu açık değil. Ayarlar’daki AI Modelleri sayfasında ${name} kartından giriş yap, sonra Bağlantıyı kontrol et’e bas.`, reason: 'login' };
   if (refusal && NO_MODEL.test(refusal)) return { text: '', error: `${name} hesabın bu modeli kullanamıyor. Otomatik’i ya da listeden başka bir model seç.`, reason: 'model' };
   if (refusal && NEEDS_PLAN.test(refusal)) return { text: '', error: `${name} bu hesabın kullanım hakkının dolduğunu ya da planının bu modeli kapsamadığını bildirdi. Başka bir model seç ya da daha sonra yeniden dene.`, reason: 'quota' };
   if (text && !code) return { text, error: '' };

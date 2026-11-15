@@ -7,6 +7,8 @@
 import type { BotEngine } from '../vendor/slime/engine';
 import { Sound } from '../vendor/core/sound';
 import { t } from '../settings/i18n';
+import { icon } from '../workspace/icons';
+import { PROVIDERS } from '../chat/model-picker';
 import {
   SLIME_COLORS,
   SLIME_COLOR_IDS,
@@ -41,11 +43,26 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
   // v0.9.24: on the card shelf the island is only as tall as its cards and cut the card off, with
   // its buttons. The island makes room for the whole card and does not fold while it is open.
   let room: ResizeObserver | undefined;
-  const CARD_TOP = 98 + 10 + 18; // .tour: the room above the card and under it
+  // v1.0.0: the card starts under Charles' measured bottom edge (a fixed 98 px covered his face in
+  // the chat view). The layer itself covers the whole island; Charles stands above it (CSS).
+  // `layerTop` is the card's room above, in the island's own CSS px, before the Small island's zoom.
+  let layerTop = 98;
+  function place() {
+    const pet = document.getElementById('pet');
+    if (!overlay || !pet || !pet.getClientRects().length || !overlay.getClientRects().length) return;
+    const zoom = (overlay as any).currentCSSZoom || 1;
+    const edge = pet.getBoundingClientRect().bottom;
+    const next = Math.max(0, Math.ceil((edge - overlay.getBoundingClientRect().top) / zoom) + 2);
+    if (next === layerTop && overlay.style.getPropertyValue('--tour-top')) return;
+    layerTop = next;
+    overlay.style.setProperty('--tour-top', next + 'px');
+  }
   function makeRoom() {
+    place();
     const card = overlay?.querySelector<HTMLElement>('.tour-card');
     if (!card || document.body.dataset.view !== 'shelf') return;
-    document.body.dataset.tourHeight = String(Math.ceil(card.offsetHeight + CARD_TOP));
+    // .tour: the measured room above the card, its padding above (10) and under it (18)
+    document.body.dataset.tourHeight = String(Math.ceil(card.offsetHeight + layerTop + 10 + 18));
     document.getElementById('shelf')?.dispatchEvent(new Event('h13-resize'));
   }
 
@@ -58,6 +75,7 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
     document.body.classList.remove('onboarding');
     room?.disconnect();
     room = undefined;
+    window.removeEventListener('resize', makeRoom);
     delete document.body.dataset.tourHeight;
     document.getElementById('shelf')?.dispatchEvent(new Event('h13-resize'));
     void Promise.resolve(api.shelfHold?.(false)).catch(() => {});
@@ -65,6 +83,8 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
       await api.personalEdit('onboarded', { value: true });
     } catch {}
     document.dispatchEvent(new Event('charles-onboarding-done'));
+    if (laterCard) openCard(laterCard);
+    laterCard = '';
   }
 
   function colorPicker() {
@@ -75,7 +95,7 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
       look = next;
       for (const b of swatches.querySelectorAll<HTMLButtonElement>('button'))
         b.setAttribute('aria-checked', String(b.dataset.color === look.color));
-      mustache.textContent = look.mustache ? 'Bıyığı çıkar' : 'Bıyık tak 🥸';
+      mustache.textContent = look.mustache ? 'Bıyığı çıkar' : 'Bıyık tak';
       void api.personalEdit('accessories', { slime: lookValue(look) }).catch(() => {});
       bot.triggerEmote('happy', 0.8);
       Sound.play('pop');
@@ -93,7 +113,7 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
       b.onclick = () => save({ ...look, color: id as SlimeColor });
       swatches.append(b);
     }
-    const mustache = el('button', 'tour-mini', 'Bıyık tak 🥸');
+    const mustache = el('button', 'tour-mini', 'Bıyık tak');
     mustache.type = 'button';
     mustache.onclick = () => save({ ...look, mustache: !look.mustache });
     void api
@@ -102,28 +122,57 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
         look = parseLook(p?.slime);
         for (const b of swatches.querySelectorAll<HTMLButtonElement>('button'))
           b.setAttribute('aria-checked', String(b.dataset.color === look.color));
-        mustache.textContent = look.mustache ? 'Bıyığı çıkar' : 'Bıyık tak 🥸';
+        mustache.textContent = look.mustache ? 'Bıyığı çıkar' : 'Bıyık tak';
       })
       .catch(() => {});
     box.append(swatches, mustache);
     return box;
   }
 
+  // v1.0.0: a provider whose set-up needs its card (a key, a command line tool): after the tour,
+  // Settings opens on that card with its "Charles ile kur" focused (no second sign-in here)
+  let laterCard = '';
+  function openCard(id: string) {
+    const panel = document.getElementById('settings-panel') as HTMLDialogElement | null;
+    if (!panel) return;
+    if (!panel.open) document.getElementById('settings-toggle')?.click();
+    const card = document.querySelector<HTMLElement>(`.provider-card[data-provider="${id}"]`);
+    const page = card?.closest<HTMLElement>('.settings-page')?.dataset.category;
+    if (page) document.querySelector<HTMLElement>(`#settings-categories [data-category="${page}"]`)?.click();
+    window.setTimeout(() => {
+      card?.scrollIntoView({ block: 'center' });
+      [...(card?.querySelectorAll<HTMLButtonElement>('.provider-actions button') || [])]
+        .find((b) => !b.hidden && b.textContent?.trim() === t('Charles ile kur'))
+        ?.focus();
+    }, 250);
+  }
+
   // v0.7.0: the AI step offers every provider, not only ChatGPT. The chosen one is signed
   // in (browser for ChatGPT, the provider's own sign-in window for the others) and becomes
   // the model Charles starts with.
+  // v1.0.0: every provider of the model menu (PROVIDERS), in its order. `sub` says only what is
+  // really needed, in the Settings card's words; `later` = set up on its card after the tour.
+  const TOUR_PROVIDERS: Record<string, { name: string; sub: string; color: string; model: string; later?: boolean }> = {
+    gpt: { name: 'ChatGPT', sub: '', color: '#e9e9ee', model: '' },
+    gemini: { name: 'Antigravity', sub: 'Google hesabınla', color: '#a8c7fa', model: 'gemini:auto' },
+    claude: { name: 'Claude', sub: 'Pro veya Max aboneliği gerekir', color: '#e8a27c', model: 'claude:claude-sonnet-5-5' },
+    cursor: { name: 'Cursor', sub: 'Yalnızca sohbet modunda çalışır', color: '#3fd8c8', model: 'cursor:auto' },
+    // a command line tool that does not come with Charles, installed by following its card
+    abacus: { name: 'Abacus AI', sub: 'Resmi komut satırı aracıyla', color: '#b9a6ff', model: '', later: true },
+    // a pasted API key, saved and checked on its card ("Kaydet ve bağlan")
+    evren: { name: 'EVREN', sub: 'EVREN API anahtarınla', color: '#E30A17', model: '', later: true },
+    // its own command line tool and a GitHub sign-in in the browser, set up from its card
+    copilot: { name: 'GitHub Copilot', sub: 'GitHub hesabınla', color: '#A3E635', model: '', later: true },
+  };
   function aiPicker() {
     const box = el('div', 'tour-ai');
     const status = el('p', 'tour-ai-status');
     status.setAttribute('role', 'status');
-    const options: [string, string, string, string, string][] = [
-      ['gpt', 'ChatGPT', 'ChatGPT hesabınla', '#e9e9ee', ''],
-      ['claude', 'Claude', 'Claude aboneliğinle', '#e8a27c', 'claude:claude-sonnet-5-5'],
-      ['gemini', 'Antigravity', 'Google hesabınla', '#a8c7fa', 'gemini:auto'],
-      ['cursor', 'Cursor', 'Cursor hesabınla', '#3fd8c8', 'cursor:auto'],
-    ];
     const grid = el('div', 'tour-ai-grid');
-    for (const [id, name, sub, color, model] of options) {
+    for (const [id] of PROVIDERS) {
+      const p = TOUR_PROVIDERS[id];
+      if (!p) continue;
+      const { name, sub, color, model } = p;
       const b = el('button', 'tour-ai-option');
       b.type = 'button';
       b.dataset.provider = id;
@@ -131,10 +180,18 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
       const dot = el('i');
       dot.style.background = color;
       const label = el('span', 'tour-ai-text');
-      label.append(el('strong', '', name), el('small', '', t(sub)));
+      label.append(el('strong', '', name));
+      if (sub) label.append(el('small', '', t(sub)));
       b.append(dot, label);
       b.onclick = async () => {
         for (const x of grid.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+        laterCard = p.later ? id : '';
+        if (p.later) {
+          status.textContent = t('Tanışma bitince Ayarlar’da ' + name + ' kartını açarım.');
+          bot.triggerEmote('happy', 1);
+          Sound.play('pop');
+          return;
+        }
         b.disabled = true;
         status.textContent = t('Giriş açılıyor…');
         try {
@@ -149,7 +206,7 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
             const r = await api.providersLogin(id);
             status.textContent = r?.signedIn
               ? t(name + ' zaten bağlı. Devam edebilirsin.')
-              : t('Açılan pencerede girişi tamamla, sonra Devam’a bas. Yardım istersen Ayarlar → AI Modelleri → Charles ile kur.');
+              : t('Açılan pencerede girişi tamamla, sonra Devam’a bas. Yardım istersen Ayarlar’daki AI Modelleri sayfasında Charles ile kur’a bas.');
           }
           await api.startupModel(model).catch(() => {});
           if (model) await api.defaultModel(model).catch(() => {});
@@ -169,28 +226,29 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
 
   const steps: Step[] = [
     {
-      title: 'Merhaba! Ben Charles 👋',
-      text: 'Masaüstünde yaşayan küçük bir Slime’ım. Sohbet ederim, maillerine bakarım, hatırlatma kurarım, bilgisayarında işlerini yaparım. Birkaç adımda beni hazırlayalım mı?',
+      // v1.0.0: plain words in Charles' own voice: no emoji, no exclamation marks
+      title: 'Ben Charles',
+      text: 'Masaüstünde yaşayan bir Slime’ım. Sohbet eder, e-postalarına bakar, hatırlatma kurar, bilgisayarında iş yaparım. Beni hazırlamak birkaç adım sürer.',
       emote: 'happy',
-      actions: [{ label: 'Başlayalım', primary: true }],
+      actions: [{ label: 'Devam', primary: true }],
     },
     {
-      title: 'Önce bir yapay zekâ bağlayalım',
-      text: 'Hangi yapay zekâyı kullanıyorsun? Birini seç, girişi birlikte yapalım. Diğerlerini sonra Ayarlar → AI Modelleri’nden ekleyebilirsin.',
+      title: 'Yapay zekâ hesabını bağla',
+      text: 'Kullandığın hesabı seç, girişte yanındayım. Diğerlerini sonra Ayarlar’daki AI Modelleri sayfasından ekleyebilirsin.',
       emote: 'wink',
       body: aiPicker,
       actions: [{ label: 'Şimdilik geç' }, { label: 'Devam', primary: true }],
     },
     {
-      title: 'Rengimi sen seç',
-      text: 'Yedi rengim var. İstersen bıyık da takabilirim. Daha fazla aksesuar Ayarlar → Görünüm → Slime stüdyosu’nda.',
+      title: 'Rengimi seç',
+      text: 'Yedi rengim var, istersen bıyık da takarım. Diğer aksesuarlar Ayarlar’daki Görünüm sayfasında.',
       emote: 'love',
       body: colorPicker,
       actions: [{ label: 'Devam', primary: true }],
     },
     {
       title: '“Hey Charles” de, gelirim',
-      text: 'Bu açıkken “Hey Charles” dediğinde sesli görüşme başlar. Uyandırma sözü bilgisayarında aranır; açık olduğu sürece mikrofon dinlemede kalır. İstediğin zaman Ayarlar → Genel’den kapatabilirsin.',
+      text: 'Bu açıkken “Hey Charles” dediğinde sesli görüşme başlar. Uyandırma sözü bilgisayarında aranır; açık olduğu sürece mikrofon dinlemede kalır. İstediğin zaman Ayarlar’daki Genel sayfasından kapatabilirsin.',
       emote: 'surprised',
       actions: [
         { label: 'Şimdilik kapalı kalsın' },
@@ -208,10 +266,10 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
       ],
     },
     {
-      title: 'Hazırız! 🎉',
-      text: 'Beni adacıktan sürükleyip masaüstüne bırakabilirsin; fırlatırsan duvarlardan sekerim. Bir şey sormak için buraya yazman ya da “Hey Charles” demen yeterli. Hadi başlayalım!',
+      title: 'Hazırız',
+      text: 'Beni adacıktan sürükleyip masaüstüne bırakabilirsin; fırlatırsan duvarlardan sekerim. Bir şey sormak için buraya yaz ya da “Hey Charles” de.',
       emote: 'proud',
-      actions: [{ label: 'Hadi başlayalım', primary: true }],
+      actions: [{ label: 'Bitir', primary: true }],
     },
   ];
 
@@ -243,11 +301,15 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
       };
       actions.append(b);
     }
-    const skip = el('button', 'tour-skip', 'Tanışmayı atla');
+    // v1.0.0: the whole tour ends with the × in the card's corner; a step has at most two buttons
+    const skip = el('button', 'tour-close');
     skip.type = 'button';
+    // no `title`: the app turns titles into names (src/ui/no-native-tooltips.ts)
+    skip.setAttribute('aria-label', 'Tanışmayı atla');
+    skip.append(icon('x'));
     skip.onclick = () => void finish();
     card.replaceChildren(dots, title, text, ...(step.body ? [step.body()] : []), actions);
-    if (i < steps.length - 1) card.append(skip);
+    if (i < steps.length - 1) card.prepend(skip);
     // Slime "speaks" the text, letter by letter.
     // (in English the whole sentence is translated first, then typed)
     const full = t(step.text);
@@ -277,13 +339,17 @@ export function onboardingUI(api: any, bot: BotEngine, notice: (text: string) =>
     void Promise.resolve(api.shelfHold?.(true)).catch(() => {});
     bot.greet();
     Sound.play('greet');
+    place();
     show(0);
     room = new ResizeObserver(makeRoom);
     room.observe(overlay.querySelector('.tour-card')!);
+    window.addEventListener('resize', makeRoom);
     new MutationObserver((_, watch) => {
-      if (!overlay) watch.disconnect();
-      else makeRoom();
-    }).observe(document.body, { attributes: true, attributeFilter: ['data-view'] });
+      if (!overlay) return watch.disconnect();
+      makeRoom();
+      // Charles settles into the new view's header a moment later
+      window.setTimeout(makeRoom, 350);
+    }).observe(document.body, { attributes: true, attributeFilter: ['data-view', 'class'] });
   }
 
   // Ayarlar → Genel: start the tour again.

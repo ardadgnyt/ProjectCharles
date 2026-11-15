@@ -1,5 +1,5 @@
 import MarkdownIt from 'markdown-it';
-import { mathPlugin } from './math';
+import { mathPlugin, mathReady } from './math';
 import { splitQuestions, type AiQuestion } from './ai-questions';
 import { highlightInto, LANGUAGE_NAMES } from './highlight';
 import { t } from '../settings/i18n';
@@ -68,6 +68,17 @@ export function updateMarkdown(element: HTMLElement, text: string, replace = fal
     // v0.9.16: built apart and then merged into the message (src/chat/morph.ts)
     const draft = document.createElement('div');
     draft.innerHTML = markdown.render(prepared.text);
+    // v1.0.0 (perf2): the first formula waits for KaTeX (a local file) instead of showing its source
+    if (draft.querySelector('.math-wait')) {
+      pending.add(element);
+      void mathReady().then(() => {
+        pending.delete(element);
+        const grow = growing.has(element);
+        updateMarkdown(element, sources.get(element) || '', true);
+        if (grow) growing.add(element);
+      });
+      return;
+    }
     placeCitations(draft, prepared.citations);
     const actions = document.createElement('div');
     actions.className = 'answer-tools';
@@ -77,8 +88,11 @@ export function updateMarkdown(element: HTMLElement, text: string, replace = fal
     ]) {
       const b = document.createElement('button');
       b.type = 'button';
-      b.title = label;
-      b.setAttribute('aria-label', label);
+      // v1.0.0: the tooltip is data-tip (ui/tooltip.ts), never a `title`: the draft is merged into
+      // the message on every streamed frame (morph.ts), which put a removed title back each time
+      // until no-native-tooltips.ts gave up and left the native one in place
+      b.dataset.tip = t(label);
+      b.setAttribute('aria-label', t(label));
       b.innerHTML = type === 'copy' ? copyIcon : speakIcon;
       b.dataset.answerAction = type;
       actions.append(b);
@@ -103,14 +117,14 @@ export function updateMarkdown(element: HTMLElement, text: string, replace = fal
       const panel = document.createElement('button');
       panel.type = 'button';
       panel.className = 'code-panel';
-      panel.title = t('Yan panelde aç');
+      panel.dataset.tip = t('Yan panelde aç');
       panel.setAttribute('aria-label', t('Yan panelde aç'));
       panel.innerHTML = panelIcon;
       panel.dataset.answerAction = 'code-panel';
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'code-copy';
-      b.title = t('Kopyala');
+      b.dataset.tip = t('Kopyala');
       b.setAttribute('aria-label', t('Kopyala'));
       b.innerHTML = copyIcon;
       b.dataset.answerAction = 'code';
@@ -134,6 +148,30 @@ export function updateMarkdown(element: HTMLElement, text: string, replace = fal
     stickToBottom(element.parentElement);
   });
 }
+
+// v1.0.0 (perf2): a code box's header is written with t() inside a message, which the page's
+// translator leaves alone: it is written again in the new language
+if (typeof document !== 'undefined') document.addEventListener('charles-language', () => {
+  for (const box of document.querySelectorAll<HTMLElement>('.code-block')) {
+    const lang = box.dataset.language || '';
+    const label = box.querySelector('.code-lang');
+    const text = [...(label?.childNodes || [])].find((n) => n.nodeType === Node.TEXT_NODE);
+    if (text) text.textContent = t(LANGUAGE_NAMES[lang] || (lang ? lang.toUpperCase() : 'Metin'));
+    for (const [selector, word] of [['.code-panel', 'Yan panelde aç'], ['.code-copy', 'Kopyala']]) {
+      const b = box.querySelector(selector);
+      if (!b) continue;
+      b.setAttribute('aria-label', t(word));
+      b.setAttribute('data-tip', t(word));
+    }
+  }
+  // the answer's own Kopyala / Seslendir row
+  for (const b of document.querySelectorAll<HTMLElement>('.answer-tools button[data-answer-action]')) {
+    const word = b.dataset.answerAction === 'copy' ? 'Kopyala' : b.dataset.answerAction === 'speak' ? 'Seslendir' : '';
+    if (!word) continue;
+    b.setAttribute('aria-label', t(word));
+    b.setAttribute('data-tip', t(word));
+  }
+});
 
 export function messageSource(element: HTMLElement) {
   const source = sources.get(element);

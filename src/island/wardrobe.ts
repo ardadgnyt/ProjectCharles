@@ -138,8 +138,10 @@ export function wardrobeUI(api: any, bot: BotEngine) {
         } catch {
           pic.textContent = icon;
         }
-      } else pic.textContent = icon;
-      b.append(pic, document.createTextNode(label));
+        // v1.0.0: "none" gets an empty ring drawn by CSS instead of a ○ glyph
+      } else pic.classList.add('none');
+      // v1.0.0: a square tile: the picture on top, the name below
+      b.append(pic, el('span', 'studio-option-name', label));
       b.onclick = () => pickItem(slot, value);
       list.append(b);
       itemButtons.set(slot + ':' + value, b);
@@ -241,7 +243,8 @@ export function wardrobeUI(api: any, bot: BotEngine) {
       JSON.stringify(picked.acc) === JSON.stringify(saved.acc) &&
       lookValue(picked.look) === lookValue(saved.look);
     save.disabled = same;
-    status.textContent = same ? 'Charles böyle görünüyor' : 'Kaydedilmedi';
+    // v1.0.0: nothing to say while the preview is what Charles wears (Kaydet is then disabled)
+    status.textContent = same ? '' : 'Kaydedilmedi';
   }
   function tryOn() {
     preview.setAccessories(picked.acc);

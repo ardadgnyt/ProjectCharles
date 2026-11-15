@@ -117,8 +117,8 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
           text: 'Giriş tamamlanınca siyah pencerede /exit yazıp Enter’a bas ve pencereyi kapat.',
         },
         {
-          title: '4 · Bağlantıyı test et',
-          text: 'Bağlantıyı test et’e bas. Charles, Abacus AI’a kısa bir deneme mesajı gönderir; yanıt gelirse Abacus AI · Otomatik model listesine eklenir.',
+          title: '4 · Bağlantıyı kontrol et',
+          text: 'Bağlantıyı kontrol et’e bas. Charles, Abacus AI’a kısa bir deneme mesajı gönderir; yanıt gelirse Abacus AI · Otomatik model listesine eklenir.',
           finish: true,
         },
       ],
@@ -356,7 +356,7 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
     if (current.finish && loginOf) {
       const check = document.createElement('button');
       check.className = 'primary';
-      check.textContent = loginOf === 'abacus' ? 'Bağlantıyı test et' : 'Bağlantıyı kontrol et';
+      check.textContent = 'Bağlantıyı kontrol et';
       check.onclick = async () => {
         check.disabled = true;
         p.textContent = 'Kontrol ediliyor…';
@@ -414,7 +414,7 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
           p.textContent = r?.ok
             ? 'Bağlandı. EVREN modelleri model listesinde. Kurulumu bitir düğmesine basabilirsin.'
             : r?.terms
-              ? 'Anahtar geçerli, ama EVREN bu hesap için kendi kullanım şartlarının kabulünü istiyor. Metni Ayarlar → AI Modelleri → EVREN kartında okuyup oradan kabul edebilirsin.'
+              ? 'Anahtar geçerli, ama EVREN bu hesap için kendi kullanım şartlarının kabulünü istiyor. Metni EVREN kartındaki EVREN şartlarını göster düğmesiyle okuyup kabul edebilirsin.'
               : String(r?.message || 'EVREN bağlantısı kurulamadı.');
           await saved(null);
         } catch (e) {

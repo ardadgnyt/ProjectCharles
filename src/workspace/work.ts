@@ -326,6 +326,8 @@ export function workUI(d: WorkDeps) {
     const open = cards.filter((c) => c.status !== 'done').length;
     qCount.textContent = cards.length ? String(open) : '';
     qCount.hidden = !cards.length;
+    // v1.0.0 (T12): no row above the chat for an empty, closed queue (the chat head's button opens it)
+    queue.hidden = !cards.length && !qOpen;
     queue.classList.toggle('open', qOpen);
     qBody.hidden = !qOpen;
     autoB.classList.toggle('on', auto);
@@ -539,6 +541,8 @@ export function workUI(d: WorkDeps) {
     queue,
     /** The chat came into view: a waiting queue may start. */
     shown: () => pump(),
+    /** v1.0.0: opens or closes the queue (also while it is empty and its row is hidden). */
+    toggle: () => qToggle.click(),
     /** Adds a request to the queue (from elsewhere in the window). */
     add(text: string) {
       cards.push({ id: 'q' + Date.now().toString(36), text, status: 'waiting' });

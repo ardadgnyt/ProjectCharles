@@ -69,4 +69,26 @@ function backgroundModel(primary) {
   return null; // Codex default model
 }
 
-module.exports = { askOnce, backgroundModel };
+// v1.0.0: the model a module's question runs on when the module names none. The user's chosen
+// default model is used only while its AI is signed in and still lists it; otherwise the light
+// model of the main AI when that is signed in, otherwise Codex's default (null), as the chat
+// falls back when its default model is not in the list.
+async function moduleModel(providers, chosen) {
+  if (!chosen) return null;
+  const prefix = /^([a-z][a-z0-9_-]*):/.exec(chosen);
+  if (!prefix) return chosen; // a GPT model runs on Codex
+  try {
+    await providers?.refreshAuth?.();
+  } catch {}
+  const auth = providers?.auth || {};
+  let rows = [];
+  try {
+    rows = providers?.models?.() || [];
+  } catch {}
+  const listed = rows.some((r) => r.id === chosen || (r.efforts || []).some((e) => e.id === chosen));
+  if (auth[prefix[1]] && listed) return chosen;
+  const light = backgroundModel(providers?.enabled?.primary);
+  return light && auth[light.split(':')[0]] ? light : null;
+}
+
+module.exports = { askOnce, backgroundModel, moduleModel };

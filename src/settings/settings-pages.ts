@@ -1,5 +1,7 @@
 import { supports } from '../chat/capabilities';
 import { t } from './i18n';
+import { lowMemorySection } from './low-memory';
+import { CREAM } from '../ui/tokens';
 
 export function settingsPages(api: any) {
   const $ = (id: string) => document.getElementById(id)!;
@@ -79,15 +81,10 @@ export function settingsPages(api: any) {
     const heading = node.matches('h3') ? node.textContent?.trim() : '';
     if (heading === 'Hesap') category = 'account';
     else if (heading === 'Başlangıç') category = 'general';
-    else if (heading === 'Bağlantılar') category = 'connections';
     let target = category;
     if (node.id === 'memory-section' || node.id === 'profile-transfer-card') target = 'memory';
     else if (node.querySelector('#access-mode')) target = 'access';
-    else if (
-      node.querySelector('#look-save') ||
-      node.querySelector('#reaction-choice') ||
-      node.querySelector('#screen-cards')
-    )
+    else if (node.querySelector('#look-save') || node.querySelector('#screen-cards'))
       target = 'look';
     else if (node.querySelector('#weather-config')) target = 'general';
     pages.get(target)!.append(node);
@@ -98,6 +95,9 @@ export function settingsPages(api: any) {
   for (const id of ['pref-sound', 'pref-hide', 'pref-close', 'save-prefs'])
     behavior.append($(id).closest('.row')!);
   pages.get('general')!.append(behavior);
+  // v1.0.0: the rows above were all that was left of this section (the developer services draft
+  // that shared it is gone)
+  $('extra-settings').remove();
   for (const id of ['observe-apps', 'auto-ai']) {
     const label = $(id).closest('label');
     if (label) (label as HTMLElement).hidden = true;
@@ -110,8 +110,8 @@ export function settingsPages(api: any) {
   colors.className = 'setting-section';
   colors.innerHTML = '<h3>Renkler</h3>';
   for (const [key, label, value] of [
-    ['badge', 'GPT etiketi', '#edc9a9'],
-    ['send', 'Gönder düğmesi', '#edc9a9'],
+    ['badge', 'GPT etiketi', CREAM],
+    ['send', 'Gönder düğmesi', CREAM],
     ['user', 'Senin mesajların', '#241f1b'],
     ['agent', 'Charles’ın mesajları', '#121214'],
   ]) {
@@ -144,9 +144,14 @@ export function settingsPages(api: any) {
     for (const key of ['badge', 'send', 'user', 'agent']) {
       const v =
         p.colors?.[key] ||
-        ({ badge: '#edc9a9', send: '#edc9a9', user: '#241f1b', agent: '#121214' } as any)[key];
+        ({ badge: CREAM, send: CREAM, user: '#241f1b', agent: '#121214' } as any)[key];
       ($('color-' + key) as HTMLInputElement).value = v;
-      document.documentElement.style.setProperty('--color-' + key, v);
+      // v1.0.0: the default accent comes from the stylesheet token (--cream); only a colour of the
+      // person's own is set on the page
+      const own = p.colors?.[key];
+      if ((key === 'badge' || key === 'send') && (!own || String(own).toLowerCase() === CREAM))
+        document.documentElement.style.removeProperty('--color-' + key);
+      else document.documentElement.style.setProperty('--color-' + key, v);
     }
   };
   save.onclick = async () => {
@@ -311,16 +316,13 @@ export function settingsPages(api: any) {
     size();
   }).observe(text);
   // Preserve screen capture and speech playback under General without cluttering +.
-  const speech = document.createElement('section');
-  speech.className = 'setting-section';
-  speech.innerHTML = '<h3>Ses</h3>';
+  // v1.0.0: "Yanıtları sesli oku" sits with the other sound switches instead of a card of its own.
   const read = document.querySelector('.read-toggle')!;
   read.append(document.createTextNode('Yanıtları sesli oku'));
   const capture = $('capture-button');
-  speech.append(read);
+  behavior.append(read);
   capture.hidden = true;
   document.body.append(capture);
-  pages.get('general')!.append(speech);
   const perf = pages.get('performance')!;
   perf.innerHTML =
     '<h3>Kaynak kullanım geçmişi</h3><label><input id="perf-enabled" type="checkbox"> Uygulama kullanımını kaydet</label><p class="hint">Charles açıkken yaklaşık dakikada bir CPU, RAM ve erişilebilen GPU verileri bu bilgisayara kaydedilir. Geçmiş 8 gün tutulur. Kaydın öncesi görülemez.</p><p id="perf-info" class="hint"></p><button id="perf-clear">Kullanım geçmişini temizle</button>';
@@ -355,4 +357,6 @@ export function settingsPages(api: any) {
     b.dataset.confirm = '';
     b.textContent = 'Kullanım geçmişini temizle';
   };
+  // v1.0.0 (perf2 P10): hardware acceleration off from the next start
+  lowMemorySection(perf, api);
 }

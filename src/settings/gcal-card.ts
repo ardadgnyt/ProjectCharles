@@ -1,6 +1,7 @@
 // v0.7.1 SpecialBeta: Ayarlar → Eklentiler → Google Takvim. Gives Charles permission to add
 // events to the Google Calendar (the Google plugin above only reads it). It uses the same
 // Google app registration, so it only asks for the calendar permission.
+import { showConnected, stateLine } from './connected-state';
 export function gcalCard(api: any, notice: (s: string) => void) {
   const google = document.querySelector('.plugin-card[data-plugin=google]');
   if (!google) return;
@@ -12,10 +13,8 @@ export function gcalCard(api: any, notice: (s: string) => void) {
   const hint = document.createElement('p');
   hint.className = 'hint';
   hint.textContent =
-    'Çalışma alanındaki takvim Google Takvim’inle eşitlenir: etkinliklerin ay görünümünde görünür, yeni etkinlik eklediğinde Google Takvim’e kaydedilir. Yukarıdaki Google eklentisinin uygulama kaydını kullanır.';
-  const status = document.createElement('p');
-  status.className = 'hint';
-  status.setAttribute('role', 'status');
+    'Uygulama penceresindeki takvim Google Takvim’inle eşitlenir: etkinliklerin ay görünümünde görünür, eklediğin etkinlik Google Takvim’e kaydedilir.';
+  const status = stateLine();
   const row = document.createElement('div');
   row.className = 'provider-actions';
   const connect = document.createElement('button');
@@ -26,21 +25,21 @@ export function gcalCard(api: any, notice: (s: string) => void) {
   remove.type = 'button';
   remove.textContent = 'Bağlantıyı kaldır';
   row.append(connect, remove);
-  card.append(h, hint, row, status);
+  card.append(h, hint, row, status.el);
   google.after(card);
 
   function paint(v: any) {
     const on = !!v?.connected?.gcal;
     const ready = !!v?.configs?.google?.clientId;
     connect.disabled = on;
-    connect.classList.toggle('connected', on);
-    connect.textContent = on ? '✓ Google Takvim bağlı' : 'Google Takvim’e bağlan';
+    showConnected(connect, on, 'Google Takvim’e bağlan');
+    status.connected = on;
     remove.hidden = !on;
     status.textContent = on
-      ? 'Bağlı. Etkinlikleri Çalışma alanı → Takvim’den ekleyebilirsin.'
+      ? 'Etkinlikleri uygulama penceresindeki takvimden ekleyebilirsin.'
       : ready
         ? 'Bağlanınca Google, Charles’ın takvimine etkinlik ekleyip düzenleyebilmesi için izin ister.'
-        : 'Önce yukarıdaki Google eklentisini “Charles ile kur” ile kur.';
+        : 'Önce Google hesabını bağla; Google Takvim aynı uygulama kaydını kullanır.';
   }
   const refresh = () =>
     void api
@@ -54,6 +53,7 @@ export function gcalCard(api: any, notice: (s: string) => void) {
       paint(await api.pluginsLogin('gcal'));
       document.dispatchEvent(new CustomEvent('charles-calendar-changed'));
     } catch (e) {
+      status.connected = false;
       status.textContent = (e as Error).message;
       connect.disabled = false;
     }

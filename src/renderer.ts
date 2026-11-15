@@ -4,6 +4,7 @@ import { wakeTraining } from './voice/wake-training';
 import { pluginsUI } from './settings/plugins';
 import { shortcutsUI } from './settings/shortcuts';
 import { animationLoop } from './island/animation-loop';
+import { slimeFrameRate } from './island/frame-rate';
 import { desktopPet, petMirror, petIsOut, PET_RECT } from './island/desktop-pet';
 import { wardrobeUI } from './island/wardrobe';
 import { geminiLiveUI } from './voice/gemini-live';
@@ -12,17 +13,19 @@ import { wakeUI } from './voice/wake';
 import { usageUI, LOW_QUOTA, lowQuotaText, type LowQuota, type LowWindow } from './island/usage';
 import { percent } from './settings/time-units';
 import { proposalsUI } from './chat/proposals';
+import { stoppedText } from './chat/stop-text';
 import { paintSoundButton } from './ui/sound-button';
 import { micPrivacyUI } from './ui/mic-button';
 import { Jelly } from './island/jelly';
 import { onboardingUI } from './island/onboarding';
 import { showGenerating, showImage, showFailed, lightbox, closeLightbox, setPreviewActions, setImageText } from './chat/image-card';
 import { sentFile } from './chat/attachment-card';
-import { expressionsUI } from './settings/expressions';
+import { modelNote } from './chat/model-note';
 import { panelMotion } from './island/panel-motion';
 import { settingsPages } from './settings/settings-pages';
 import { workspaceUI } from './settings/workspace';
 import { noNativeTooltips } from './ui/no-native-tooltips';
+import { tooltips } from './ui/tooltip';
 import { profileTransferUI } from './settings/profile-transfer';
 import { statusScroll } from './chat/status-scroll';
 import { stepLists } from './chat/steps';
@@ -55,6 +58,7 @@ import { contextMenu, quoteFor } from './ui/context-menu';
 import { contentContext } from './chat/content-context';
 import { messageEditor } from './chat/message-editor';
 import { releaseNotes } from './chat/release-notes';
+import { showConnected } from './settings/connected-state';
 
 declare global {
   interface Window {
@@ -63,7 +67,10 @@ declare global {
 }
 const api = window.charles;
 api.onPowerPaused((v: boolean) => document.body.classList.toggle('power-paused', !!v));
+// v1.0.0 (perffix): a full-screen program in front covers Charles; his frames wait until it is left
+api.onFullscreenOther?.((v: boolean) => document.body.classList.toggle('fullscreen-other', !!v));
 noNativeTooltips();
+tooltips();
 profileTransferUI(api);
 statusScroll();
 settingsPages(api);
@@ -171,22 +178,38 @@ function animate(now: number) {
   ctx.restore();
   petMirror(canvas);
 }
-animationLoop(
+// v1.0.0 (perffix P3): in the app window the canvas sits in the sidebar; with the sidebar hidden (or
+// any ancestor display:none) it was still drawn about 13 times a second. Its size, reported by a
+// ResizeObserver (0 x 0 while not rendered), says whether it can be seen: no layout read per frame,
+// and the loop starts again the moment it is shown, whatever class or element did it.
+let canvasShown = true;
+const slimeLoop = animationLoop(
   animate,
   () =>
-    petIsOut() || (document.visibilityState === 'visible' && !document.body.classList.contains('hidden-island')),
-  () => {
-    if (document.body.classList.contains('pet-dragging') || hovering || jelly.active || (bot.outfit !== 'none' && bot.busy)) return 60;
-    // v0.9.24: while the AI works he is busy, not moving fast: a long answer spent half of its
-    // CPU on these frames
-    if (busy) return 30;
-    // v0.9.19: nearly all of an open panel's cost is these frames: when nobody is at the panel
-    // and Charles is only breathing, he breathes at the pace the compact island always had
-    // v0.9.24: with the pointer resting he only breathes and blinks, which 12 frames show as well
-    if (performance.now() - cursorMoved > 4000) return 12;
-    return document.body.classList.contains('compact') || !document.hasFocus() ? 20 : 30;
-  },
-).start();
+    !document.body.classList.contains('fullscreen-other') &&
+    (petIsOut() ||
+      (canvasShown && document.visibilityState === 'visible' && !document.body.classList.contains('hidden-island'))),
+  () =>
+    slimeFrameRate({
+      dragging: document.body.classList.contains('pet-dragging'),
+      hovering,
+      jelly: jelly.active,
+      costumeMoving: bot.outfit !== 'none' && bot.motionBesidesLook,
+      aiBusy: busy,
+      asleep: sleeping && bot.state === 'sleeping',
+      sinceInput: performance.now() - cursorMoved,
+      compact: document.body.classList.contains('compact'),
+      focused: document.hasFocus(),
+    }),
+);
+slimeLoop.start();
+new ResizeObserver((entries) => {
+  const box = entries[entries.length - 1].contentRect;
+  const shown = box.width > 0 && box.height > 0;
+  if (shown === canvasShown) return;
+  canvasShown = shown;
+  slimeLoop.start();
+}).observe(canvas);
 bot.greet();
 let hoverTimer: number | undefined;
 let hovering = false,
@@ -202,6 +225,7 @@ let reactionTimer: number | undefined;
 let quotaBlocked = false;
 // v0.9.16: the model that is answering: a limit error belongs to its AI, not to the one selected now
 let turnModel = '';
+let turnMode = ''; // v1.0.0: the stopped-turn text depends on whether the turn could change files
 let quota: ReturnType<typeof usageUI> = { limitError: () => false, answered: () => {} };
 let desiredState: BotStateName = 'idle';
 let desiredLabel = 'Senin küçük kod arkadaşın.';
@@ -410,6 +434,8 @@ function touchCharacter() {
   if (sleeping) {
     sleeping = false;
     bot.setState(desiredState);
+    // v1.0.0 (perffix P7): the first awake frame now, not at the next of the 8 sleeping frames
+    slimeLoop.now();
   }
   if (!dizzy) $('status').textContent = desiredLabel;
 }
@@ -499,9 +525,9 @@ function controls() {
   // v0.7.0: one clear state per account card: "✓ ChatGPT bağlı" once signed in; the Codex
   // connect button only shows while the local connection is missing.
   $<HTMLButtonElement>('login').disabled = !ready || busy || signedIn;
-  $('login').textContent = signedIn ? '✓ ChatGPT bağlı' : 'ChatGPT ile giriş';
-  $('login').classList.toggle('connected', !!signedIn);
-  $('login').classList.remove('primary');
+  // v1.0.0: the shared connected state (settings/connected-state.ts), no glyph in the text
+  // (design pass T24: hidden while connected, the card's primary while not; "Bağlı" is on its line)
+  showConnected($('login'), !!signedIn, 'ChatGPT ile giriş');
   $<HTMLButtonElement>('connect').disabled = ready || busy;
   $('connect').hidden = ready;
   $<HTMLButtonElement>('folder').disabled = busy;
@@ -708,12 +734,16 @@ feed.addEventListener('click', (e) => {
     else
       void attempt(async () => {
         await api.copy(text);
-        const old = action.title;
+        // v1.0.0 (bughunt): the tooltip says it (data-tip, ui/tooltip.ts), then goes back. A `title`
+        // here became the tip and, when the empty old title came back, no-native-tooltips.ts took
+        // the button's own "Kopyala" tip away with it
+        const old = action.dataset.tip;
         action.classList.add('copied');
-        action.title = 'Kopyalandı';
+        action.dataset.tip = t('Kopyalandı');
         window.setTimeout(() => {
           action.classList.remove('copied');
-          action.title = old;
+          if (old === undefined) delete action.dataset.tip;
+          else action.dataset.tip = old;
         }, 1500);
       });
     return;
@@ -1080,7 +1110,7 @@ function event(e: any) {
         activityState.think();
         steps.next();
         busy = true;
-        state('thinking', readingDocument ? 'Belgeyi okuyorum 📖' : 'Düşünüyorum…');
+        state('thinking', readingDocument ? 'Belgeyi okuyorum…' : 'Düşünüyorum…');
         controls();
         if (!replaying) void steer.started();
       }
@@ -1153,11 +1183,13 @@ function event(e: any) {
           }
         } else if (status === 'interrupted') {
           state('idle', 'İş durduruldu');
-          row('İş durduruldu. Daha önce yapılan dosya değişiklikleri korunur.');
+          // v1.0.0: a turn that could change no files (EVREN, a CLI in chat mode) says only that the
+          // answer stopped; an old chat drawn again keeps the full sentence (its model is not known)
+          row(replaying ? stoppedText('', 'project') : stoppedText(turnModel || model.value, turnMode || mode.value));
         } else if (replaying) state('idle', 'Hazırım.');
         else {
           quota.answered(turnModel || model.value);
-          state('finished', 'Tamamlandı!');
+          state('finished', 'Tamamlandı');
           {
             // React to the tone of the answer when it has one, otherwise a happy finish.
             const answer = [...feed.querySelectorAll('.message.agent')].at(-1)?.textContent || '';
@@ -1385,7 +1417,7 @@ document.addEventListener('charles-startup-model', (e: any) => {
   startupModel = e.detail;
 });
 // v0.9.27: the models of the GitHub Copilot plan changed (read again every hour): rebuild the list.
-// Rebuilding ends in the model's "change" event, whose line is "Varsayılan model: …"; for this one
+// Rebuilding ends in the model's "change" event, whose line is "Sonraki mesaj: …"; for this one
 // rebuild that line is replaced: by what happened to the plan, or by nothing when it is only the
 // first list of an account (null: the usual line, '': say nothing).
 let modelNotice: string | null = null;
@@ -1415,6 +1447,9 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Tab' || e.key.startsWith('Arrow')) document.body.classList.add('keyboard-nav');
 }, true);
 window.addEventListener('pointerdown', () => document.body.classList.remove('keyboard-nav'), true);
+// v1.0.0 (CH-532): the first Tab stop leads straight to the message box (shown only on keyboard
+// focus, and only where the message box is on screen: 52-v100-dchat.css)
+$('skip-to-prompt').onclick = () => prompt.focus();
 window.addEventListener('blur', () => document.body.classList.remove('keyboard-nav'));
 personalUI(api, notice, attempt, () => {
   touchCharacter();
@@ -1436,8 +1471,6 @@ setPreviewActions({
   save: (dataUrl, name) => api.imageSave(dataUrl, name),
 });
 document.addEventListener('charles-attachments', () => controls());
-// v0.5.1: expressions are tried on a preview Slime inside the settings.
-expressionsUI(api);
 function applyExpanded(value: boolean) {
   expanded = value;
   document.body.classList.toggle('compact', !value);
@@ -1531,7 +1564,7 @@ function clearConversation() {
   row(
     mode.value === 'chat'
       ? 'Yeni sohbet. Ne konuşalım?'
-      : 'Yeni konuşma. Seçili proje üzerinden başlayabiliriz.',
+      : 'Yeni sohbet. Seçili proje üzerinden başlayabiliriz.',
   );
 }
 mode.onchange = () =>
@@ -1543,15 +1576,18 @@ $('new-chat').onclick = () =>
   attempt(async () => {
     await switchRoom(await api.newChat());
     activityState.reset();
-    state('idle', 'Yeni konuşma hazır.');
+    state('idle', 'Yeni sohbet hazır.');
   });
+// v1.0.0: the chosen model is one muted line above the model picker (chat/model-note.ts)
+const modelLine = modelNote();
 model.onchange = () =>
   attempt(async () => {
     defaultModel = await api.defaultModel(model.value);
     const said = modelNotice;
     modelNotice = null;
     if (said === '') return;
-    notice(said ?? `Varsayılan model: ${model.selectedOptions[0].textContent}. Sonraki mesajında kullanılacak.`);
+    if (said) notice(said);
+    else modelLine.show(model.selectedOptions[0].textContent || '');
   });
 $('stop').onclick = () => attempt(() => api.interrupt());
 document.querySelectorAll<HTMLButtonElement>('[data-prompt]').forEach(
@@ -1629,7 +1665,7 @@ async function sendMessage(out?: Outgoing): Promise<boolean> {
         row(text, 'user');
         prompt.value = '';
         updateMarkdown(row('', 'agent'), reply, true);
-        state('finished', 'Tamamlandı!');
+        state('finished', 'Tamamlandı');
         return true;
       }
     }
@@ -1642,11 +1678,13 @@ async function sendMessage(out?: Outgoing): Promise<boolean> {
     dispatching = true;
     sendingFiles = sentIds;
     turnModel = model.value;
+    turnMode = mode.value;
     controls();
     notice('');
+    modelLine.clear();
     row(text, 'user', own || features.previews());
     if (!out) prompt.value = '';
-    state('thinking', readingDocument ? 'Belgeyi okuyorum 📖' : 'Düşünüyorum…');
+    state('thinking', readingDocument ? 'Belgeyi okuyorum…' : 'Düşünüyorum…');
     reactToText(text);
     try {
       const result = await api.send({
@@ -1662,6 +1700,9 @@ async function sendMessage(out?: Outgoing): Promise<boolean> {
       });
       if (!own) features.removeMany(sentIds);
       tooLong(result?.cut);
+      // v1.0.0: web search / research is off for a turn that carries outside content (main.cjs)
+      if (result?.webOff && !result?.cut?.length)
+        notice(t('Dışarıdan gelen içerik eklendiği için web araması bu mesajda kapalı.'));
       // v0.9.19: handed to the chat: the card of the content that went with it has done its job
       dropped.sent(sentIds);
       if (!out) {
@@ -1678,7 +1719,7 @@ async function sendMessage(out?: Outgoing): Promise<boolean> {
         voice.local(result.message);
         busy = false;
         controls();
-        state('finished', 'Tamamlandı!');
+        state('finished', 'Tamamlandı');
         window.setTimeout(sendQueued, 300);
       }
       return true;
@@ -1822,6 +1863,12 @@ function markSteer(el: HTMLElement, on = true) {
   el.prepend(tag);
   return el;
 }
+// v1.0.0 (perf2): texts written with t() (the steer badges sit in messages, which the page's
+// translator leaves alone; the box's steering placeholder) follow a language change
+document.addEventListener('charles-language', () => {
+  for (const tag of document.querySelectorAll('.steer-badge')) tag.textContent = t('Ek talimat');
+  controls();
+});
 const steer = steerUI({
   api,
   composer: $('composer'),
@@ -2013,7 +2060,7 @@ api.onSweat((w: any) => {
     bot.sweat = Math.max(0, bot.sweat - 0.04);
     if (bot.sweat <= 0) clearInterval(sweatTimer);
   }, 100);
-  if (!dizzy) $('status').textContent = '💦 ' + String(w?.text || 'Bilgisayar zorlanıyor');
+  if (!dizzy) $('status').textContent = String(w?.text || 'Bilgisayar zorlanıyor');
   notice(String(w?.text || ''));
 });
 

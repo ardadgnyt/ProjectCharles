@@ -5,8 +5,8 @@
   --line: rgba(255, 255, 255, 0.08);
   --text: #ececf1;
   --muted: #9a9aa6;
-  --accent: #f0c6a1;
-  --accent-soft: rgba(240, 198, 161, 0.12);
+  --accent: var(--cream);
+  --accent-soft: var(--cream-12);
   font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
 }
 html,
@@ -40,7 +40,7 @@ body {
   align-items: center;
   padding: 10px 10px 10px 12px;
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: var(--r-xl);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -50,7 +50,7 @@ body {
     transform 0.15s;
 }
 .bubble:hover {
-  border-color: rgba(240, 198, 161, 0.35);
+  border-color: var(--cream-35);
   transform: translateY(1px);
 }
 .bubble:focus-visible {
@@ -62,10 +62,10 @@ body {
   place-items: center;
   width: 34px;
   height: 34px;
-  border-radius: 11px;
+  border-radius: var(--r-md);
   background: var(--accent-soft);
   color: var(--accent);
-  font-size: 17px;
+  font-size: var(--fs-i6);
 }
 .text {
   min-width: 0;
@@ -74,7 +74,7 @@ body {
   gap: 1px;
 }
 .meta {
-  font-size: 10px;
+  font-size: var(--fs-i1);
   letter-spacing: 0.3px;
   color: var(--muted);
   white-space: nowrap;
@@ -82,15 +82,15 @@ body {
   text-overflow: ellipsis;
 }
 .subject {
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
   line-height: 17px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .reason {
-  font-size: 11px;
+  font-size: var(--fs-i2);
   line-height: 15px;
   color: var(--accent);
   white-space: nowrap;
@@ -107,10 +107,10 @@ body {
   height: 22px;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: transparent;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--fs-i5);
   line-height: 22px;
   cursor: pointer;
 }
@@ -121,11 +121,11 @@ body {
 .more {
   align-self: center;
   padding: 2px 10px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--surface);
   border: 1px solid var(--line);
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--fs-i1);
 }
 @keyframes drop {
   from {
@@ -142,7 +142,7 @@ body {
 .bubble.charles .icon {
   background: rgba(168, 199, 250, 0.14);
   color: #a8c7fa;
-  font-weight: 700;
+  font-weight: var(--fw-strong);
 }
 .bubble.charles.sweat .icon {
   background: rgba(125, 196, 255, 0.16);
@@ -161,7 +161,7 @@ body {
   gap: 10px;
   padding: 10px;
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: var(--r-xl);
   background: var(--surface);
   color: var(--text);
   animation: drop 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -182,7 +182,7 @@ body {
   flex: none;
   width: 38px;
   height: 38px;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: var(--wa);
   color: #fff;
 }
@@ -197,7 +197,7 @@ body {
   gap: 10px;
   min-width: 0;
   padding: 2px;
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   cursor: pointer;
 }
 .wa-row:focus-visible,
@@ -217,13 +217,13 @@ body {
   border-radius: 50%;
   background: linear-gradient(160deg, #5d5f69, #3e4048);
   color: #f1f1f4;
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
 }
 .wa-avatar.small {
   width: 26px;
   height: 26px;
-  font-size: 10px;
+  font-size: var(--fs-i1);
   border: 2px solid #18181c;
 }
 .wa-dot {
@@ -258,15 +258,15 @@ body {
 }
 .wa-name {
   overflow: hidden;
-  font-size: 12.5px;
-  font-weight: 650;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 .wa-text {
   overflow: hidden;
   color: #b9b9c3;
-  font-size: 11.5px;
+  font-size: var(--fs-i3);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -274,7 +274,7 @@ body {
   flex: none;
   margin-left: auto;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--fs-i1);
 }
 .wa-actions {
   display: flex;
@@ -339,12 +339,12 @@ body {
 }
 .wa-title {
   flex: 1;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
 }
 .wa-to {
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: var(--fs-i2);
 }
 .wa-list {
   display: flex;
@@ -371,11 +371,11 @@ body {
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--fs-i4);
   text-align: left;
   cursor: pointer;
 }
@@ -404,16 +404,16 @@ body {
   max-width: 92%;
   margin: 0;
   padding: 6px 10px;
-  border-radius: 4px 12px 12px 12px;
+  border-radius: var(--r-sm) var(--r-md) var(--r-md) var(--r-md);
   background: rgba(255, 255, 255, 0.06);
-  font-size: 12px;
+  font-size: var(--fs-i3);
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
 }
 .wa-msg.mine {
   align-self: flex-end;
-  border-radius: 12px 4px 12px 12px;
+  border-radius: var(--r-md) var(--r-sm) var(--r-md) var(--r-md);
   background: rgba(37, 211, 102, 0.16);
 }
 .wa-compose {
@@ -428,17 +428,17 @@ body {
   box-sizing: border-box;
   padding: 10px 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   background: rgba(0, 0, 0, 0.25);
   color: var(--text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--fs-i4);
   line-height: 1.4;
   resize: none;
   outline: none;
 }
 .wa-input:focus {
-  border-color: rgba(240, 198, 161, 0.5);
+  border-color: var(--cream-45);
 }
 .wa-compose > .wa-btn {
   width: 38px;
@@ -450,9 +450,9 @@ body {
 .wa-from {
   display: block;
   margin-bottom: 1px;
-  color: #8be3ad;
-  font-size: 11px;
-  font-weight: 650;
+  color: var(--ok);
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-strong);
 }
 .wa-x {
   z-index: 2;
@@ -475,9 +475,9 @@ body {
   width: 32px;
   height: 32px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.05);
-  font-size: 16px;
+  font-size: var(--fs-i5);
   cursor: pointer;
 }
 .wa-emoji button:hover {
@@ -485,8 +485,8 @@ body {
 }
 .wa-error {
   margin: 0;
-  color: #ff9b8a;
-  font-size: 11px;
+  color: var(--danger);
+  font-size: var(--fs-i2);
 }
 .wa-sending {
   display: flex;
@@ -494,7 +494,7 @@ body {
   gap: 12px;
   padding: 10px 12px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
 }
 .wa-spin {
   flex: none;
@@ -510,19 +510,19 @@ body {
   flex: 1;
   flex-direction: column;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--fs-i3);
 }
 .wa-bar {
   height: 4px;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   background: rgba(255, 255, 255, 0.08);
 }
 .wa-bar i {
   display: block;
   width: 40%;
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   background: var(--wa);
   animation: wa-bar 1.2s ease-in-out infinite;
 }
@@ -539,7 +539,7 @@ body {
   min-width: 0;
   padding: 10px 12px;
   border: 1px solid rgba(37, 211, 102, 0.35);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   background: rgba(37, 211, 102, 0.07);
 }
 .wa-ok {
@@ -557,11 +557,11 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  font-size: 11px;
+  font-size: var(--fs-i2);
 }
 .wa-sent-body strong {
   color: #6fe39b;
-  font-size: 12px;
+  font-size: var(--fs-i3);
 }
 .wa-sent-text {
   overflow: hidden;
@@ -576,12 +576,12 @@ body {
   gap: 6px;
   padding: 0 12px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
   font: inherit;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
   cursor: pointer;
 }
 .wa-open:hover {
@@ -618,7 +618,7 @@ body {
   flex: none;
   width: 40px;
   height: 40px;
-  border-radius: 9px;
+  border-radius: var(--r-md);
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -635,7 +635,7 @@ body {
   display: block;
   max-width: 100%;
   max-height: 220px;
-  border-radius: 9px;
+  border-radius: var(--r-md);
   object-fit: contain;
   background: rgba(0, 0, 0, 0.25);
 }
@@ -649,7 +649,7 @@ body {
   height: 28px;
   margin: -3px -3px 0 0;
   line-height: 28px;
-  font-size: 17px;
+  font-size: var(--fs-i6);
 }
 .wa-x {
   top: -7px;
@@ -683,10 +683,10 @@ body {
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: transparent;
   color: var(--muted);
-  font-size: 17px;
+  font-size: var(--fs-i6);
   line-height: 28px;
   opacity: 1;
   z-index: 2;
@@ -715,12 +715,12 @@ body {
   flex: 1;
   height: 28px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
+  border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.06);
   color: var(--text);
   font: inherit;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
   cursor: pointer;
 }
 .choice:hover:not(:disabled) {
@@ -729,7 +729,7 @@ body {
 .choice.primary {
   border-color: transparent;
   background: var(--accent);
-  color: #1b1712;
+  color: var(--cream-ink);
 }
 .choice.primary:hover:not(:disabled) {
   background: var(--accent);

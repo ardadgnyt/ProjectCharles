@@ -26,7 +26,7 @@ body {
 #selection {
   position: absolute;
   display: none;
-  border: 2px solid #f3cfac;
+  border: 2px solid var(--cream);
   background: #ffffff12;
   pointer-events: none;
 }
@@ -36,7 +36,7 @@ aside {
   left: 50%;
   transform: translateX(-50%);
   padding: 12px 20px;
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   background: #181a20e8;
   color: #fff;
   font: 14px "Segoe UI";

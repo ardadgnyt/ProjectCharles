@@ -57,6 +57,32 @@ function aggregate(rows, now, period = 'previous') {
   result.topAgent = top(agents);
   result.topProject = top(projects);
   result.busiestDay = top(days);
+  // v1.0.0: the seven days of the week (for the daily charts) and the requests per model, from the
+  // same rows as the totals above. A day after `end` is marked `future`: it was not measured.
+  const week = weekStart(start);
+  result.days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(week);
+    d.setDate(d.getDate() + i);
+    const from = +d;
+    d.setDate(d.getDate() + 1);
+    const to = +d;
+    const inDay = selected.filter((r) => r.start >= from && r.start < to);
+    result.days.push({
+      start: from,
+      end: to,
+      future: from >= end,
+      turns: inDay.length,
+      seconds: inDay.reduce((s, r) => s + (r.seconds || 0), 0),
+    });
+  }
+  const models = {};
+  for (const r of selected) {
+    const m = (models[r.model || 'GPT'] ||= { model: r.model || 'GPT', turns: 0, seconds: 0 });
+    m.turns++;
+    m.seconds += r.seconds || 0;
+  }
+  result.models = Object.values(models).sort((a, b) => b.turns - a.turns || b.seconds - a.seconds);
   return result;
 }
 class Weekly {

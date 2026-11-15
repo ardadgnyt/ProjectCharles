@@ -2,9 +2,10 @@
 // Content is always inserted as text, never as HTML: mail subjects are untrusted.
 const stack = document.getElementById('stack');
 // v0.8.8: the bubbles follow Charles' language (main sends it with the items)
+// v1.0.0: and the texts of that language (app/plugins/notice-text.cjs), so the page has no table
 let lang = 'tr';
-const WORDS = {"en": {"Kabul et": "Accept","Reddet": "Decline","Sana dosya göndermek istiyor": "Wants to send you a file","Dosya alınıyor": "Receiving file","Dosya alındı": "File received","Okul e-postası": "School email","Google Takvim": "Google Calendar","Outlook Takvim": "Outlook Calendar","Takvim: ": "Calendar: ","Önemli e-posta: ": "Important email: ","(Konusuz)": "(No subject)","Kapat": "Close","Bildirimi kapat": "Close notification"," bildirim daha": " more notifications","Charles anlatsın →": "Let Charles explain →","şimdi": "now"," dk": " min","Hızlı yanıtlar": "Quick replies","Yanıt yaz": "Write a reply","WhatsApp bildirimlerini kapat": "Close WhatsApp notifications"," yeni mesaj": " new messages"," ve ": " and "," kişi daha": " more","Mesajları göster": "Show messages"," sohbet": " chats","Daralt": "Collapse","Kendim yazayım…": "I’ll write my own…","Geri": "Back","Yanıt yaz…": "Write a reply…","Gönder": "Send","Emoji": "Emoji","Mesaj gönderiliyor…": "Sending message…","Yanıt gönderildi": "Reply sent","Sohbeti aç": "Open chat"},"de": {"Kabul et": "Annehmen","Reddet": "Ablehnen","Sana dosya göndermek istiyor": "Möchte dir eine Datei senden","Dosya alınıyor": "Datei wird empfangen","Dosya alındı": "Datei empfangen","Okul e-postası": "Schul-E-Mail","Google Takvim": "Google Kalender","Outlook Takvim": "Outlook-Kalender","Takvim: ": "Kalender: ","Önemli e-posta: ": "Wichtige E-Mail: ","(Konusuz)": "(Kein Betreff)","Kapat": "Schließen","Bildirimi kapat": "Benachrichtigung schließen"," bildirim daha": " weitere Benachrichtigungen","Charles anlatsın →": "Charles erklärt es →","şimdi": "jetzt"," dk": " Min.","Hızlı yanıtlar": "Schnellantworten","Yanıt yaz": "Antwort schreiben","WhatsApp bildirimlerini kapat": "WhatsApp-Benachrichtigungen schließen"," yeni mesaj": " neue Nachrichten"," ve ": " und "," kişi daha": " weitere","Mesajları göster": "Nachrichten anzeigen"," sohbet": " Chats","Daralt": "Einklappen","Kendim yazayım…": "Selbst schreiben…","Geri": "Zurück","Yanıt yaz…": "Antwort schreiben…","Gönder": "Senden","Emoji": "Emoji","Mesaj gönderiliyor…": "Nachricht wird gesendet…","Yanıt gönderildi": "Antwort gesendet","Sohbeti aç": "Chat öffnen"},"fr": {"Kabul et": "Accepter","Reddet": "Refuser","Sana dosya göndermek istiyor": "Veut t’envoyer un fichier","Dosya alınıyor": "Réception du fichier","Dosya alındı": "Fichier reçu","Okul e-postası": "E-mail scolaire","Google Takvim": "Google Agenda","Outlook Takvim": "Calendrier Outlook","Takvim: ": "Agenda : ","Önemli e-posta: ": "E-mail important : ","(Konusuz)": "(Sans objet)","Kapat": "Fermer","Bildirimi kapat": "Fermer la notification"," bildirim daha": " autres notifications","Charles anlatsın →": "Charles explique →","şimdi": "maintenant"," dk": " min","Hızlı yanıtlar": "Réponses rapides","Yanıt yaz": "Écrire une réponse","WhatsApp bildirimlerini kapat": "Fermer les notifications WhatsApp"," yeni mesaj": " nouveaux messages"," ve ": " et "," kişi daha": " autres","Mesajları göster": "Afficher les messages"," sohbet": " discussions","Daralt": "Réduire","Kendim yazayım…": "J’écris moi-même…","Geri": "Retour","Yanıt yaz…": "Écrire une réponse…","Gönder": "Envoyer","Emoji": "Emoji","Mesaj gönderiliyor…": "Envoi du message…","Yanıt gönderildi": "Réponse envoyée","Sohbeti aç": "Ouvrir la discussion"},"es": {"Kabul et": "Aceptar","Reddet": "Rechazar","Sana dosya göndermek istiyor": "Quiere enviarte un archivo","Dosya alınıyor": "Recibiendo archivo","Dosya alındı": "Archivo recibido","Okul e-postası": "Correo escolar","Google Takvim": "Google Calendar","Outlook Takvim": "Calendario de Outlook","Takvim: ": "Calendario: ","Önemli e-posta: ": "Correo importante: ","(Konusuz)": "(Sin asunto)","Kapat": "Cerrar","Bildirimi kapat": "Cerrar notificación"," bildirim daha": " notificaciones más","Charles anlatsın →": "Que Charles lo explique →","şimdi": "ahora"," dk": " min","Hızlı yanıtlar": "Respuestas rápidas","Yanıt yaz": "Escribir respuesta","WhatsApp bildirimlerini kapat": "Cerrar notificaciones de WhatsApp"," yeni mesaj": " mensajes nuevos"," ve ": " y "," kişi daha": " más","Mesajları göster": "Mostrar mensajes"," sohbet": " chats","Daralt": "Contraer","Kendim yazayım…": "Escribiré yo…","Geri": "Atrás","Yanıt yaz…": "Escribe una respuesta…","Gönder": "Enviar","Emoji": "Emoji","Mesaj gönderiliyor…": "Enviando mensaje…","Yanıt gönderildi": "Respuesta enviada","Sohbeti aç": "Abrir chat"},"zh": {"Kabul et": "接受","Reddet": "拒绝","Sana dosya göndermek istiyor": "想向你发送文件","Dosya alınıyor": "正在接收文件","Dosya alındı": "文件已接收","Okul e-postası": "学校邮箱","Google Takvim": "Google 日历","Outlook Takvim": "Outlook 日历","Takvim: ": "日历：","Önemli e-posta: ": "重要邮件：","(Konusuz)": "（无主题）","Kapat": "关闭","Bildirimi kapat": "关闭通知"," bildirim daha": " 条更多通知","Charles anlatsın →": "让 Charles 解释 →","şimdi": "刚刚"," dk": " 分钟","Hızlı yanıtlar": "快速回复","Yanıt yaz": "写回复","WhatsApp bildirimlerini kapat": "关闭 WhatsApp 通知"," yeni mesaj": " 条新消息"," ve ": "和"," kişi daha": " 人","Mesajları göster": "显示消息"," sohbet": " 个对话","Daralt": "收起","Kendim yazayım…": "我自己写…","Geri": "返回","Yanıt yaz…": "写回复…","Gönder": "发送","Emoji": "表情","Mesaj gönderiliyor…": "正在发送消息…","Yanıt gönderildi": "回复已发送","Sohbeti aç": "打开对话"}};
-const T = (s) => (lang !== 'tr' && WORDS[lang]?.[s]) || s;
+let WORDS = {};
+const T = (s) => (lang !== 'tr' && WORDS[s]) || s;
 const SOURCES = {
   gmail: 'Gmail',
   outlook: 'Outlook',
@@ -22,29 +23,75 @@ function element(tag, className, ...content) {
   return node;
 }
 
+// v1.0.0: line icons on a 24 px grid, drawn like the app window's (src/workspace/icons.ts); a card
+// names one (app/plugins/notice-cards.cjs). An unknown name, an emoji included, draws nothing.
+const ICONS = {
+  bell: 'M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15L6 16zM10 20.5a2 2 0 0 0 4 0',
+  timer: 'M12 21a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15zM12 9.5v4l2.5 1.5M10 2.5h4M12 2.5V6',
+  check: 'M5 12.5 9.5 17 19 7.5',
+  alert: 'M12 4 3 19.5h18zM12 10v4.5M12 17h.01',
+  download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
+  mail: 'M3.5 6h17v12h-17zM4 6.5l8 6.5 8-6.5',
+  calendar: 'M4.5 6h15v14h-15zM4.5 10h15M8.5 3.5V7M15.5 3.5V7',
+  chat: 'M4 5.5h16v10H10l-4 3.5v-3.5H4z',
+  gauge: 'M4.5 16a7.5 7.5 0 1 1 15 0M12 16l3.5-4.5M3.5 19.5h17',
+  cpu: 'M8 8h8v8H8zM5 6h14v12H5zM9 3v3M15 3v3M9 18v3M15 18v3M2 10h3M2 14h3M19 10h3M19 14h3',
+  ram: 'M3 8h18v7H3zM3 18h18M7 8v7M11 8v7M15 8v7M19 8v7',
+  disk: 'M3.5 13.5h17v5h-17zM5 13.5 7 5.5h10l2 8M16.5 16h.01',
+  puzzle: 'M9 4h4v2a1.8 1.8 0 1 0 3.6 0V4H20v5.5h-2a1.8 1.8 0 1 0 0 3.6h2V20h-5.5v-2a1.8 1.8 0 1 0-3.6 0v2H4v-6.4h2a1.8 1.8 0 1 0 0-3.6H4V4h5z',
+  file: 'M6 3.5h8l4 4v13H6zM14 3.5v4h4',
+  send: 'M21 3 3 10.5l7.5 3L13.5 21 21 3zM10.5 13.5 21 3',
+  lock: 'M6.5 11h11v9h-11zM8.5 11V8a3.5 3.5 0 0 1 7 0v3',
+  x: 'M7 7l10 10M17 7 7 17',
+};
+function lineIcon(name, cls) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('class', cls);
+  const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  p.setAttribute('d', ICONS[name]);
+  svg.append(p);
+  return svg;
+}
+
+// v1.0.0 (bughunt): numbers in the interface language's format ("4,2 GB" in Turkish and German,
+// "4.2 GB" in English), with the same locales as the app's pages (src/settings/weekly-model.ts)
+const LOCALES = { tr: 'tr-TR', en: 'en-GB', de: 'de-DE', fr: 'fr-FR', es: 'es-ES', zh: 'zh-CN' };
+const num = (n) => new Intl.NumberFormat(LOCALES[lang] || 'tr-TR', { maximumFractionDigits: 1 }).format(n);
+
+/** A field of a card: Charles' own text (listed in item.t) is translated and its {name}s filled.
+ *  A number var is written in the language's format, also in a field that is not translated. */
+function field(item, key) {
+  const value = item[key];
+  if (value === undefined || value === null || value === '') return '';
+  const own = Array.isArray(item.t) && item.t.includes(key);
+  let out = own ? T(String(value)) : String(value);
+  for (const [k, v] of Object.entries(item.vars || {})) {
+    if (typeof v === 'number' && Number.isFinite(v)) out = out.split('{' + k + '}').join(num(v));
+    else if (own) out = out.split('{' + k + '}').join(T(String(v)));
+  }
+  return out;
+}
+
+// v1.0.0: one card for every kind: [icon] source line (only when it says something), title, text,
+// then the action or the choices; × on the top right
 function mailCard(item) {
-  const calendar = String(item.kind).includes('calendar');
-  const charles = item.kind === 'charles';
-  // v0.8.14: a module's notice opens that module (no "Charles anlatsın" hint)
-  const card = element('div', 'bubble' + (charles ? ' charles' : '') + (item.module || item.plain ? ' module' : '') + (item.tone === 'sweat' ? ' sweat' : ''));
+  const mailKind = !!SOURCES[item.kind] && item.kind !== 'charles';
+  const icon = ICONS[item.icon] ? item.icon : '';
+  const card = element('div', 'bubble' + (icon ? '' : ' no-icon') + (item.tone === 'error' ? ' error' : ''));
   card.tabIndex = 0;
   card.setAttribute('role', 'button');
-  card.setAttribute(
-    'aria-label',
-    (charles ? 'Charles: ' : calendar ? T('Takvim: ') : T('Önemli e-posta: ')) + item.title,
-  );
-  card.append(element('div', 'icon', item.icon || (charles ? '?' : calendar ? '📅' : '✉')));
+  const title = field(item, 'title') || T('(Konusuz)');
+  card.setAttribute('aria-label', title);
+  if (icon) card.append(lineIcon(icon, 'n-icon'));
   const text = element('div', 'text');
-  const source = item.source || (charles ? 'Charles' : T(SOURCES[item.kind] || item.kind));
-  text.append(
-    element(
-      'div',
-      'meta',
-      calendar || charles ? source : source + (item.from ? ' · ' + item.from : ''),
-    ),
-    element('div', 'subject', item.title || T('(Konusuz)')),
-    element('div', 'reason', [item.lead ? T(item.lead) : '', item.reason || ''].filter(Boolean).join(' · ')),
-  );
+  const source = field(item, 'source') || (mailKind ? T(SOURCES[item.kind]) : '');
+  const meta = [source, item.from ? String(item.from) : ''].filter(Boolean).join(' · ');
+  if (meta) text.append(element('div', 'meta', meta));
+  text.append(element('div', 'subject', title));
+  const reason = field(item, 'reason');
+  if (reason) text.append(element('div', 'reason', reason));
   card.append(text);
   // v0.9.21: a card that asks: its buttons answer, so there is no × and a click on it does nothing
   if (Array.isArray(item.choices)) {
@@ -64,7 +111,18 @@ function mailCard(item) {
     text.append(row);
     return card;
   }
-  const close = element('button', 'close', '×');
+  // the action says what a click on the card does, and does the same
+  const action = field(item, 'action');
+  if (action) {
+    const b = element('button', 'act', action);
+    b.type = 'button';
+    actOnPress(b, () => {
+      if (!quiet()) window.bubble.open(item.id);
+    });
+    text.append(element('div', 'actions', b));
+  }
+  const close = element('button', 'close');
+  close.append(lineIcon('x', 'x-icon'));
   close.type = 'button';
   close.setAttribute('aria-label', T('Bildirimi kapat'));
   // v0.8.11: × acts on pointerdown: a click could be lost when the bubbles were redrawn
@@ -81,6 +139,7 @@ function mailCard(item) {
     window.bubble.open(item.id);
   };
   card.onkeydown = (e) => {
+    if (e.target !== card) return;
     if (e.key === 'Enter' || e.key === ' ') window.bubble.open(item.id);
   };
   return card;
@@ -153,17 +212,17 @@ const mailHost = element('div', 'mail-host');
 waHost.hidden = true;
 mailHost.hidden = true;
 stack.append(waHost, mailHost);
-window.bubble.onItems(({ items, more, wa, language }) => {
+window.bubble.onItems(({ items, more, wa, language, words }) => {
   if (typeof language === 'string') lang = language;
+  if (words && typeof words === 'object') WORDS = words;
   for (const i of [...(items || []), ...(Array.isArray(wa) ? wa : [])]) if (closed(i)) window.bubble.dismiss(i.id);
   items = (items || []).filter((i) => !closed(i));
   wa = Array.isArray(wa) ? wa.filter((i) => !closed(i)) : [];
   document.documentElement.lang = lang;
-  document.documentElement.style.setProperty('--hint', JSON.stringify('  · ' + T('Charles anlatsın →')));
   waUpdate(Array.isArray(wa) ? wa : []);
   waHost.hidden = !waHost.childElementCount;
   mailHost.replaceChildren(...items.map(mailCard));
-  if (more) mailHost.append(element('div', 'more', '+' + more + T(' bildirim daha')));
+  if (more) mailHost.append(element('div', 'more', T('{n} bildirim daha').split('{n}').join(String(more))));
   mailHost.hidden = !mailHost.childElementCount;
   resize();
 });
@@ -187,7 +246,6 @@ function glyph(d, cls = 'wa-glyph') {
   return svg;
 }
 const G = {
-  chat: 'M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 19 17h-8.5L6 20.5V17H5a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 5 5.5z|M8.5 11.3h.01M12 11.3h.01M15.5 11.3h.01',
   reply: 'M9.5 7 5 11.5l4.5 4.5|M5.5 11.5h8a5 5 0 0 1 5 5v.5',
   next: 'm9.5 6 6 6-6 6',
   down: 'm6 9.5 6 6 6-6',
@@ -233,9 +291,17 @@ function avatar(item, small = false) {
   if (item.unread) a.append(element('i', 'wa-dot'));
   return a;
 }
+// v1.0.0: the WhatsApp logo the owner supplied (public/images, resized only), preloaded by
+// bubble.html so the first card of a new card window never shows an empty tile
 function brand() {
   const b = element('span', 'wa-brand');
-  b.append(glyph(G.chat));
+  const img = document.createElement('img');
+  img.className = 'wa-logo';
+  img.alt = '';
+  img.draggable = false;
+  img.src = 'images/whatsapp-mark-20.png';
+  img.srcset = 'images/whatsapp-mark-20.png 1x, images/whatsapp-mark-40.png 2x, images/whatsapp-mark-60.png 3x';
+  b.append(img);
   return b;
 }
 const find = (chat) => waItems.find((i) => i.chat === chat);
@@ -342,7 +408,7 @@ function dismissButton(singleItem = null) {
   // v0.8.9: the card goes at once; Charles forgets the notifications after it
   // v0.8.11: on pointerdown (see dismissOnPress), so a redraw can never swallow it
   // v0.9.13: the same × as the mail / reminder cards (no floating circle on the corner)
-  const b = element('button', 'close wa-x', '×');
+  const b = element('button', 'close wa-x', lineIcon('x', 'x-icon'));
   b.type = 'button';
   b.setAttribute('aria-label', T('WhatsApp bildirimlerini kapat'));
   dismissOnPress(b, () => {

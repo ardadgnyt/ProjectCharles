@@ -207,7 +207,7 @@ function createModuleHost(o) {
   function open(id) {
     const m = registry.get(id);
     if (!m) throw Error('Bu modül yüklü değil.');
-    if (m.enabled === false) throw Error('Bu modül kapalı. Ayarlar → Modüller’den aç.');
+    if (m.enabled === false) throw Error('Bu modül kapalı. Ayarlar’daki Modüller sayfasından aç.');
     const existing = windows.get(id);
     if (existing && !existing.isDestroyed()) {
       if (existing.isMinimized()) existing.restore();

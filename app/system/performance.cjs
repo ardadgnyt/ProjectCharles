@@ -241,7 +241,7 @@ class PerformanceHistory {
       )
       .get(since);
     if (!samples.n)
-      return 'Bu dönem için henüz kullanım kaydı yok. Charles açıkken yaklaşık dakikada bir ölçüm yapılır; ilk CPU karşılaştırması için iki örnek gerekir. İzlemeyi Ayarlar → Performans bölümünden kontrol edebilirsin.';
+      return 'Bu dönem için henüz kullanım kaydı yok. Charles açıkken yaklaşık dakikada bir ölçüm yapılır; ilk CPU karşılaştırması için iki örnek gerekir. İzlemeyi Ayarlar’daki Performans sayfasından kontrol edebilirsin.';
     if (metric === 'gpu' && !samples.g)
       return 'Bu dönemde Windows GPU kullanım sayacı veri vermedi. GPU kullanımını sıfır kabul edip sıralama yapamıyorum. CPU ve RAM kayıtlarını sorabilirsin.';
     const divisor = metric === 'gpu' ? samples.g : samples.n;

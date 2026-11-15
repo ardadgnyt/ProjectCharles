@@ -1,10 +1,12 @@
 import { pluginGuideUI } from './plugin-guide';
+import { showConnected, stateLine, type StateLine } from './connected-state';
+import { refreshOnShow } from './refresh-on-show';
 export function pluginsUI(api: any, notice: (s: string) => void) {
   const page = document.querySelector('.settings-page[data-category=connections]')!;
   const intro = document.createElement('section');
   intro.className = 'setting-section';
   intro.innerHTML =
-    '<h3>Eklentiler</h3><p class="hint">Hesaplarını burada bağla. Mail okumak veya özetlemek için sohbetten ya da sesli görüşmeden iste. Örneğin: “Okul maillerimi özetle”.</p>';
+    '<h3>Bildirimler</h3><p class="hint">Bağladığın hesapları sohbette de kullanabilirsin, örneğin “Okul maillerimi özetle”.</p>';
   const enabled = document.createElement('input');
   enabled.type = 'checkbox';
   let rules = '';
@@ -19,7 +21,11 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
   aiTriage.type = 'checkbox';
   const aiToggle = document.createElement('label');
   aiToggle.className = 'plugin-notify-toggle';
-  aiToggle.append(aiTriage, document.createTextNode('Önemi yapay zekâ belirlesin (yeni e-postanın göndereni, konusu ve kısa önizlemesi seçili yapay zekâya gider)'));
+  aiToggle.append(aiTriage, document.createTextNode('Önemi yapay zekâ belirlesin'));
+  // what leaves the computer when it is on, said under the switch instead of in its label
+  const aiHint = document.createElement('p');
+  aiHint.className = 'hint';
+  aiHint.textContent = 'Açıkken yeni e-postanın göndereni, konusu ve kısa önizlemesi seçili yapay zekâya gönderilir.';
   const save = () =>
     void api
       .pluginsSettings({ monitor: enabled.checked, rules: keywords.value, aiTriage: aiTriage.checked })
@@ -40,14 +46,14 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
   const triageHint = document.createElement('p');
   triageHint.className = 'hint';
   triageHint.textContent =
-    'Hesabında önemli işaretli e-postalar ve bu kelimeleri içerenler adacığın altında baloncuk olarak görünür; bu sıralama bilgisayarında yapılır. Baloncuğa tıklayınca Charles e-postayı sana anlatır.';
-  intro.append(toggle, keywordLabel, aiToggle, triageHint);
+    'Kapalıyken sıralama bu bilgisayarda yapılır: önemli işaretli e-postalar ve bu kelimeleri içerenler adacığın altında baloncuk olarak görünür. Baloncuğa tıklayınca Charles e-postayı anlatır.';
+  intro.append(toggle, keywordLabel, aiToggle, aiHint, triageHint);
   page.prepend(intro);
   const fields: Record<string, Record<string, HTMLInputElement | HTMLSelectElement>> = {},
-    notes: Record<string, HTMLElement> = {},
+    notes: Record<string, StateLine> = {},
     details: Record<string, HTMLDetailsElement> = {},
     loginButtons: Record<string, HTMLButtonElement> = {},
-    stateButtons: Record<string, HTMLButtonElement> = {},
+    wasConnected: Record<string, boolean> = {},
     toolRows: Record<string, { test: HTMLButtonElement; remove: HTMLButtonElement; config: HTMLDetailsElement }> = {};
   const guide = pluginGuideUI(api, notice, paint);
   const names: Record<string, string> = {
@@ -64,9 +70,8 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
     const h = document.createElement('h3');
     h.textContent = names[id];
     card.append(h);
-    const status = document.createElement('p');
-    status.className = 'hint';
-    status.setAttribute('role', 'status');
+    // v1.0.0: one status line, "Bağlı" with a green dot while connected (connected-state.ts)
+    const status = stateLine();
     notes[id] = status;
     const config = document.createElement('details');
     const heading = document.createElement('summary');
@@ -78,13 +83,13 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
       const info = document.createElement('p');
       info.className = 'hint';
       info.textContent =
-        'İlk bağlantıda bir defalık uygulama kaydı gerekir. Charles adım adım yardımcı olur. Sonraki girişlerde doğrudan hesabını seçebilirsin.';
+        'İlk bağlantıda bir defalık uygulama kaydı gerekir; Charles ile kur adım adım gösterir.';
       card.append(info);
       const setup = document.createElement('button');
       setup.textContent = 'Charles ile kur';
       setup.onclick = () => void guide(id);
       const connect = document.createElement('button');
-      connect.textContent = id === 'google' ? 'Google ile giriş yap' : 'Microsoft ile giriş yap';
+      connect.textContent = id === 'google' ? 'Google ile giriş' : 'Microsoft ile giriş';
       connect.onclick = async () => {
         if (!fields[id].clientId.value) {
           void guide(id);
@@ -102,7 +107,8 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
       };
       const row = document.createElement('div');
       row.className = 'provider-actions';
-      setup.className = 'primary';
+      // v1.0.0: "Charles ile kur" is neutral; the sign-in is the card's one cream button
+      connect.className = 'primary';
       row.append(setup, connect);
       card.append(row);
       loginButtons[id] = connect;
@@ -132,8 +138,8 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
       help.className = 'hint';
       help.textContent =
         id === 'home'
-          ? 'Home Assistant adresi (ör. http://homeassistant.local:8123) ve profilindeki Güvenlik → Uzun ömürlü erişim token’ı gerekir. Kaydettikten sonra bağlantıyı test et. Cihazlara Home Assistant’taki adlarıyla seslen.'
-          : 'POP3 veya IMAP destekleyen herhangi bir e-posta hesabını (okul, iş, alan adı e-postası) bağla. Sunucu adresi, TLS portu, tam e-posta adresin ve şifren gerekir. Charles yalnızca okur; e-postalar sunucudan silinmez.';
+          ? 'Sunucu adresi (ör. http://homeassistant.local:8123) ve bir uzun ömürlü erişim token’ı gerekir; token’ı Home Assistant profilinin Güvenlik sekmesinde oluşturabilirsin. Cihazlara Home Assistant’taki adlarıyla seslen.'
+          : 'POP3 veya IMAP destekleyen bir e-posta hesabını (okul, iş, kendi alan adın) bağla. Charles yalnızca okur; e-postalar sunucudan silinmez.';
       card.append(help);
     }
     if (id === 'school') {
@@ -189,14 +195,14 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
             Object.fromEntries(Object.entries(fields[id]).map(([k, i]) => [k, i.value])),
           ),
         );
-        status.textContent = 'Kaydedildi. Bağlantıyı test edebilirsin.';
+        status.textContent = 'Kaydedildi. Bağlantıyı kontrol et ile deneyebilirsin.';
       } catch (e) {
         status.textContent = (e as Error).message;
       }
     };
     config.append(save);
     const test = document.createElement('button');
-    test.textContent = 'Bağlantıyı test et';
+    test.textContent = 'Bağlantıyı kontrol et';
     test.onclick = async () => {
       test.disabled = true;
       status.textContent = 'Bağlantı kontrol ediliyor…';
@@ -216,6 +222,7 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
                 .join(', ')
             : 'Bağlantı başarılı. Posta kutusu okunabiliyor.';
       } catch (e) {
+        status.connected = false;
         status.textContent = (e as Error).message;
       } finally {
         test.disabled = false;
@@ -228,30 +235,29 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
         .pluginsDisconnect(id)
         .then(paint)
         .catch((e: Error) => notice(e.message));
-    // v0.7.1: a clear connected state like Ayarlar → AI Modelleri; test/remove only when
+    // v0.7.1: a clear connected state like the AI account cards; test/remove only when
     // something is connected, the sign-in button comes back after "Bağlantıyı kaldır".
-    const state = document.createElement('button');
-    state.type = 'button';
-    state.disabled = true;
-    state.className = 'connected plugin-state';
-    state.hidden = true;
+    // v1.0.0: the state is the status line ("Bağlı"), the row holds only these actions
     const tools = document.createElement('div');
     tools.className = 'provider-actions';
-    tools.append(state, test, remove);
-    stateButtons[id] = state;
+    tools.append(test, remove);
     toolRows[id] = { test, remove, config };
-    card.append(config, tools, status);
+    card.append(config, tools, status.el);
     last.after(card);
     last = card;
   }
-  function paint(v: any) {
-    enabled.checked = v.monitor;
-    aiTriage.checked = v.aiTriage === true;
-    rules = v.rules;
-    if (document.activeElement !== keywords) keywords.value = rules || '';
+  // v1.0.0: `full` = false repaints only the connected states (a refresh when the page is shown
+  // must not wipe what the user is typing into a card's settings)
+  function paint(v: any, full = true) {
+    if (full) {
+      enabled.checked = v.monitor;
+      aiTriage.checked = v.aiTriage === true;
+      rules = v.rules;
+      if (document.activeElement !== keywords) keywords.value = rules || '';
+    }
     for (const id of Object.keys(fields)) {
       const config = v.configs[id] || {};
-      for (const [key, input] of Object.entries(fields[id])) {
+      if (full) for (const [key, input] of Object.entries(fields[id])) {
         if (input instanceof HTMLInputElement && input.type === 'password') {
           input.value = '';
           input.placeholder = config.hasSecret
@@ -266,22 +272,14 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
       const login = loginButtons[id];
       if (login) {
         login.disabled = on;
-        login.classList.toggle('connected', on);
-        login.textContent = on
-          ? '✓ ' + (id === 'google' ? 'Google' : 'Microsoft') + ' bağlı'
-          : login.dataset.label || login.textContent;
-      } else {
-        stateButtons[id].hidden = !on;
-        stateButtons[id].textContent = '✓ ' + (id === 'home' ? 'Home Assistant' : 'E-posta') + ' bağlı';
+        showConnected(login, on, login.dataset.label || '');
       }
       toolRows[id].test.hidden = !on;
       toolRows[id].remove.hidden = !on;
-      if (id === 'home' || id === 'school') toolRows[id].config.open = !on;
-      notes[id].textContent = v.connected[id]
-        ? id === 'home' || id === 'school'
-          ? 'Bilgiler kayıtlı · bağlantıyı test et'
-          : 'Hesap bağlı'
-        : 'Bağlı değil';
+      if ((id === 'home' || id === 'school') && (full || wasConnected[id] !== on)) toolRows[id].config.open = !on;
+      wasConnected[id] = on;
+      notes[id].connected = on;
+      notes[id].textContent = on ? '' : 'Bağlı değil';
     }
   }
   api.onPluginConfirm((v: any) => {
@@ -310,5 +308,8 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
     card.scrollIntoView({ block: 'center' });
   });
   void api.pluginsStatus().then(paint);
+  // v1.0.0: read again when Settings opens or the Eklentiler page is shown (a connection made or
+  // lost meanwhile shows without a restart)
+  refreshOnShow(intro, () => void api.pluginsStatus().then((v: any) => paint(v, false)).catch(() => {}));
   api.onPluginAlert((v: any) => notice(v.kind + ': ' + v.title));
 }

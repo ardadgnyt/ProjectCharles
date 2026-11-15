@@ -73,11 +73,11 @@ function versionFromText(text) {
   const m = /(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)/.exec(String(text || ''));
   return m ? m[1] : null;
 }
-/** "0.8.0-beta.1" → "v0.8.0 Beta", "0.9.24-rc.1" → "v0.9.24 Release Candidate" (the label Charles shows). */
+/** "0.8.0-beta.1" → "v0.8.0 Beta", "0.9.24-rc.1" → "v0.9.24 Release Candidate", "1.0.0" → "v1.0.0 Stable" (the label Charles shows). */
 function label(v) {
   const p = parseVersion(v);
   if (!p) return String(v || '');
-  return `v${p.major}.${p.minor}.${p.patch}` + (p.pre[0] === 'beta' ? ' Beta' : p.pre[0] === 'rc' ? ' Release Candidate' : p.pre.length ? '-' + p.pre.join('.') : '');
+  return `v${p.major}.${p.minor}.${p.patch}` + (p.pre[0] === 'beta' ? ' Beta' : p.pre[0] === 'rc' ? ' Release Candidate' : p.pre.length ? '-' + p.pre.join('.') : ' Stable');
 }
 
 // ── release info ─────────────────────────────────────────────────────────────
@@ -361,6 +361,8 @@ function Start-Charles {
   if (-not $Exe) { return }
   try {
     $env:ELECTRON_RUN_AS_NODE = $null
+    # v1.0.0: Charles.exe may first put a waiting Electron in place (setup/CharlesLauncher.cs)
+    $env:CHARLES_RUNTIME_WAIT = '1'
     if ($AppArg) { Start-Process -FilePath $Exe -ArgumentList ('"' + $AppArg + '"') -WorkingDirectory $App }
     else { Start-Process -FilePath $Exe -WorkingDirectory $App }
   } catch { Log ('Charles yeniden başlatılamadı: ' + $_.Exception.Message) ('Charles could not be restarted: ' + $_.Exception.Message) }
@@ -450,7 +452,7 @@ exit 0
  * Downloads, verifies and unpacks an update into <root>\_update. → { version, script, args }
  * where `args` are the PowerShell parameters for swap.ps1.
  */
-async function prepare({ root, latest, name, fetchImpl = globalThis.fetch, onProgress = () => {}, signal }) {
+async function prepare({ root, latest, name, fetchImpl = globalThis.fetch, onProgress = () => {}, signal, runtime = null }) {
   if (!latest?.zip?.url) fail('Bu sürüm için güncelleme dosyası (charles-update-….zip) yayında yok. GitHub sayfasından indirebilirsin.');
   if (!latest.sha?.url) fail('Güncelleme dosyasının SHA-256 değeri yayında yok; güvenlik için kurulmadı.');
   const work = path.join(root, '_update');
@@ -475,10 +477,37 @@ async function prepare({ root, latest, name, fetchImpl = globalThis.fetch, onPro
   }
   onProgress({ phase: 'extract' });
   const pkg = readUpdateZip(fs.readFileSync(zipFile), { name, expectVersion: latest.version });
+  let wanted = null;
+  try {
+    wanted = JSON.parse(Buffer.from(pkg.files.get('package.json')).toString('utf8'));
+  } catch {}
   writeFiles(pkg.files, path.join(work, 'stage'));
+  pkg.files = null;
   const script = path.join(work, 'swap.ps1');
   fs.writeFileSync(script, '﻿' + SWAP_SCRIPT.replace(/\r?\n/g, '\r\n'), 'utf8');
   fs.rmSync(zipFile, { force: true });
+  // v1.0.0: the new version asks for a newer Electron (app/core/runtime-update.cjs): it is fetched
+  // now, so the one restart of the update also puts it in place. Never fatal: when this fails, the
+  // new version fetches it itself after the restart.
+  if (runtime) {
+    try {
+      const rt = require('./runtime-update.cjs');
+      const config = rt.runtimeConfig(wanted);
+      const { platform = process.platform, arch = process.arch } = runtime;
+      if (config && platform === 'win32' && arch === 'x64' && rt.compare(runtime.running, config.electron) === -1) {
+        onProgress({ phase: 'runtime', received: 0, total: config.bytes });
+        await rt.fetchRuntime({
+          root,
+          config,
+          app: pkg.version,
+          text: runtime.text || '',
+          fetchImpl,
+          free: runtime.free,
+          onProgress: (received, total) => onProgress({ phase: 'runtime', received, total }),
+        });
+      }
+    } catch {}
+  }
   return {
     version: pkg.version,
     top: pkg.top,

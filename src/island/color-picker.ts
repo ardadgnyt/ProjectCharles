@@ -92,7 +92,7 @@ export function colorPicker({ api, notice, onPicked }: Deps) {
   // the chosen colour and its tones
   const big = el('div', 'cp13-big', el('span', '', 'Seçilen renk'));
   const toneRow = el('div', 'cp13-tones');
-  const chosen = el('div', 'cp13-chosen', big, toneRow, el('small', 'cp13-hint', 'Açık → koyu tonlar · tıkla, seç'));
+  const chosen = el('div', 'cp13-chosen', big, toneRow, el('small', 'cp13-hint', 'Tonlar'));
 
   // HEX · RGB · HSL
   const field = (label: string) => {

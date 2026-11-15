@@ -1,4 +1,5 @@
 import { reminderAlert } from '../island/reminder-alert';
+import { CREAM } from '../ui/tokens';
 export function personalUI(api: any, notice: (s: string) => void, attempt: any, react: () => void) {
   const $ = (id: string) => document.getElementById(id)!;
   const value = (id: string) => ($(id) as HTMLInputElement).value;
@@ -15,7 +16,10 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
   function paint(next: any) {
     data = next;
     const a = data.appearance;
-    document.documentElement.style.setProperty('--accent', a.accent);
+    // v1.0.0: the default accent is the stylesheet token (--cream); only a colour of the person's own
+    // (from before the picker was hidden in v0.5.2) is set on the page
+    if (a.accent && String(a.accent).toLowerCase() !== CREAM) document.documentElement.style.setProperty('--accent', a.accent);
+    else document.documentElement.style.removeProperty('--accent');
     document.documentElement.style.setProperty('--chat-font', a.font + 'px');
     $('slime').style.transform = `scale(${a.pet})`;
     for (const k of ['font', 'scale', 'pet', 'accent', 'island'])
@@ -88,7 +92,7 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
           scale: 1,
           opacity: 1,
           pet: 1,
-          accent: '#edc9a9',
+          accent: CREAM,
           island: 'large',
         }),
       ),

@@ -1,0 +1,333 @@
+/* 09-notify · Notifications: the card window (bubble.html, body.notice-cards) and the reminder card over the
+   panel (index.html).
+   Merged in v1.0.0 (T37) from the release files, every rule in its original order; the load order is
+   in RULES.md / DEVELOPMENT.md. Colours, radii and type come from 00-tokens.css. */
+
+/* ── from 9-special.css ── */
+.reminder-alert.ring {
+  animation: reminder-ring 1.1s ease-out;
+}
+.reminder-alert.ring .reminder-alert-icon {
+  animation: reminder-shake 0.6s ease-in-out 2;
+}
+.reminder-alert-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.reminder-alert-text strong {
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.reminder-alert-text span {
+  color: #b8b2ac;
+  font-size: var(--fs-a1);
+}
+.reminder-alert-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.reminder-alert-actions button {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  cursor: pointer;
+}
+.reminder-alert-actions button.primary {
+  border-color: transparent;
+  background: var(--cream);
+  color: var(--cream-ink);
+}
+body.workspace .reminder-alert {
+  top: 70px;
+}
+@keyframes reminder-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -14px) scale(0.96);
+  }
+}
+@keyframes reminder-ring {
+  0% {
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 0 var(--cream-70);
+  }
+  100% {
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 22px transparent;
+  }
+}
+@keyframes reminder-shake {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-14deg); }
+  40% { transform: rotate(12deg); }
+  60% { transform: rotate(-8deg); }
+  80% { transform: rotate(5deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reminder-alert, .reminder-alert.ring, .reminder-alert.ring .reminder-alert-icon { animation: none; }
+
+}
+
+/* ── from 50-v100-notify.css ── */
+/* v1.0.0: notification cards. One card for every kind in the card window (bubble.html, body.notice-cards)
+   and the reminder card over the panel (.reminder-alert, index.html). Warm black surface, cream text and
+   hairlines from 10-noir.css; card radius 14 (the window is 380 wide), controls 8, line icons 20 px. */
+/* ── Card window ─────────────────────────────────────────────────────────────────────────── */
+body.notice-cards {
+  --surface: rgba(14, 13, 12, 0.98);
+  --line: var(--cream-08);
+  --line-strong: var(--cream-18);
+  --text: #f5eee5;
+  --body: #d6cdc2;
+  --muted: #a69b8e;
+  --accent: var(--cream);
+  --accent-soft: var(--cream-12);
+}
+body.notice-cards #stack {
+  gap: 8px;
+  padding: 12px 12px 8px;
+}
+body.notice-cards .mail-host {
+  gap: 8px;
+}
+body.notice-cards .bubble {
+  grid-template-columns: 20px minmax(0, 1fr) 28px;
+  gap: 0 12px;
+  align-items: start;
+  padding: 12px 8px 12px 16px;
+  border-radius: var(--r-lg);
+  border-color: var(--line);
+  background: var(--surface);
+  animation: notice-in 0.18s ease-out;
+  transition: border-color 0.15s;
+}
+body.notice-cards .bubble.no-icon {
+  grid-template-columns: minmax(0, 1fr) 28px;
+}
+body.notice-cards .bubble:hover {
+  border-color: var(--line-strong);
+  transform: none;
+}
+body.notice-cards .bubble.asking {
+  grid-template-columns: 20px minmax(0, 1fr);
+  padding-right: 16px;
+}
+body.notice-cards .n-icon {
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+body.notice-cards .bubble.error .n-icon {
+  stroke: var(--danger);
+}
+body.notice-cards .text {
+  gap: 2px;
+}
+body.notice-cards .meta {
+  font-size: var(--fs-i2);
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+body.notice-cards .subject {
+  display: -webkit-box;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  line-height: 18px;
+  color: var(--text);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+body.notice-cards .reason,
+body.notice-cards .bubble.module .reason,
+body.notice-cards .bubble.asking .reason {
+  display: -webkit-box;
+  font-size: var(--fs-i3);
+  line-height: 17px;
+  color: var(--body);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+body.notice-cards .reason::after {
+  content: none;
+}
+/* the action is a quiet text button in the accent colour: it names what a click on the card does */
+body.notice-cards .actions {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 -4px -8px;
+}
+body.notice-cards .act {
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-regular);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+body.notice-cards .act:hover {
+  background: var(--accent-soft);
+}
+body.notice-cards .act:focus-visible,
+body.notice-cards .close:focus-visible,
+body.notice-cards .choice:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+body.notice-cards .close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px 0 0;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+}
+body.notice-cards .close:hover {
+  background: var(--cream-08);
+  color: var(--text);
+}
+body.notice-cards .x-icon {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+body.notice-cards .choices {
+  margin-top: 10px;
+}
+body.notice-cards .choice {
+  height: 30px;
+  border-color: var(--line-strong);
+  background: var(--cream-04);
+  font-weight: var(--fw-regular);
+}
+body.notice-cards .choice.primary {
+  background: var(--accent);
+  color: var(--cream-ink);
+}
+body.notice-cards .more {
+  padding: 2px 10px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-i2);
+  line-height: 16px;
+}
+/* WhatsApp: the same surface, radius and × as the other cards */
+body.notice-cards .wa-card {
+  border-radius: var(--r-lg);
+  border-color: var(--line);
+  animation: notice-in 0.18s ease-out;
+}
+body.notice-cards .wa-brand {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-md);
+}
+/* the owner's WhatsApp mark (public/images/whatsapp-mark-*.png, resized only) on the green tile */
+body.notice-cards .wa-brand .wa-logo {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+body.notice-cards .wa-card > .close.wa-x {
+  display: grid;
+  place-items: center;
+  top: 8px;
+  right: 8px;
+}
+body.notice-cards .wa-text {
+  color: var(--body);
+}
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.notice-cards .bubble,
+  body.notice-cards .wa-card {
+    animation: none;
+  }
+
+}
+/* ── Reminder card over the island panel and the app window (src/island/reminder-alert.ts) ── */
+.reminder-alert {
+  gap: 12px 12px;
+  padding: 16px;
+  border: 1px solid var(--cream-12);
+  border-radius: var(--r-lg);
+  background: #0e0d0c;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  animation: reminder-card-in 0.2s ease-out;
+}
+@keyframes reminder-card-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reminder-alert {
+    animation: none;
+  }
+
+}
+.reminder-alert-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--cream-04);
+  color: var(--cream);
+}
+.reminder-alert-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.reminder-alert-text small {
+  color: #a69b8e;
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-regular);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.reminder-alert-text strong {
+  font-size: var(--fs-a4);
+  font-weight: var(--fw-strong);
+}
+.reminder-alert-actions button {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--r-sm);
+  font-weight: var(--fw-regular);
+}
+@keyframes reminder-ring {
+  0% {
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 0 var(--cream-35);
+  }
+  100% {
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 12px transparent;
+  }
+}

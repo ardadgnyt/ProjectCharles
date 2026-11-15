@@ -99,7 +99,8 @@ function batchTargets(files) {
   const images = files.every((f) => ['raster', 'heic', 'gif'].includes(setOf(f)));
   if (files.length > 1 && images) out.push('join-gif', 'join-webp');
   // one archive goes to another archive format through its own targets (repack)
-  if (files.length > 1 || setOf(files[0]) !== 'archive') out.push('arc-7z', 'arc-tar');
+  // v1.0.0: ZIP first; archive.cjs also takes names tar.exe cannot hold (Charles' own writer)
+  if (files.length > 1 || setOf(files[0]) !== 'archive') out.push('arc-zip', 'arc-7z', 'arc-tar');
   return out;
 }
 

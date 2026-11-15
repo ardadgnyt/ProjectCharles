@@ -210,16 +210,10 @@ export function shortcutsUI(api: any, notice: (s: string) => void) {
   });
   pushToTalk(api, page, notice);
   const weekly = document.querySelector('.settings-page[data-category=weekly]')!;
+  // v1.0.0: the summary reads and refreshes itself only while it is on screen (no timer here)
   const { load: loadSummary } = weeklySummaryUI(weekly, api, notice);
-  void loadSummary();
-  document
-    .querySelector<HTMLButtonElement>('button[data-category=weekly]')!
-    .addEventListener('click', () => void loadSummary());
-  setInterval(() => {
-    if (!(weekly as HTMLElement).hidden && ($('settings-panel') as HTMLDialogElement).open) void loadSummary();
-  }, 15000);
   api.onWeekly(() => {
     void loadSummary();
-    notice('Haftalık özetin hazır. Ayarlar → Haftalık özet.');
+    notice('Haftalık özetin hazır; Ayarlar’daki Haftalık özet sayfasında.');
   });
 }

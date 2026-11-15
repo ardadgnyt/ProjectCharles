@@ -101,7 +101,7 @@ function deadlineProposal({ mail, deadline, event, personal, dir, open, calendar
     .trim()
     .slice(0, 120);
   const text =
-    `📅 “${String(mail.title || 'Konusuz').slice(0, 120)}” e-postasında bir tarih yakaladım: ` +
+    `“${String(mail.title || 'Konusuz').slice(0, 120)}” e-postasında bir tarih yakaladım: ` +
     `**${title}** — ${when(parsed)}. ` +
     (calendar
       ? `${calendar.name}’e ekleyip son günden önce adacıktan hatırlatayım mı?`
@@ -113,16 +113,18 @@ function deadlineProposal({ mail, deadline, event, personal, dir, open, calendar
     .digest('hex');
   const remind = () => {
     const times = reminderTimes(parsed, Date.now());
-    const name = `📅 ${title} — ${when(parsed)}`;
+    // v1.0.0: no emoji in the title; a reminder saved before (with the old "📅 " prefix) still counts
+    const name = `${title} — ${when(parsed)}`;
+    const same = (r) => r.title === name || r.title === '📅 ' + name;
     for (const due of times) {
-      if (personal.data?.reminders?.some((r) => r.title === name && r.due === due)) continue;
+      if (personal.data?.reminders?.some((r) => same(r) && r.due === due)) continue;
       personal.edit('reminder-add', { title: name, due, kind: 'reminder' });
     }
     return times;
   };
   const describe = (times) =>
     times.length
-      ? `Tamam! ${times
+      ? `Hatırlatma kuruldu: ${times
           .map((t) =>
             new Date(t).toLocaleString('tr-TR', {
               day: 'numeric',

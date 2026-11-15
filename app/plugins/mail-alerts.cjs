@@ -6,14 +6,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { triageMail } = require('./mail-triage.cjs');
-
-const SOURCES = {
-  gmail: 'Gmail',
-  outlook: 'Outlook',
-  school: 'Okul e-postası',
-  calendar: 'Google Takvim',
-  'outlook-calendar': 'Outlook Takvim',
-};
+const cards = require('./notice-cards.cjs');
+const { SOURCES } = cards;
 
 class MailAlerts {
   // plugins: Plugins instance; bubble: MailBubble; ask(prompt) -> AI text answer;
@@ -49,17 +43,7 @@ class MailAlerts {
       'by=' + (picked[0]?.by || '-'),
       'sources=' + [...new Set(mails.map((m) => m.kind))].join(','),
     );
-    for (const { mail, reason } of picked)
-      this.bubble.add({
-        id: mail.kind + '|' + mail.id,
-        kind: mail.kind,
-        mailId: mail.id,
-        title: mail.title,
-        from: mail.from,
-        date: mail.date,
-        preview: mail.text || '',
-        reason,
-      });
+    for (const { mail, reason } of picked) this.bubble.add(cards.mail(mail, reason));
     if (picked.length) this.attention();
     for (const { mail, deadline, event } of picked)
       if (deadline)
@@ -73,12 +57,7 @@ class MailAlerts {
 
   calendar(event) {
     if (!event?.title) return;
-    this.bubble.add({
-      id: event.kind + '|' + (event.id || event.title) + '|' + event.reason,
-      kind: event.kind,
-      title: event.title,
-      reason: event.reason,
-    });
+    this.bubble.add(cards.calendar(event));
     this.attention();
   }
 

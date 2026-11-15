@@ -2,6 +2,7 @@
 // app/system/live-metrics.cjs and runs only while this view is on screen (IntersectionObserver).
 import { el, icon } from '../workspace/icons';
 import { t } from '../settings/i18n';
+import { cream } from '../ui/tokens';
 
 type Stat = 'current' | 'average' | 'peak';
 type Point = { t: number; v: number | null };
@@ -13,7 +14,10 @@ const RANGES: [string, string, string][] = [
   ['5m', '5 dk', '5 dk önce'],
   ['1h', '1 sa', '1 sa önce'],
 ];
-const COLORS = { cpu: '#edc9a9', gpu: '#5fd8a4', ram: '#7da7f2' };
+// v1.0.0: one neutral line for every chart; only the latest point is cream (each chart draws
+// one series, so nothing has to be told apart by colour)
+const LINE = '#cfc9c1';
+const DASH = '—';
 
 const turkish = () => (document.documentElement.lang || 'tr') === 'tr';
 const percent = (v: number) => (turkish() ? '%' + v : v + '%');
@@ -34,7 +38,7 @@ function segment(items: [string, string][], pick: (id: string) => void) {
   return { box, set: (id: string) => buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === id))) };
 }
 
-function chart(color: string) {
+function chart(color = LINE) {
   const canvas = el('canvas', 'sm-chart') as HTMLCanvasElement;
   canvas.setAttribute('role', 'img');
   let last: { m: Metric; now: number; rangeMs: number; stat: Stat } | null = null;
@@ -82,7 +86,7 @@ function chart(color: string) {
     }
     if (run.length) runs.push(run);
     const fill = x.createLinearGradient(0, pad.top, 0, box.height);
-    fill.addColorStop(0, color + '44');
+    fill.addColorStop(0, color + '2e');
     fill.addColorStop(1, color + '00');
     for (const r of runs) {
       x.beginPath();
@@ -120,7 +124,7 @@ function chart(color: string) {
     if (stat === 'current' && end) {
       x.beginPath();
       x.arc(Math.min(box.width - 4, X(end.t)), Y(end.v!), 3.2, 0, Math.PI * 2);
-      x.fillStyle = color;
+      x.fillStyle = cream();
       x.fill();
     } else if (stat === 'average' && m.stats.average !== null) {
       const y = Y(m.stats.average);
@@ -162,7 +166,7 @@ function card(kind: 'cpu' | 'gpu' | 'ram', title: string, glyph: string) {
   sub.translate = false;
   const statLabel = el('small', 'sm-stat-label');
   const value = el('strong', 'sm-value');
-  const c = chart(COLORS[kind]);
+  const c = chart();
   const from = el('small', 'sm-axis');
   const others = el('div', 'sm-others');
   const details = el('div', 'sm-details');
@@ -170,7 +174,7 @@ function card(kind: 'cpu' | 'gpu' | 'ram', title: string, glyph: string) {
     'div',
     'sm-card-head',
     el('span', 'sm-icon', icon(glyph)),
-    el('span', 'sm-title', el('span', 'sm-title-row', el('i', 'sm-dot'), name), sub),
+    el('span', 'sm-title', el('span', 'sm-title-row', name), sub),
     el('span', 'sm-reading', statLabel, value),
   );
   const root = el('section', 'sm-card sm-' + kind, head, c.canvas, el('div', 'sm-time', from, el('small', 'sm-axis', 'şimdi')), others, details);
@@ -193,7 +197,7 @@ export function systemMonitor(api: any) {
   const reset = el('button', 'sm-pill', icon('refresh')) as HTMLButtonElement;
   reset.setAttribute('aria-label', 'Sıfırla');
   reset.type = 'button';
-  reset.title = 'Grafik geçmişini sil';
+  reset.setAttribute('aria-description', t('Grafik geçmişini sil'));
   reset.onclick = () => void api.metricsReset().then(paint);
   const action = el('span', 'sm-actions', stats.box, ranges.box, pause, reset);
   const cpu = card('cpu', 'CPU', 'cpu');
@@ -202,30 +206,63 @@ export function systemMonitor(api: any) {
   const pick = el('select', 'sm-gpu-pick') as HTMLSelectElement;
   pick.setAttribute('aria-label', 'İzlenen GPU');
   pick.onchange = () => void api.metricsSelect({ gpu: pick.value }).then(paint);
-  const background = el('input', 'sm-bg') as HTMLInputElement;
-  background.type = 'checkbox';
-  background.onchange = () => void api.metricsBackground(background.checked).then(paint);
-  const backgroundLabel = el('label', 'sm-bg-label', background, 'Arka planda ölç');
+  // v1.0.0: the island's own switch (src/island/timer.ts), not a Windows checkbox
+  const background = el('button', 'tm13-switch sm-bg', el('i')) as HTMLButtonElement;
+  background.type = 'button';
+  background.setAttribute('role', 'switch');
+  background.setAttribute('aria-label', 'Arka planda ölç');
+  background.setAttribute('aria-checked', 'false');
+  const setBackground = (on: boolean) => {
+    background.classList.toggle('on', on);
+    background.setAttribute('aria-checked', String(on));
+  };
+  background.onclick = () => {
+    const on = background.getAttribute('aria-checked') !== 'true';
+    setBackground(on);
+    void api.metricsBackground(on).then(paint);
+  };
+  const backgroundText = el('span', '', 'Arka planda ölç');
+  backgroundText.onclick = () => background.click();
+  const backgroundLabel = el('span', 'sm-bg-label', background, backgroundText);
   const topRow = el('div', 'sm-top');
   const scope = el('small', 'sm-scope');
   const foot = el('div', 'sm-foot', topRow, el('span', 'sm-foot-end', backgroundLabel, scope));
   const root = el('div', 'sm-root', el('div', 'sm-grid', cpu.root, gpu.root, ram.root), foot);
   const pair = (label: string, value: string | null) => {
-    const b = el('b', '', value ?? t(NO_DATA));
-    if (value === null) b.classList.add('sm-none');
+    // v1.0.0: a dash on screen, the sentence as aria-description (no `title`: the page turns
+    // every title into the element's name, src/ui/no-native-tooltips.ts)
+    const b = el('b', '', value ?? DASH);
+    if (value === null) {
+      b.classList.add('sm-none');
+      b.setAttribute('aria-description', t(NO_DATA));
+    }
     return el('span', 'sm-pair', el('small', '', label), b);
   };
   function reading(c: ReturnType<typeof card>, m: Metric, rangeMs: number, text: string, from: string, summary: string) {
     const stats = m.stats;
     const value = stat === 'current' ? stats.current : stat === 'average' ? stats.average : stats.peak;
     c.statLabel.textContent = t(STAT_NAMES[stat]);
-    c.value.textContent = stats.count ? pct(value) : t(NO_DATA);
+    c.value.textContent = stats.count ? pct(value) : DASH;
+    if (stats.count) c.value.removeAttribute('aria-description');
+    else c.value.setAttribute('aria-description', t(NO_DATA));
     c.value.classList.toggle('sm-none', !stats.count);
     c.chart.paint(m, view.now, rangeMs, stat, summary + ': ' + pct(value));
     c.from.textContent = from;
     const rest = (Object.keys(STAT_NAMES) as Stat[]).filter((k) => k !== stat);
     c.others.replaceChildren(...rest.map((k) => el('span', '', el('i', '', t(STAT_NAMES[k])), el('b', '', pct(k === 'current' ? stats.current : k === 'average' ? stats.average : stats.peak)))));
-    c.sub.textContent = text;
+    // a long processor or graphics card name takes a second line (.sm-sub in 07-workspace.css); the
+    // full name is the line's aria-label in case even two lines cut it
+    c.sub.textContent = text || DASH;
+    if (text) {
+      c.sub.setAttribute('aria-label', text);
+      // v1.0.0 (tips): the full name as a tooltip, shown only while the line cuts it (ui/tooltip.ts)
+      if (c.sub.dataset.tip !== text) c.sub.dataset.tip = text;
+      c.sub.removeAttribute('aria-description');
+    } else {
+      c.sub.removeAttribute('data-tip');
+      c.sub.removeAttribute('aria-label');
+      c.sub.setAttribute('aria-description', t(NO_DATA));
+    }
   }
   function paint(v: any) {
     view = v;
@@ -236,7 +273,7 @@ export function systemMonitor(api: any) {
     const seconds = Math.round(v.cpu.stats.spanMs / 1000);
     const from = v.cpu.stats.count && v.cpu.stats.spanMs < v.rangeMs * 0.97 ? t('son') + ' ' + seconds + ' ' + t('sn') + ' · ' + t(base) : t(base);
     reading(cpu, v.cpu, v.rangeMs, v.cpu.name, from, 'CPU');
-    reading(gpu, v.gpu, v.rangeMs, v.gpu.name || t(NO_DATA), from, 'GPU');
+    reading(gpu, v.gpu, v.rangeMs, v.gpu.name || '', from, 'GPU');
     reading(ram, v.ram, v.rangeMs, [v.ram.kind, gb(v.ram.total, 0) + ' GB'].filter(Boolean).join(' · '), from, 'RAM');
     cpu.details.replaceChildren(
       pair('Sıcaklık', null),
@@ -267,10 +304,16 @@ export function systemMonitor(api: any) {
         return el('span', 'sm-top-item', name, ' CPU ' + pct(p.cpu) + ' · RAM ' + bytesText(p.ram));
       }),
     );
-    background.checked = !!v.background;
+    setBackground(!!v.background);
     scope.textContent = v.error || (v.paused ? 'Duraklatıldı' : v.background ? 'Açıkken 1 sn, arka planda 5 sn · son 1 saat bellekte' : 'Yalnızca bu ekran açıkken ölçülür');
   }
   stats.set(stat);
+  // v1.0.0 (perf2): the charts' "ort"/"tepe" pills are drawn on canvas and the time and stat labels
+  // are written with t(): drawn again in the new language (also while paused)
+  document.addEventListener('charles-language', () => {
+    reset.setAttribute('aria-description', t('Grafik geçmişini sil'));
+    if (view) paint(view);
+  });
   api.onMetrics?.((v: any) => paint(v));
   new ResizeObserver(() => {
     cpu.chart.draw();

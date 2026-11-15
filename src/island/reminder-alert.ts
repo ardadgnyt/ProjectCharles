@@ -2,6 +2,7 @@
 // over Charles with the reminder, Slime jumps, the card glows and the chime repeats a few
 // times until it is answered. "10 dk ertele" sets the same reminder again.
 import { Sound } from '../vendor/core/sound';
+import { icon as lineIcon } from '../workspace/icons';
 
 type Item = { id: string; title: string; kind?: string; due?: number };
 type Deps = { api: any; notice: (s: string) => void; react: () => void };
@@ -17,7 +18,8 @@ export function reminderAlert(item: Item, d: Deps) {
   card.setAttribute('aria-live', 'assertive');
   const icon = document.createElement('div');
   icon.className = 'reminder-alert-icon';
-  icon.textContent = focus ? '⏱' : '⏰';
+  // v1.0.0: the app's line icon, not an emoji (the same as the notification card's)
+  icon.append(lineIcon(focus ? 'timer' : 'bell'));
   const text = document.createElement('div');
   text.className = 'reminder-alert-text';
   const label = document.createElement('small');

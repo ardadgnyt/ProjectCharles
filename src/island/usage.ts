@@ -21,6 +21,21 @@ const NAMES: Record<Provider, string> = {
 // Codex quota is cheap to read from the running app-server; Claude is one HTTPS call.
 // Gemini starts the Antigravity CLI, so it is refreshed only on demand.
 const PERIODIC: Partial<Record<Provider, number>> = { gpt: 60000, claude: 300000, cursor: 300000, evren: 300000 };
+// v1.0.0 (perffix P6): while no gauge is on screen the periodic read waits this long (the installed
+// app made 633 slow Codex reads a day, one a minute, mostly with nothing showing them). A low-quota
+// notice can then come up to this much later; it still comes from that read.
+export const HIDDEN_READ_MS = 600000;
+/** v1.0.0 (perffix P6): the wait before the next periodic quota read; undefined: none. */
+export function quotaReadDelay(base: number | undefined, shown: boolean): number | undefined {
+  if (!base) return undefined;
+  return shown ? base : Math.max(base, HIDDEN_READ_MS);
+}
+/** v1.0.0 (perffix P6): a gauge has just come on screen: read now (0) when the last read is older
+ *  than the visible interval, else wait for the rest of it. */
+export function quotaReadOnShow(base: number | undefined, sinceRead: number): number | undefined {
+  if (!base) return undefined;
+  return sinceRead >= base ? 0 : base - sinceRead;
+}
 const MANUAL_REFRESH: Provider[] = ['gemini', 'claude', 'cursor', 'evren'];
 
 const COLORS: Record<Provider, string> = {
@@ -91,14 +106,13 @@ export function lowQuotaText(q: LowQuota, alternatives: number, now = Date.now()
     );
   });
   return (
-    '⚠️ ' +
     t('{name} kullanım hakkın azaldı.').replace('{name}', '**' + q.name + '**') +
     '\n\n' +
     lines.join('\n') +
     '\n\n' +
     (alternatives
       ? t('Kesilmeden devam etmek için başka bir yapay zekâya geçelim mi?')
-      : t('Bağlı başka bir yapay zekâ yok; Ayarlar → Yapay zekâ bölümünden ekleyebilirsin.'))
+      : t('Bağlı başka bir yapay zekâ yok; Ayarlar’daki AI Modelleri sayfasından ekleyebilirsin.'))
   );
 }
 
@@ -247,10 +261,40 @@ export function usageUI(
     onLimit(verified === true || Date.now() < errorUntil, celebrate && verified === false);
   }
 
+  let dueAt = Infinity;
   function schedule(delay: number | undefined) {
     clearTimeout(timer);
+    dueAt = delay ? Date.now() + delay : Infinity;
     if (delay) timer = setTimeout(() => void refresh(true), delay);
   }
+
+  // v1.0.0 (perffix P6): is a quota gauge on screen? The island's (this panel, on the shelf) or the
+  // app window's "AI kullanımı" card. Each is watched by a ResizeObserver (0 x 0 while not shown),
+  // so coming on screen is noticed at once without polling.
+  let shownBefore = false;
+  const watched = new WeakSet<Element>();
+  const gaugeShown = () => {
+    const card = document.querySelector('.ws-usage');
+    if (card && !watched.has(card)) {
+      watched.add(card);
+      sight.observe(card);
+    }
+    return (
+      document.visibilityState === 'visible' &&
+      (panel.getClientRects().length > 0 || !!card?.getClientRects().length)
+    );
+  };
+  const sight = new ResizeObserver(() => {
+    const now = gaugeShown();
+    if (now && !shownBefore) {
+      const wait = quotaReadOnShow(PERIODIC[provider], Date.now() - lastRead);
+      if (wait === 0) void refresh(true);
+      else if (wait !== undefined && Date.now() + wait < dueAt) schedule(wait);
+    }
+    shownBefore = now;
+  });
+  sight.observe(panel);
+  watched.add(panel);
 
   // force: bypass the main-process cache (manual ↻, after an answer, periodic timer).
   // switching: a provider change; always asks, but the main process may answer from cache.
@@ -261,7 +305,7 @@ export function usageUI(
     lastRead = Date.now();
     renew.disabled = true;
     panel.classList.add('loading');
-    let delay = PERIODIC[target];
+    let delay = quotaReadDelay(PERIODIC[target], gaugeShown());
     try {
       let v = await api.usageRead(force, target);
       if (id !== sequence || target !== provider) return; // the user switched meanwhile
@@ -336,6 +380,16 @@ export function usageUI(
     // read only on demand)
     judge(lastValue.get(provider), false);
   }, 30000);
+  // v1.0.0 (perf2): the window names and "resets in" texts are written with t(), which the page's
+  // translator cannot map back to Turkish: they are written again in the new language
+  document.addEventListener('charles-language', () => {
+    const v = lastValue.get(provider);
+    resets(v);
+    for (const key of ['fiveHour', 'weekly'])
+      panel.querySelector('[data-window="' + key + '"] .usage-label')!.textContent = t(
+        v?.labels?.[key] || (key === 'fiveHour' ? '5 saat' : 'Haftalık'),
+      );
+  });
   paint(null);
   // Start on the main AI's quota.
   void api

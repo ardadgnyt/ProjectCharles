@@ -1,10 +1,12 @@
 // v0.9.10: tidies a model's answer before it is rendered as Markdown.
 //
 // 1. Codex marks the files it used as `:codex-file-citation{path="…" purpose="source"}`. These
-//    were printed as raw text; now each becomes a small "📄 file" chip.
+//    were printed as raw text; now each becomes a small file chip (file icon and name).
 // 2. A `|` inside a formula in a table row (`$|Z_n|$`) split the cell, the row had more cells than
 //    the header line and the whole table was shown as plain text with pipes. Inside formulas in
 //    table rows the bar is written as `\vert`, which KaTeX draws the same way.
+
+import { icon } from '../workspace/icons';
 
 const CITE = /:codex-file-citation\{([^{}\n]{0,2000})\}/g;
 export const CITE_MARK = '⁣CITE';
@@ -62,18 +64,23 @@ export function placeCitations(root: HTMLElement, citations: Citation[]) {
       if (!c) return;
       const chip = document.createElement('span');
       chip.className = 'file-cite';
-      chip.title = c.path;
+      // the name is the visible file name; the full path is a description (a title would become
+      // the chip's name: ui/no-native-tooltips.ts)
+      chip.setAttribute('aria-description', c.path);
       const ext = (/\.([a-z0-9]{1,8})$/i.exec(c.name)?.[1] || '').toUpperCase();
       // Charles keeps attachments as <id>.pdf in its inbox: show the original name when known
       const id = UUID_FILE.test(c.name) ? c.name.replace(/\.[^.]+$/, '') : '';
-      chip.textContent = '📄 ' + (id ? attachmentNames.get(id) || 'Ekteki belge' + (ext ? ' · ' + ext : '') : c.name);
+      // v1.0.0: the file icon of the icon set, in the text colour (it was a page emoji)
+      const label = document.createElement('span');
+      label.textContent = id ? attachmentNames.get(id) || 'Ekteki belge' + (ext ? ' · ' + ext : '') : c.name;
+      chip.append(icon('file'), label);
       if (id) {
         chip.dataset.attachment = id;
         void (window as any).charles?.attachmentName?.(id)
           .then((name: string) => {
             if (!name) return;
             attachmentNames.set(id, name);
-            chip.textContent = '📄 ' + name;
+            label.textContent = name;
           })
           .catch(() => {});
       }
@@ -83,5 +90,9 @@ export function placeCitations(root: HTMLElement, citations: Citation[]) {
   }
   // a paragraph that held only the chip(s) becomes a quiet row
   for (const p of root.querySelectorAll('p'))
-    if (p.querySelector('.file-cite') && !p.textContent?.replace(/📄[^\n]*/g, '').trim()) p.classList.add('cite-row');
+    if (
+      p.querySelector('.file-cite') &&
+      [...p.childNodes].every((n) => (n as Element).classList?.contains('file-cite') || !n.textContent?.trim())
+    )
+      p.classList.add('cite-row');
 }

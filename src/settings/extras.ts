@@ -2,18 +2,12 @@ import { attachmentCard, attachmentNames } from '../chat/attachment-card';
 import { paintSoundButton } from '../ui/sound-button';
 import { historyFolders } from '../chat/history-folders';
 import { setRoomActions } from '../workspace/bridge';
-import { animationLoop } from '../island/animation-loop';
 import { Sound } from '../vendor/core/sound';
-import { BotEngine, hexToRGB } from '../vendor/slime/engine';
+import { BotEngine } from '../vendor/slime/engine';
 const $ = (id: string) => document.getElementById(id)!;
 const input = (id: string) => $(id) as HTMLInputElement;
-// v0.7.0: only GitHub is listed, as a "coming in a later version" card. Vercel, Stripe,
-// Resend, Notion, Cal.com and n8n were removed from Settings.
-const labels: Record<string, string> = {
-  github: 'GitHub',
-};
-const COMING_SOON = true;
-const colors = ['#76cfb3', '#d7b6f9', '#9ab8ff', '#ffb3b3', '#e1cf9b', '#a3d9f2', '#efad88'];
+// v1.0.0: the developer services draft (a "GitHub connection · coming soon" card, and the token
+// services behind it) was removed from Settings and from the main process.
 export function extraUI(
   api: any,
   bot: BotEngine,
@@ -42,15 +36,29 @@ export function extraUI(
     if (settings.open) settings.close();
     closeRooms();
   }
-  function showSettings() {
+  // v1.0.0 (CH-532): focus goes back to what opened Settings. The browser's own return lost it: the
+  // dialog opens after the island has expanded, when the button may no longer hold the focus.
+  let opener: HTMLElement | null = null;
+  function showSettings(from: Element | null = document.activeElement) {
     closeRooms();
-    if (!settings.open) settings.showModal();
+    if (settings.open) return;
+    opener = from instanceof HTMLElement && from !== document.body ? from : null;
+    settings.showModal();
   }
-  $('settings-toggle').onclick = () =>
-    attempt(async () => {
+  settings.addEventListener('close', () => {
+    const back = opener;
+    opener = null;
+    // at this point the focus may still sit on a control of the closed dialog
+    const at = document.activeElement;
+    if (back?.isConnected && (!at || at === document.body || settings.contains(at))) back.focus();
+  });
+  $('settings-toggle').onclick = () => {
+    const from = document.activeElement;
+    return attempt(async () => {
       await api.expand(true);
-      showSettings();
+      showSettings(from);
     });
+  };
   $('settings-close').onclick = closeSettings;
   settings.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
@@ -72,27 +80,6 @@ export function extraUI(
   let files: any[] = [],
     current: any = null,
     sessionSignature = '';
-  const miniBots: { engine: BotEngine; canvas: HTMLCanvasElement }[] = [];
-  let frameTime = performance.now();
-  const frame = (now: number) => {
-    for (const m of miniBots) {
-      if (!m.canvas.getClientRects().length) continue;
-      m.engine.update(Math.min(0.05, (now - frameTime) / 1000));
-      const ctx = m.canvas.getContext('2d')!;
-      ctx.clearRect(0, 0, 64, 64);
-      m.engine.draw(ctx, 64, 64);
-    }
-    frameTime = now;
-  };
-  const previews = animationLoop(
-    frame,
-    () => settings.open && document.visibilityState === 'visible',
-    () => 20,
-  );
-  new MutationObserver(() => previews.start()).observe(settings, {
-    attributes: true,
-    attributeFilter: ['open'],
-  });
   const hideName = attachmentNames($('attachments'));
   // v0.9.24: files in one message; nothing limits their size
   const MAX_FILES = 1000;
@@ -163,7 +150,7 @@ export function extraUI(
     (item: any) =>
       void attempt(async () => {
         await addFiles([item]);
-        notice('Alan eklendi 📸 Ne sormak istersin?');
+        notice('Alan eklendi. Ne sormak istersin?');
         $('prompt').focus();
       }),
   );
@@ -319,110 +306,12 @@ export function extraUI(
     input('pref-close-seconds').value = String(value.closeSeconds);
     input('pref-seconds').value = String(value.hideSeconds);
     input('pref-screen').value = value.screen;
-    input('pause-services').checked = value.paused;
     Sound.setEnabled(value.sound);
     Sound.setVolume(value.volume);
     paintSoundButton(value.sound);
-    $('service-pills').replaceChildren();
-    miniBots.length = 0;
-    for (const [i, s] of value.services.entries()) {
-      const status = $(`service-state-${s.id}`);
-      if (status)
-        status.textContent = s.configured
-          ? s.result?.error || s.result?.rows?.join('\n') || 'Bağlı · Yenile ile verileri al'
-          : 'Bağlantı kurulmadı';
-      if (!s.configured || COMING_SOON || !(s.id in labels)) continue;
-      const b = document.createElement('button');
-      b.className = 'service-pill';
-      const c = document.createElement('canvas');
-      c.width = 64;
-      c.height = 64;
-      const engine = new BotEngine();
-      engine.isMini = true;
-      engine.bodyColor = hexToRGB(colors[i]);
-      engine.setState(s.result?.error ? 'error' : 'idle');
-      miniBots.push({ canvas: c, engine });
-      b.append(c, document.createTextNode(labels[s.id]));
-      b.title = s.result?.error || s.result?.rows?.join('\n') || 'Veri bekleniyor';
-      b.onclick = () => {
-        showSettings();
-        ($(`service-${s.id}`) as HTMLDetailsElement).open = true;
-        $(`service-${s.id}`).scrollIntoView({ block: 'nearest' });
-      };
-      $('service-pills').append(b);
-    }
   }
   function init(value: any, displays: any[], rooms: any[]) {
     for (const d of displays) ($('pref-screen') as HTMLSelectElement).add(new Option(d.name, d.id));
-    $('service-settings').replaceChildren();
-    if (COMING_SOON) {
-      const card = document.createElement('div');
-      card.className = 'coming-soon';
-      card.innerHTML =
-        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>';
-      const text = document.createElement('div');
-      const name = document.createElement('strong');
-      name.textContent = 'GitHub bağlantısı';
-      const note = document.createElement('span');
-      note.textContent = 'İleriki sürümlerde gelecek';
-      text.append(name, note);
-      const badge = document.createElement('span');
-      badge.className = 'soon-badge';
-      badge.textContent = 'Yakında';
-      card.append(text, badge);
-      card.setAttribute('aria-disabled', 'true');
-      $('service-settings').append(card);
-    }
-    for (const id of COMING_SOON ? [] : Object.keys(labels)) {
-      const d = document.createElement('details');
-      d.id = `service-${id}`;
-      const title = document.createElement('summary');
-      title.textContent = labels[id];
-      d.append(title);
-      const token = document.createElement('input');
-      token.type = 'password';
-      token.autocomplete = 'off';
-      token.placeholder = 'API anahtarı / token';
-      token.setAttribute('aria-label', `${labels[id]} anahtarı`);
-      d.append(token);
-      const url = document.createElement('input');
-      if (id === 'n8n') {
-        url.placeholder = 'https://n8n.adresin.com';
-        url.setAttribute('aria-label', 'n8n adresi');
-        d.append(url);
-      }
-      const actions = document.createElement('div');
-      actions.className = 'row';
-      for (const [label, action] of [
-        ['Kaydet', 'save'],
-        ['Yenile', 'refresh'],
-        ['Bağlantıyı kaldır', 'remove'],
-      ]) {
-        const b = document.createElement('button');
-        b.textContent = label;
-        b.onclick = () =>
-          attempt(async () => {
-            if (action === 'refresh') {
-              await api.serviceRefresh(id);
-            } else {
-              if (action === 'save' && !token.value.trim()) throw Error('Anahtar girin.');
-              paint(
-                await api.serviceSave({
-                  id,
-                  token: action === 'remove' ? '' : token.value.trim(),
-                  url: url.value.trim(),
-                }),
-              );
-              token.value = '';
-            }
-          });
-        actions.append(b);
-      }
-      const status = document.createElement('pre');
-      status.id = `service-state-${id}`;
-      d.append(actions, status);
-      $('service-settings').append(d);
-    }
     paint(value);
     sessions(rooms);
   }
@@ -480,10 +369,8 @@ export function extraUI(
   ])
     input(id).addEventListener('change', saveSoon);
   $('save-prefs').hidden = true;
-  $('pause-services').onchange = () =>
-    attempt(async () => paint(await api.pauseServices(input('pause-services').checked)));
   api.onExtras(paint);
-  api.onSettings(showSettings);
+  api.onSettings(() => showSettings());
   api.onHidden((v: boolean) => {
     document.body.classList.toggle('hidden-island', !!v);
     if (v) Sound.idle();

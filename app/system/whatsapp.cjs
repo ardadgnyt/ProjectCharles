@@ -194,8 +194,8 @@ async function sendWhatsApp(cmd, { contacts, openExternal, automate, en = false 
   }
   const hint = cmd.to ? (en ? `I couldn't open the chat with “${cmd.to}”. ` : `“${cmd.to}” sohbetini açamadım. `) : '';
   return en
-    ? `${hint}WhatsApp opened with the message “${cmd.message}”: pick the person and press send. You can save numbers in Settings → Plugins → WhatsApp.`
-    : `${hint}WhatsApp “${cmd.message}” mesajıyla açıldı: kişiyi seçip gönder’e bas. Numaraları Ayarlar → Eklentiler → WhatsApp’a kaydedebilirsin.`;
+    ? `${hint}WhatsApp opened with the message “${cmd.message}”: pick the person and press send. You can save numbers on the WhatsApp card of the Plugins page in Settings.`
+    : `${hint}WhatsApp “${cmd.message}” mesajıyla açıldı: kişiyi seçip gönder’e bas. Numaraları Ayarlar’daki Eklentiler sayfasında WhatsApp kartına kaydedebilirsin.`;
 }
 
 /** Runs a short PowerShell script on Windows and resolves its output. */

@@ -264,7 +264,9 @@ export function sidePanel(d: SidePanelDeps) {
         t.kind = 'file';
         paint();
       }
-      await api.fileOpen(t.path, how);
+      // v1.0.0: a program or script is shown in its folder, never run (main.cjs file-open)
+      if ((await api.fileOpen(t.path, how)) === 'folder')
+        d.notice('Bu bir program ya da betik dosyası; çalıştırılmadı, bulunduğu klasör açıldı.');
     } catch (e) {
       d.notice((e as Error).message);
     }

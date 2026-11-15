@@ -14,7 +14,6 @@ export const english0926: Record<string, string> = {
   'Bazı kısayolları başka bir uygulama kullanıyor veya Windows izin vermiyor. İlgili satırdan farklı bir tuş birleşimi kaydet.':
     'Another app uses some shortcuts or Windows does not allow them. Record a different key combination in that row.',
   'Kaydediliyor…': 'Saving…',
-  'Kaydedildi; yeni kısayol hemen çalışır.': 'Saved; the new shortcut works now.',
   'Kısayol kapatıldı.': 'Shortcut turned off.',
   'Varsayılan kısayollar geri geldi.': 'The default shortcuts are back.',
   // model list
@@ -22,7 +21,6 @@ export const english0926: Record<string, string> = {
   'Bu EVREN modeli sohbet için listelenmiyor. Model listesinden EVREN · Otomatik ya da başka bir model seç.':
     'This EVREN model is not listed for chat. Choose EVREN · Auto or another model from the list.',
   // the picture card and the big view
-  'Renkler ekleniyor…': 'Adding colours…',
   '{n} sn': '{n} s',
   'Görsel oluşturulamadı.': 'The image could not be created.',
   'Görsel oluşturma durduruldu.': 'Image creation was stopped.',
@@ -56,7 +54,6 @@ export const english0926: Record<string, string> = {
   '{pct} kaldı': '{pct} left',
   '{time} sonra yenilenir': 'resets in {time}',
   'Kesilmeden devam etmek için başka bir yapay zekâya geçelim mi?': 'Shall we switch to another AI so you can keep going?',
-  'Bağlı başka bir yapay zekâ yok; Ayarlar → Yapay zekâ bölümünden ekleyebilirsin.': 'No other AI is connected; you can add one in Settings → AI.',
   '{model} modeline geç': 'Switch to {model}',
   'Önce çalışan iş bitsin, sonra geçebilirim.': 'Let the running task finish first, then I can switch.',
   'Tamam, {model} modeline geçtim.': 'OK, I switched to {model}.',
@@ -277,10 +274,7 @@ export const english0926: Record<string, string> = {
   'Arşivde dosya yok.': 'The archive has no files.',
   'Bu adla bir dosya zaten var.': 'A file with this name already exists.',
   'Yerel konuşma modeli (Whisper) bulunamadı; Charles kurulumunu onar.': 'The local speech model (Whisper) was not found; repair the Charles installation.',
-  'Bu ses biçimine dönüştürülemiyor.': 'Cannot convert to this audio format.',
   'Bitiş zamanı başlangıçtan sonra olmalı.': 'The end time must be after the start.',
-  'Kare aralığı geçersiz.': 'The frame range is not valid.',
-  'Hiç kare seçilmedi.': 'No frame was chosen.',
   'İşlem çok uzun sürdü; durduruldu.': 'The task took too long; it was stopped.',
   'Görselde çizilecek bir şey yok (tamamen saydam).': 'There is nothing to draw in the picture (it is fully transparent).',
   'Sayfa resmi okunamadı.': 'The page picture could not be read.',

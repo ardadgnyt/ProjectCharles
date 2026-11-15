@@ -15,9 +15,39 @@ export type CardDef = {
   placed?: (on: boolean) => void;
 };
 
+/**
+ * v1.0.0: where the saved layout's cards are drawn. The saved columns are read as they are (a layout
+ * from an older version needs no conversion); the cards in `topIds` are drawn across the top, in
+ * their saved order, and every other card stays in its column and order.
+ */
+export function arrange(layout: string[][], topIds: string[]) {
+  const onTop = new Set(topIds);
+  return {
+    top: layout.flat().filter((id) => onTop.has(id)),
+    cols: layout.map((col) => col.filter((id) => !onTop.has(id))),
+  };
+}
+
+/** v1.0.0: two layouts place the same cards in the same columns and order. */
+export function sameLayout(a: string[][], b: string[][]) {
+  return [0, 1].every((i) => (a[i] || []).join() === (b[i] || []).join());
+}
+/** v1.0.0: "Düzeni sıfırla" — a fresh copy of the default layout (nothing hidden, default order). */
+export function resetLayout(defaults: string[][]) {
+  return [defaults[0] || [], defaults[1] || []].map((c) => c.slice());
+}
+
 export function dashEditor(o: {
   root: HTMLElement;
   cols: HTMLElement[];
+  /** v1.0.0: the default layout, restored by "Düzeni sıfırla" in the edit bar. */
+  defaults?: string[][];
+  /**
+   * v1.0.0: cards drawn across the full width above the columns (the message box). The saved
+   * layout is unchanged: such a card keeps its place in a column's list, it is only drawn on top.
+   * It can be removed and added like any card, but not dragged.
+   */
+  top?: { element: HTMLElement; ids: string[] };
   cards: CardDef[];
   save: (cols: string[][]) => Promise<void>;
   /** Shows / hides the home page title bar button state. */
@@ -33,14 +63,39 @@ export function dashEditor(o: {
   const doneB = el('button', 'ws-primary', icon('check'), el('span', '', 'Bitti'));
   doneB.type = 'button';
   doneB.onclick = () => setEditing(false);
-  const bar = el(
-    'div',
-    'ws-home-editbar',
-    el('span', 'ws-home-editbar-icon', icon('grip')),
-    el('div', 'ws-home-editbar-text', el('strong', '', 'Ana sayfayı düzenliyorsun'), el('small', '', 'Kartları tutup sürükleyerek yerini veya sütununu değiştir; × ile kaldır.')),
-    doneB,
-  );
+  // v1.0.0: "Düzeni sıfırla" asks in the bar itself (like "Eminim, geri al" in the review), then
+  // restores the default layout and stays in the edit mode so the result is seen
+  const resetB = el('button', 'ws-home-reset', icon('undo'), el('span', '', 'Düzeni sıfırla'));
+  resetB.type = 'button';
+  const yesB = el('button', 'ws-home-reset ws-home-reset-yes', el('span', '', 'Evet, sıfırla'));
+  yesB.type = 'button';
+  const noB = el('button', 'ws-home-reset', el('span', '', 'Vazgeç'));
+  noB.type = 'button';
+  const text = el('div', 'ws-home-editbar-text', el('strong', '', 'Ana sayfayı düzenliyorsun'), el('small', '', 'Kartları tutup sürükleyerek yerini veya sütununu değiştir; × ile kaldır.'));
+  const ask = el('div', 'ws-home-editbar-text', el('strong', '', 'Varsayılan düzene dönülsün mü?'), el('small', '', 'Kartlar ilk yerlerine döner, kaldırdıkların geri gelir.'));
+  const bar = el('div', 'ws-home-editbar', el('span', 'ws-home-editbar-icon', icon('grip')), text, ask, resetB, noB, yesB, doneB);
   bar.hidden = true;
+  function asking(v: boolean) {
+    text.hidden = v;
+    resetB.hidden = v || !o.defaults;
+    doneB.hidden = v;
+    ask.hidden = !v;
+    noB.hidden = !v;
+    yesB.hidden = !v;
+    if (v) noB.focus();
+  }
+  asking(false);
+  resetB.onclick = () => asking(true);
+  noB.onclick = () => {
+    asking(false);
+    resetB.focus();
+  };
+  yesB.onclick = () => {
+    asking(false);
+    if (o.defaults) layout = resetLayout(o.defaults);
+    commit();
+    doneB.focus();
+  };
 
   // empty page
   const emptyAdd = el('button', 'ws-primary', icon('plus'), el('span', '', 'Kart ekle'));
@@ -87,8 +142,15 @@ export function dashEditor(o: {
       o.root.after(empty);
     }
     const placed = new Set(layout.flat());
+    resetB.disabled = !o.defaults || sameLayout(layout, o.defaults);
+    const onTop = new Set(o.top?.ids || []);
+    const drawn = arrange(layout, o.top?.ids || []);
+    if (o.top) {
+      o.top.element.replaceChildren(...drawn.top.map((id) => byId.get(id)!.element));
+      o.top.element.hidden = !drawn.top.length;
+    }
     o.cols.forEach((col, i) => {
-      const ids = layout[i] || [];
+      const ids = drawn.cols[i] || [];
       const nodes: Node[] = ids.map((id) => byId.get(id)!.element);
       if (on) {
         const add = el('button', 'ws-card-add', icon('plus'), el('span', '', 'Kart ekle'));
@@ -99,7 +161,7 @@ export function dashEditor(o: {
       col.replaceChildren(...nodes);
     });
     for (const c of o.cards) {
-      c.element.draggable = on;
+      c.element.draggable = on && !onTop.has(c.id);
       const was = c.element.dataset.placed === '1';
       const now = placed.has(c.id);
       c.element.dataset.placed = now ? '1' : '';
@@ -122,6 +184,7 @@ export function dashEditor(o: {
   }
   function setEditing(v: boolean) {
     on = v;
+    asking(false);
     o.root.classList.toggle('editing', on);
     bar.hidden = !on;
     paint();

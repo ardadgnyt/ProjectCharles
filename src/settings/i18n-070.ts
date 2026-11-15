@@ -18,14 +18,6 @@ export const english070: Record<string, string> = {
   'Bu plan için kota bilgisi yok': 'No usage details for this plan',
   // settings
   'Hava durumu': 'Weather',
-  'Geliştirici servisleri': 'Developer services',
-  'GitHub bağlantısı': 'GitHub connection',
-  'İleriki sürümlerde gelecek': 'Coming in a later version',
-  Yakında: 'Soon',
-  '✓ ChatGPT bağlı': '✓ ChatGPT connected',
-  '✓ Antigravity bağlı': '✓ Antigravity connected',
-  '✓ Claude bağlı': '✓ Claude connected',
-  '✓ Cursor bağlı': '✓ Cursor connected',
   // memory
   'Kayıtlı bilgiler': 'Saved notes',
   'Kullandığım AI ile beni tanı': 'Get to know me from the AI I use',
@@ -49,17 +41,10 @@ export const english070: Record<string, string> = {
   'Soru paketi kopyalandı. Kullandığın yapay zekânın sohbetine yapıştır.':
     'Question pack copied. Paste it into your AI’s chat.',
   // welcome tour
-  'Hangi yapay zekâyı kullanıyorsun? Birini seç, girişi birlikte yapalım. Diğerlerini sonra Ayarlar → AI Modelleri’nden ekleyebilirsin.':
-    'Which AI do you use? Pick one and we will sign in together. You can add the others later in Settings → AI models.',
-  'ChatGPT hesabınla': 'With your ChatGPT account',
-  'Claude aboneliğinle': 'With your Claude plan',
   'Google hesabınla': 'With your Google account',
-  'Cursor hesabınla': 'With your Cursor account',
   'Giriş açılıyor…': 'Opening sign-in…',
   'ChatGPT zaten bağlı. Devam edebilirsin.': 'ChatGPT is already connected. You can continue.',
   'Tarayıcıda girişi tamamla; ben buradayım.': 'Finish signing in in your browser; I’ll wait here.',
-  'Açılan pencerede girişi tamamla, sonra Devam’a bas. Yardım istersen Ayarlar → AI Modelleri → Charles ile kur.':
-    'Finish signing in in the window that opened, then press Continue. For help: Settings → AI models → Set up with Charles.',
   Devam: 'Continue',
   // questions from the AI
   'Charles soruyor': 'Charles asks',

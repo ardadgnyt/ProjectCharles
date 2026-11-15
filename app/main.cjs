@@ -2,13 +2,32 @@
 // through the branded host before creating any window or acquiring the app lock.
 // v0.9.24: so does an older host (its file still says Electron): an update restarts the program it
 // was running, and only Charles.exe knows which host is current.
+// v1.0.0: host 4 carries the 1.0.0.0 version resource; a host 3 left by the Release Candidates is replaced the same way.
+// v1.0.0: so does any host while a newer Electron waits in _update\runtime (app/core/runtime-update.cjs):
+// only Charles.exe can put it in place, before Electron runs. It sets CHARLES_RUNTIME_TRIED when it
+// left the runtime where it was, so this never loops.
 const startedAs = require('node:path').basename(process.execPath).toLowerCase();
+const runtimeWaits = (() => {
+  try {
+    return require('./core/runtime-update.cjs').shouldHandOver({
+      root: require('node:path').resolve(__dirname, '..'),
+      running: process.versions.electron,
+      app: require('../package.json').version,
+    });
+  } catch {
+    return false;
+  }
+})();
 if (process.platform === 'win32' && !process.argv.includes('--demo') &&
-    (startedAs === 'electron.exe' || (startedAs.startsWith('charles-host-') && process.env.CHARLES_HOST !== '3'))) {
+    (startedAs === 'electron.exe' || (startedAs.startsWith('charles-host-') && process.env.CHARLES_HOST !== '4') || runtimeWaits)) {
   const entry = require('node:path').resolve(__dirname, '..', 'Charles.exe');
   if (require('node:fs').existsSync(entry)) {
+    const env = { ...process.env };
+    // the runtime hand-over: this host is about to exit, and a launcher that cannot apply it never
+    // hands it back here again
+    if (runtimeWaits) Object.assign(env, { CHARLES_RUNTIME_WAIT: '1', CHARLES_RUNTIME_TRIED: '1' });
     const child = require('node:child_process').spawn(entry, process.argv.slice(2), {
-      detached: true, stdio: 'ignore', windowsHide: true,
+      detached: true, stdio: 'ignore', windowsHide: true, env,
     });
     child.on('error', error => { console.error('Charles launcher:', error); require('electron').app.exit(1); });
     child.once('spawn', () => { child.unref(); require('electron').app.exit(0); });
@@ -44,6 +63,9 @@ try {
     process.env.APPDATA || path.join(require('node:os').homedir(), 'AppData', 'Roaming');
   app.setPath('userData', path.join(roaming, 'Charles'));
 } catch {}
+// v1.0.0 (perf2 P10): "Düşük bellek modu" (Settings → Performance) must be applied before ready.
+// Off (the default, or an unreadable file) changes nothing at all.
+if (require('./core/low-memory.cjs').lowMemoryWanted(app.getPath('userData'))) app.disableHardwareAcceleration();
 require('./core/system-ca.cjs').trustSystemCertificates();
 const { pathToFileURL } = require('node:url');
 const { Sessions } = require('./ai/sessions.cjs');
@@ -71,6 +93,9 @@ let startup,
   usageForeground;
 const { Preferences } = require('./core/preferences.cjs');
 const { Companion } = require('./personal/companion.cjs');
+// v1.0.0: one builder for every notification card, one text table for cards and toasts
+const noticeCards = require('./plugins/notice-cards.cjs');
+const noticeText = require('./plugins/notice-text.cjs');
 const { bounds, surfaceBounds, ISLAND_SMALL } = require('./core/layout.cjs');
 const { memoryCommand } = require('./personal/memory.cjs');
 const profileTransfer = require('./personal/profile-transfer.cjs');
@@ -153,7 +178,6 @@ let cursorTimer;
 let cursorQuota = null;
 const micBlocked = () => !!extras?.prefs?.micOff;
 let extras,
-  serviceTimer,
   hidden = false,
   lastInside = Date.now();
 const demo = process.argv.includes('--demo');
@@ -172,6 +196,38 @@ let mailBubble = null,
   mailAlerts = null,
   proposals = null,
   bubbleTimer = null;
+// v1.0.0: the second part of an update, a newer Electron (app/core/runtime-update.cjs)
+let runtime = null,
+  runtimeCarded = false;
+/** The one line Charles.exe shows while it puts the new Electron in place, in the interface language. */
+const runtimeText = () => noticeText.say(v2?.data?.language || 'tr', 'Charles güncellemenin ikinci bölümünü kuruyor…');
+/**
+ * "Şimdi yeniden başlat": Charles.exe applies the waiting runtime once this host has gone
+ * (app.relaunch would start this same host again, without the launcher).
+ */
+function restartForRuntime() {
+  if (demo) throw Error('Önizleme modunda güncelleme yapılmaz.');
+  if (process.platform !== 'win32') throw Error('Yerinde güncelleme yalnızca Windows’ta çalışır.');
+  if (!runtime?.isReady()) throw Error('Güncellemenin ikinci bölümü henüz hazır değil.');
+  if (agent?.busy) throw Error('Önce etkin yanıtı durdur, sonra yeniden başlat.');
+  const entry = path.join(root, 'Charles.exe');
+  if (!fs.existsSync(entry)) throw Error('Charles.exe bulunamadı.');
+  const env = { ...process.env, CHARLES_RUNTIME_WAIT: '1' };
+  for (const k of ['CHARLES_RUNTIME_TRIED', 'CHARLES_HOST', 'ELECTRON_RUN_AS_NODE']) delete env[k];
+  return new Promise((resolve, reject) => {
+    const child = require('node:child_process').spawn(entry, [], { cwd: root, env, detached: true, stdio: 'ignore', windowsHide: true });
+    child.once('error', (e) => reject(Error('Charles yeniden başlatılamadı: ' + e.message)));
+    child.once('spawn', () => {
+      child.unref();
+      quitting = true;
+      setTimeout(() => {
+        app.quit();
+        setTimeout(() => app.exit(0), 5000).unref();
+      }, 300);
+      resolve(true);
+    });
+  });
+}
 // v0.9.18: petOut: Charles in his own small window, with the panel left as it was (`detached` is
 // the older mode: the whole page shrinks to him, used when the island is closed)
 let petOut = false,
@@ -953,7 +1009,47 @@ function detachPet(value) {
 // apps (some of them always-on-top themselves) are activated.
 // v0.9.6: the island too stays above every window — unless another app covers its whole
 // screen (a game, a video, a presentation); then it steps back until that app is left.
+// v1.0.0 (taskbar): `fullscreenOther` is a full-screen program in front on a display that holds a
+// Charles window (the island steps back, cards wait, drawing pauses); with full screen only on another
+// display the island stays on top there. `fullscreenFront` is any full-screen program in front, on any
+// display: taking the foreground from it (focus, flashes, toasts) waits.
 let fullscreenOther = false;
+let fullscreenFront = false;
+const fullscreenGate = require('./core/fullscreen-gate.cjs').createGate(() => fullscreenFront);
+/** v1.0.0 (bughunt): a reminder answered (card closed, reminder deleted) while a full-screen
+ *  program held its alert: what waited for it (panel, toast, flash) no longer runs afterwards. */
+function dropReminderAlert(id) {
+  if (!id) return;
+  for (const key of ['open:reminder:', 'toast:reminder:', 'flash:reminder:']) fullscreenGate.drop(key + id);
+}
+/** v1.0.0 (taskbar): the displays that hold a visible Charles window. */
+function charlesDisplays() {
+  const { screen } = require('electron');
+  const boxes = [];
+  for (const w of [islandWin, workspace ? appWin : null, petOut ? petWin : null])
+    if (w && !w.isDestroyed() && w.isVisible()) boxes.push(w.getBounds());
+  const cards = mailBubble?.box?.();
+  if (cards) boxes.push(cards);
+  return new Set(boxes.map((b) => screen.getDisplayMatching(b).id));
+}
+/** v1.0.0 (taskbar): the display of a monitor the helper names in physical pixels. */
+function displayOfMonitor(mon) {
+  const { screen } = require('electron');
+  const px = { x: mon[0], y: mon[1], width: mon[2] - mon[0], height: mon[3] - mon[1] };
+  return screen.getDisplayMatching(screen.screenToDipRect ? screen.screenToDipRect(null, px) : px).id;
+}
+// v1.0.0 (perffix): an older helper says only that the window in front fills its monitor, not which
+// one. With one display that covers Charles; with several, the full-screen program is taken to be on
+// the display under the pointer (a game holds it there), and Charles is covered only when his window
+// (island, app window or desktop Slime) is on that display. Asked only when the state changes.
+function fullscreenCoversCharles() {
+  const { screen } = require('electron');
+  if (screen.getAllDisplays().length < 2) return true;
+  const there = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).id;
+  return [win, petOut ? petWin : null].some(
+    (w) => w && !w.isDestroyed() && w.isVisible() && screen.getDisplayMatching(w.getBounds()).id === there,
+  );
+}
 function raisePet() {
   if (!petWin || petWin.isDestroyed()) return;
   petWin.setAlwaysOnTop(!fullscreenOther, 'screen-saver');
@@ -1001,26 +1097,48 @@ function startTopGuard() {
   if (process.platform !== 'win32' || topGuard || demo) return;
   topForeground = foregroundReader();
   const check = (fg) => {
-    if (!fg || !win || win.isDestroyed() || workspace || rackDragging) return;
+    if (!fg || !win || win.isDestroyed() || rackDragging) return;
+    // v1.0.0: a report that could not say (the helper failed on this window) changes nothing. It
+    // used to count as "not full screen" and put the island and the cards back over a game.
+    // v1.0.0 (taskbar): on which display the full-screen window is (decide() in fullscreen-gate.cjs)
+    const d = require('./core/fullscreen-gate.cjs').decide(fg, { ownPid: process.pid, charlesDisplays: charlesDisplays(), displayOf: displayOfMonitor });
+    if (!d) return;
     const ours = Number(fg.pid) === process.pid;
-    const full = !!fg.full && !ours;
-    if (full !== fullscreenOther) {
-      fullscreenOther = full;
-      applyTopmost();
+    if (d.front !== fullscreenFront) {
+      fullscreenFront = d.front;
       // v0.9.18: a game gets its Down Arrow at once, with no wait for a double press
-      dictation?.pause(full || micBlocked());
+      dictation?.pause(d.front || micBlocked());
+      // v1.0.0 (taskbar): what waited for its end (a flash, a toast, a window to open) runs now
+      if (!d.front) fullscreenGate.flush();
+    }
+    // v1.0.0: also with the app window open. This used to stop here for `workspace`, so a game
+    // started while the app window was open was never noticed: a WhatsApp or mail card then came up
+    // above it, topmost, and Windows dropped the game to the desktop (user report).
+    if (d.here !== fullscreenOther) {
+      fullscreenOther = d.here;
+      applyTopmost();
       // v0.9.25: cards hide for the full-screen app and come back when it is left
       mailBubble?.place();
+      // v1.0.0 (perffix): Slime's frames wait behind it (an open, pinned island kept drawing); the
+      // display is the helper's word, guessed from the pointer only with an older helper
+      win.webContents.send('ui-fullscreen-other', d.here && (d.known || fullscreenCoversCharles()));
       return;
     }
-    if (full) return;
+    // the app window is an ordinary window: nothing of the island is raised for it
+    if (d.here || workspace) return;
     // another app came forward: assert the topmost flag again (Windows may have dropped it)
     // and put the island back on top
     if ((Number(fg.window) !== lastForegroundWindow && !ours) || !win.isAlwaysOnTop()) applyTopmost();
     lastForegroundWindow = Number(fg.window) || 0;
   };
   topForeground.watch(check);
-  topGuard = setInterval(async () => check(await topForeground.read().catch(() => null)), 5000);
+  topGuard = setInterval(async () => {
+    // v1.0.0 (taskbar): a report with no window in front (the full-screen program closed and nothing
+    // took its place) says nothing about full screen, and the helper reports again only on the next
+    // change: the island stayed off the topmost band until then. Ask the helper again instead.
+    if ((fullscreenOther || fullscreenFront) && topForeground.latest && typeof topForeground.latest.full !== 'boolean') topForeground.latest = null;
+    check(await topForeground.read().catch(() => null));
+  }, 5000);
   topGuard.unref?.();
 }
 function finishLayout(id) {
@@ -1237,7 +1355,16 @@ function saveFolder() {
 // v0.7.7: before / after copies of the files Charles changes (app/core/change-review.cjs)
 const changeReview = new (require('./core/change-review.cjs').ChangeReview)();
 // v0.9.16: the taskbar (app/core/attention.cjs)
-const attention = require('./core/attention.cjs').createAttention(() => (workspace && appWin && !appWin.isDestroyed() ? appWin : null));
+const attentionNow = require('./core/attention.cjs').createAttention(() => (workspace && appWin && !appWin.isDestroyed() ? appWin : null));
+// v1.0.0 (taskbar): a flashing button brings the taskbar up over a full-screen film or game; it
+// flashes once that program is left, unless the request was answered meanwhile
+const attention = {
+  ask: (key) => fullscreenGate.run('flash', 'flash:' + key, () => attentionNow.ask(key)),
+  clear: () => {
+    fullscreenGate.drop('flash:');
+    attentionNow.clear();
+  },
+};
 function eventToUi(event) {
   if (event?.type === 'agent' && /^item\/(started|completed)$/.test(event.data?.method || ''))
     try {
@@ -1245,14 +1372,19 @@ function eventToUi(event) {
     } catch {}
   if (!win || win.isDestroyed()) return;
   win.webContents.send('agent-event', event);
-  if (event.type === 'request') {
+  // v1.0.0 (taskbar): over a full-screen program the panel opens when it is left (with the app
+  // window open, expand(true) brings that window to the front and takes the focus)
+  const openForRequest = () => {
+    if (!win || win.isDestroyed()) return;
     expand(true);
     win.showInactive();
+  };
+  if (event.type === 'request') {
+    fullscreenGate.run('activate', 'open:request:' + event.data?.id, openForRequest);
     attention.ask('request:' + event.data?.id);
   }
   if (event.type === 'background-request') {
-    expand(true);
-    win.showInactive();
+    fullscreenGate.run('activate', 'open:background:' + event.data?.id, openForRequest);
     attention.ask('background:' + event.data?.id);
   }
   if (
@@ -1540,6 +1672,8 @@ else {
         anchor: () => bubbleAnchor(),
         onOpen: () => {},
         onWhatsApp: (action, args) => whatsappBubbleAction(action, args),
+        // v1.0.0 (bughunt): a reminder's card closed before a full-screen program was left
+        onDismiss: (id) => dropReminderAlert(/^charles\|reminder\|(.+)$/.exec(String(id))?.[1]),
         language: () => v2?.data?.language || 'tr',
         // v0.9.25: the cards wait while a full-screen app is in front (user report: taskbar over
         // YouTube/Netflix, Battlefield 6 dropped to the desktop)
@@ -1587,6 +1721,18 @@ else {
         focus: (item) => {
           // v0.9.18: "Charles güncellendi" opens what this version changed
           if (item?.updateNotes) return showReleaseNotes(String(item.updateNotes));
+          // v1.0.0: "Şimdi yeniden başlat" on the card of the update's second part
+          if (item?.runtimeRestart) {
+            Promise.resolve()
+              .then(() => restartForRuntime())
+              .catch(() => {
+                // not now (an answer is running, say): the card comes back, Settings shows why
+                runtimeCarded = false;
+                if (runtime?.isReady()) runtime.set('ready');
+                expand(true, true);
+              });
+            return;
+          }
           // v0.9.12: a module's "Kaydedildi" notice shows the saved file in its folder
           if (item?.reveal && typeof item.reveal === 'string') {
             if (fs.existsSync(item.reveal)) shell.showItemInFolder(item.reveal);
@@ -1606,13 +1752,7 @@ else {
         show: (p) => {
           win.webContents.send('charles-proposal', p);
           agent.local('', p.text);
-          if (!expanded && !detached)
-            mailBubble.add({
-              id: 'charles|' + p.id,
-              kind: 'charles',
-              title: 'Charles bir şey soruyor',
-              reason: p.text.replace(/\*\*/g, '').slice(0, 140),
-            });
+          if (!expanded && !detached) mailBubble.add(noticeCards.proposal(p));
           if (hidden) expand(false);
         },
       });
@@ -1631,12 +1771,7 @@ else {
       // Quota watcher (renderer, src/island/quota-watch.ts) also shows a bubble when small.
       safeHandler('charles-bubble', (v) => {
         if (expanded || detached || !v?.id) return false;
-        mailBubble.add({
-          id: 'charles|' + String(v.id).slice(0, 80),
-          kind: 'charles',
-          title: String(v.title || 'Charles').slice(0, 120),
-          reason: String(v.reason || '').slice(0, 160),
-        });
+        mailBubble.add(noticeCards.quota(v));
         return true;
       });
       // Sistem nöbetçisi: abnormal CPU / RAM / disk → Slime sweats and names the app.
@@ -1646,14 +1781,7 @@ else {
           watchLog(w.metric, Math.round(w.value), w.app || '-');
           if (win.isDestroyed()) return;
           win.webContents.send('charles-sweat', w);
-          mailBubble.add({
-            id: 'charles|sweat|' + w.metric + '|' + Date.now(),
-            kind: 'charles',
-            tone: 'sweat',
-            icon: '💦',
-            title: w.metric === 'disk' ? 'Disk doluyor' : 'Bilgisayar zorlanıyor',
-            reason: w.text,
-          });
+          mailBubble.add(noticeCards.watchdog(w));
         },
       });
       performanceHistory.onSample = (sample) => watchdog.check(sample);
@@ -1680,9 +1808,7 @@ else {
       safeHandler('plugins-disconnect', (id) => plugins.disconnect(id));
       safeHandler('plugins-settings', (v) => plugins.settings(v));
       safeHandler('plugins-list', (kind, q) => plugins.list(kind, q));
-      safeHandler('plugins-read', (kind, id) => plugins.read(kind, id));
       safeHandler('plugins-home', (entity, action) => plugins.homeAction(entity, action));
-      safeHandler('plugins-help', () => shell.openPath(path.join(root, 'docs/PLUGINS-SETUP.md')));
       weekly = new (require('./system/weekly.cjs').Weekly)(app.getPath('userData'));
       computerTime = new (require('./system/computer-time.cjs').ComputerTime)(
         app.getPath('userData'),
@@ -1709,7 +1835,7 @@ else {
         if (!['current', 'previous'].includes(period)) throw Error('Geçersiz dönem.');
         sampleComputer();
         const report = weekly.read(Date.now(), period);
-        return { ...report, ...computerTime.read(report.start, report.end) };
+        return { ...report, ...computerTime.read(report.start, report.end, report.days) };
       };
       agent.on('telemetry', ({ room, event }) => weekly.record(room, event));
       const checkWeekly = () => {
@@ -1717,20 +1843,18 @@ else {
           weekly.shown();
           win.webContents.send('weekly-summary', weeklyRead('previous'));
           if (!demo) {
+            // v1.0.0: Windows already names the app above the toast; every language
+            const lang = v2.data.language;
             const n = new Notification({
-              title:
-                v2.data.language !== 'tr' ? 'Charles · Weekly summary' : 'Charles · Haftalık özet',
-              body:
-                v2.data.language !== 'tr'
-                  ? 'Your weekly summary is ready.'
-                  : 'Haftalık özetin hazır.',
+              title: noticeText.say(lang, 'Haftalık özet'),
+              body: noticeText.say(lang, 'Geçen haftanın özeti hazır.'),
             });
             n.on('click', () => {
               expand(true, true);
               win.show();
               setTimeout(() => win.webContents.send('shortcut-action', 'weekly'), 300);
             });
-            n.show();
+            fullscreenGate.run('toast', 'toast:weekly', () => n.show());
           }
         }
       };
@@ -1877,7 +2001,6 @@ else {
       );
       tray.setToolTip('Charles · Kişisel');
       // v0.8.0: the tray menu is rebuilt when modules change (Modüller submenu)
-      let servicePaused = false;
       trayMenu = () => {
         if (!tray || tray.isDestroyed()) return;
         const en = !!v2?.data?.language && v2.data.language !== 'tr';
@@ -1912,38 +2035,27 @@ else {
               win.webContents.send('show-settings');
             },
           },
-          {
-            label: 'Servis takibini duraklat',
-            type: 'checkbox',
-            checked: servicePaused,
-            click: (item) => {
-              servicePaused = item.checked;
-              extras.pause(item.checked);
-              win.webContents.send('extras-changed', extras.settings());
-            },
-          },
           { label: 'Çıkış', click: () => app.quit() },
         ]);
       trayMenu();
       tray.on('click', () => expand(!expanded, true));
       // Reminders (also the calendar ones from e-mails) pop up as a bubble under the island.
       function showAlert(item) {
-        mailBubble.add({
-          id: 'charles|reminder|' + item.id,
-          kind: 'charles',
-          icon: item.kind === 'focus' ? '⏱' : '⏰',
-          title: item.kind === 'focus' ? 'Odak süresi bitti' : 'Hatırlatma',
-          reason: item.title,
-        });
+        mailBubble.add(noticeCards.reminder(item));
         win.webContents.send('personal-alert', item);
-        // v0.7.4: the panel opens so the reminder card is seen, and Windows shows it too
-        if (!workspace) expand(true);
-        else if (win.isMinimized()) win.restore();
+        // v0.7.4: the panel opens so the reminder card is seen, and Windows shows it too.
+        // v1.0.0 (taskbar): over a full-screen program both wait until it is left (restore()
+        // activates the app window; the toast and the flash bring the taskbar up over a film)
+        fullscreenGate.run('activate', 'open:reminder:' + item.id, () => {
+          if (win.isDestroyed()) return;
+          if (!workspace) expand(true);
+          else if (win.isMinimized()) win.restore();
+        });
         attention.ask('reminder:' + item.id);
         try {
           if (Notification.isSupported()) {
             const n = new Notification({
-              title: item.kind === 'focus' ? 'Odak süresi bitti' : 'Hatırlatma',
+              title: noticeText.say(v2?.data?.language, item.kind === 'focus' ? 'Odak süresi bitti' : 'Hatırlatma'),
               body: String(item.title || '').slice(0, 200),
               silent: true,
             });
@@ -1953,7 +2065,7 @@ else {
                 win.focus();
               } else expand(true);
             });
-            n.show();
+            fullscreenGate.run('toast', 'toast:reminder:' + item.id, () => n.show());
           }
         } catch {}
       }
@@ -1999,6 +2111,16 @@ else {
         // Only a city change needs a new weather fetch; docking must not reset the weather.
         companion.refresh({ weather: value && 'city' in value });
         return companion.snapshot();
+      });
+      // v1.0.0 (perf2 P10): is this run in low-memory mode, and the restart its switch offers
+      safeHandler('low-memory-active', () => !app.isHardwareAccelerationEnabled());
+      safeHandler('app-restart', () => {
+        app.relaunch({ args: process.argv.slice(1).filter((a) => a !== '--autostart') });
+        setTimeout(() => {
+          app.quit();
+          setTimeout(() => app.exit(0), 5000).unref();
+        }, 300);
+        return true;
       });
       safeHandler('weather-cities', (query) => companion.weather.cities(query));
       // v0.8.14: the five-day weather sheet (for the city chosen in the settings)
@@ -2162,14 +2284,6 @@ else {
         }
         return true;
       });
-      safeHandler('layout-prepared', (id) => {
-        if (id !== layoutId || layoutPending?.id !== id) return;
-        const pending = layoutPending;
-        layoutPending = null;
-        win.webContents.send('ui-layout', pending.payload);
-        win.webContents.send('ui-hidden', pending.payload.hidden);
-        win.webContents.send('ui-expanded', pending.payload.expanded);
-      });
       // The island shows the quota of the provider behind the selected model. The renderer
       // names that provider; without one the main AI chosen in settings is used.
       safeHandler('usage-read', async (force = false, requested = null) => {
@@ -2213,6 +2327,8 @@ else {
         if (action === 'access' && agent.list().some((r) => r.busy || r.pending))
           throw Error('Erişimi değiştirmeden önce çalışan işleri durdur.');
         const value = personal.edit(action, args);
+        // v1.0.0 (bughunt): a reminder done (deleted) or a focus timer paused / resumed meanwhile
+        if (action === 'reminder-delete' || action === 'timer-toggle') dropReminderAlert(args?.id);
         position();
         win.setOpacity(1);
         win.webContents.send('personal-changed', value);
@@ -2426,8 +2542,9 @@ else {
       safeHandler('wake-check', async (bytes) => {
         if (!wakeAllowed || voiceHeld || voice.job) return false;
         if (bytes?.length > 160044) throw Error('Uyandırma kaydı çok uzun.');
-        const text = await wakeVoice.transcribe(bytes);
-        return require('./voice/wake-profile.cjs').match(text, v2.data.wakeProfile);
+        // v1.0.0: an empty transcript ([BLANK_AUDIO]) is "not the phrase", not an error
+        const text = await wakeVoice.transcribe(bytes, { empty: true });
+        return !!text && require('./voice/wake-profile.cjs').match(text, v2.data.wakeProfile);
       });
       safeHandler('live-voice-status', () => liveVoice.status());
       safeHandler('live-voice-save', (value) => liveVoice.save(value));
@@ -2525,19 +2642,6 @@ else {
         const result = extras.settings(value);
         position();
         win.webContents.send('extras-changed', result);
-        return result;
-      });
-      safeHandler('pause-services', (value) => {
-        extras.pause(value);
-        return extras.settings();
-      });
-      safeHandler('service-save', ({ id, token, url }) => {
-        extras.setSecret(id, token, url);
-        return extras.settings();
-      });
-      safeHandler('service-refresh', async (id) => {
-        const result = await extras.refresh(id);
-        win.webContents.send('extras-changed', extras.settings());
         return result;
       });
       safeHandler('session-new', () => {
@@ -2843,7 +2947,7 @@ else {
           // v0.9.26: push to talk listens to its own key; a shortcut may not take it
           reserved: () => (dictation?.data?.enabled ? { 'Bas-konuş': dictation.data.key } : {}),
           // while a shortcut is recorded the push-to-talk hook lets every key through
-          onRecording: (on) => dictation?.pause(on || micBlocked() || fullscreenOther),
+          onRecording: (on) => dictation?.pause(on || micBlocked() || fullscreenFront),
         },
       );
       const captureShortcut = !shortcuts.errors.capture;
@@ -2886,7 +2990,7 @@ else {
       safeHandler('dictation-save', (value) => dictation.save(value));
       safeHandler('dictation-pause', (on) => {
         // Settings is done with the key: what kept it quiet before (microphone off, a game) still does
-        dictation.pause(on || micBlocked() || fullscreenOther);
+        dictation.pause(on || micBlocked() || fullscreenFront);
         // v0.9.26: the keys being recorded must not open the chat or start dictation either
         shortcuts.recording(on === true);
         return true;
@@ -2935,16 +3039,6 @@ else {
           lastInside = Date.now();
         }
       }
-      safeHandler('library-add', async () => {
-        const folder = await pickFolder();
-        if (folder) library.add(folder);
-        return personal.data;
-      });
-      safeHandler('library-remove', (folder) => {
-        library.remove(folder);
-        return personal.data;
-      });
-      safeHandler('library-search', (query) => library.search(query));
       safeHandler('library-open', async ({ id, reveal }) => {
         const file = library.resolve(id, !!reveal);
         if (reveal) {
@@ -2954,9 +3048,6 @@ else {
         const error = await shell.openPath(file);
         if (error) throw Error(error);
       });
-      safeHandler('apps-list', async () =>
-        (await desktop.apps()).map((a) => a.Name).sort((a, b) => a.localeCompare(b, 'tr')),
-      );
       safeHandler('choose-files', async () => {
         dialogOpen = true;
         try {
@@ -3172,13 +3263,16 @@ else {
               mailBubble.upsert({ ...cards.offerCard(offer), shareOffer: offer });
             }
             shelfHeld = true;
-            if (win.isMinimized()) win.restore();
-            win.showInactive();
+            // v1.0.0 (taskbar): restore() activates; over a full-screen program it waits
+            fullscreenGate.run('activate', 'open:offer:' + offer?.id, () => {
+              if (win.isDestroyed()) return;
+              if (win.isMinimized()) win.restore();
+              win.showInactive();
+            });
             attention.ask('offer:' + offer?.id);
             if (!win.isDestroyed()) win.webContents.send('share-offer', offer);
           });
           shareService.on('received', (entry) => {
-            if (!win.isDestroyed()) win.webContents.send('share-received', entry);
             if (receivingShown) {
               mailBubble.remove(cards.RECEIVING);
               receivingShown = false;
@@ -3203,15 +3297,7 @@ else {
             .check()
             .then((fw) => {
               if (fw.ok || getShare().receiveMode === 'off') return;
-              mailBubble?.add({
-                id: 'charles|quickshare-firewall',
-                kind: 'charles',
-                title: 'Quick Share için ağ izni gerekiyor',
-                reason: fw.publicNet
-                  ? 'Bu Wi-Fi Windows’ta “Ortak ağ”; telefonların bilgisayarı görmesi için ağı “Özel” yap.'
-                  : 'Telefonlar bu bilgisayarı her zaman görsün diye Gönder kartında “Ağ izni ver”e bas.',
-                ttl: 5 * 60000,
-              });
+              mailBubble?.add(noticeCards.firewall({ publicNet: fw.publicNet }));
             })
             .catch(() => {});
         }, 20000).unref?.();
@@ -3238,11 +3324,6 @@ else {
         const s = getShare();
         await s.start();
         return s.discover({ wake: s.stagedFiles.length > 0 });
-      });
-      safeHandler('share-qr-refresh', async () => {
-        const s = getShare();
-        await s.start();
-        return s.refreshQr();
       });
       safeHandler('share-choose', async () => {
         dialogOpen = true;
@@ -3402,10 +3483,6 @@ else {
       });
       // v0.9.6 EVREN: an API key account. The key goes to %APPDATA%\Charles\evren.enc.json
       // (Windows safeStorage), never to the project folder or the release package.
-      safeHandler('evren-key-save', (key) => {
-        if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
-        return agent.providers.evrenKeySave(key);
-      });
       safeHandler('evren-key-clear', () => agent.providers.evrenKeyClear());
       safeHandler('providers-evren-test', () => {
         if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
@@ -3430,33 +3507,7 @@ else {
         if (demo) throw Error('Önizleme modunda hesap bağlanmaz.');
         return agent.providers.evrenConnect(key);
       });
-      safeHandler('providers-enable', ({ id, value }) => agent.providers.enable(id, value));
       safeHandler('provider-primary-read', () => agent.providers.enabled.primary || 'gpt');
-      safeHandler('provider-primary-save', async (id) => {
-        if (!['gpt', 'gemini', 'claude', 'cursor', 'abacus', 'evren', 'copilot'].includes(id)) throw Error('Geçersiz sağlayıcı.');
-        // Only check sign-in when we do not already know the account is connected; the
-        // check starts three CLIs and made switching the main AI feel stuck.
-        if (id !== 'gpt' && !agent.providers.auth[id]) await agent.providers.refreshAuth(true);
-        if (id !== 'gpt' && !agent.providers.auth[id])
-          throw Error('Önce bu sağlayıcının hesabına giriş yap.');
-        agent.providers.enabled.primary = id;
-        fs.writeFileSync(agent.providers.enabledFile, JSON.stringify(agent.providers.enabled));
-        const model =
-          id === 'gpt'
-            ? ''
-            : id === 'gemini'
-              ? 'gemini:auto'
-              : id === 'cursor'
-                ? 'cursor:auto'
-                : id === 'abacus'
-                  ? 'abacus:auto'
-                  : ['evren', 'copilot'].includes(id)
-                    ? id + ':auto'
-                    : 'claude:claude-sonnet-5-5';
-        extras.setDefaultModel(model);
-        win.webContents.send('provider-primary-changed', { id, model });
-        return id;
-      });
       safeHandler('models', async () => {
         // v0.7.2: a failing sign-in check (e.g. one provider's quota or network) must not empty
         // the whole list; the other connected AIs stay selectable.
@@ -3728,6 +3779,8 @@ else {
         }
         let mode = args.mode === undefined ? 'chat' : args.mode;
         if (untrusted) mode = 'chat';
+        // v1.0.0: outside content turns web search / research off for every connection
+        const turnTask = require('./core/task-mode.cjs').untrustedTask(args.task || '', untrusted);
         // v0.8.5: a folder named in a Gemini message becomes the project only after the user
         // agrees; drive roots and system / Charles folders are never offered.
         if (/^gemini:/.test(args.model || '') && !untrusted) {
@@ -3782,7 +3835,7 @@ else {
         const turn = await agent.send({
           prompt: args.prompt,
           displayPrompt: args.displayPrompt,
-          task: args.task || '',
+          task: turnTask.task,
           model: args.model,
           // v0.9.6: the effort panel's level ('' = Otomatik); each provider checks it again
           effort: typeof args.effort === 'string' ? args.effort.slice(0, 24) : '',
@@ -3798,7 +3851,8 @@ else {
           hasDocument: !!args.hasDocument,
         });
         // v0.9.24: what did not fit in one message is said, not left out in silence
-        return inputs.cut?.length ? { ...turn, cut: inputs.cut } : turn;
+        const shown = turnTask.dropped ? { ...turn, webOff: true } : turn;
+        return inputs.cut?.length ? { ...shown, cut: inputs.cut } : shown;
       });
       // v0.7.1: Ayarlar → Hesap → "Tüm verileri sıfırla" / "Hesap bağlantılarını kaldır"
       safeHandler('reset-all', async (scope) => {
@@ -3856,7 +3910,9 @@ else {
         deps: {
           charlesVersion: app.getVersion(),
           applyWindowIdentity: taskbarIcon,
-          islandAnchor: () => !workspace && islandWin && !islandWin.isDestroyed() && islandWin.isVisible() ? (visibleBounds || islandWin.getBounds()) : null,
+          // v1.0.0: nor under the island while a full-screen app is in front (the island has stepped
+          // back but is still "visible"; the card is topmost and would come up over the game)
+          islandAnchor: () => !fullscreenOther && !workspace && islandWin && !islandWin.isDestroyed() && islandWin.isVisible() ? (visibleBounds || islandWin.getBounds()) : null,
           // v0.9.26: where the Download card goes when the compact island cannot hold it (the app
           // window is open, or the panel is). It used to wait for the island, and the link's offer
           // was over (30 s) before it ever showed. A full-screen game or film still keeps it away.
@@ -3866,10 +3922,11 @@ else {
             return { x: p.x, y: p.y, width: 1, height: 1 };
           },
           language: () => v2?.data?.language || 'tr',
-          askChat: ({ prompt, model, images }) => {
+          askChat: async ({ prompt, model, images }) => {
             fs.mkdirSync(chatWorkspace, { recursive: true });
-            // the user's chosen model when the module does not name one
-            const chosen = model ?? extras.prefs.startupModel ?? null;
+            // the user's chosen model when the module does not name one; v1.0.0: only while its AI
+            // is signed in and still lists it, else the chat's fallback (ask-once.cjs moduleModel)
+            const chosen = model ?? (await require('./ai/ask-once.cjs').moduleModel(agent.providers, extras.prefs.startupModel ?? null));
             // v0.8.7: images (absolute paths checked by the module host) go in the same shape
             // as the main chat's image attachments
             // v0.9.25: every connection takes pictures (app/ai/provider-images.cjs)
@@ -3910,33 +3967,17 @@ else {
           // v0.8.14: a module's notice: the same text from the same module is not stacked again
           // (closing one no longer uncovers its copy), it closes by itself after a minute, and a
           // click opens that module's window
-          notify: (title, text, moduleId) => {
+          notify: (title, text, moduleId, look = {}) => {
             if (!mailBubble) return;
             for (const i of [...mailBubble.items])
               if (i.kind === 'charles' && i.module === (moduleId || null) && i.reason === text) mailBubble.remove(i.id);
-            mailBubble.add({
-              id: 'module|' + Date.now() + '|' + Math.random().toString(36).slice(2, 6),
-              kind: 'charles',
-              icon: '🧩',
-              module: moduleId || null,
-              title: String(title).slice(0, 60),
-              reason: text,
-              ttl: 60000,
-            });
+            mailBubble.add(noticeCards.moduleNotice({ title, text, moduleId, icon: look?.icon }));
           },
           // v0.9.12: files.save — where the Save window starts, and the "saved" notice whose click
           // shows the file in its folder (Charles does that, the module never gets the path)
           downloadsDir: () => app.getPath('downloads'),
           notifySaved: (moduleId, moduleName, name, file) => {
-            mailBubble?.add({
-              id: 'module-saved|' + Date.now() + '|' + Math.random().toString(36).slice(2, 6),
-              kind: 'charles',
-              icon: '💾',
-              reveal: file,
-              title: String(moduleName).slice(0, 60),
-              reason: 'Kaydedildi: ' + String(name).slice(0, 80) + ' · Klasörde göstermek için tıkla',
-              ttl: 60000,
-            });
+            mailBubble?.add(noticeCards.saved({ moduleName, name, file }));
           },
           icon: () => {
             const saved = path.join(app.getPath('userData'), 'app-icon.png');
@@ -3959,7 +4000,6 @@ else {
       let updateLast = null,
         updateBusy = false,
         updateResult = updater.takeResult(root);
-      const updateEn = () => !!v2?.data?.language && v2.data.language !== 'tr';
       const updateError = (e) => ({ ok: false, error: e.message || String(e), detail: e.detail || '' });
       const updateCheck = async () => {
         updateLast = await updater.check({ current: app.getVersion() });
@@ -3974,20 +4014,8 @@ else {
       });
       if (started === 'update' || finished?.ok === false)
         setTimeout(() => {
-          const en = updateEn();
           const ok = finished?.ok !== false;
-          mailBubble?.add({
-            id: 'update|' + (ok ? app.getVersion() : Date.now()),
-            kind: 'charles',
-            icon: ok ? '✨' : '⚠️',
-            ...(ok ? { updateNotes: app.getVersion() } : { plain: true }),
-            title: ok ? (en ? 'Charles updated' : 'Charles güncellendi') : en ? 'Update failed' : 'Güncelleme yapılamadı',
-            reason: ok
-              ? updater.label(app.getVersion()) + (en ? ' is installed.' : ' kuruldu.')
-              : en
-                ? 'The previous version was restored. Details: _update\\update.log'
-                : 'Önceki sürüme dönüldü. Ayrıntılar: _update\\update.log',
-          });
+          mailBubble?.add(noticeCards.updated({ ok, version: app.getVersion(), label: updater.label(app.getVersion()) }));
         }, 6000);
       safeHandler('release-notes-attach', (version) => {
         const notes = require('./core/release-notes.cjs').notes(root, version);
@@ -4033,10 +4061,20 @@ else {
           // always against the newest information, so an old card cannot install an old file
           const info = await updateCheck();
           if (!info.available) return { ok: false, error: 'Charles zaten güncel.', detail: info.currentLabel };
-          const prep = await updater.prepare({ root, latest: info.latest, name: require('../package.json').name, onProgress: progress });
+          const prep = await updater.prepare({
+            root,
+            latest: info.latest,
+            name: require('../package.json').name,
+            onProgress: progress,
+            runtime: { running: process.versions.electron, text: runtimeText() },
+          });
           progress({ phase: 'restart' });
+          // v1.0.0: back through Charles.exe, which also puts a newer Electron in place (the host
+          // itself only where there is no launcher, a development copy)
+          const entry = path.join(root, 'Charles.exe');
           await updater.launchSwap({ script: prep.script, params: {
-            ...prep.params, WaitPid: process.pid, Exe: process.execPath, AppArg: root,
+            ...prep.params, WaitPid: process.pid,
+            ...(fs.existsSync(entry) ? { Exe: entry } : { Exe: process.execPath, AppArg: root }),
             Lang: v2?.data?.language || 'tr',
           } });
           setTimeout(() => {
@@ -4060,19 +4098,35 @@ else {
             .then((info) => {
               if (!info.available || !win || win.isDestroyed()) return;
               win.webContents.send('update-available', info);
-              const en = updateEn();
-              mailBubble?.add({
-                id: 'update-available|' + info.latest.version,
-                kind: 'charles',
-                icon: '⬆️',
-                title: en ? 'Charles update available' : 'Charles güncellemesi var',
-                reason:
-                  info.latest.label +
-                  (en ? ' is ready. Settings → General → Update.' : ' hazır. Ayarlar → Genel → Güncelle.'),
-              });
+              mailBubble?.add(noticeCards.updateAvailable({ version: info.latest.version, label: info.latest.label }));
             })
             .catch(() => {});
         }, 20000);
+      // ── v1.0.0: the second part of an update, a newer Electron (app/core/runtime-update.cjs) ──
+      runtime = new (require('./core/runtime-update.cjs').RuntimeUpdate)({
+        root,
+        running: process.versions.electron,
+        app: app.getVersion(),
+        text: runtimeText,
+        onState: (s) => {
+          if (win && !win.isDestroyed()) win.webContents.send('runtime-state', s);
+          if (s.status === 'ready' && !runtimeCarded) {
+            runtimeCarded = true;
+            mailBubble?.add(noticeCards.runtimeReady({ version: s.version }));
+          }
+        },
+      });
+      if (!demo) {
+        runtime.init();
+        // after an update it should feel like part of it; otherwise it waits for a quiet moment
+        runtime.start(started === 'update' ? 5000 : 45000);
+      }
+      safeHandler('runtime-state', () => runtime.state);
+      safeHandler('runtime-fetch', async () => {
+        if (demo) throw Error('Önizleme modunda güncelleme yapılmaz.');
+        return runtime.fetch({ manual: true });
+      });
+      safeHandler('runtime-restart', () => restartForRuntime());
       trayMenu();
       const modulesState = () => ({ modules: moduleRegistry.list(), dev: moduleRegistry.data.dev, open: moduleHost.openIds() });
       safeHandler('modules-list', () => modulesState());
@@ -4178,6 +4232,11 @@ else {
             dialogOpen = false;
           }
         } else if (how === 'default') {
+          // v1.0.0: a program or script the AI wrote is never started by "open": its folder opens
+          if (ow.runnable(full)) {
+            shell.showItemInFolder(full);
+            return 'folder';
+          }
           const err = await shell.openPath(full);
           if (err) throw Error(err);
         } else throw Error('Geçersiz açma şekli.');
@@ -4323,11 +4382,6 @@ else {
       safeHandler('whatsapp-live-enable', (on) => {
         if (demo) throw Error('Önizleme modunda WhatsApp bağlanmaz.');
         return whatsappLive().enable(!!on);
-      });
-      safeHandler('whatsapp-live-install', async () => {
-        if (demo) throw Error('Önizleme modunda WhatsApp bağlanmaz.');
-        await whatsappLive().install();
-        return waLive.state();
       });
       safeHandler('whatsapp-live-restart', async () => {
         await whatsappLive().stop();
@@ -4535,16 +4589,6 @@ else {
           win.webContents.send('ui-power-paused', false);
         });
       companion.start();
-      serviceTimer = setInterval(async () => {
-        if (demo || !expanded || extras.paused) return;
-        await Promise.allSettled(
-          extras
-            .settings()
-            .services.filter((s) => s.configured)
-            .map((s) => extras.refresh(s.id)),
-        );
-        if (!win.isDestroyed()) win.webContents.send('extras-changed', extras.settings());
-      }, 60000);
     })
     .catch((error) => {
       try {
@@ -4576,7 +4620,6 @@ else {
     capture?.stop();
     clearInterval(cursorTimer);
     clearInterval(taskbarTimer);
-    clearInterval(serviceTimer);
     clearInterval(weeklyTimer);
     clearInterval(computerTimer);
     computerTime?.pause();
@@ -4587,7 +4630,8 @@ else {
     clearInterval(pluginTimer);
     plugins?.stop();
     clearInterval(reminderTimer);
-    extras?.pause(true);
+    // v1.0.0 (bughunt): Extras has no pause method any more (the service tracker went with its
+    // timer); calling it threw here and every step below (voice, helpers, AI connections) was skipped
     voice?.stop();
     liveVoice?.stop();
     wakeVoice?.stop();

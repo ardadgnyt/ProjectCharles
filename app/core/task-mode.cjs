@@ -18,4 +18,12 @@ function taskMode(task = '') {
           : null,
   };
 }
-module.exports = { taskMode };
+// v1.0.0: a turn that carries outside content (mail, attached file, page) gets no web tools: a
+// planted instruction could otherwise send what it read to an address of its choice. Image
+// creation stays: no connection can reach the network through it (Codex image_generation, agy's
+// own generator, or an SVG whose outside links cleanSvg removes).
+const WEB_TASKS = ['web', 'research'];
+function untrustedTask(task = '', untrusted = false) {
+  return untrusted && WEB_TASKS.includes(task) ? { task: '', dropped: task } : { task, dropped: '' };
+}
+module.exports = { taskMode, untrustedTask };

@@ -4,15 +4,16 @@
 // plan has are then listed under GitHub Copilot in the model menu. Nothing says "connected" before
 // the tool really answered.
 //
-// The card is the same as every other account's: Charles ile kur · sign in (✓ connected once signed
-// in) · Bağlantıyı kontrol et, and one status line.
+// The card is the same as every other account's: Charles ile kur · sign in (hidden once signed in) ·
+// Bağlantıyı kontrol et, and one status line ("Bağlı · …", connected-state.ts).
+import { READY, showConnected, stateLine } from './connected-state';
 type Status = { id: string; installed: boolean; signedIn: boolean };
 type Kind = 'copilot';
 
 const CARDS: Record<Kind, { name: string; note: string; opened: string }> = {
   copilot: {
     name: 'GitHub Copilot',
-    note: 'GitHub hesabınla GitHub Copilot’un komut satırı aracı üzerinden bağlan. Hesabının Copilot planı neye izin veriyorsa o kullanılır; plan değişirse model listesi kendiliğinden güncellenir.',
+    note: 'GitHub hesabınla GitHub Copilot’un komut satırı aracı üzerinden bağlan. Modeller hesabının Copilot planına göre listelenir.',
     opened: 'Giriş penceresi açıldı. Tarayıcıda GitHub hesabınla izin ver, sonra pencereyi kapat ve Bağlantıyı kontrol et’e bas.',
   },
 };
@@ -37,18 +38,18 @@ export function cliCard(kind: Kind, api: any, notice: (s: string) => void, chang
   const title = el('h3', '', card.name + ' hesabı');
   const note = el('p', 'hint', card.note);
   const actions = el('div', 'row provider-actions');
-  // the same order as the other accounts: Charles ile kur · sign in / ✓ connected · check
-  const setup = btn('Charles ile kur', 'primary');
+  // the same order as the other accounts: Charles ile kur · sign in (while not connected) · check
+  // v1.0.0: "Charles ile kur" is neutral; the sign-in is the card's one cream button
+  const setup = btn('Charles ile kur');
   setup.onclick = () => void guide(kind + '-login');
-  const login = btn(card.name + ' ile giriş');
+  const login = btn(card.name + ' ile giriş', 'primary');
   login.id = 'provider-login-' + kind;
   login.dataset.name = card.name;
   const test = btn('Bağlantıyı kontrol et');
   actions.append(setup, login, test);
-  const result = el('p', 'hint');
-  result.setAttribute('role', 'status');
+  const result = stateLine();
   result.textContent = 'Hesap kontrol ediliyor…';
-  section.append(title, note, actions, result);
+  section.append(title, note, actions, result.el);
   let busy = false;
   // what the tool last answered when it was not "connected": it stays until the state changes
   let refusal = '';
@@ -57,12 +58,13 @@ export function cliCard(kind: Kind, api: any, notice: (s: string) => void, chang
   function update(s: Status) {
     known = s;
     if (s.signedIn) refusal = '';
+    // an answer that refused the account is an error line, never "Bağlı · …"
+    result.connected = !!s.signedIn && !refusal;
     if (!busy && !refusal)
-      result.textContent = s.signedIn ? 'Bağlı · Modeller kullanıma hazır' : !s.installed ? card.name + ' aracı bu bilgisayarda kurulu değil. Charles ile kur’a bas; adım adım anlatır.' : 'Giriş yapılmadı';
+      result.textContent = s.signedIn ? READY : !s.installed ? card.name + ' aracı bu bilgisayarda kurulu değil. Charles ile kur’a bas; adım adım anlatır.' : 'Giriş yapılmadı';
     login.disabled = !s.installed || !!s.signedIn || busy;
     test.disabled = !s.installed || busy;
-    login.classList.toggle('connected', !!s.signedIn);
-    login.textContent = s.signedIn ? '✓ ' + card.name + ' bağlı' : card.name + ' ile giriş';
+    showConnected(login, !!s.signedIn, card.name + ' ile giriş');
   }
 
   login.onclick = async () => {
@@ -74,7 +76,7 @@ export function cliCard(kind: Kind, api: any, notice: (s: string) => void, chang
     try {
       const r = await api.providersLogin(kind);
       if (r?.signedIn) {
-        result.textContent = 'Bağlı · Modeller kullanıma hazır';
+        result.textContent = READY;
         await changed();
       } else result.textContent = card.opened;
     } catch (e) {
@@ -93,7 +95,7 @@ export function cliCard(kind: Kind, api: any, notice: (s: string) => void, chang
     result.textContent = 'Kontrol ediliyor…';
     try {
       const r = await api.providersKitTest(kind);
-      result.textContent = String(r?.message || (r?.ok ? 'Bağlı · Modeller kullanıma hazır' : card.name + ' yanıt vermedi.'));
+      result.textContent = String(r?.message || (r?.ok ? READY : card.name + ' yanıt vermedi.'));
       if (!r?.ok) refusal = result.textContent;
     } catch (e) {
       result.textContent = (e as Error).message;

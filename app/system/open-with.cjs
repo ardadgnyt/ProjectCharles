@@ -74,4 +74,14 @@ function missing(how) {
   return `${NAMES[how] || 'Bu program'} bu bilgisayarda yüklü değil.`;
 }
 
-module.exports = { NAMES, notepadPlusPlus, windowsTerminal, hasProtocol, terminalCommand, openTerminal, openNotepadPlusPlus, missing };
+// v1.0.0: files Windows would run, not show, when opened with their default app. The modules'
+// never-allowed list (package.cjs FORBIDDEN) plus the script types a module may carry but a
+// double-click must not start (Windows Script Host runs .js / .jse / .vb / .wsc).
+const { FORBIDDEN } = require('../modules/package.cjs');
+const SCRIPTS = /\.(js|jse|vb|wsc|sct|psc1|ps1xml|scf|appref-ms|settingcontent-ms|website|xbap|xll|library-ms)$/i;
+function runnable(file) {
+  const name = String(file || '').replace(/[\s.]+$/, '');
+  return FORBIDDEN.test(name) || SCRIPTS.test(name);
+}
+
+module.exports = { NAMES, notepadPlusPlus, windowsTerminal, hasProtocol, terminalCommand, openTerminal, openNotepadPlusPlus, missing, runnable };

@@ -1,0 +1,6644 @@
+/* 04-shelf · The island shelf: the cards (voice, ask, music), the panels (files, AI usage, weather, tools) and
+   every tool (colour picker, timer, reminders, calendar, mail, usage, smart home, system monitor).
+   Merged in v1.0.0 (T37) from the release files, every rule in its original order; the load order is
+   in RULES.md / DEVELOPMENT.md. Colours, radii and type come from 00-tokens.css. */
+
+/* ── from 1-base.css ── */
+.conversation {
+  flex: 1;
+  min-height: 95px;
+  display: flex;
+  flex-direction: column;
+}
+/* (a settings rule, kept in this file for the cascade) */
+#settings-panel .extra-scroll {
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+  gap: 14px;
+}
+/* (a settings rule, kept in this file for the cascade) */
+#sessions-panel .settings-body {
+  padding-top: 18px;
+}
+.music-card small {
+  display: block;
+  color: var(--muted);
+  margin: 7px 0;
+}
+#mini-music {
+  display: none;
+}
+#mini-music button:hover {
+  background: #ffffff12;
+}
+#mini-music button:disabled {
+  opacity: 0.35;
+}
+body.compact #mini-music {
+  margin-right: 0;
+}
+
+/* ── from 2-panel-layout.css ── */
+body.compact #mini-music {
+  padding-left: 9px;
+}
+/* (a settings rule, kept in this file for the cascade) */
+#settings-panel[open],
+#sessions-panel[open] {
+  display: flex;
+  flex-direction: column;
+}
+/* (a settings rule, kept in this file for the cascade) */
+#settings-panel .settings-body,
+#sessions-panel .settings-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 24px;
+  overscroll-behavior: contain;
+}
+
+/* ── from 3-island.css ── */
+#weather-idle {
+  display: none;
+  border: 0;
+  background: transparent;
+  color: #abaeb6;
+  padding: 0;
+  font-size: var(--fs-i2);
+  line-height: 1.7;
+  text-align: left;
+}
+#music-art {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: var(--r-sm);
+  margin-bottom: 2px;
+}
+body.compact #mini-music strong,
+body.compact #mini-music small {
+  max-width: 125px;
+  line-height: 14px;
+}
+body.compact #mini-music button {
+  padding: 0 6px;
+  height: 20px;
+  font-size: var(--fs-i3);
+}
+body.compact #weather-idle {
+  text-wrap: balance;
+}
+#usage-weather {
+  display: none;
+}
+body.compact #usage-weather {
+  display: flex;
+  position: absolute;
+  flex-direction: column;
+  align-items: center;
+}
+body.compact #usage-weather #weather-idle {
+  position: static;
+  display: block;
+  width: 100%;
+  text-align: center;
+  overflow: hidden;
+  margin: 0 0 1px;
+  padding: 0;
+}
+.usage-gauges {
+  display: flex;
+}
+.usage-gauge {
+  text-align: center;
+}
+.usage-gauge svg {
+  overflow: visible;
+}
+.usage-gauge path {
+  fill: none;
+  stroke-linecap: round;
+}
+.usage-gauge.empty .gauge-fill {
+  stroke: var(--danger);
+}
+.usage-gauge small {
+  display: block;
+}
+#usage-credits {
+  white-space: nowrap;
+  text-align: center;
+}
+/* Compact media controls stay within the island, including cover and timeline. */
+body.compact #mini-music {
+  position: absolute;
+  right: 31px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 2px;
+  text-align: center;
+  display: grid;
+  column-gap: 6px;
+  width: 132px;
+}
+body.compact #music-art {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+}
+body.compact #music-title,
+body.compact #music-artist {
+  grid-column: 2;
+  max-width: 98px;
+  text-align: left;
+  line-height: 13px;
+}
+body.compact #mini-music:has(#music-art[hidden]) #music-title,
+body.compact #mini-music:has(#music-art[hidden]) #music-artist {
+  max-width: 132px;
+  text-align: center;
+}
+body.compact #mini-music > div {
+  grid-column: 1 / -1;
+  justify-content: center;
+}
+body.compact #music-progress {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  cursor: pointer;
+}
+body.compact #music-progress::-webkit-slider-runnable-track {
+  height: 2px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.22);
+}
+body.compact #music-progress::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 7px;
+  height: 7px;
+  margin-top: -2.5px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: none;
+}
+body.compact #music-progress:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+body.compact #music-time {
+  grid-column: 1 / -1;
+  font-size: var(--fs-i1);
+  line-height: 10px;
+  max-width: none;
+}
+body.compact #mini-music .music-options {
+  gap: 12px;
+}
+body.compact #mini-music button[aria-pressed="true"] {
+  color: var(--accent);
+  background: #ffffff09;
+}
+body.compact #music-progress:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+body.desktop-pet header > :not(.character-center),
+body.desktop-pet .identity,
+body.desktop-pet .content,
+body.desktop-pet #mini-music,
+body.desktop-pet footer {
+  display: none !important;
+}
+#mini-music #music-progress[hidden],
+#mini-music #music-time[hidden],
+#mini-music .music-options[hidden] {
+  display: none !important;
+}
+/* (a dialogs rule, kept in this file for the cascade) */
+body.plugin-guide-active #pet {
+  cursor: default;
+}
+
+/* ── from 4-polish.css ── */
+/* (a dialogs rule, kept in this file for the cascade) */
+.folder-entry,
+.history-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #ffffff08;
+  border-radius: var(--r-md);
+  padding: 7px 6px;
+  margin: 3px 0;
+  min-width: 0;
+}
+/* (a settings rule, kept in this file for the cascade) */
+#settings-panel .screen-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 4px;
+  padding: 10px 12px;
+  min-height: 54px;
+  background: #ffffff03;
+  border: 1px solid #ffffff09;
+  border-radius: var(--r-md);
+  font-size: var(--fs-i3);
+}
+/* (a settings rule, kept in this file for the cascade) */
+/* v0.4.3: one settings card system and compact usage indicators. */
+/* (a settings rule, kept in this file for the cascade) */
+#settings-panel .settings-card {
+  background: #ffffff03;
+  border: 1px solid #ffffff0e;
+  border-radius: var(--r-lg);
+  padding: 15px;
+  margin: 0 0 12px;
+  min-width: 0;
+}
+/* (a settings rule, kept in this file for the cascade) */
+body.compact #usage-weather #weather-idle {
+  font-size: var(--fs-i1);
+  line-height: 13px;
+  color: #c6c6cf;
+  max-height: 26px;
+}
+body.compact #usage-weather {
+  left: 32px;
+  width: 136px;
+}
+.usage-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: var(--fs-i1);
+  letter-spacing: 0.2px;
+  color: #a9a9b2;
+  min-height: 15px;
+}
+.usage-gauges {
+  width: 100%;
+  justify-content: center;
+  gap: 15px;
+}
+.usage-gauge {
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  position: relative;
+  width: 37px;
+  height: 48px;
+  display: block;
+}
+.usage-gauge svg {
+  display: block;
+  width: 37px;
+  height: 37px;
+}
+.usage-gauge path {
+  stroke-width: 1.6;
+}
+.usage-gauge .gauge-track {
+  stroke: #ffffff10;
+}
+.usage-gauge .gauge-fill {
+  stroke: var(--cream-deep);
+}
+.usage-gauge strong {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  right: 0;
+  font-size: var(--fs-i1);
+  line-height: 12px;
+  font-weight: var(--fw-regular);
+  color: #dfdfe6;
+}
+.usage-gauge small {
+  font-size: var(--fs-i1);
+  line-height: 10px;
+  text-align: center;
+  margin-top: 1px;
+  color: #8e8e99;
+}
+.usage-gauge:after {
+  content: "";
+  height: 2px;
+  width: 100%;
+  border-radius: var(--r-sm);
+  background: linear-gradient(
+    to right,
+    var(--cream-deep) var(--remaining, 0%),
+    #ffffff12 var(--remaining, 0%)
+  );
+  order: 3;
+  display: none;
+}
+#usage-refresh {
+  padding: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  width: 14px;
+  height: 14px;
+  line-height: 14px;
+  font-size: var(--fs-i3);
+  color: #a6a6b0;
+}
+#usage-credits {
+  color: #8c8c98;
+  font-size: var(--fs-i1);
+  line-height: 9px;
+  margin-top: 0;
+}
+/* Spotify mode buttons use color alone, with keyboard focus preserved. */
+#mini-music #music-shuffle,
+#mini-music #music-repeat,
+#mini-music #music-shuffle:hover,
+#mini-music #music-repeat:hover,
+#mini-music #music-shuffle[aria-pressed="true"],
+#mini-music #music-repeat[aria-pressed="true"] {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+#mini-music #music-shuffle[aria-pressed="true"],
+#mini-music #music-repeat[aria-pressed="true"] {
+  color: var(--accent);
+}
+
+/* ── from 5-design-system.css ── */
+/* (a settings rule, kept in this file for the cascade) */
+.plugin-card,
+.setting-section {
+  border-color: var(--sb-line);
+  border-radius: var(--sb-radius-card);
+  background: rgba(255, 255, 255, 0.015);
+}
+/* --- Remaining-usage panel on the compact island -------------------------
+   Header: coloured dot + provider name (normal case, readable size) + plan
+   badge + refresh icon. Two rings with the remaining percent inside, the
+   window name and "resets in" countdown below. Provider colour: --provider. */
+body.compact #usage-weather {
+  --provider: var(--sb-accent);
+  top: 8px;
+  height: 108px;
+  gap: 6px;
+  justify-content: center;
+}
+/* Weather on the right column, top row; Spotify sits below it. */
+body.compact #weather-idle {
+  position: absolute;
+  display: block;
+  top: 13px;
+  right: 31px;
+  left: auto;
+  width: 136px;
+  max-height: 16px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: center;
+  font-size: var(--fs-i2);
+  line-height: 16px;
+  font-weight: var(--fw-regular);
+  color: #d4d4dc;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+body.compact #weather-idle:hover {
+  color: var(--sb-text);
+}
+body.compact #usage-weather .usage-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 16px;
+  margin: 0;
+  font-size: var(--fs-i2);
+  line-height: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--sb-text);
+}
+body.compact #usage-weather .usage-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--provider);
+  box-shadow: 0 0 6px var(--provider);
+  flex: none;
+}
+body.compact #usage-weather .usage-name {
+  font-family: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-weight: var(--fw-strong);
+  font-size: var(--fs-i2);
+  letter-spacing: 0.1px;
+  text-transform: none;
+  color: var(--sb-text);
+}
+body.compact #usage-weather .usage-extra {
+  font-size: var(--fs-i1);
+  line-height: 14px;
+  font-weight: var(--fw-regular);
+  color: var(--sb-muted);
+  white-space: nowrap;
+}
+body.compact #usage-weather .usage-extra::before {
+  content: '·';
+  margin-right: 4px;
+}
+body.compact #usage-weather .usage-extra[hidden] {
+  display: none;
+}
+body.compact #usage-weather #usage-refresh {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sb-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    background-color 0.15s;
+}
+body.compact #usage-weather #usage-refresh[hidden] {
+  display: none;
+}
+body.compact #usage-weather #usage-refresh svg {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+body.compact #usage-weather #usage-refresh:hover:not(:disabled) {
+  color: var(--provider);
+  background: rgba(255, 255, 255, 0.06);
+}
+body.compact #usage-weather.loading #usage-refresh {
+  animation: sb-spin 0.9s linear infinite;
+}
+body.compact #usage-weather .usage-gauges {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+body.compact #usage-weather.loading .usage-gauges {
+  opacity: 0.55;
+}
+body.compact #usage-weather .usage-gauge {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 52px;
+  height: auto;
+}
+body.compact #usage-weather .usage-gauge::after {
+  display: none;
+}
+body.compact #usage-weather .usage-gauge svg {
+  display: block;
+  width: 42px;
+  height: 42px;
+}
+body.compact #usage-weather .usage-gauge path {
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+body.compact #usage-weather .usage-gauge .gauge-track {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+body.compact #usage-weather .usage-gauge .gauge-fill {
+  stroke: var(--provider);
+  transition:
+    stroke-dasharray 0.6s var(--sb-ease),
+    stroke 0.3s;
+}
+body.compact #usage-weather .usage-gauge.low .gauge-fill {
+  stroke: var(--sb-warn);
+}
+body.compact #usage-weather .usage-gauge.empty .gauge-fill {
+  stroke: var(--sb-danger);
+}
+body.compact #usage-weather .usage-gauge strong {
+  position: absolute;
+  top: 13.5px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: var(--fs-i3);
+  line-height: 15px;
+  font-weight: var(--fw-strong);
+  font-variant-numeric: tabular-nums;
+  color: var(--sb-text);
+}
+body.compact #usage-weather .usage-gauge.empty strong {
+  color: var(--sb-danger);
+}
+body.compact #usage-weather .usage-gauge .usage-label {
+  margin-top: 2px;
+  font-size: var(--fs-i1);
+  line-height: 11px;
+  font-weight: var(--fw-regular);
+  color: #b9b9c4;
+}
+body.compact #usage-weather .usage-gauge .usage-reset {
+  font-size: var(--fs-i1);
+  line-height: 10px;
+  color: var(--sb-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+body.compact #usage-weather .usage-gauge .usage-reset:empty {
+  display: none;
+}
+body.compact #usage-weather #usage-credits {
+  font-size: var(--fs-i1);
+  line-height: 10px;
+  color: var(--sb-muted);
+}
+@keyframes sb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #usage-weather.loading #usage-refresh {
+    animation: none;
+  }
+  .usage-gauge .gauge-fill {
+    transition: none;
+  }
+
+}
+/* (a settings rule, kept in this file for the cascade) */
+#settings-panel[open] {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+/* (a settings rule, kept in this file for the cascade) */
+#settings-panel .settings-heading,
+#release-notes .settings-heading {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px 20px;
+  border-bottom: 1px solid var(--sb-line);
+}
+/* (a settings rule, kept in this file for the cascade) */
+#settings-panel .settings-body {
+  grid-column: 2;
+  grid-row: 2;
+  padding: 14px 18px 22px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+/* Cards */
+/* (a settings rule, kept in this file for the cascade) */
+#settings-panel .setting-section,
+#settings-panel .plugin-card {
+  margin: 0 0 12px;
+  padding: 16px 16px 14px;
+  border: 1px solid var(--sb-line);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01));
+}
+@media (max-width: 520px) {
+  /* (a settings rule, kept in this file for the cascade) */
+  #settings-panel[open] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
+}
+/* --- v0.5.1: Spotify block on the compact island --------------------------------
+   While music plays the block gained a progress bar, time and shuffle/repeat rows and
+   grew past the island, under the weather line. Fixed rows, one control row:
+     row 1-2  cover | title / artist
+     row 3    shuffle · ⏮ ▶ ⏭ · repeat
+     row 4    thin progress bar (time is in the bar's tooltip-free label hidden here) */
+body.compact #mini-music {
+  top: 36px;
+  transform: none;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-rows: 15px 14px 20px auto;
+  row-gap: 1px;
+  align-items: center;
+}
+body.compact #mini-music #music-art {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  width: 28px;
+  height: 28px;
+}
+body.compact #mini-music #music-title {
+  grid-column: 2;
+  grid-row: 1;
+}
+body.compact #mini-music #music-artist {
+  grid-column: 2;
+  grid-row: 2;
+}
+body.compact #mini-music:has(#music-art[hidden]) #music-title,
+body.compact #mini-music:has(#music-art[hidden]) #music-artist {
+  grid-column: 1 / -1;
+}
+body.compact #mini-music > div:not(.music-options) {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-content: center;
+}
+body.compact #mini-music .music-options {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-content: space-between;
+  height: 20px;
+  padding: 0 2px;
+  pointer-events: none;
+}
+body.compact #mini-music .music-options button {
+  pointer-events: auto;
+  height: 20px;
+  font-size: var(--fs-i4);
+}
+body.compact #mini-music #music-progress {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  height: 10px;
+}
+body.compact #mini-music #music-time {
+  display: none;
+}
+/* (a settings rule, kept in this file for the cascade) */
+#settings-panel .slime-preview {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 6px 8px;
+  border: 1px solid var(--sb-line);
+  border-radius: var(--r-lg);
+  background: radial-gradient(90% 70% at 50% 35%, var(--cream-08), transparent 70%),
+    #0e0e11;
+}
+/* --- v0.5.1: Kısayollar rows fit the page ---------------------------------------- */
+/* (a settings rule, kept in this file for the cascade) */
+#settings-panel .shortcut-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sb-line);
+}
+
+/* ── from 6-acrylic.css ── */
+/* --- Glass cards ------------------------------------------------------------ */
+/* (a settings rule, kept in this file for the cascade) */
+#composer,
+.message.user,
+#settings-panel .setting-section,
+.setting-section,
+.message.agent.proposal,
+.activity,
+#sessions-panel .session-row,
+.model-picker,
+select {
+  background-color: var(--ac-glass);
+  border: 1px solid var(--ac-edge);
+  border-top-color: var(--ac-edge-top);
+  backdrop-filter: var(--ac-blur);
+  -webkit-backdrop-filter: var(--ac-blur);
+}
+/* (a chat rule, kept in this file for the cascade) */
+#composer {
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: border-color 0.2s var(--sb-ease),
+    box-shadow 0.2s var(--sb-ease);
+}
+/* (a chat rule, kept in this file for the cascade) */
+.message.user {
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.5);
+}
+/* (a base rule, kept in this file for the cascade) */
+select,
+.model-picker {
+  border-radius: var(--r-pill);
+}
+/* (a chat rule, kept in this file for the cascade) */
+.image-bar {
+  height: 2px;
+  margin-top: 10px;
+  border-radius: var(--r-sm);
+  background: var(--sb-line-strong);
+  overflow: hidden;
+}
+/* Finished image */
+/* (a base rule, kept in this file for the cascade) */
+.image-frame {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  border: 1px solid var(--ac-edge);
+  box-shadow: 0 16px 40px -18px rgba(0, 0, 0, 0.75);
+  background: #0d0d10;
+}
+/* (a base rule, kept in this file for the cascade) */
+.image-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px 0 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--ac-edge);
+  border-top-color: var(--ac-edge-top);
+  background: var(--ac-glass);
+  backdrop-filter: var(--ac-blur);
+  color: var(--sb-text);
+  font: inherit;
+  font-size: var(--fs-i3);
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    transform 0.15s var(--sb-ease);
+}
+/* --- v0.6.5: questions from the AI (src/chat/ai-questions.ts) --------------- */
+/* (a chat rule, kept in this file for the cascade) */
+.ai-questions {
+  margin: 12px 0 2px;
+  padding: 12px 14px;
+  border: 1px solid rgba(168, 199, 250, 0.24);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, rgba(168, 199, 250, 0.08), rgba(168, 199, 250, 0.02));
+}
+
+/* ── from 7-settings-v070.css ── */
+/* (a chat rule, kept in this file for the cascade) */
+.steer-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 6px 6px 10px;
+  border: 1px dashed var(--cream-25);
+  border-radius: var(--r-md);
+  background: var(--cream-04);
+  animation: steer-in 0.18s var(--sb-ease);
+}
+
+/* ── from 9-special.css ── */
+/* (a workspace rule, kept in this file for the cascade) */
+body.workspace .ws-pet-slot #pet {
+  width: 150px !important;
+  height: 132px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  cursor: pointer;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+body.workspace .ws-chat-body .conversation-heading {
+  display: none !important;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+.ws-ring circle.track {
+  stroke: rgba(255, 255, 255, 0.09);
+}
+/* (a workspace rule, kept in this file for the cascade) */
+.ws-ring circle.value {
+  stroke: var(--c);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+.ws-ring.empty circle.value {
+  opacity: 0;
+}
+/* (a base rule, kept in this file for the cascade) */
+::highlight(ws-find) {
+  background-color: var(--cream-85);
+  color: #1b1410;
+}
+
+/* ── from 10-noir.css ── */
+/* (a chat rule, kept in this file for the cascade) */
+#composer {
+  background:
+    linear-gradient(180deg, var(--cream-04), var(--cream-02)),
+    rgba(var(--ac-base), 0.6);
+}
+/* (a chat rule, kept in this file for the cascade) */
+.message.user {
+  background: var(--ch-bubble);
+  border-color: var(--ch-bubble-line);
+  border-top-color: var(--ch-bubble-top);
+}
+/* ── Spotify on the island: modern controls ──────────────────────────────────────
+   Flat, thin icons in one row (like the Windows media panel): no circles or boxes, only a
+   soft rounded highlight on hover. Play / pause is slightly larger and in the accent colour.
+   The text glyphs stay for screen readers. */
+#mini-music > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+#mini-music #music-previous,
+#mini-music #music-next,
+#mini-music #music-play,
+#mini-music #music-pause {
+  position: relative;
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  font-size: 0 !important;
+  color: transparent;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  transition: transform 0.12s var(--sb-ease), background-color 0.15s;
+}
+#mini-music #music-previous::before,
+#mini-music #music-next::before,
+#mini-music #music-play::before,
+#mini-music #music-pause::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  background: #cfc6bb;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+  transition: background-color 0.15s;
+}
+#mini-music #music-play::before,
+#mini-music #music-pause::before {
+  width: 16px;
+  height: 16px;
+  background: var(--sb-text);
+}
+#mini-music #music-previous {
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='4' y='4.5' width='2.2' height='15' rx='1.1'/%3E%3Cpath d='M19.5 6.2v11.6a1.2 1.2 0 0 1-1.86 1L9.4 13a1.2 1.2 0 0 1 0-2l8.24-5.8a1.2 1.2 0 0 1 1.86 1z'/%3E%3C/svg%3E");
+}
+#mini-music #music-next {
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='17.8' y='4.5' width='2.2' height='15' rx='1.1'/%3E%3Cpath d='M4.5 6.2v11.6a1.2 1.2 0 0 0 1.86 1L14.6 13a1.2 1.2 0 0 0 0-2L6.36 5.2a1.2 1.2 0 0 0-1.86 1z'/%3E%3C/svg%3E");
+}
+#mini-music #music-play {
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 5.3v13.4a1.3 1.3 0 0 0 2 1.1l10.4-6.7a1.3 1.3 0 0 0 0-2.2L9 4.2a1.3 1.3 0 0 0-2 1.1z'/%3E%3C/svg%3E");
+}
+#mini-music #music-play::before {
+  transform: translate(-46%, -50%); /* the triangle looks centred */
+}
+#mini-music #music-pause {
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='6.5' y='4.5' width='3' height='15' rx='1.5'/%3E%3Crect x='14.5' y='4.5' width='3' height='15' rx='1.5'/%3E%3C/svg%3E");
+}
+#mini-music #music-previous:hover,
+#mini-music #music-next:hover,
+#mini-music #music-play:hover,
+#mini-music #music-pause:hover {
+  background: var(--cream-08);
+}
+#mini-music button:hover::before {
+  background: #ffffff;
+}
+#mini-music #music-play:hover::before,
+#mini-music #music-pause:hover::before {
+  background: var(--sb-accent-strong);
+}
+#mini-music #music-previous:active,
+#mini-music #music-next:active,
+#mini-music #music-play:active,
+#mini-music #music-pause:active {
+  transform: scale(0.9);
+}
+#mini-music button:disabled::before {
+  opacity: 0.35;
+}
+/* the compact island has less room */
+body.compact #mini-music > div {
+  gap: 2px;
+}
+body.compact #mini-music #music-previous,
+body.compact #mini-music #music-next,
+body.compact #mini-music #music-play,
+body.compact #mini-music #music-pause {
+  width: 24px;
+  height: 22px;
+  border-radius: var(--r-sm);
+}
+body.compact #mini-music #music-previous::before,
+body.compact #mini-music #music-next::before {
+  width: 11px;
+  height: 11px;
+}
+body.compact #mini-music #music-play::before,
+body.compact #mini-music #music-pause::before {
+  width: 13px;
+  height: 13px;
+}
+
+/* ── from 13-modules.css ── */
+/* (a base rule, kept in this file for the cascade) */
+.module-icon {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-md);
+  object-fit: cover;
+  background: var(--cream-12);
+}
+/* (a base rule, kept in this file for the cascade) */
+.module-badge {
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--sb-muted);
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-strong);
+}
+/* (a base rule, kept in this file for the cascade) */
+.module-tag {
+  padding: 2px 8px;
+  border: 1px solid var(--sb-line-strong, rgba(255, 255, 255, 0.12));
+  border-radius: var(--r-pill);
+  color: var(--sb-muted);
+  font-size: var(--fs-i3);
+}
+/* (a base rule, kept in this file for the cascade) */
+.module-error {
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger-soft);
+  font-size: var(--fs-i4);
+}
+
+/* ── from 18-v0810.css ── */
+/* old island parts the new design does not show (they keep working, hidden) */
+body.v10:not(.desktop-pet) #mini-music,
+body.v10:not(.desktop-pet) #weather-idle,
+body.v10:not(.desktop-pet) #dock-toggle,
+body.v10:not(.desktop-pet) #dock-left,
+body.v10:not(.desktop-pet) header > #usage-weather {
+  display: none !important;
+}
+#notch .notch-weather {
+  flex: none;
+  color: #d8d4ce;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+}
+#notch .notch-music {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+body.v10.music-on #notch .notch-music {
+  display: flex;
+}
+body.v10.music-on #notch .notch-weather,
+body.v10.music-on #notch .notch-status {
+  display: none;
+}
+body.v10.music-on #notch .notch-progress {
+  display: block;
+}
+/* --- Shelf: the open home page --------------------------------------------- */
+#shelf {
+  display: none;
+}
+body.v10[data-view='shelf']:not(.desktop-pet):not(.hidden-island) #shelf {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr;
+  flex: 1;
+  min-height: 0;
+}
+#shelf .shelf-nav {
+  align-self: center;
+  justify-self: center;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #b9b6b0;
+  cursor: pointer;
+  transition: background-color 0.15s,
+    color 0.15s,
+    opacity 0.15s;
+}
+#shelf .shelf-nav:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--v10-ink);
+}
+#shelf .shelf-nav svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#shelf .shelf-viewport {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  align-self: center;
+}
+#shelf .shelf-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.38s var(--v10-ease);
+}
+#shelf .shelf-page {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+#shelf .shelf-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+/* glass cards */
+#shelf .card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--v10-edge);
+  border-top-color: var(--v10-edge-top);
+  background: var(--v10-glass);
+  backdrop-filter: blur(18px) saturate(1.3);
+  color: var(--v10-ink);
+  text-align: left;
+  font: inherit;
+  transition: background 0.18s,
+    border-color 0.18s,
+    transform 0.18s var(--v10-ease);
+}
+#shelf button.card,
+#shelf .card[role='button'] {
+  cursor: pointer;
+}
+#shelf button.card:hover,
+#shelf .card[role='button']:hover {
+  background: var(--v10-glass-hover);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+#shelf button.card:active,
+#shelf .card[role='button']:active {
+  transform: scale(0.985);
+}
+#shelf .card-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+#shelf .card-icon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+#shelf .card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+#shelf .card-text strong {
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#shelf .card-sub {
+  color: var(--v10-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#shelf .card-go {
+  flex: none;
+  color: #c9c6c0;
+}
+#shelf .card-go svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#shelf .card-usage,
+#shelf .card-weather {
+  flex: 1;
+}
+#shelf .card-usage .card-icon {
+  color: var(--provider, var(--v10-cream));
+}
+#shelf .card-usage.low .card-sub {
+  color: var(--warn);
+}
+/* converter */
+#shelf .card-convert {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+#shelf .card-convert .convert-icon {
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: transform 0.3s var(--v10-ease),
+    background-color 0.2s;
+}
+#shelf .card-convert .convert-icon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#shelf .card-convert strong {
+  font-weight: var(--fw-strong);
+}
+#shelf .card-convert .convert-hint {
+  color: var(--v10-faint);
+  white-space: normal;
+  line-height: 1.25;
+}
+#shelf .card-convert:hover .convert-icon {
+  transform: rotate(-35deg);
+}
+#shelf .card-convert.over {
+  border: 1.5px dashed var(--v10-cream);
+  background: linear-gradient(180deg, var(--cream-12), var(--cream-04));
+}
+#shelf .card-convert.over .convert-icon {
+  background: var(--v10-cream);
+  color: var(--cream-ink);
+  transform: rotate(-90deg);
+}
+#shelf .card-convert.over .convert-hint {
+  color: var(--v10-cream);
+}
+#shelf .card-convert.shake {
+  animation: v10-shake 0.45s;
+}
+@keyframes v10-shake {
+  20%,
+  60% {
+    transform: translateX(-4px);
+  }
+  40%,
+  80% {
+    transform: translateX(4px);
+  }
+}
+/* Charles in the middle */
+#shelf .card-charles {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+#shelf .charles-pet {
+  display: grid;
+  place-items: center;
+}
+#shelf .charles-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--v10-ink);
+  cursor: pointer;
+}
+#shelf .charles-name strong {
+  font-weight: var(--fw-strong);
+}
+#shelf .charles-name small {
+  color: var(--v10-muted);
+}
+#shelf .charles-name:hover strong {
+  color: #fff;
+}
+/* music */
+#shelf .music-art {
+  position: relative;
+  flex: 0 0 auto;
+  aspect-ratio: 1;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(165deg, #4b37a3 0%, #9c4ba0 52%, #f09a62 100%);
+  color: rgba(255, 255, 255, 0.85);
+}
+#shelf .music-art svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+#shelf .music-art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+#shelf .music-art.has-art img {
+  display: block;
+}
+#shelf .music-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  justify-content: center;
+}
+#shelf .music-label {
+  display: flex;
+  align-items: center;
+  color: var(--v10-muted);
+}
+#shelf .music-label svg {
+  box-sizing: content-box;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.08);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+#shelf .music-title {
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#shelf .music-artist {
+  color: var(--v10-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#shelf .music-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#shelf .music-btn {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #d9d5cf;
+  cursor: pointer;
+  position: relative;
+}
+#shelf .music-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+#shelf .music-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+#shelf .music-btn svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#shelf .music-btn.music-toggle[aria-pressed='true'] {
+  color: var(--v10-cream);
+}
+#shelf .music-btn.music-toggle[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+}
+#shelf .music-btn.one::before {
+  content: '1';
+  position: absolute;
+  font-size: var(--fs-i1);
+  font-weight: var(--fw-strong);
+  top: 11px;
+}
+#shelf .music-play {
+  background: #f4efe8;
+  color: #16130f;
+}
+#shelf .music-play:hover:not(:disabled) {
+  background: #fff;
+  color: #000;
+}
+#shelf .music-play svg {
+  fill: currentColor;
+  stroke-width: 1.2;
+}
+#shelf .music-progress {
+  display: flex;
+  align-items: center;
+}
+#shelf .music-time {
+  font: 11.5px/1 'Cascadia Mono', Consolas, monospace;
+  color: var(--v10-muted);
+}
+#shelf .music-time:last-child {
+  text-align: right;
+}
+#shelf .music-range {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  --fill: 0%;
+}
+#shelf .music-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  border-radius: 50%;
+  background: #f4efe8;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.25);
+}
+#shelf .music-start,
+#shelf .music-hint {
+  display: none;
+}
+#shelf .card-music.idle .music-controls,
+#shelf .card-music.idle .music-progress {
+  display: none;
+}
+#shelf .card-music.idle .music-start {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--v10-cream);
+  color: var(--cream-ink);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+#shelf .card-music.idle .music-start:hover {
+  filter: brightness(1.06);
+}
+#shelf .card-music.idle .music-start svg {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.2;
+}
+#shelf .card-music.idle .music-hint {
+  display: block;
+  text-align: center;
+  color: var(--v10-muted);
+}
+#shelf .card-music.idle .music-art {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1.5px dashed rgba(255, 255, 255, 0.1);
+  color: #6c6a67;
+}
+/* --- Sheets over the cards: converter, AI usage ------------------------------ */
+#shelf .shelf-sheet {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--v10-edge);
+  border-top-color: var(--v10-edge-top);
+  backdrop-filter: blur(22px) saturate(1.3);
+  animation: v10-sheet 0.26s var(--v10-ease);
+}
+#shelf .shelf-sheet[hidden] {
+  display: none;
+}
+@keyframes v10-sheet {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+}
+#shelf.sheet-open .shelf-viewport,
+#shelf.sheet-open .shelf-nav {
+  visibility: hidden;
+}
+#shelf .sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+#shelf .sheet-back {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #c9c6c0;
+  cursor: pointer;
+}
+#shelf .sheet-back:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+#shelf .sheet-back svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#shelf .sheet-title {
+  font-weight: var(--fw-strong);
+}
+#shelf .sheet-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+#shelf .sheet-body > * {
+  flex: 1;
+  min-width: 0;
+}
+/* converter sheet */
+#shelf .conv {
+  display: grid;
+  min-height: 0;
+}
+#shelf .conv-files {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+#shelf .conv-file {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+#shelf .conv-kind {
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, var(--cream-25), var(--cream-04));
+  border: 1px solid var(--cream-18);
+  color: var(--v10-cream);
+}
+#shelf .conv-kind svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#shelf .conv-file-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+#shelf .conv-file-text strong {
+  font-weight: var(--fw-strong);
+  color: var(--v10-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#shelf .conv-file-text small {
+  color: var(--v10-muted);
+}
+#shelf .conv-list {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  min-height: 0;
+  padding-right: 4px;
+}
+#shelf .conv-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 8px;
+  color: #cfcbc5;
+}
+#shelf .conv-row-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#shelf .conv-row-state {
+  color: var(--v10-muted);
+  white-space: nowrap;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#shelf .conv-row-bar {
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+#shelf .conv-row-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--v10-cream);
+  transition: width 0.3s;
+}
+#shelf .conv-row.ok .conv-row-state {
+  color: var(--ok);
+}
+#shelf .conv-row.ok .conv-row-bar i {
+  background: var(--ok);
+}
+#shelf .conv-row.failed .conv-row-state {
+  color: var(--danger);
+}
+#shelf .conv-row.failed .conv-row-bar i {
+  background: var(--danger);
+}
+#shelf .conv-row-single .conv-row-name {
+  display: none;
+}
+#shelf .conv-row-single .conv-row-state {
+  grid-column: 1 / -1;
+  max-width: none;
+}
+#shelf .conv:not(.running):not(.done) .conv-row-single {
+  display: none;
+}
+#shelf .conv-formats {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  padding-right: 4px;
+}
+#shelf .conv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+#shelf .conv-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+#shelf .conv-group-name {
+  margin-right: 3px;
+  color: var(--v10-faint);
+}
+#shelf .conv-chip {
+  min-height: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e6e2dc;
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: background-color 0.15s,
+    color 0.15s,
+    transform 0.15s;
+}
+#shelf .conv-chip:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+}
+#shelf .conv-chip.on {
+  background: var(--v10-cream);
+  border-color: transparent;
+  color: var(--cream-ink);
+}
+#shelf .conv-chip:disabled:not(.on) {
+  opacity: 0.45;
+}
+#shelf .conv-opts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+#shelf .conv-opts:empty {
+  display: none;
+}
+#shelf .conv-opt {
+  display: flex;
+  align-items: center;
+  color: #d8d4ce;
+}
+#shelf .conv-opt > small {
+  color: var(--v10-faint);
+}
+#shelf .conv-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+#shelf .conv-seg-btn {
+  min-height: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: #bdb9b3;
+  cursor: pointer;
+}
+#shelf .conv-seg-btn.on {
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+}
+#shelf .conv-select {
+  min-height: 0;
+  border-radius: var(--r-pill);
+}
+#shelf .conv-check input {
+  accent-color: var(--v10-cream);
+}
+#shelf .conv-note,
+#shelf .conv-empty {
+  color: var(--v10-muted);
+  margin: 0;
+}
+#shelf .conv-action {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+#shelf .conv-go,
+#shelf .conv-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 0;
+  border-radius: var(--r-pill);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+#shelf .conv-go {
+  border: 0;
+  background: var(--v10-cream);
+  color: var(--cream-ink);
+  box-shadow: 0 8px 22px -12px var(--cream-70);
+}
+#shelf .conv-go:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+#shelf .conv-go:disabled {
+  opacity: 0.45;
+  cursor: default;
+  box-shadow: none;
+}
+#shelf .conv-ghost {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #d8d4ce;
+}
+#shelf .conv-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+#shelf .conv-go svg,
+#shelf .conv-ghost svg,
+#shelf .conv-result svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#shelf .conv-progress-label {
+  text-align: center;
+  font-size: var(--fs-i4);
+  color: var(--v10-muted);
+}
+#shelf .conv.running .conv-progress-label::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  vertical-align: -1px;
+  border-radius: 50%;
+  border: 2px solid var(--cream-25);
+  border-top-color: var(--v10-cream);
+  animation: v10-spin 0.8s linear infinite;
+}
+@keyframes v10-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+#shelf .conv-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  color: var(--ok);
+}
+/* AI usage sheet: the quota gauges, larger */
+#shelf .usage-sheet {
+  display: flex;
+  align-items: center;
+}
+body.v10 #shelf #usage-weather {
+  position: static !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  width: auto !important;
+  height: auto !important;
+  inset: auto !important;
+  transform: none !important;
+  --provider: var(--v10-cream);
+}
+body.v10 #shelf #usage-weather .usage-title {
+  display: flex;
+  align-items: center;
+  font-weight: var(--fw-strong);
+  color: var(--v10-ink);
+}
+body.v10 #shelf #usage-weather .usage-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--provider);
+  box-shadow: 0 0 10px var(--provider);
+}
+body.v10 #shelf #usage-weather .usage-extra {
+  white-space: nowrap;
+  font-weight: var(--fw-regular);
+  color: var(--v10-muted);
+}
+body.v10 #shelf #usage-weather .usage-extra[hidden],
+body.v10 #shelf #usage-weather #usage-refresh[hidden] {
+  display: none;
+}
+body.v10 #shelf #usage-weather #usage-refresh {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--v10-muted);
+  cursor: pointer;
+}
+body.v10 #shelf #usage-weather #usage-refresh svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}
+body.v10 #shelf #usage-weather.loading #usage-refresh {
+  animation: v10-spin 0.9s linear infinite;
+}
+body.v10 #shelf #usage-weather .usage-gauges {
+  display: flex;
+}
+body.v10 #shelf #usage-weather .usage-gauges[hidden] {
+  display: none;
+}
+body.v10 #shelf #usage-weather .usage-gauge {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: auto;
+}
+body.v10 #shelf #usage-weather .usage-gauge[hidden] {
+  display: none;
+}
+body.v10 #shelf #usage-weather .gauge-track {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+body.v10 #shelf #usage-weather .gauge-fill {
+  stroke: var(--provider);
+}
+body.v10 #shelf #usage-weather .usage-gauge.low .gauge-fill {
+  stroke: var(--warn);
+}
+body.v10 #shelf #usage-weather .usage-gauge strong {
+  position: absolute;
+  left: 0;
+  right: 0;
+  font-weight: var(--fw-strong);
+  color: var(--v10-ink);
+  text-align: center;
+}
+body.v10 #shelf #usage-weather .usage-gauge small {
+  color: #d4d0ca;
+}
+body.v10 #shelf #usage-weather .usage-gauge .usage-reset {
+  color: var(--v10-muted);
+}
+body.v10 #shelf #usage-weather #usage-credits {
+  color: var(--v10-muted);
+  white-space: normal;
+  max-width: 420px;
+}
+body.v10[data-view='chat']:not(.desktop-pet) #notch,
+body.v10[data-view='chat']:not(.desktop-pet) #shelf {
+  display: none !important;
+}
+/* "Sohbet ▾" and "+ Yeni konuşma" on one row; the old "SOHBET" heading goes */
+body.v10:not(.desktop-pet) .conversation-heading {
+  display: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  #shelf .shelf-track {
+    transition: none;
+  }
+
+}
+#shelf .music-range::-webkit-slider-runnable-track {
+  border-radius: var(--r-sm);
+  background: linear-gradient(90deg, #f4efe8 var(--fill), rgba(255, 255, 255, 0.14) var(--fill));
+}
+body.v10.music-on[data-view='notch'] #resize-handle {
+  display: none !important;
+}
+
+/* ── from 19-v0811.css ── */
+body.v10[data-view='notch']:not(.music-on) #notch .notch-name,
+body.v10[data-view='notch']:not(.music-on) #notch .notch-weather,
+#notch .notch-status,
+#notch .notch-weather {
+  display: none !important;
+}
+body.v10.music-on #notch .notch-progress {
+  bottom: 6px;
+  left: 24px;
+  right: 24px;
+}
+#shelf .shelf-nav {
+  width: 28px;
+  height: 28px;
+}
+#shelf .shelf-nav svg {
+  width: 17px;
+  height: 17px;
+}
+#shelf .shelf-viewport {
+  height: 112px;
+}
+#shelf .shelf-page {
+  padding: 0;
+}
+#shelf .shelf-col {
+  flex: 0 0 166px;
+  gap: 8px;
+}
+#shelf .card {
+  padding: 0 10px;
+  gap: 9px;
+  border-radius: var(--r-lg);
+  box-shadow: none;
+}
+#shelf .card-icon {
+  width: 22px;
+  height: 22px;
+  font-size: var(--fs-i6);
+}
+#shelf .card-icon svg {
+  width: 18px;
+  height: 18px;
+}
+#shelf .card-weather .card-icon {
+  font-size: var(--fs-i6);
+}
+#shelf .card-text strong {
+  font-size: var(--fs-i4);
+}
+#shelf .card-sub {
+  font-size: var(--fs-i2);
+}
+#shelf .card-go svg {
+  width: 14px;
+  height: 14px;
+}
+#shelf .card-convert {
+  flex: 0 0 94px;
+  gap: 5px;
+  padding: 6px;
+}
+#shelf .card-convert .convert-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+}
+#shelf .card-convert .convert-icon svg {
+  width: 18px;
+  height: 18px;
+}
+#shelf .card-convert strong {
+  font-size: var(--fs-i3);
+}
+#shelf .card-convert .convert-hint {
+  font-size: var(--fs-i1);
+}
+#shelf .card-convert.over {
+  transform: none;
+}
+#shelf .charles-name {
+  padding: 0 6px;
+}
+#shelf .charles-name strong {
+  letter-spacing: -0.3px;
+}
+#shelf .charles-name small {
+  font-size: var(--fs-i1);
+}
+#shelf .card-music .music-art {
+  width: 74px;
+  height: 74px;
+  aspect-ratio: auto;
+}
+#shelf .music-art {
+  border-radius: var(--r-md);
+}
+#shelf .music-art svg {
+  width: 24px;
+  height: 24px;
+}
+#shelf .music-label {
+  font-size: var(--fs-i1);
+  gap: 5px;
+  margin-bottom: 2px;
+}
+#shelf .music-label svg {
+  width: 10px;
+  height: 10px;
+  padding: 2px;
+}
+#shelf .music-title {
+  font-size: var(--fs-i4);
+}
+#shelf .card-music.idle .music-title {
+  font-size: var(--fs-i3);
+  white-space: normal;
+  line-height: 1.2;
+}
+#shelf .music-artist {
+  font-size: var(--fs-i2);
+  min-height: 13px;
+}
+#shelf .music-controls {
+  margin: 3px 0 1px;
+  max-width: 150px;
+}
+#shelf .music-btn {
+  width: 24px;
+  height: 24px;
+}
+#shelf .music-btn svg {
+  width: 14px;
+  height: 14px;
+}
+#shelf .music-play {
+  width: 30px;
+  height: 30px;
+}
+#shelf .music-progress {
+  gap: 5px;
+}
+#shelf .music-time {
+  font-size: var(--fs-i1);
+  min-width: 22px;
+}
+#shelf .music-range::-webkit-slider-runnable-track {
+  height: 3px;
+}
+#shelf .music-range::-webkit-slider-thumb {
+  width: 9px;
+  height: 9px;
+  margin-top: -3px;
+}
+#shelf .card-music.idle .music-start {
+  height: 30px;
+  margin-top: 6px;
+  gap: 6px;
+  font-size: var(--fs-i3);
+}
+#shelf .card-music.idle .music-start svg {
+  width: 11px;
+  height: 11px;
+}
+#shelf .card-music.idle .music-hint {
+  margin-top: 4px;
+  font-size: var(--fs-i1);
+  line-height: 1.2;
+}
+#shelf .card-music.idle .music-art {
+  border-width: 1px;
+}
+/* sheets in the smaller shelf */
+#shelf .sheet-back {
+  width: 22px;
+  height: 22px;
+}
+#shelf .sheet-back svg {
+  width: 14px;
+  height: 14px;
+}
+#shelf .conv {
+  grid-template-columns: minmax(0, 170px) minmax(0, 1fr) 132px;
+  gap: 12px;
+}
+#shelf .conv-file {
+  gap: 8px;
+}
+#shelf .conv-kind {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-md);
+}
+#shelf .conv-kind svg {
+  width: 17px;
+  height: 17px;
+}
+#shelf .conv-file-text strong {
+  font-size: var(--fs-i3);
+}
+#shelf .conv-file-text small {
+  font-size: var(--fs-i2);
+}
+#shelf .conv-row {
+  font-size: var(--fs-i1);
+}
+#shelf .conv-group {
+  gap: 4px;
+}
+#shelf .conv-group-name {
+  font-size: var(--fs-i1);
+}
+#shelf .conv-opts {
+  gap: 4px 10px;
+}
+#shelf .conv-opt {
+  font-size: var(--fs-i2);
+  gap: 5px;
+}
+#shelf .conv-opt > small {
+  font-size: var(--fs-i1);
+}
+#shelf .conv-seg-btn {
+  height: 20px;
+  padding: 0 7px;
+  font-size: var(--fs-i2);
+}
+#shelf .conv-select {
+  height: 22px;
+  padding: 0 20px 0 8px;
+  font-size: var(--fs-i2);
+}
+#shelf .conv-action {
+  gap: 5px;
+}
+#shelf .conv-go {
+  height: 34px;
+  font-size: var(--fs-i4);
+  gap: 6px;
+}
+#shelf .conv-ghost {
+  height: 26px;
+  font-size: var(--fs-i2);
+  gap: 5px;
+}
+#shelf .conv-go svg,
+#shelf .conv-ghost svg,
+#shelf .conv-result svg {
+  width: 13px;
+  height: 13px;
+}
+#shelf .conv-progress-label,
+#shelf .conv-result {
+  font-size: var(--fs-i3);
+}
+#shelf .conv-note,
+#shelf .conv-empty {
+  font-size: var(--fs-i1);
+}
+/* AI usage: smaller rings, the percent in the middle of each ring */
+body.v10 #shelf #usage-weather {
+  gap: 22px !important;
+}
+body.v10 #shelf #usage-weather .usage-title {
+  font-size: var(--fs-i4);
+  gap: 6px;
+}
+body.v10 #shelf #usage-weather .usage-extra {
+  font-size: var(--fs-i2);
+}
+body.v10 #shelf #usage-weather .usage-gauges {
+  gap: 16px;
+}
+body.v10 #shelf #usage-weather .usage-gauge {
+  width: 66px;
+}
+body.v10 #shelf #usage-weather .usage-gauge svg {
+  width: 50px;
+  height: 50px;
+}
+body.v10 #shelf #usage-weather .usage-gauge strong {
+  top: 25px;
+  transform: translateY(-50%);
+  font-size: var(--fs-i3);
+  line-height: 1;
+}
+body.v10 #shelf #usage-weather .usage-gauge small {
+  font-size: var(--fs-i2);
+  line-height: 13px;
+}
+body.v10 #shelf #usage-weather .usage-gauge .usage-reset {
+  font-size: var(--fs-i1);
+}
+body.v10 #shelf #usage-weather #usage-credits {
+  font-size: var(--fs-i2);
+}
+#shelf .music-range {
+  height: 12px;
+  min-width: 0;
+  width: 0;
+}
+#shelf .music-meta {
+  overflow: hidden;
+}
+/* --- the cream bar sits in the middle of its strip: as much space above as below ---------- */
+body.v10[data-view='shelf']:not(.desktop-pet):not(.hidden-island) #shelf {
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+  padding: 0 2px 14px;
+  padding-bottom: 16px;
+}
+/* --- Spotify: the progress line keeps clear of the card edge ----------------------------- */
+#shelf .card-music .music-progress {
+  padding-right: 8px;
+}
+/* --- Converter: a slimmer head, so the options fit -------------------------------------- */
+#shelf .sheet-head {
+  height: 18px;
+}
+#shelf .sheet-title {
+  font-size: var(--fs-i2);
+  color: var(--v10-muted);
+}
+#shelf .conv-formats {
+  gap: 4px;
+}
+#shelf .conv-chips {
+  gap: 4px 10px;
+}
+#shelf .conv-chip {
+  padding: 0 9px;
+  font-size: var(--fs-i2);
+  height: 21px;
+}
+#shelf .conv-list {
+  gap: 3px;
+}
+/* --- AI usage opens over the left part only (to the left of Charles) ---------------------- */
+#shelf.sheet-open[data-sheet='usage'] .shelf-viewport,
+#shelf.sheet-open[data-sheet='usage'] .shelf-nav {
+  visibility: visible;
+}
+#shelf.sheet-open[data-sheet='usage'] .shelf-prev {
+  visibility: hidden;
+}
+#shelf .shelf-sheet[data-kind='usage'] {
+  right: auto;
+  width: 290px;
+  inset: 0 auto 12px 8px;
+}
+#shelf .usage-sheet {
+  justify-content: flex-start;
+}
+body.v10 #shelf .usage-sheet #usage-weather {
+  width: 100% !important;
+}
+#shelf.sheet-open[data-sheet='usage'] .shelf-col,
+#shelf.sheet-open[data-sheet='usage'] .card-convert {
+  visibility: hidden;
+}
+/* Charles in the exact middle of the shelf, right above the cream bar: both sides are equally
+   wide (166 + 9 + 94 = 269 px on the left, the music card on the right). */
+#shelf .card-music {
+  align-items: center;
+  gap: 10px;
+  padding: 9px;
+  flex: 0 0 269px;
+}
+#shelf .card-charles {
+  flex: 1 1 0;
+}
+/* the installed Spotify app's icon in the music card */
+#shelf .music-label .music-brand {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+#shelf .music-art .music-brand-big {
+  position: static;
+  display: block;
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+#shelf .card-music:not(.idle) .music-art .music-brand-big {
+  width: 34px;
+  height: 34px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+#shelf .card-music.idle .music-art .music-brand-big {
+  opacity: 0.85;
+}
+#shelf .shelf-sheet {
+  inset: 0 8px 12px;
+  padding: 6px 12px 8px;
+  border-radius: var(--r-lg);
+  padding-top: 3px;
+  gap: 2px;
+  background: linear-gradient(180deg, var(--cream-04), var(--cream-02)),
+    rgba(6, 6, 6, 0.92);
+}
+
+/* ── from 20-v0812.css ── */
+body.v10.pointer-out #island-bar button:hover,
+body.v10.pointer-out #shelf .shelf-nav:hover,
+body.v10.pointer-out .chat-nav:hover {
+  background: transparent !important;
+  color: #aeadb4 !important;
+}
+/* --- Shelf: a slightly larger Charles ----------------------------------------------------- */
+#shelf .charles-pet {
+  width: 84px;
+  height: 78px;
+}
+body.v10 #shelf #pet {
+  width: 84px !important;
+  height: 78px !important;
+}
+body.v10 #shelf #slime {
+  width: 110px !important;
+  height: 110px !important;
+  margin: -25px -13px -5px !important;
+}
+#shelf .card-charles {
+  gap: 0;
+}
+#shelf .charles-name {
+  margin-top: 1px;
+}
+#shelf .charles-name strong {
+  font-size: var(--fs-i5);
+}
+/* --- Converter: quality and size under the file, as short lists -------------------------- */
+#shelf .conv-files .conv-opts {
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+#shelf .conv-files .conv-opt {
+  gap: 4px;
+}
+#shelf .conv-files .conv-select {
+  height: 21px;
+  padding: 0 18px 0 7px;
+  font-size: var(--fs-i2);
+}
+#shelf .conv-files .conv-check {
+  font-size: var(--fs-i1);
+}
+/* while converting / when done, the per-file progress takes the place of the options */
+#shelf .conv.running .conv-files .conv-opts,
+#shelf .conv.done .conv-files .conv-opts {
+  display: none;
+}
+#shelf .conv-files .conv-list {
+  flex: 1;
+}
+/* one page only now: nothing slides, so a hat may reach above the card row */
+#shelf .shelf-viewport {
+  overflow: visible;
+}
+/* --- AI usage as in v0.8.9: "● Codex · credits" with a glowing light, rings below in the
+   provider's colour with a soft glow --------------------------------------------------- */
+body.v10 #shelf .usage-sheet #usage-weather {
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center;
+  gap: 5px !important;
+}
+body.v10 #shelf .usage-sheet #usage-weather .usage-title {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--fs-i4);
+}
+body.v10 #shelf .usage-sheet #usage-weather .usage-title .usage-dot {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--provider);
+  box-shadow:
+    0 0 6px var(--provider),
+    0 0 12px color-mix(in srgb, var(--provider) 55%, transparent);
+}
+body.v10 #shelf .usage-sheet #usage-weather .usage-name {
+  color: var(--v10-ink);
+  font-weight: var(--fw-strong);
+}
+body.v10 #shelf .usage-sheet #usage-weather .usage-extra:not([hidden])::before {
+  content: '·';
+  margin-right: 5px;
+}
+body.v10 #shelf .usage-sheet #usage-weather .usage-gauges {
+  gap: 18px;
+}
+body.v10 #shelf .usage-sheet #usage-weather .usage-gauge {
+  width: 60px;
+}
+body.v10 #shelf .usage-sheet #usage-weather .usage-gauge svg {
+  width: 44px;
+  height: 44px;
+  overflow: visible;
+}
+body.v10 #shelf .usage-sheet #usage-weather .usage-gauge strong {
+  top: 22px;
+  font-size: var(--fs-i3);
+}
+body.v10 #shelf .usage-sheet #usage-weather .gauge-fill {
+  stroke: var(--provider);
+  filter: drop-shadow(0 0 2.5px color-mix(in srgb, var(--provider) 70%, transparent));
+}
+body.v10 #shelf .usage-sheet #usage-weather .usage-gauge.low .gauge-fill {
+  stroke: var(--warn);
+  filter: drop-shadow(0 0 2.5px color-mix(in srgb, var(--warn) 70%, transparent));
+}
+body.v10 #shelf .usage-sheet #usage-weather .gauge-track {
+  stroke: rgba(255, 255, 255, 0.09);
+}
+/* the AI usage card on the shelf: the same light next to its icon */
+#shelf .card-usage .card-icon {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--provider, var(--v10-cream)) 60%, transparent));
+}
+/* the usage sheet: only the back arrow in the corner, the gauges get the whole height */
+#shelf .shelf-sheet[data-kind='usage'] .sheet-title {
+  display: none;
+}
+#shelf .shelf-sheet[data-kind='usage'] .sheet-head {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  height: 22px;
+  z-index: 1;
+}
+
+/* ── from 22-v0814.css ── */
+/* --- Music card: a click on it opens Spotify ------------------------------------------- */
+#shelf .card-music {
+  cursor: pointer;
+}
+/* --- Weather: the next five days, over the left part like AI usage ---------------------- */
+#shelf.sheet-open[data-sheet='weather'] .shelf-viewport,
+#shelf.sheet-open[data-sheet='weather'] .shelf-nav {
+  visibility: visible;
+}
+#shelf.sheet-open[data-sheet='weather'] .shelf-prev,
+#shelf.sheet-open[data-sheet='weather'] .shelf-col,
+#shelf.sheet-open[data-sheet='weather'] .card-convert {
+  visibility: hidden;
+}
+#shelf .shelf-sheet[data-kind='weather'] {
+  right: auto;
+  width: 290px;
+  inset: 0 auto 12px 8px;
+}
+#shelf .shelf-sheet[data-kind='weather'] .sheet-title {
+  display: none;
+}
+#shelf .shelf-sheet[data-kind='weather'] .sheet-head {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  height: 22px;
+  z-index: 1;
+}
+#shelf .shelf-sheet[data-kind='weather'] .sheet-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+#shelf .weather-sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+#shelf .weather-note {
+  margin: auto 0 0;
+  padding: 0 4px;
+  color: var(--v10-muted);
+  font-size: var(--fs-i3);
+  text-align: center;
+}
+#shelf .weather-choose {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  margin-bottom: auto;
+  padding: 0 12px;
+  border: 1px solid var(--v10-edge);
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--v10-ink);
+  font-size: var(--fs-i3);
+}
+#shelf .weather-choose svg {
+  width: 14px;
+  height: 14px;
+}
+#shelf .weather-now {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding-left: 28px;
+}
+#shelf .weather-now-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+#shelf .weather-now-temp {
+  color: var(--v10-ink);
+  font-size: 20px;
+  line-height: 1;
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.02em;
+}
+#shelf .weather-now-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+#shelf .weather-now-text small {
+  overflow: hidden;
+  color: var(--v10-muted);
+  font-size: var(--fs-i2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#shelf .weather-change {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--v10-muted);
+}
+#shelf .weather-change:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--v10-ink);
+}
+#shelf .weather-change svg {
+  width: 15px;
+  height: 15px;
+}
+#shelf .weather-details {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  color: var(--v10-muted);
+  font-size: var(--fs-i2);
+}
+#shelf .weather-details span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+#shelf .weather-details b {
+  color: var(--v10-ink);
+  font-weight: var(--fw-strong);
+}
+#shelf .weather-days {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+#shelf .weather-day-name {
+  color: var(--v10-muted);
+  font-weight: var(--fw-strong);
+}
+#shelf .weather-day.today .weather-day-name {
+  color: var(--v10-cream);
+}
+#shelf .weather-day-temps {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+#shelf .weather-day-temps b {
+  color: var(--v10-ink);
+}
+#shelf .weather-day-temps small {
+  color: var(--v10-muted);
+}
+#shelf .weather-day-rain {
+  color: rgba(150, 190, 235, 0.55);
+}
+#shelf .weather-day-rain.wet {
+  color: rgb(150, 196, 245);
+}
+
+/* ── from 23-v0815.css ── */
+/* ==========================================================================================
+   23 · v0.8.15 — smaller day cards in the weather sheet, no progress bar without a length
+   ========================================================================================== */
+/* --- Weather: the day cards no longer reach the bottom edge of the sheet ------------------ */
+#shelf .shelf-sheet[data-kind='weather'] {
+  padding: 6px 10px 10px;
+}
+#shelf .weather-sheet {
+  justify-content: flex-start;
+  gap: 4px;
+}
+#shelf .weather-days {
+  gap: 5px;
+  margin-top: 1px;
+}
+#shelf .weather-day-name {
+  font-size: var(--fs-i1);
+  line-height: 12px;
+}
+#shelf .weather-day-emoji {
+  font-size: var(--fs-i4);
+  line-height: 16px;
+}
+#shelf .weather-day-temps {
+  line-height: 14px;
+}
+#shelf .weather-day-temps b {
+  font-size: var(--fs-i2);
+}
+#shelf .weather-day-temps small {
+  font-size: var(--fs-i1);
+}
+#shelf .weather-day-sky {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+#shelf .weather-day-rain {
+  min-height: 0;
+  font-size: var(--fs-i1);
+  line-height: 10px;
+}
+#shelf .weather-day-rain:empty {
+  display: none;
+}
+/* --- Music: Spotify read from its window has no length: no bar stuck at 0:00 -------------- */
+#shelf .card-music.no-time .music-progress {
+  visibility: hidden;
+}
+body.music-no-time #notch .notch-progress {
+  visibility: hidden;
+}
+
+/* ── from 25-v092.css ── */
+/* ==========================================================================================
+   25 · v0.9.2 — Half-height Dönüştürücü + Gönder (Quick Share & AirDrop) on the island shelf
+   ========================================================================================== */
+/* --- Shelf middle column: Dönüştürücü (top half) + Gönder (bottom half) ------------------- */
+#shelf .shelf-col.shelf-col-mid {
+  flex: 0 0 48px;
+  gap: 8px;
+}
+#shelf .shelf-col-mid .card-convert,
+#shelf .shelf-col-mid .card-send {
+  flex: 1 1 0;
+  min-height: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0;
+  text-align: left;
+}
+#shelf .shelf-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+#shelf .shelf-left {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+#shelf .shelf-left > .shelf-col { min-width: 0; }
+#shelf .card-charles { width: 112px; min-width: 0; height: 100%; align-self: center; }
+#shelf .card-music { width: auto; min-width: 0; }
+#shelf .shelf-col-mid .card-text { display: none; }
+#shelf .shelf-col-mid .convert-icon,
+#shelf .shelf-col-mid .send-icon { background: transparent; border: 0; }
+#shelf .shelf-col-mid .card-convert .convert-icon,
+#shelf .shelf-col-mid .card-send .send-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--v10-ink);
+  transition:
+    transform 0.28s var(--v10-ease),
+    background-color 0.2s,
+    color 0.2s;
+}
+#shelf .shelf-col-mid .card-convert .convert-icon svg,
+#shelf .shelf-col-mid .card-send .send-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#shelf .shelf-col-mid .card-convert .card-text,
+#shelf .shelf-col-mid .card-send .card-text {
+  gap: 1px;
+}
+#shelf .shelf-col-mid .card-convert strong,
+#shelf .shelf-col-mid .card-send strong {
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  line-height: 1.15;
+}
+#shelf .shelf-col-mid .card-convert .convert-hint,
+#shelf .shelf-col-mid .card-send .send-hint {
+  font-size: var(--fs-i1);
+  color: var(--v10-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+#shelf .card-send:hover .send-icon {
+  transform: translate(1.5px, -1.5px);
+  color: var(--v10-cream);
+}
+#shelf .card-send.over,
+#shelf .card-send.has-offer {
+  border: 1.5px dashed var(--v10-cream);
+  background: linear-gradient(180deg, var(--cream-12), var(--cream-04));
+}
+#shelf .card-send.over .send-icon,
+#shelf .card-send.has-offer .send-icon {
+  background: var(--v10-cream);
+  color: var(--cream-ink);
+}
+#shelf .card-send.shake {
+  animation: v10-shake 0.45s;
+}
+#shelf.sheet-open[data-sheet='weather'] .shelf-col-mid,
+#shelf.sheet-open[data-sheet='usage'] .shelf-col-mid {
+  visibility: hidden;
+}
+/* File sharing: fixed columns and independently scrolling content. */
+#shelf .shelf-sheet[data-kind='share'] {
+  padding: 4px 12px 6px;
+  gap: 5px;
+  overflow: hidden;
+  border-radius: var(--r-xl);
+  background: #000;
+  backdrop-filter: none;
+}
+#shelf .shelf-sheet[data-kind='share'] .sheet-body { overflow: hidden; }
+#shelf .share-sheet {
+  display: grid;
+  grid-template-columns: minmax(142px, 27%) minmax(0, 1fr);
+  gap: 12px;
+  width: 100%; height: 100%; min-height: 0;
+  color: var(--v10-ink, #f4f3f0);
+  font-size: var(--fs-i2);
+  line-height: 1.35;
+  overflow: hidden;
+}
+#shelf .share-sheet *, #shelf .share-sheet *::before { box-sizing: border-box; }
+#shelf .share-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+#shelf .share-files { gap: 2px; padding-right: 10px; border-right: 1px solid #ffffff12; overflow-y: auto; }
+#shelf .share-sheet button { font: inherit; cursor: pointer; flex-shrink: 0; transition: background .15s, border-color .15s; }
+#shelf .share-sheet button:focus-visible { outline: 2px solid #a7caff; outline-offset: -2px; }
+#shelf .share-sheet button:hover { border-color: #ffffff38; background-color: #ffffff14; }
+#shelf .share-sheet svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#shelf .share-pick-empty { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 30px; flex: 1; border: 1px dashed #ffffff2a; border-radius: var(--r-md); background: #ffffff04; color: #e1e5ee; padding: 6px; }
+#shelf .share-file-head { display: flex; align-items: center; gap: 7px; min-width: 0; }
+#shelf .share-file-icon { display: grid; place-items: center; width: 27px; height: 27px; flex: none; color: #a7caff; background: #a7caff12; border-radius: var(--r-sm); }
+#shelf .share-file-meta { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+#shelf .share-file-head .share-file-icon { width: 22px; height: 22px; }
+#shelf .share-file-meta strong { font-size: var(--fs-i2); font-weight: var(--fw-strong); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#shelf .share-file-meta small {
+  flex: none;
+  color: #a2a7b3;
+  font-size: var(--fs-i1);
+}
+#shelf .share-file-actions, #shelf .share-transfer-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+#shelf .share-mini-btn, #shelf .share-scan-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 22px; padding: 2px 7px; border: 1px solid #ffffff18; border-radius: var(--r-sm); color: #e1e5ee; background: #ffffff06; font-size: var(--fs-i1) !important; }
+#shelf .share-mini-btn svg { width: 11px; height: 11px; }
+#shelf .share-mode-box { margin-top: auto; display: flex; flex-direction: column; gap: 2px; flex: none; }
+#shelf .share-mode-head { display: flex; align-items: center; gap: 5px; min-width: 0; line-height: 10px; }
+#shelf .share-mode-dot { width: 5px; height: 5px; flex: none; border-radius: 50%; background: var(--ok); }
+#shelf .share-mode-dot.off { background: #858998; }
+#shelf .share-mode-dot.auto { background: #a7caff; }
+#shelf .share-mode-title { font-size: var(--fs-i1); color: #b8bfcc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#shelf .share-mode-seg { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); padding: 2px; gap: 2px; background: #00000024; border: 1px solid #ffffff0d; border-radius: var(--r-sm); }
+#shelf .share-mode-pill { min-width: 0; height: 18px; padding: 0 2px; border: 0; border-radius: var(--r-sm); color: #969dab; background: transparent; font-size: var(--fs-i1) !important; }
+#shelf .share-file-actions .share-mini-btn { min-height: 18px; padding: 0 6px; }
+#shelf .share-mode-pill.active { color: #e5edf9; background: #ffffff16; }
+#shelf .share-mode-pill.active.everyone { color: var(--ok); background: color-mix(in srgb, var(--ok) 9%, transparent); }
+#shelf .share-mode-pill.active.auto { color: #b8d4ff; background: #a7caff16; }
+#shelf .share-center { gap: 5px; }
+#shelf .share-peers-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; }
+#shelf .share-peers-head small { color: #b8bfcc; font-size: var(--fs-i1); }
+#shelf .share-peers-list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #ffffff25 transparent; }
+#shelf .share-peers-empty { display: flex; align-items: center; gap: 10px; min-height: 42px; height: 100%; padding: 8px 12px; color: #a2a7b3; border: 1px solid #ffffff0d; border-radius: var(--r-md); background: #080808; font-size: var(--fs-i1); }
+#shelf .share-peers-empty svg { color: var(--v10-cream, var(--cream)); width: 20px; height: 20px; }
+#shelf .share-peer { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 6px 9px; border: 1px solid #ffffff12; border-radius: var(--r-md); background: #ffffff04; color: #e1e5ee; text-align: left; }
+#shelf .share-peer.selected { border-color: #a7caff55; }
+#shelf .share-peer-icon { width: 26px; height: 26px; display: grid; place-items: center; border-radius: var(--r-sm); background: #ffffff08; color: #a7caff; flex: none; }
+#shelf .share-peer-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#shelf .share-peer-text strong { font-size: var(--fs-i2); font-weight: var(--fw-strong); white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+#shelf .share-peer-text small { font-size: var(--fs-i1); color: #969dab; }
+#shelf .share-peer-go { color: #a7caff; }
+#shelf .share-badge { flex: none; padding: 2px 6px; border-radius: var(--r-sm); font-size: var(--fs-i1); font-weight: var(--fw-regular); white-space: nowrap; }
+#shelf .share-badge.quickshare { background: #a7caff12; color: #a7caff; }
+#shelf .share-badge.airdrop { background: #ffffff0a; color: #c9cad1; }
+#shelf .share-offer, #shelf .share-transfer { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: 1px solid #ffffff12; border-radius: var(--r-md); background: #ffffff04; overflow-y: auto; }
+#shelf .share-offer { border-color: #a7caff45; background: #a7caff08; }
+#shelf .share-offer-top, #shelf .share-transfer-top { display: flex; align-items: center; gap: 7px; min-width: 0; flex: none; }
+#shelf .share-offer-top strong, #shelf .share-transfer-top strong { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: var(--fs-i2); font-weight: var(--fw-strong); }
+#shelf .share-pin { margin-left: auto; color: #b8d4ff; font: 600 10px ui-monospace, monospace; white-space: nowrap; flex: none; }
+#shelf .share-offer-files, #shelf .share-transfer-file { color: #aeb5c2; font-size: var(--fs-i1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
+#shelf .share-offer-actions, #shelf .share-transfer-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; flex: none; }
+#shelf .share-offer-actions { justify-content: flex-end; }
+#shelf .share-transfer-foot > small { min-width: 0; font-size: var(--fs-i1); color: #b8bfcc; overflow-wrap: anywhere; }
+#shelf .share-transfer.error .share-transfer-foot > small { color: var(--danger-soft); }
+#shelf .share-transfer.done .share-transfer-foot > small { color: var(--ok); }
+#shelf .share-btn-primary, #shelf .share-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 26px; padding: 3px 12px; border: 1px solid #ffffff20; border-radius: var(--r-sm); font-size: var(--fs-i2); }
+#shelf .share-btn-primary { background: #b8d4ff; color: #142238; border-color: transparent; }
+#shelf .share-btn-primary:hover { background: #d4e5ff !important; }
+#shelf .share-btn-ghost { background: transparent; color: #c5cbd6; }
+#shelf .share-bar { flex: none; height: 4px; width: 100%; border-radius: var(--r-sm); background: #ffffff0e; overflow: hidden; }
+#shelf .share-bar i { display: block; height: 100%; border-radius: inherit; background: #a7caff; transition: width .18s; }
+#shelf .share-sheet.over { outline: 1px dashed var(--v10-cream); outline-offset: -2px; border-radius: var(--r-md); background: var(--cream-04); }
+
+/* ── from 26-v096.css ── */
+/* The EVREN quota card: its name and the refresh button sat right on the card's top edge;
+   drop the title row a little so both stay inside (the other providers are fine). */
+body.v10 #shelf .usage-sheet #usage-weather[data-provider='evren'] .usage-title {
+  margin-top: 12px;
+  margin-bottom: -12px;
+}
+.share-firewall small {
+  color: #d9c4b0;
+  font-size: var(--fs-i1);
+  line-height: 1.35;
+}
+.share-firewall .share-firewall-allow {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--accent, var(--cream));
+  color: var(--cream-ink);
+  font-size: var(--fs-i1);
+  font-weight: var(--fw-strong);
+}
+/* v0.9.7: why "Ağ izni ver" did not help, under the button */
+.share-firewall .share-firewall-error {
+  color: var(--danger);
+}
+
+/* ── from 29-v0913.css ── */
+/* --- page frame ------------------------------------------------------------ */
+body.v10[data-view='shelf']:not(.desktop-pet):not(.hidden-island) #shelf.shelf13 {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 24px;
+  grid-template-rows: auto;
+  align-content: start;
+  flex: none;
+  min-height: 0;
+  padding: 0 2px 4px;
+}
+#shelf.shelf13 .shelf-nav {
+  align-self: start;
+  margin-top: 38px;
+  width: 24px;
+  height: 24px;
+}
+#shelf.shelf13 .shelf-nav svg {
+  width: 16px;
+  height: 16px;
+}
+#shelf.shelf13 .h13 {
+  /* everything a little smaller, in proportion (the island is 640 px wide) */
+  zoom: 0.88;
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  color: var(--v10-ink);
+}
+#shelf.shelf13 svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* shared card */
+#shelf.shelf13 .h13-music,
+#shelf.shelf13 .h13-acc {
+  border: 1px solid var(--h13-edge);
+  border-top-color: var(--h13-edge-top);
+  background: var(--h13-card);
+  box-shadow: none;
+}
+/* --- row 1: Charles + Spotify --------------------------------------------- */
+#shelf.shelf13 .h13-top {
+  display: grid;
+}
+/* Charles has no card around him (as in the design) */
+#shelf.shelf13 .h13-hero {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+#shelf.shelf13 .h13-pet {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 86px;
+  height: 92px;
+}
+body.v10 #shelf.shelf13 .h13-pet #pet {
+  width: 86px !important;
+  height: 92px !important;
+}
+body.v10 #shelf.shelf13 .h13-pet #slime {
+  width: 112px !important;
+  height: 112px !important;
+  margin: -14px -13px -6px !important;
+}
+#shelf.shelf13 .h13-hero-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+#shelf.shelf13 .h13-name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  align-self: flex-start;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--v10-ink);
+  font: inherit;
+  cursor: pointer;
+}
+#shelf.shelf13 .h13-name strong {
+  font-size: var(--fs-i6);
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.4px;
+  line-height: 1.1;
+}
+#shelf.shelf13 .h13-name small {
+  font-size: var(--fs-i2);
+  color: var(--v10-faint);
+  font-variant-numeric: tabular-nums;
+}
+#shelf.shelf13 .h13-name:hover strong {
+  color: #fff;
+}
+#shelf.shelf13 .h13-ask {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  margin: 0;
+  padding: 0 4px 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.035);
+  transition: border-color 0.15s,
+    background-color 0.15s;
+}
+#shelf.shelf13 .h13-ask:focus-within {
+  border-color: var(--cream-45);
+  background: rgba(255, 255, 255, 0.05);
+}
+#shelf.shelf13 .h13-ask input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--v10-ink);
+  font: inherit;
+  font-size: var(--fs-i4);
+}
+#shelf.shelf13 .h13-ask input::placeholder {
+  color: #85817c;
+}
+#shelf.shelf13 .h13-ask-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #b3aea7;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    opacity 0.15s;
+}
+#shelf.shelf13 .h13-ask-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--v10-ink);
+}
+#shelf.shelf13 .h13-ask-btn svg {
+  width: 16px;
+  height: 16px;
+}
+#shelf.shelf13 .h13-ask-send {
+  margin-left: 4px;
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+}
+#shelf.shelf13 .h13-ask-send:hover:not(:disabled) {
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+  filter: brightness(1.06);
+}
+#shelf.shelf13 .h13-ask-send:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+#shelf.shelf13 .h13-ask-send svg {
+  stroke-width: 2.2;
+}
+/* Spotify */
+#shelf.shelf13 .h13-music {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  cursor: pointer;
+  overflow: hidden;
+}
+#shelf.shelf13 .h13-music:hover {
+  background: var(--h13-card-hover);
+}
+#shelf.shelf13 .h13-music .music-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  color: #7d7a76;
+  overflow: hidden;
+}
+#shelf.shelf13 .h13-music .music-art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+#shelf.shelf13 .h13-music .music-art.has-art img {
+  opacity: 1;
+}
+#shelf.shelf13 .h13-music .music-art .music-brand-big {
+  position: static;
+  opacity: 0.9;
+}
+#shelf.shelf13 .h13-music .music-art.has-art .music-brand-big {
+  opacity: 0;
+}
+#shelf.shelf13 .h13-music .music-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+#shelf.shelf13 .h13-music .music-label {
+  display: flex;
+  align-items: center;
+}
+#shelf.shelf13 .h13-music.idle .music-label {
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .h13-music .music-label svg,
+#shelf.shelf13 .h13-music .music-label img {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+#shelf.shelf13 .h13-music .music-title {
+  overflow: hidden;
+  font-weight: var(--fw-strong);
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--v10-ink);
+}
+#shelf.shelf13 .h13-music .music-artist {
+  overflow: hidden;
+  color: var(--v10-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#shelf.shelf13 .h13-music .music-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+#shelf.shelf13 .h13-music .music-btn {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #cfcac3;
+  cursor: pointer;
+}
+#shelf.shelf13 .h13-music .music-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+#shelf.shelf13 .h13-music .music-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+#shelf.shelf13 .h13-music .music-play svg {
+  fill: currentColor;
+}
+#shelf.shelf13 .h13-music .music-progress {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  margin-top: 1px;
+}
+#shelf.shelf13 .h13-music .music-time {
+  font-size: var(--fs-i1);
+  color: var(--v10-faint);
+  font-variant-numeric: tabular-nums;
+}
+#shelf.shelf13 .h13-music .music-range {
+  width: 100%;
+  height: 4px;
+  margin: 0;
+}
+#shelf.shelf13 .h13-music.no-time .music-progress {
+  visibility: hidden;
+}
+#shelf.shelf13 .h13-music .music-start,
+#shelf.shelf13 .h13-music .music-hint {
+  display: none;
+}
+#shelf.shelf13 .h13-music.idle .music-controls,
+#shelf.shelf13 .h13-music.idle .music-progress {
+  display: none;
+}
+#shelf.shelf13 .h13-music.idle .music-start {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  align-self: flex-start;
+  min-height: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  font: inherit;
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+#shelf.shelf13 .h13-music.idle .music-start:hover {
+  filter: brightness(1.07);
+}
+#shelf.shelf13 .h13-music.idle .music-start svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+}
+#shelf.shelf13 .h13-music.idle .music-hint {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  font-size: var(--fs-i1);
+  color: var(--v10-faint);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* --- row 2: the three cards -------------------------------------------------- */
+#shelf.shelf13 .h13-accs {
+  display: grid;
+}
+#shelf.shelf13 .h13-acc {
+  display: flex;
+  align-items: center;
+  height: 50px;
+  min-height: 0;
+  min-width: 0;
+  margin: 0;
+  border-radius: var(--r-lg);
+  color: var(--v10-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s,
+    border-color 0.18s,
+    transform 0.18s var(--v10-ease);
+}
+#shelf.shelf13 .h13-acc:hover {
+  background: var(--h13-card-hover);
+  border-color: rgba(255, 255, 255, 0.13);
+}
+#shelf.shelf13 .h13-acc:active {
+  transform: scale(0.985);
+}
+#shelf.shelf13 .h13-acc-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  color: #d9d4cd;
+  font-size: var(--fs-i6);
+  line-height: 1;
+}
+#shelf.shelf13 .h13-acc-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+#shelf.shelf13 .h13-acc-title {
+  overflow: hidden;
+  font-weight: var(--fw-strong);
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#shelf.shelf13 .h13-acc-sub {
+  overflow: hidden;
+  color: var(--v10-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#shelf.shelf13 .h13-acc.has-offer .h13-acc-sub {
+  color: var(--v10-cream);
+}
+#shelf.shelf13 .h13-acc-chev {
+  flex: none;
+  display: grid;
+  place-items: center;
+  height: 18px;
+  color: var(--v10-faint);
+  transition: transform 0.22s var(--v10-ease),
+    color 0.18s;
+}
+/* the open card: only its frame and arrow change (the icon keeps its own colours) */
+#shelf.shelf13 .h13-acc.on {
+  border-color: var(--h13-on);
+  background: var(--cream-04);
+}
+#shelf.shelf13 .h13-acc.on .h13-acc-chev {
+  transform: rotate(180deg);
+  color: var(--v10-cream);
+}
+/* a file dragged over Dosyalar */
+#shelf.shelf13 .h13-acc.over {
+  border-style: dashed;
+  border-color: var(--v10-cream);
+}
+/* --- the panel under the cards ---------------------------------------------- */
+#shelf.shelf13 .h13-panel {
+  position: relative;
+  margin-top: 2px;
+  padding: 12px;
+  border: 1px solid var(--cream-18);
+  border-radius: var(--r-lg);
+  background: var(--h13-panel);
+  box-shadow: none;
+  animation: h13-panel-in 0.2s var(--v10-ease);
+}
+#shelf.shelf13 .h13-panel[hidden] {
+  display: none;
+}
+#shelf.shelf13 .h13-panel::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: calc(var(--notch-x, 50%) - 6px);
+  width: 10px;
+  height: 10px;
+  border-top: 1px solid var(--cream-35);
+  border-left: 1px solid var(--cream-35);
+  border-top-left-radius: var(--r-sm);
+  background: var(--h13-panel);
+  transform: rotate(45deg);
+  transition: left 0.22s var(--v10-ease);
+}
+@keyframes h13-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #shelf.shelf13 .h13-panel {
+    animation: none;
+  }
+
+}
+#shelf.shelf13 .h13-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+}
+#shelf.shelf13 .h13-sec-title {
+  font-size: var(--fs-i1);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.9px;
+  color: var(--v10-faint);
+}
+#shelf.shelf13 .h13-sec-tools {
+  display: flex;
+  gap: 2px;
+}
+#shelf.shelf13 .h13-icon-btn,
+#shelf.shelf13 .h13-back,
+#shelf.shelf13 .weather-change {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: #b9b4ad;
+  cursor: pointer;
+}
+#shelf.shelf13 .h13-icon-btn:hover,
+#shelf.shelf13 .h13-icon-btn.on,
+#shelf.shelf13 .h13-back:hover,
+#shelf.shelf13 .weather-change:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--v10-ink);
+}
+#shelf.shelf13 .h13-icon-btn svg,
+#shelf.shelf13 .h13-back svg,
+#shelf.shelf13 .weather-change svg {
+  width: 15px;
+  height: 15px;
+}
+#shelf.shelf13 .h13-icon-btn.spinning svg {
+  animation: h13-spin 0.8s linear infinite;
+}
+@keyframes h13-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* --- Dosyalar ------------------------------------------------------------- */
+#shelf.shelf13 .h13-tiles {
+  display: grid;
+  gap: 8px;
+}
+/* v1.0.0: three low buttons (icon and name), still wide and tall enough to drop a file on */
+#shelf.shelf13 .h13-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  height: 56px;
+  min-height: 0;
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: var(--r-lg);
+  background: var(--h13-well);
+  color: var(--v10-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    transform 0.15s var(--v10-ease);
+}
+#shelf.shelf13 .h13-tile:hover {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+#shelf.shelf13 .h13-tile:active {
+  transform: scale(0.988);
+}
+#shelf.shelf13 .h13-tile.over {
+  border: 1px dashed var(--v10-cream);
+  background: var(--cream-04);
+}
+#shelf.shelf13 .h13-tile-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .h13-tile-icon svg {
+  width: 17px;
+  height: 17px;
+}
+#shelf.shelf13 .h13-tile-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#shelf.shelf13 .h13-files {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#shelf.shelf13 .h13-files-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#shelf.shelf13 .h13-files-tools {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+/* segmented control */
+#shelf.shelf13 .h13-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.03);
+}
+#shelf.shelf13 .h13-seg-btn {
+  height: 25px;
+  min-height: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: #b3aea7;
+  font: inherit;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+#shelf.shelf13 .h13-seg-btn:hover:not(.on) {
+  color: var(--v10-ink);
+  background: rgba(255, 255, 255, 0.05);
+}
+#shelf.shelf13 .h13-seg-btn.on {
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+}
+/* converter inside the panel */
+#shelf.shelf13 .conv.conv13 {
+  display: grid;
+  grid-template-columns: 206px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 128px;
+}
+#shelf.shelf13 .conv13 .conv-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+#shelf.shelf13 .conv13 .conv-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: var(--r-md);
+  background: var(--h13-well);
+}
+#shelf.shelf13 .conv13 .conv-kind {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-md);
+}
+#shelf.shelf13 .conv13 .conv-file-text strong {
+  font-size: var(--fs-i4);
+}
+#shelf.shelf13 .conv13 .conv-file-text small {
+  font-size: var(--fs-i2);
+}
+#shelf.shelf13 .conv13 .conv-list {
+  max-height: 64px;
+}
+#shelf.shelf13 .conv13 .conv-drop,
+#shelf.shelf13 .share-sheet .share-drop-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  min-height: 40px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.15);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: #b9b4ad;
+  font: inherit;
+  font-size: var(--fs-i3);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s,
+    color 0.15s;
+}
+#shelf.shelf13 .conv13 .conv-drop.big,
+#shelf.shelf13 .share-sheet .share-drop-area {
+  flex-direction: column;
+  min-height: 120px;
+}
+#shelf.shelf13 .conv13 .conv-drop:hover,
+#shelf.shelf13 .conv13 .conv-drop.over,
+#shelf.shelf13 .conv13.over .conv-drop,
+#shelf.shelf13 .share-sheet .share-drop-area:hover,
+#shelf.shelf13 .share-sheet.over .share-drop-area {
+  border-color: var(--v10-cream);
+  background: var(--cream-04);
+  color: var(--v10-ink);
+}
+#shelf.shelf13 .conv13 .conv-drop svg,
+#shelf.shelf13 .share-sheet .share-drop-area svg {
+  width: 16px;
+  height: 16px;
+}
+#shelf.shelf13 .conv13 .conv-drop.big svg,
+#shelf.shelf13 .share-sheet .share-drop-area svg {
+  width: 20px;
+  height: 20px;
+  padding: 6px;
+  box-sizing: content-box;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+}
+#shelf.shelf13 .conv13.running .conv-drop,
+#shelf.shelf13 .conv13.done .conv-drop {
+  display: none;
+}
+#shelf.shelf13 .conv13 .conv-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+#shelf.shelf13 .conv13 .conv-formats {
+  flex: 1;
+  overflow: visible;
+  padding: 0;
+}
+#shelf.shelf13 .conv13 .conv-formats-empty {
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.015);
+}
+#shelf.shelf13 .conv13 .conv-chips {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+#shelf.shelf13 .conv13 .conv-group {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+#shelf.shelf13 .conv13 .conv-group-name {
+  margin: 0;
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-strong);
+  color: var(--v10-faint);
+}
+#shelf.shelf13 .conv13 .conv-group-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+#shelf.shelf13 .conv13 .conv-chip {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-i3);
+}
+#shelf.shelf13 .conv13 .conv-chip.on,
+#shelf.shelf13 .conv13 .conv-chip.on:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+}
+#shelf.shelf13 .conv13 .conv-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+}
+#shelf.shelf13 .conv13 .conv-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+#shelf.shelf13 .conv13 .conv-opts:empty {
+  display: block;
+}
+#shelf.shelf13 .conv13 .conv-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+#shelf.shelf13 .conv13 .conv-opt > small {
+  font-size: var(--fs-i1);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.4px;
+}
+#shelf.shelf13 .conv13 .conv-opt.conv-check {
+  flex-direction: row;
+  align-items: center;
+  align-self: flex-end;
+  height: 28px;
+}
+#shelf.shelf13 .conv13 .conv-select {
+  height: 28px;
+  min-width: 100px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-i3);
+}
+#shelf.shelf13 .conv13 .conv-action {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+#shelf.shelf13 .conv13 .conv-go {
+  height: 34px;
+  padding: 0 18px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-i4);
+}
+#shelf.shelf13 .conv13 .conv-ghost {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-i3);
+}
+/* Gönder inside the panel */
+#shelf.shelf13 .share-sheet {
+  grid-template-columns: 206px minmax(0, 1fr);
+  gap: 12px;
+  height: auto;
+  min-height: 128px;
+  font-size: var(--fs-i3);
+  overflow: visible;
+}
+#shelf.shelf13 .share-sheet .share-files {
+  gap: 8px;
+  padding-right: 0;
+  border-right: 0;
+}
+#shelf.shelf13 .share-sheet .share-file-head {
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: var(--r-md);
+  background: var(--h13-well);
+}
+#shelf.shelf13 .share-sheet .share-file-head .share-file-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-md);
+}
+#shelf.shelf13 .share-sheet .share-file-meta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+#shelf.shelf13 .share-sheet .share-file-meta strong {
+  max-width: 100%;
+  font-size: var(--fs-i4);
+}
+#shelf.shelf13 .share-sheet .share-file-meta small {
+  font-size: var(--fs-i2);
+}
+#shelf.shelf13 .share-sheet .share-file-actions .share-mini-btn,
+#shelf.shelf13 .share-sheet .share-mini-btn,
+#shelf.shelf13 .share-sheet .share-scan-btn {
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-i3);
+}
+#shelf.shelf13 .share-sheet .share-mini-btn svg,
+#shelf.shelf13 .share-sheet .share-scan-btn svg {
+  width: 12px;
+  height: 12px;
+}
+#shelf.shelf13 .share-sheet .share-center {
+  gap: 8px;
+}
+#shelf.shelf13 .share-sheet .share-peers-head small {
+  font-size: var(--fs-i1);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.9px;
+  color: var(--v10-faint);
+}
+#shelf.shelf13 .share-sheet .share-peers-list {
+  flex: none;
+  max-height: 150px;
+  gap: 4px;
+}
+#shelf.shelf13 .share-sheet .share-peers-empty {
+  min-height: 48px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.015);
+  font-size: var(--fs-i3);
+}
+#shelf.shelf13 .share-sheet .share-peer {
+  min-height: 46px;
+  padding: 6px 6px 6px 8px;
+  gap: 10px;
+  border-radius: var(--r-md);
+  background: var(--h13-well);
+}
+#shelf.shelf13 .share-sheet .share-peer-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-md);
+  color: var(--v10-cream);
+  background: var(--cream-08);
+}
+#shelf.shelf13 .share-sheet .share-peer-icon svg {
+  width: 15px;
+  height: 15px;
+}
+#shelf.shelf13 .share-sheet .share-peer-text strong {
+  font-size: var(--fs-i4);
+}
+#shelf.shelf13 .share-sheet .share-peer-text small {
+  font-size: var(--fs-i2);
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .share-sheet .share-peer-send {
+  flex: none;
+  height: 30px;
+  min-height: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+}
+#shelf.shelf13 .share-sheet .share-peer-send:hover {
+  background: var(--v10-cream) !important;
+  filter: brightness(1.06);
+}
+#shelf.shelf13 .share-sheet .share-peers-hint {
+  font-size: var(--fs-i2);
+  color: var(--v10-faint);
+}
+#shelf.shelf13 .share-sheet .share-offer-top strong,
+#shelf.shelf13 .share-sheet .share-transfer-top strong {
+  font-size: var(--fs-i4);
+}
+#shelf.shelf13 .share-sheet .share-offer-files,
+#shelf.shelf13 .share-sheet .share-transfer-file,
+#shelf.shelf13 .share-sheet .share-transfer-foot > small {
+  font-size: var(--fs-i3);
+}
+#shelf.shelf13 .share-sheet .share-btn-primary,
+#shelf.shelf13 .share-sheet .share-btn-ghost {
+  min-height: 30px;
+  padding: 0 14px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-i3);
+}
+#shelf.shelf13 .share-sheet .share-firewall small {
+  font-size: var(--fs-i2);
+}
+/* "Dosya alımı" switch */
+#shelf.shelf13 .share-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  min-height: 0;
+  padding: 0 4px 0 8px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: #cfcac3;
+  font: inherit;
+  font-size: var(--fs-i3);
+  cursor: pointer;
+}
+#shelf.shelf13 .share-switch:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+}
+#shelf.shelf13 .share-switch:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+#shelf.shelf13 .share-switch-track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.14);
+  transition: background-color 0.18s;
+}
+#shelf.shelf13 .share-switch-track i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e9e5df;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s var(--v10-ease);
+}
+#shelf.shelf13 .share-switch.on .share-switch-track {
+  background: var(--v10-cream);
+}
+#shelf.shelf13 .share-switch.on .share-switch-track i {
+  transform: translateX(14px);
+  background: #1b1712;
+}
+/* --- AI kullanımı ------------------------------------------------------------- */
+#shelf.shelf13 .h13-usage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#shelf.shelf13 .h13-usage-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+#shelf.shelf13 .h13-usage-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px 10px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: var(--r-md);
+  background: var(--h13-well);
+}
+#shelf.shelf13 .h13-usage-col[hidden] {
+  display: none;
+}
+#shelf.shelf13 .h13-usage-col.off {
+  opacity: 0.6;
+}
+#shelf.shelf13 .h13-prov {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+}
+#shelf.shelf13 .h13-prov-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 7px -1px var(--c);
+}
+#shelf.shelf13 .h13-rings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: 4px;
+}
+#shelf.shelf13 .h13-ring {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+}
+#shelf.shelf13 .h13-ring[hidden] {
+  display: none;
+}
+#shelf.shelf13 .h13-ring-dial {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+}
+#shelf.shelf13 .h13-ring-dial svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+#shelf.shelf13 .h13-ring circle {
+  fill: none;
+  stroke-width: 6;
+}
+#shelf.shelf13 .h13-ring circle.track {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+#shelf.shelf13 .h13-ring circle.value {
+  stroke: var(--c);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s var(--v10-ease);
+}
+#shelf.shelf13 .h13-ring.low circle.value {
+  stroke: #f08a6a;
+}
+#shelf.shelf13 .h13-ring-pct {
+  position: relative;
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-strong);
+  font-variant-numeric: tabular-nums;
+}
+#shelf.shelf13 .h13-ring.empty .h13-ring-pct {
+  color: var(--v10-faint);
+}
+#shelf.shelf13 .h13-ring-label {
+  margin-top: 4px;
+  font-size: var(--fs-i1);
+  color: #cfcac3;
+  white-space: nowrap;
+}
+#shelf.shelf13 .h13-ring-reset {
+  min-height: 12px;
+  overflow: hidden;
+  max-width: 100%;
+  font-size: var(--fs-i1);
+  color: var(--v10-faint);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#shelf.shelf13 .h13-usage-note {
+  min-height: 12px;
+  overflow: hidden;
+  font-size: var(--fs-i1);
+  color: var(--v10-faint);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* one window only (EVREN): the note fills the empty half beside the ring */
+#shelf.shelf13 .h13-usage-col.single .h13-rings .h13-usage-note {
+  min-height: 0;
+  overflow: visible;
+  font-size: var(--fs-i2);
+  line-height: 1.4;
+  color: #cfcac3;
+  white-space: normal;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+#shelf.shelf13 .h13-usage-empty {
+  margin: 4px 0;
+  font-size: var(--fs-i3);
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .h13-usage-menu {
+  position: absolute;
+  top: 28px;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 210px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--r-lg);
+  background: rgb(14, 14, 17);
+  box-shadow: 0 16px 34px -12px rgba(0, 0, 0, 0.8);
+}
+#shelf.shelf13 .h13-usage-menu[hidden] {
+  display: none;
+}
+#shelf.shelf13 .h13-usage-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-i3);
+  cursor: pointer;
+}
+#shelf.shelf13 .h13-usage-opt:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+#shelf.shelf13 .h13-usage-opt input {
+  accent-color: var(--v10-cream);
+}
+#shelf.shelf13 .h13-usage-opt small {
+  margin-left: auto;
+  font-size: var(--fs-i1);
+  color: var(--v10-faint);
+}
+#shelf.shelf13 .h13-usage-all {
+  margin-bottom: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--r-md) var(--r-md) 0 0;
+}
+/* --- Hava durumu ---------------------------------------------------------- */
+#shelf.shelf13 .h13-weather {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: auto;
+  padding: 0;
+}
+#shelf.shelf13 .h13-weather .weather-top {
+  display: grid;
+  grid-template-columns: minmax(0, 212px) minmax(0, 1fr);
+  gap: 12px;
+}
+#shelf.shelf13 .h13-weather .weather-now {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 8px;
+  padding: 2px 0;
+}
+#shelf.shelf13 .h13-weather .weather-now-emoji {
+  font-size: 28px;
+  line-height: 1;
+}
+#shelf.shelf13 .h13-weather .weather-now-temp {
+  font-size: 28px;
+  font-weight: var(--fw-strong);
+  letter-spacing: -1px;
+  line-height: 1;
+}
+#shelf.shelf13 .h13-weather .weather-now-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+#shelf.shelf13 .h13-weather .weather-now-text small {
+  overflow: hidden;
+  font-size: var(--fs-i2);
+  color: var(--v10-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#shelf.shelf13 .h13-weather .weather-details {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 0;
+}
+#shelf.shelf13 .h13-weather .weather-details span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+#shelf.shelf13 .h13-weather .weather-details small {
+  font-size: var(--fs-i1);
+  color: var(--v10-faint);
+}
+#shelf.shelf13 .h13-weather .weather-details b {
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+}
+#shelf.shelf13 .h13-weather .weather-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+#shelf.shelf13 .h13-weather .weather-block-hours .h13-sec-head {
+  margin-top: -2px;
+}
+#shelf.shelf13 .h13-weather .weather-hours {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+#shelf.shelf13 .h13-weather .weather-hours[hidden] {
+  display: none;
+}
+#shelf.shelf13 .h13-weather .weather-hour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 4px 2px;
+}
+#shelf.shelf13 .h13-weather .weather-hour-time {
+  font-size: var(--fs-i1);
+  color: var(--v10-muted);
+  font-variant-numeric: tabular-nums;
+}
+/* "Şimdi" is told apart by weight, not by a frame */
+#shelf.shelf13 .h13-weather .weather-hour.now .weather-hour-time {
+  color: var(--v10-ink);
+  font-weight: var(--fw-strong);
+}
+#shelf.shelf13 .h13-weather .weather-hour-emoji {
+  font-size: var(--fs-i6);
+  line-height: 1;
+}
+#shelf.shelf13 .h13-weather .weather-hour-temp {
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-regular);
+}
+#shelf.shelf13 .h13-weather .weather-hour.now .weather-hour-temp {
+  font-weight: var(--fw-strong);
+}
+#shelf.shelf13 .h13-weather .weather-days {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+/* each day is one centred column (name, sky, temperatures): without boxes, a two-part day
+   read as belonging to its neighbour */
+#shelf.shelf13 .h13-weather .weather-day {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-items: center;
+  row-gap: 4px;
+  min-width: 0;
+  height: auto;
+  padding: 4px 2px;
+}
+#shelf.shelf13 .h13-weather .weather-day-name {
+  grid-column: 1 / -1;
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-regular);
+  color: var(--v10-muted);
+}
+/* "Bugün" is told apart by weight, not by a cream frame */
+#shelf.shelf13 .h13-weather .weather-day.today .weather-day-name {
+  font-weight: var(--fw-strong);
+  color: var(--v10-ink);
+}
+#shelf.shelf13 .h13-weather .weather-day-sky {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+#shelf.shelf13 .h13-weather .weather-day-emoji {
+  font-size: var(--fs-i6);
+  line-height: 1;
+}
+/* rain chance: muted text, plain text colour from 50 % up */
+#shelf.shelf13 .h13-weather .weather-day-rain {
+  font-size: var(--fs-i1);
+  color: var(--v10-faint);
+}
+#shelf.shelf13 .h13-weather .weather-day-rain.wet {
+  color: var(--v10-ink);
+}
+#shelf.shelf13 .h13-weather .weather-day-temps {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+#shelf.shelf13 .h13-weather .weather-day-temps b {
+  font-size: var(--fs-i4);
+}
+#shelf.shelf13 .h13-weather .weather-day-temps small {
+  font-size: var(--fs-i2);
+  color: var(--v10-faint);
+}
+#shelf.shelf13 .h13-weather .weather-note {
+  margin: 4px 0;
+  font-size: var(--fs-i3);
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .h13-weather .weather-choose {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  height: 30px;
+  min-height: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+  font: inherit;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+#shelf.shelf13 .h13-weather .weather-choose svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── from 32-v0914-island-cards.css ── */
+/* GENERATED (v0.9.14): the app window's Hatırlatıcılar / Takvim / E-postalar / Akıllı ev cards
+   in the island's Araçlar (.h13-wscard) and Ayarlar → Haftalık özet there (.h13-weekly).
+   The originals are scoped to #workspace / #settings-panel; see 9–30. */
+#shelf.shelf13 .h13-wscard .ws-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: #c9c6c2;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+#shelf.shelf13 .h13-wscard .ws-icon svg {
+  width: 19px;
+  height: 19px;
+}
+#shelf.shelf13 .h13-wscard .ws-icon:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ws-text);
+}
+#shelf.shelf13 .h13-wscard .ws-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+#shelf.shelf13 .h13-wscard .ws-more {
+  width: 30px;
+  height: 30px;
+  opacity: 0;
+}
+#shelf.shelf13 .h13-wscard .ws-music-controls .ws-icon.on {
+  color: var(--ws-accent);
+}
+#shelf.shelf13 .h13-wscard .ws-ask .ws-icon:first-child {
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--ws-line-2);
+  border-radius: 50%;
+}
+#shelf.shelf13 .h13-wscard .ws-home-card.editing .ws-tile,
+#shelf.shelf13 .h13-wscard .ws-home-card.editing .ws-scene {
+  outline: 1px dashed var(--cream-35);
+  outline-offset: -1px;
+  cursor: default;
+}
+#shelf.shelf13 .h13-wscard .ws-panel-actions .ws-icon {
+  width: 32px;
+  height: 32px;
+}
+#shelf.shelf13 .h13-wscard .ws-panel-actions .ws-icon svg {
+  width: 17px;
+  height: 17px;
+}
+#shelf.shelf13 .h13-wscard .ws-panel-actions .ws-icon.done {
+  color: var(--ok-strong);
+}
+#shelf.shelf13 .h13-wscard .ws-panel-actions .ws-icon.on {
+  color: var(--ws-accent);
+  background: var(--ws-card-2);
+}
+#shelf.shelf13 .h13-wscard button.ws-primary svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+}
+#shelf.shelf13 .h13-wscard .ws-seg button {
+  height: 34px !important;
+  padding: 0 20px !important;
+  border: 0 !important;
+  border-radius: var(--r-md) !important;
+  background: transparent !important;
+  color: var(--ws-body) !important;
+}
+#shelf.shelf13 .h13-wscard .ws-seg button.on {
+  background: var(--ws-accent) !important;
+  color: var(--ws-accent-ink) !important;
+}
+#shelf.shelf13 .h13-wscard {
+  --ws-accent: var(--sb-accent, var(--cream));
+  --ws-accent-ink: var(--cream-ink);
+  --ws-green: var(--ok-strong);
+  --ws-bg: #010101;
+  --ws-card: #090908;
+  --ws-card-2: #100f0e;
+  --ws-field: #121110;
+  --ws-line: var(--cream-08);
+  --ws-line-2: var(--cream-12);
+  --ws-text: #f6efe6;
+  --ws-body: #ddd4c9;
+  --ws-muted: #978c80;
+}
+#shelf.shelf13 .h13-wscard .ws-home {
+  overflow-x: hidden;
+}
+#shelf.shelf13 .h13-wscard .ws-home > * {
+  min-width: 0;
+}
+#shelf.shelf13 .h13-wscard .ws-dash {
+  container-type: inline-size;
+  min-width: 0;
+}
+#shelf.shelf13 .h13-wscard .ws-mail-row > *,
+#shelf.shelf13 .h13-wscard .ws-list > * > * {
+  min-width: 0;
+}
+#shelf.shelf13 .h13-wscard .ws-icon.spinning {
+  color: var(--ws-accent);
+  pointer-events: none;
+}
+#shelf.shelf13 .h13-wscard .ws-icon.spinning svg {
+  animation: ws-spin 0.85s linear infinite;
+  transform-origin: 50% 50%;
+}
+#shelf.shelf13 .h13-wscard .ws-icon.on {
+  color: var(--ws-accent);
+  background: var(--cream-12);
+}
+#shelf.shelf13 .h13-wscard .ws-home-editbar button.ws-primary {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: var(--r-md);
+  font-weight: var(--fw-strong);
+}
+#shelf.shelf13 .h13-wscard .ws-card-chrome .ws-card-x {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-md);
+  color: var(--danger);
+}
+#shelf.shelf13 .h13-wscard .ws-card-chrome .ws-card-x:hover {
+  background: color-mix(in srgb, var(--danger) 14%, transparent) !important;
+  color: var(--danger-soft);
+}
+#shelf.shelf13 .h13-wscard .ws-card-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 74px;
+  border: 1.5px dashed var(--cream-25);
+  border-radius: var(--r-xl);
+  background: var(--cream-02);
+  color: var(--ws-accent);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+#shelf.shelf13 .h13-wscard .ws-card-add:hover {
+  border-color: var(--cream-55);
+  background: var(--cream-08);
+}
+#shelf.shelf13 .h13-wscard .ws-card-add:active {
+  transform: scale(0.99);
+}
+#shelf.shelf13 .h13-wscard .ws-home-empty button.ws-primary {
+  height: 42px;
+  margin-top: 8px;
+  padding: 0 18px;
+  border-radius: var(--r-md);
+  font-weight: var(--fw-strong);
+}
+#shelf.shelf13 .h13-wscard .ws-cmd-suggest .ws-chip {
+  cursor: pointer;
+  background: transparent;
+}
+#shelf.shelf13 .h13-wscard .ws-cmd-suggest .ws-chip:hover {
+  border-color: var(--cream-45);
+}
+#shelf.shelf13 .h13-wscard .ws-now-files .ws-link,
+#shelf.shelf13 .h13-wscard .ws-now-wait .ws-link {
+  width: auto;
+  margin: 0 0 0 4px;
+  padding: 0 !important;
+  border: 0 !important;
+  color: var(--ws-accent);
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+}
+#shelf.shelf13 .h13-wscard .ws-now-steer button.ws-primary {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--r-md);
+  font-weight: var(--fw-strong);
+}
+#shelf.shelf13 .h13-wscard .ws-q-form button.ws-primary {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: var(--r-md);
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+}
+#shelf.shelf13 .h13-wscard .ws-q-actions .ws-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+}
+#shelf.shelf13 .h13-wscard .ws-q-actions .ws-icon svg {
+  width: 15px;
+  height: 15px;
+}
+#shelf.shelf13 .h13-wscard .ws-q-foot .ws-link {
+  width: auto;
+  margin: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: var(--fs-i4);
+}
+#shelf.shelf13 .h13-wscard .ws-chat-view .ws-q-form button.ws-primary {
+  height: 30px;
+  margin-left: auto;
+  padding: 0 10px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-i4);
+}
+#shelf.shelf13 .h13-wscard .ws-chat-view .ws-q-actions .ws-icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* ── from 30-v0914.css ── */
+/* ==========================================================================
+   30 · v0.9.14 — Araçlar: Renk seçici, Zamanlayıcı, modül kısayolları;
+   kapalı adacıkta zamanlayıcı / renk / "süre doldu"; dört kartlı ana sayfa.
+   Renk seçici (.cp13) ve zamanlayıcı (.tm13) hem adacık panelinde hem uygulama
+   penceresinin kartlarında aynı öğedir; stilleri bu yüzden #shelf'e bağlı değil.
+   ========================================================================== */
+/* --- the home page: four cards; the message box sits on the Spotify card's baseline --- */
+#shelf.shelf13 .h13-accs {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+#shelf.shelf13 .h13-acc {
+  gap: 8px;
+  padding: 0 6px 0 8px;
+}
+#shelf.shelf13 .h13-acc-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-md);
+}
+#shelf.shelf13 .h13-acc-icon svg {
+  width: 15px;
+  height: 15px;
+}
+#shelf.shelf13 .h13-acc-title {
+  font-size: var(--fs-i3);
+}
+#shelf.shelf13 .h13-acc-sub {
+  font-size: var(--fs-i1);
+}
+#shelf.shelf13 .h13-acc-chev {
+  width: 14px;
+}
+#shelf.shelf13 .h13-acc-chev svg {
+  width: 13px;
+  height: 13px;
+}
+/* no orange line under AI kullanımı (low quota shows in the panel's rings) */
+#shelf.shelf13 .h13-acc.low .h13-acc-sub {
+  color: var(--v10-muted);
+}
+/* a running or finished timer: the Araçlar line in cream */
+#shelf.shelf13 .h13-acc.live .h13-acc-sub {
+  color: var(--v10-cream);
+  font-variant-numeric: tabular-nums;
+}
+#shelf.shelf13 .h13-hero {
+  align-items: stretch;
+  padding: 0;
+}
+#shelf.shelf13 .h13-pet {
+  align-self: center;
+}
+#shelf.shelf13 .h13-hero-main {
+  justify-content: flex-end;
+  gap: 10px;
+  margin-left: -4px;
+}
+#shelf.shelf13 .h13-ask {
+  height: 40px;
+  padding-left: 14px;
+}
+/* --- Araçlar home: the two tiles and the modules ------------------------------- */
+#shelf.shelf13 .h13-tools-home {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#shelf.shelf13 .h13-tools-home .h13-sec-head {
+  margin-top: 2px;
+}
+#shelf.shelf13 .h13-mods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+#shelf.shelf13 .h13-mod {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  min-height: 0;
+  max-width: 220px;
+  padding: 0 12px 0 4px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: var(--r-md);
+  background: var(--h13-well);
+  color: var(--v10-ink);
+  font: inherit;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+#shelf.shelf13 .h13-mod:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+#shelf.shelf13 .h13-mod-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  background: var(--cream-12);
+  color: var(--v10-cream);
+}
+#shelf.shelf13 .h13-mod-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#shelf.shelf13 .h13-mod-letter {
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+}
+#shelf.shelf13 .h13-mod-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#shelf.shelf13 .h13-mod-add {
+  padding-left: 10px;
+  color: #cfcac3;
+}
+#shelf.shelf13 .h13-mod-add svg {
+  width: 14px;
+  height: 14px;
+}
+#shelf.shelf13 .h13-tools-title {
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+}
+.cp13 > * {
+  min-width: 0;
+}
+.cp13 > :not(:last-child) {
+  padding-right: 14px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+.cp13-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cp13-knob,
+.cp13-hue-knob {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.cp13-hue-knob {
+  top: 50%;
+}
+.cp13-chosen {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cp13-big:not(.light) {
+  color: rgba(255, 255, 255, 0.92);
+}
+.cp13-tones {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+.cp13-tone {
+  height: 28px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.cp13-tone:hover {
+  transform: translateY(-1px);
+}
+.cp13-values {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cp13-row:focus-within {
+  border-color: var(--cream-45);
+}
+.cp13-copy:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--v10-ink, #f3eee7);
+}
+.cp13-copy.done {
+  color: var(--ok);
+}
+.cp13 svg,
+.tm13 svg,
+.cp13-screen svg,
+.tm13-tabs svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cp13-copy svg {
+  width: 13px;
+  height: 13px;
+}
+.cp13-recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.cp13-clear:hover {
+  color: var(--v10-ink, #f3eee7);
+}
+.cp13-recent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.cp13-swatch {
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.cp13-swatch.on {
+  outline: 2px solid var(--v10-cream, var(--cream));
+  outline-offset: 1px;
+}
+.cp13-screen:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.cp13-screen:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.cp13-screen svg {
+  width: 14px;
+  height: 14px;
+}
+.tm13 > * {
+  min-width: 0;
+}
+.tm13-tabs {
+  display: inline-flex;
+  gap: 4px;
+}
+.tm13-tab:hover:not(:disabled):not(.on) {
+  background: rgba(255, 255, 255, 0.05);
+}
+.tm13-tab.on {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--v10-ink, #f3eee7);
+}
+.tm13-tab:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.tm13-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 132px;
+  height: 132px;
+}
+.tm13-ring svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.tm13-ring circle {
+  fill: none;
+  stroke-width: 7;
+}
+.tm13-ring circle.track {
+  stroke: rgba(255, 255, 255, 0.07);
+}
+.tm13-ring circle.value {
+  stroke: var(--v10-cream, var(--cream));
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.25s linear;
+}
+.tm13[data-mode='break'] .tm13-ring circle.value {
+  stroke: #8fd1b0;
+}
+.tm13[data-mode='countdown'] .tm13-ring circle.value {
+  stroke: #a8c7fa;
+}
+.tm13[data-mode='stopwatch'] .tm13-ring circle.value {
+  stroke: #c9b6ff;
+}
+.tm13-ring.paused circle.value {
+  opacity: 0.55;
+}
+.tm13-ring-text {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.tm13-middle {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tm13-task:focus-within {
+  border-color: var(--cream-45);
+}
+.tm13-task svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.tm13-task-input::placeholder {
+  color: #85817c;
+  font-weight: var(--fw-regular);
+}
+.tm13-durations,
+.tm13-sessions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.tm13-durations[hidden],
+.tm13-sessions[hidden],
+.tm13-task[hidden],
+.tm13-laps[hidden],
+.tm13-option[hidden],
+.tm13-lap[hidden] {
+  display: none;
+}
+.tm13-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tm13-chip:hover:not(:disabled):not(.on) {
+  background: rgba(255, 255, 255, 0.05);
+}
+/* a chosen duration: a neutral step up (cream is kept for Başlat and the ring) */
+.tm13-chip.on {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--v10-ink, #f3eee7);
+}
+.tm13-chip:disabled:not(.on) {
+  opacity: 0.45;
+  cursor: default;
+}
+.tm13-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.tm13-dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.14);
+}
+.tm13-dots i.done {
+  background: var(--v10-cream, var(--cream));
+}
+.tm13-dots i.now {
+  width: 18px;
+  background: var(--cream-55);
+}
+.tm13-laps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 104px;
+  overflow: auto;
+}
+.tm13-lap-row b {
+  font-variant-numeric: tabular-nums;
+}
+.tm13-right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+.tm13-buttons {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.tm13-reset:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+}
+.tm13-reset:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.tm13-go:hover {
+  filter: brightness(1.06);
+}
+.tm13-reset svg,
+.tm13-go svg {
+  width: 14px;
+  height: 14px;
+}
+.tm13-go svg {
+  fill: currentColor;
+}
+.tm13-switch i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e9e5df;
+  transition: transform 0.2s;
+}
+/* ==========================================================================
+   The closed island: timer · colour taken · time is up
+   ========================================================================== */
+#notch .notch-tool {
+  display: none;
+}
+body.v10.notch-tool-on[data-view='notch']:not(.desktop-pet):not(.hidden-island) #notch {
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 10px !important;
+  /* a little lower, centred between the top edge and the cream bar */
+  padding: 8px 14px 6px 12px !important;
+}
+body.v10.notch-tool-on[data-view='notch'] #notch .notch-name,
+body.v10.notch-tool-on[data-view='notch'] #notch .notch-weather,
+body.v10.notch-tool-on[data-view='notch'] #notch .notch-music,
+body.v10.notch-tool-on[data-view='notch'] #notch .notch-progress {
+  display: none !important;
+}
+body.v10.notch-tool-on[data-view='notch'] #notch .notch-pet,
+body.v10.notch-tool-on[data-view='notch'] #notch #pet {
+  width: 38px !important;
+  height: 38px !important;
+}
+body.v10.notch-tool-on[data-view='notch'] #notch .notch-tool {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--v10-ink);
+}
+.notch-tool svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.notch-tool-ring {
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+.notch-tool-ring svg {
+  width: 100%;
+  height: 100%;
+}
+.notch-tool-ring circle {
+  fill: none;
+  stroke-width: 3.2;
+}
+.notch-tool-ring circle.track {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+.notch-tool-ring circle.value {
+  stroke: var(--v10-cream);
+  stroke-linecap: round;
+}
+.notch-tool-ring.paused circle.value {
+  opacity: 0.5;
+}
+.notch-tool-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+.notch-tool-swatch {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: var(--r-md);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+.notch-tool-check svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+}
+.notch-tool-action:hover,
+.notch-tool-btn:hover {
+  filter: brightness(1.06);
+}
+.ws-tools13 .ws-tool-body svg,
+.ws-tools13 .h13-weather svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#shelf.shelf13 .h13-acc.no-sub .h13-acc-sub {
+  display: none;
+}
+.tm13-done {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tm13-done[hidden] {
+  display: none;
+}
+.tm13-skip[hidden] {
+  display: none;
+}
+.tm13-skip:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+#shelf.shelf13 .h13-acc-sub:empty {
+  display: none;
+}
+.tm13.finished .tm13-buttons {
+  grid-template-columns: minmax(0, 1fr);
+}
+.tm13.finished .tm13-go {
+  order: -1;
+}
+.tm13.finished .tm13-sessions .tm13-next {
+  display: none;
+}
+/* the app window's buttons are light text by default: the cream ones keep dark text */
+.ws-tools13 .cp13-screen,
+.ws-tools13 .tm13-go,
+.ws-tools13 .h13-seg-btn.on,
+.ws-tools13 .conv-go,
+.ws-tools13 .conv-chip.on,
+.ws-tools13 .share-peer-send,
+.ws-tools13 .weather-choose {
+  color: #1b1712 !important;
+  opacity: 1;
+}
+/* ==========================================================================
+   v0.9.14 · home page row 1: voice call + message box | Charles | music
+   ========================================================================== */
+#shelf.shelf13 .h13-askcol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+#shelf.shelf13 .h13-askcol .h13-ask {
+  flex: none;
+  height: 38px;
+  margin-left: 0;
+}
+/* the voice call card */
+#shelf.shelf13 .h13-voice:hover:not(.on) {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.13);
+}
+#shelf.shelf13 .h13-voice:focus-visible {
+  outline: 2px solid var(--v10-cream);
+  outline-offset: 2px;
+}
+#shelf.shelf13 .h13-voice-icon svg {
+  width: 18px;
+  height: 18px;
+}
+#shelf.shelf13 .h13-voice-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+/* at rest the bars sketch a quiet wave */
+#shelf.shelf13 .h13-voice-end:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+#shelf.shelf13 .h13-voice-end svg {
+  width: 13px;
+  height: 13px;
+}
+/* in a call: green frame and glow; green bars while you talk, cream while Charles talks */
+#shelf.shelf13 .h13-voice.on {
+  border-color: color-mix(in srgb, var(--ok-strong) 60%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ok-strong) 9%, transparent), color-mix(in srgb, var(--ok-strong) 4%, transparent));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ok-strong) 18%, transparent),
+    0 0 22px -6px color-mix(in srgb, var(--ok-strong) 60%, transparent);
+  cursor: default;
+}
+#shelf.shelf13 .h13-voice.on .h13-voice-icon {
+  background: var(--ok-strong);
+  color: #0b2416;
+}
+#shelf.shelf13 .h13-voice.on .h13-voice-end {
+  display: grid;
+}
+#shelf.shelf13 .h13-voice.on.speaking {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ok-strong) 30%, transparent),
+    0 0 28px -4px color-mix(in srgb, var(--ok-strong) 75%, transparent);
+}
+/* Charles in the middle: Slime with a soft glow, then his name and version */
+#shelf.shelf13 .h13-center .h13-name {
+  position: relative;
+  align-items: center;
+  align-self: center;
+  gap: 1px;
+  margin-top: 2px;
+}
+#shelf.shelf13 .h13-center .h13-name strong {
+  font-size: var(--fs-i6);
+}
+#shelf.shelf13 .h13-center .h13-name small {
+  font-size: var(--fs-i2);
+}
+/* Spotify: the cover with the song beside it and the controls at its foot, then the bar */
+#shelf.shelf13 .h13-music {
+  grid-template-columns: 84px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: stretch;
+  column-gap: 12px;
+  row-gap: 8px;
+  padding: 10px 12px 8px 10px;
+  border-radius: var(--r-xl);
+}
+#shelf.shelf13 .h13-music .music-art {
+  width: 84px;
+  height: 84px;
+  border-radius: var(--r-md);
+}
+#shelf.shelf13 .h13-music .music-art > svg {
+  width: 28px;
+  height: 28px;
+}
+#shelf.shelf13 .h13-music .music-art .music-brand-big {
+  width: 34px;
+  height: 34px;
+}
+#shelf.shelf13 .h13-music .music-meta {
+  height: 84px;
+  gap: 0;
+}
+#shelf.shelf13 .h13-music .music-label {
+  gap: 4px;
+  font-size: var(--fs-i1);
+  font-weight: var(--fw-regular);
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .h13-music .music-label svg,
+#shelf.shelf13 .h13-music .music-label img {
+  display: none;
+}
+#shelf.shelf13 .h13-music .music-label::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: #1ed760;
+}
+#shelf.shelf13 .h13-music.idle .music-label::before {
+  background: #6f6c69;
+}
+#shelf.shelf13 .h13-music .music-controls {
+  justify-content: space-between;
+  margin-top: auto;
+}
+#shelf.shelf13 .h13-music .music-btn {
+  width: 26px;
+  height: 26px;
+}
+#shelf.shelf13 .h13-music .music-btn svg {
+  width: 14px;
+  height: 14px;
+}
+#shelf.shelf13 .h13-music .music-play {
+  width: 32px;
+  height: 32px;
+  background: var(--v10-cream);
+  color: var(--cream-ink);
+}
+#shelf.shelf13 .h13-music .music-play:hover:not(:disabled) {
+  background: var(--v10-cream);
+  color: var(--cream-ink);
+  filter: brightness(1.06);
+}
+#shelf.shelf13 .h13-music .music-play svg {
+  width: 13px;
+  height: 13px;
+}
+#shelf.shelf13 .h13-music > .music-progress {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+#shelf.shelf13 .h13-music .music-range {
+  accent-color: var(--v10-cream);
+}
+#shelf.shelf13 .h13-music.idle .music-title {
+  font-size: var(--fs-i4);
+  white-space: normal;
+  line-height: 1.2;
+}
+#shelf.shelf13 .h13-music.idle .music-hint {
+  grid-column: 1 / -1;
+}
+body.v10.music-on:not(.notch-tool-on) #notch .notch-name {
+  display: none !important;
+}
+/* the tool notch: Slime sits a little higher */
+body.v10.notch-tool-on[data-view='notch'] #notch .notch-pet {
+  transform: translateY(-6px);
+}
+#shelf.shelf13 .h13-music .music-controls .music-btn {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+#shelf.shelf13 .h13-music .music-controls .music-play {
+  width: 30px;
+  height: 30px;
+}
+/* room for "Charles konuşuyor" beside the bars */
+#shelf.shelf13 .h13-voice {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-height: 78px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-xl);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--v10-ink);
+  cursor: pointer;
+  transition: border-color 0.25s,
+    background-color 0.25s,
+    box-shadow 0.3s;
+  gap: 8px;
+  padding: 0 8px 0 10px;
+}
+#shelf.shelf13 .h13-voice-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: rgba(255, 255, 255, 0.07);
+  color: #e7e2db;
+  transition: background-color 0.25s,
+    color 0.25s;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+}
+#shelf.shelf13 .h13-voice-end {
+  display: none;
+  place-items: center;
+  min-height: 0;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e7e2db;
+  cursor: pointer;
+  width: 26px;
+  height: 26px;
+}
+#shelf.shelf13 .h13-top {
+  min-height: 128px;
+  grid-template-columns: minmax(0, 1fr) 108px minmax(0, 1fr);
+  gap: 10px;
+}
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch .notch-track {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+}
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch .notch-ctl:not(.notch-play) {
+  width: 26px;
+  height: 26px;
+}
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch .notch-play {
+  width: 30px;
+  height: 30px;
+}
+/* smaller text in the call card, so "Charles konuşuyor" / "Charles is speaking" always fits */
+#shelf.shelf13 .h13-voice-title {
+  overflow: hidden;
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--fs-i3);
+  letter-spacing: -0.2px;
+}
+#shelf.shelf13 .h13-voice-sub {
+  overflow: hidden;
+  color: var(--v10-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-i1);
+}
+/* in a call: just a green frame, no glow */
+/* --- v0.9.14 polish ------------------------------------------------------------ */
+/* the call card's green frame: a smooth inset ring instead of the border */
+#shelf.shelf13 .h13-voice.on,
+#shelf.shelf13 .h13-voice.on.speaking {
+  background: rgba(255, 255, 255, 0.025);
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ok-strong) 75%, transparent);
+}
+/* no glow around Slime; he sits a little higher and bigger */
+#shelf.shelf13 .h13-center::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  width: 118px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--cream-18), transparent);
+  transform: translateX(-50%);
+  pointer-events: none;
+  display: none;
+}
+#shelf.shelf13 .h13-center {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  justify-content: flex-start;
+  margin-top: -6px;
+}
+body.v10 #shelf.shelf13 .h13-center .h13-pet #pet {
+  width: 108px !important;
+  height: 98px !important;
+}
+body.v10 #shelf.shelf13 .h13-center .h13-pet #slime {
+  width: 130px !important;
+  height: 130px !important;
+  margin: -18px -11px -14px !important;
+}
+/* Spotify card: a smaller song title so long names fit */
+#shelf.shelf13 .h13-music .music-title {
+  margin-top: 2px;
+  font-size: var(--fs-i3);
+  letter-spacing: -0.1px;
+}
+#shelf.shelf13 .h13-music .music-artist {
+  font-size: var(--fs-i2);
+}
+/* the music notch: its row sits lower, nearer the middle */
+body.v10.music-on:not(.notch-tool-on)[data-view='notch']:not(.desktop-pet):not(.hidden-island) #notch {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+/* dictating into the home page's box */
+.tm13-chip-input::-webkit-outer-spin-button,
+.tm13-chip-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.tm13-chip-input::selection {
+  background: var(--cream-25);
+  color: inherit;
+}
+.tm13-chip-input:focus,
+.tm13-chip-input:focus-visible {
+  outline: 0;
+  border-color: var(--cream-55);
+}
+/* switches when on: a warm orange track with a white knob */
+.tm13-switch.on {
+  background: var(--cream);
+}
+/* the call card's bars: a little further left; at rest a calm, symmetric wave */
+#shelf.shelf13 .h13-voice-bars {
+  margin-right: 6px;
+}
+/* dictation in the message box: green while recording, yellow while it becomes text */
+#shelf.shelf13 .h13-ask-btn.recording {
+  background: color-mix(in srgb, var(--ok-strong) 18%, transparent);
+  color: var(--ok-strong);
+}
+#shelf.shelf13 .h13-ask-btn.busy {
+  opacity: 1;
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
+  cursor: progress;
+}
+/* the music notch: Slime stays clear of the progress line */
+/* while Charles talks the whole call card turns cream (green while it listens to you) */
+#shelf.shelf13 .h13-voice.on.charles,
+#shelf.shelf13 .h13-voice.on.charles.speaking {
+  box-shadow: inset 0 0 0 1.5px var(--cream-70);
+}
+#shelf.shelf13 .h13-voice.on.charles .h13-voice-icon {
+  background: var(--v10-cream);
+  color: var(--cream-ink);
+}
+#shelf.shelf13 .h13-voice.on.charles .h13-voice-title {
+  color: var(--cream-strong);
+}
+#shelf.shelf13 .h13-voice .h13-voice-icon,
+#shelf.shelf13 .h13-voice {
+  transition:
+    box-shadow 0.25s,
+    background-color 0.25s,
+    color 0.25s;
+}
+/* a slightly smaller Slime fits between the top edge (his hat) and the progress line */
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch .notch-pet,
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch #pet {
+  width: 34px !important;
+  height: 34px !important;
+}
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch #slime {
+  width: 54px !important;
+  height: 54px !important;
+  margin: -10px !important;
+}
+body.v10.music-on:not(.notch-tool-on)[data-view='notch'] #notch .notch-pet {
+  transform: translateY(-2px);
+}
+/* Spotify label: the Spotify logo instead of a dot — green while music plays, white otherwise */
+#shelf.shelf13 .h13-music .music-label::before,
+#shelf.shelf13 .h13-music.idle .music-label::before {
+  width: 11px;
+  height: 11px;
+  border-radius: 0;
+  background: #ffffff;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cmask id='m'%3E%3Ccircle cx='12' cy='12' r='12' fill='white'/%3E%3Cg fill='none' stroke='black' stroke-linecap='round'%3E%3Cpath d='M4.9 8.2C9.4 6.8 15.6 7 19.6 9.7' stroke-width='2.3'/%3E%3Cpath d='M5.5 12.1C9.5 10.9 14.3 11.3 18.1 13.5' stroke-width='1.9'/%3E%3Cpath d='M5.8 15.7C9.6 14.8 13.5 15 16.8 16.9' stroke-width='1.5'/%3E%3C/g%3E%3C/mask%3E%3Crect width='24' height='24' fill='white' mask='url(%23m)'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cmask id='m'%3E%3Ccircle cx='12' cy='12' r='12' fill='white'/%3E%3Cg fill='none' stroke='black' stroke-linecap='round'%3E%3Cpath d='M4.9 8.2C9.4 6.8 15.6 7 19.6 9.7' stroke-width='2.3'/%3E%3Cpath d='M5.5 12.1C9.5 10.9 14.3 11.3 18.1 13.5' stroke-width='1.9'/%3E%3Cpath d='M5.8 15.7C9.6 14.8 13.5 15 16.8 16.9' stroke-width='1.5'/%3E%3C/g%3E%3C/mask%3E%3Crect width='24' height='24' fill='white' mask='url(%23m)'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+#shelf.shelf13 .h13-music.playing .music-label::before {
+  background: #1ed760;
+}
+#shelf.shelf13 .h13-music .music-hint {
+  display: none !important;
+}
+body[data-mic-off='true'] #shelf.shelf13 .h13-voice:not(.on) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+body[data-mic-off='true'] #shelf.shelf13 .h13-voice:not(.on) .h13-voice-icon {
+  color: var(--danger-strong);
+}
+/* Slime a little higher: some room above the name */
+#shelf.shelf13 .h13-center .h13-pet {
+  position: relative;
+  margin: 0;
+  width: 108px;
+  height: 98px;
+  transform: translateY(-6px);
+}
+/* weather: today + five days, a little tighter */
+#shelf.shelf13 .h13-weather .weather-days,
+.ws-tools13 .h13-weather .weather-days {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+}
+#shelf.shelf13 .h13-weather .weather-day,
+.ws-tools13 .h13-weather .weather-day {
+  column-gap: 4px;
+  padding: 4px 2px;
+}
+#shelf.shelf13 .h13-weather .weather-day-emoji,
+.ws-tools13 .h13-weather .weather-day-emoji {
+  font-size: var(--fs-i5);
+}
+#shelf.shelf13 .h13-weather .weather-day-temps b,
+.ws-tools13 .h13-weather .weather-day-temps b {
+  font-size: var(--fs-i3);
+}
+#shelf.shelf13 .h13-weather .weather-day-temps small,
+.ws-tools13 .h13-weather .weather-day-temps small {
+  font-size: var(--fs-i1);
+}
+/* Spotify card with nothing playing: cover and text centred in the card (not pushed to the top) */
+#shelf.shelf13 .h13-music.idle {
+  grid-template-rows: 1fr;
+  align-content: center;
+  align-items: center;
+}
+#shelf.shelf13 .h13-music.idle > .music-progress {
+  display: none;
+}
+#shelf.shelf13 .h13-music.idle .music-art {
+  align-self: center;
+}
+#shelf.shelf13 .h13-music.idle .music-meta {
+  height: auto;
+  justify-content: center;
+  align-self: center;
+}
+/* ==========================================================================
+   v0.9.14 Araçlar: seven tool tiles (no descriptions)
+   ========================================================================== */
+/* v1.0.0: four tiles a row, icon and name on one line, no framed icon box */
+#shelf.shelf13 .h13-tgrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+#shelf.shelf13 .h13-tt {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--r-lg);
+  background: var(--h13-well);
+  color: var(--v10-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+#shelf.shelf13 .h13-tt:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+#shelf.shelf13 .h13-tt-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .h13-tt-icon svg {
+  width: 16px;
+  height: 16px;
+}
+/* one line where the name fits, else a second line (the page has no native tooltips) */
+#shelf.shelf13 .h13-tt-name {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-regular);
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  /* a single long word (German "Nutzungsübersicht" at the Small size) takes the second line too */
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+/* --- Araçlar: the app window's cards inside the panel (.h13-wscard) --------------- */
+#shelf.shelf13 .h13-tools {
+  position: relative;
+}
+#shelf.shelf13 .h13-wscard > .ws-card {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+/* the card's own title is the panel's; its buttons sit on the panel's title row */
+#shelf.shelf13 .h13-wscard .ws-card-head > .ws-card-icon,
+#shelf.shelf13 .h13-wscard .ws-card-head h2,
+#shelf.shelf13 .h13-wscard .ws-card-chrome {
+  display: none !important;
+}
+/* Kullanım özeti: Ayarlar → Haftalık özet */
+#shelf.shelf13 .h13-weekly {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--fs-i3);
+}
+#shelf.shelf13 .h13-weekly h3 {
+  display: none;
+}
+#shelf.shelf13 .h13-weekly .hint {
+  margin: 0;
+  font-size: var(--fs-i2);
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .h13-weekly > button {
+  align-self: flex-start;
+  height: 28px;
+  min-height: 0;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--v10-ink);
+  font: inherit;
+  font-size: var(--fs-i3);
+  cursor: pointer;
+}
+/* the cards a little smaller than in the app window, and side by side where they are tall */
+#shelf.shelf13 .h13-wscard,
+#shelf.shelf13 .h13-weekly {
+  zoom: 0.86;
+  max-height: 420px;
+  overflow-y: auto;
+  /* a thin bar in its own lane: it never covers the cards' right edge */
+  scrollbar-gutter: stable;
+  padding-right: 6px;
+}
+#shelf.shelf13 .h13-wscard::-webkit-scrollbar,
+#shelf.shelf13 .h13-weekly::-webkit-scrollbar {
+  width: 6px;
+}
+#shelf.shelf13 .h13-wscard::-webkit-scrollbar-track,
+#shelf.shelf13 .h13-weekly::-webkit-scrollbar-track {
+  background: transparent;
+}
+#shelf.shelf13 .h13-wscard::-webkit-scrollbar-thumb,
+#shelf.shelf13 .h13-weekly::-webkit-scrollbar-thumb {
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.14);
+}
+#shelf.shelf13 .h13-wscard::-webkit-scrollbar-thumb:hover,
+#shelf.shelf13 .h13-weekly::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+#shelf.shelf13 .h13-wscard::-webkit-scrollbar-button,
+#shelf.shelf13 .h13-weekly::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+}
+#shelf.shelf13 .h13-wscard .ws-calendar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  column-gap: 22px;
+  align-items: start;
+}
+#shelf.shelf13 .h13-wscard .ws-calendar > .ws-cal-nav {
+  grid-column: 1;
+  grid-row: 1;
+}
+#shelf.shelf13 .h13-wscard .ws-calendar > .ws-cal-grid {
+  grid-column: 1;
+  grid-row: 2;
+}
+#shelf.shelf13 .h13-wscard .ws-calendar > .ws-cal-sep {
+  display: none;
+}
+#shelf.shelf13 .h13-wscard .ws-calendar > .ws-cal-list-head {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+  align-self: center;
+}
+#shelf.shelf13 .h13-wscard .ws-calendar > .ws-cal-list {
+  grid-column: 2;
+  grid-row: 2;
+}
+#shelf.shelf13 .h13-wscard .ws-day-cell {
+  min-height: 0;
+  height: 30px;
+}
+#shelf.shelf13 .h13-wscard .ws-home-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding-top: 0;
+  border-top: 0;
+}
+#shelf.shelf13 .h13-wscard .ws-ht {
+  min-height: 0;
+  padding: 12px 12px 10px;
+}
+#shelf.shelf13 .h13-wscard .ws-ht-icon svg {
+  width: 22px;
+  height: 22px;
+}
+/* the same quiet bar for lists inside the borrowed cards */
+#shelf.shelf13 .h13-wscard *::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+#shelf.shelf13 .h13-wscard *::-webkit-scrollbar-track {
+  background: transparent;
+}
+#shelf.shelf13 .h13-wscard *::-webkit-scrollbar-thumb {
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.14);
+}
+#shelf.shelf13 .h13-wscard *::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+}
+#shelf.shelf13 .h13-wscard,
+#shelf.shelf13 .h13-wscard *,
+#shelf.shelf13 .h13-weekly {
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+}
+/* ==========================================================================
+   v0.9.14 unslop pass — island and the app window
+   ========================================================================== */
+/* hierarchy from size, not from heavy weights: nothing above 600 */
+:where(#shelf, #notch, #workspace) :where(strong, b, h1, h2, h3) {
+  font-weight: var(--fw-strong);
+}
+/* section labels: sentence case, no wide tracking */
+#shelf.shelf13 .h13-sec-title,
+#shelf.shelf13 .cp13-sec,
+#shelf.shelf13 .conv13 .conv-group-name,
+.ws-tools13 .h13-sec-title,
+.ws-tools13 .conv13 .conv-group-name,
+#workspace .ws-form-label {
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0;
+  text-transform: none;
+}
+/* one accent: Spotify green stays on its logo and status dot; the idle play button is cream */
+#shelf.shelf13 .h13-music.idle .music-start {
+  height: 28px;
+  margin-top: 6px;
+  padding: 0 12px 0 10px;
+  font-size: var(--fs-i3);
+  background: var(--v10-cream);
+  color: var(--cream-ink);
+  /* one line inside the pill in every language; at most the column's width */
+  white-space: nowrap;
+  max-width: 100%;
+}
+/* the Small island (text at its 13.5 px floor): with nothing playing the card gives the label more of
+   its width (a smaller placeholder, the pill without its play mark), so the longest label (Spanish)
+   stays on one line inside the pill */
+body.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active)
+  #shelf.shelf13
+  .h13-music.idle {
+  grid-template-columns: 64px minmax(0, 1fr);
+  column-gap: 10px;
+}
+body.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active)
+  #shelf.shelf13
+  .h13-music.idle
+  .music-art {
+  width: 64px;
+  height: 64px;
+}
+body.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active)
+  #shelf.shelf13
+  .h13-music.idle
+  .music-start {
+  padding: 0 7px;
+}
+body.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active)
+  #shelf.shelf13
+  .h13-music.idle
+  .music-start
+  svg {
+  display: none;
+}
+#shelf.shelf13 .h13-music .music-toggle[aria-pressed='true'] {
+  color: var(--v10-cream);
+}
+#shelf.shelf13 .share-sheet .share-peers-head small,
+.ws-tools13 .share-peers-head small {
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0;
+  text-transform: none;
+}
+/* borrowed cards' title rows: no rule under them, and their parts keep apart */
+#shelf.shelf13 .h13-wscard .ws-card-head {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 30px;
+  margin: 0;
+  zoom: 1.16;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  gap: 12px;
+}
+#shelf.shelf13 .h13-wscard .ws-home-head {
+  align-items: center !important;
+}
+#shelf.shelf13 .h13-wscard .ws-head-text {
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+
+/* ── from 31-v0914-cards.css ── */
+.ws-tools13 .h13-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+}
+.ws-tools13 .h13-sec-title {
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.9px;
+  color: var(--v10-faint);
+}
+.ws-tools13 .h13-sec-tools {
+  display: flex;
+  gap: 2px;
+}
+.ws-tools13 .h13-icon-btn,
+.ws-tools13 .weather-change {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: #b9b4ad;
+  cursor: pointer;
+}
+.ws-tools13 .h13-icon-btn:hover,
+.ws-tools13 .h13-icon-btn.on,
+.ws-tools13 .weather-change:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--v10-ink, #f3eee7);
+}
+.ws-tools13 .h13-icon-btn svg,
+.ws-tools13 .weather-change svg {
+  width: 15px;
+  height: 15px;
+}
+.ws-tools13 .h13-icon-btn.spinning svg {
+  animation: h13-spin 0.8s linear infinite;
+}
+.ws-tools13 .h13-files-tools {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+.ws-tools13 .h13-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.03);
+}
+.ws-tools13 .h13-seg-btn {
+  height: 25px;
+  min-height: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: #b3aea7;
+  font: inherit;
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+.ws-tools13 .h13-seg-btn:hover:not(.on) {
+  color: var(--v10-ink, #f3eee7);
+  background: rgba(255, 255, 255, 0.05);
+}
+.ws-tools13 .h13-seg-btn.on {
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+}
+.ws-tools13 .h13-weather {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: auto;
+  padding: 0;
+}
+.ws-tools13 .h13-weather .weather-top {
+  display: grid;
+  gap: 11px;
+}
+.ws-tools13 .h13-weather .weather-now {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 7px;
+  padding: 2px 0;
+}
+.ws-tools13 .h13-weather .weather-now-emoji {
+  font-size: 28px;
+  line-height: 1;
+}
+.ws-tools13 .h13-weather .weather-now-temp {
+  font-size: 28px;
+  font-weight: var(--fw-strong);
+  letter-spacing: -1px;
+  line-height: 1;
+}
+.ws-tools13 .h13-weather .weather-now-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.ws-tools13 .h13-weather .weather-now-text small {
+  overflow: hidden;
+  font-size: var(--fs-a1);
+  color: var(--v10-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ws-tools13 .h13-weather .weather-details {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 0;
+}
+.ws-tools13 .h13-weather .weather-details span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ws-tools13 .h13-weather .weather-details small {
+  font-size: var(--fs-a1);
+  color: var(--v10-faint);
+}
+.ws-tools13 .h13-weather .weather-details b {
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+}
+.ws-tools13 .h13-weather .weather-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.ws-tools13 .h13-weather .weather-block-hours .h13-sec-head {
+  margin-top: -2px;
+}
+.ws-tools13 .h13-weather .weather-hours {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+.ws-tools13 .h13-weather .weather-hours[hidden] {
+  display: none;
+}
+.ws-tools13 .h13-weather .weather-hour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 4px 2px;
+}
+.ws-tools13 .h13-weather .weather-hour-time {
+  font-size: var(--fs-a1);
+  color: var(--v10-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ws-tools13 .h13-weather .weather-hour.now .weather-hour-time {
+  color: var(--v10-ink, #f3eee7);
+  font-weight: var(--fw-strong);
+}
+.ws-tools13 .h13-weather .weather-hour-emoji {
+  font-size: var(--fs-a4);
+  line-height: 1;
+}
+.ws-tools13 .h13-weather .weather-hour-temp {
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-regular);
+}
+.ws-tools13 .h13-weather .weather-hour.now .weather-hour-temp {
+  font-weight: var(--fw-strong);
+}
+.ws-tools13 .h13-weather .weather-days {
+  display: grid;
+  gap: 6px;
+}
+.ws-tools13 .h13-weather .weather-day {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-items: center;
+  row-gap: 3px;
+  min-width: 0;
+  height: auto;
+  padding: 4px 2px;
+}
+.ws-tools13 .h13-weather .weather-day-name {
+  grid-column: 1 / -1;
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-regular);
+  color: var(--v10-muted);
+}
+.ws-tools13 .h13-weather .weather-day.today .weather-day-name {
+  font-weight: var(--fw-strong);
+  color: var(--v10-ink, #f3eee7);
+}
+.ws-tools13 .h13-weather .weather-day-sky {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.ws-tools13 .h13-weather .weather-day-emoji {
+  font-size: var(--fs-a5);
+  line-height: 1;
+}
+.ws-tools13 .h13-weather .weather-day-rain {
+  font-size: var(--fs-a1);
+  color: var(--v10-faint);
+}
+.ws-tools13 .h13-weather .weather-day-rain.wet {
+  color: var(--v10-ink, #f3eee7);
+}
+.ws-tools13 .h13-weather .weather-day-temps {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.ws-tools13 .h13-weather .weather-day-temps b {
+  font-size: var(--fs-a2);
+}
+.ws-tools13 .h13-weather .weather-day-temps small {
+  font-size: var(--fs-a1);
+  color: var(--v10-faint);
+}
+.ws-tools13 .h13-weather .weather-note {
+  margin: 4px 0;
+  font-size: var(--fs-a1);
+  color: var(--v10-muted);
+}
+.ws-tools13 .h13-weather .weather-choose {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  align-self: flex-start;
+  height: 30px;
+  min-height: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--v10-cream);
+  color: var(--h13-ink-dark);
+  font: inherit;
+  font-size: var(--fs-a1);
+  font-weight: var(--fw-strong);
+  cursor: pointer;
+}
+.ws-tools13 .h13-weather .weather-choose svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── from 33-v0915.css ── */
+#shelf.shelf13 .h13-tiles {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+#shelf.shelf13 .rack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 128px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: var(--r-lg);
+  background: var(--h13-well);
+  outline: none;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+#shelf.shelf13 .rack:focus-within,
+#shelf.shelf13 .rack:focus {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+#shelf.shelf13 .rack.over {
+  border: 1px dashed var(--v10-cream);
+  background: var(--cream-04);
+}
+#shelf.shelf13 .rack-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .rack-empty[hidden] {
+  display: none;
+}
+#shelf.shelf13 .rack-empty strong {
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  color: var(--v10-ink);
+}
+#shelf.shelf13 .rack-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--cream-12);
+  color: var(--v10-cream);
+}
+#shelf.shelf13 .rack-empty-icon svg {
+  width: 19px;
+  height: 19px;
+}
+#shelf.shelf13 .rack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 212px;
+  overflow-y: auto;
+}
+#shelf.shelf13 .rack-list[hidden] {
+  display: none;
+}
+#shelf.shelf13 .rack-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: none;
+  height: 40px;
+  padding: 0 4px 0 8px;
+  border-radius: var(--r-md);
+  cursor: grab;
+  transition: background-color 0.15s;
+}
+#shelf.shelf13 .rack-item:hover {
+  background: rgba(255, 255, 255, 0.055);
+}
+#shelf.shelf13 .rack-item:active {
+  cursor: grabbing;
+}
+#shelf.shelf13 .rack-item-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--v10-cream);
+}
+#shelf.shelf13 .rack-item-icon svg {
+  width: 17px;
+  height: 17px;
+}
+#shelf.shelf13 .rack-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+#shelf.shelf13 .rack-name {
+  overflow: hidden;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#shelf.shelf13 .rack-text small {
+  font-size: var(--fs-i2);
+  color: var(--v10-muted);
+}
+#shelf.shelf13 .rack-remove {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--v10-muted);
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+#shelf.shelf13 .rack-remove svg {
+  width: 15px;
+  height: 15px;
+}
+#shelf.shelf13 .rack-remove:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--v10-ink);
+}
+#shelf.shelf13 .rack-remove.armed {
+  background: var(--cream-12);
+  color: var(--v10-cream);
+}
+#shelf.shelf13 .rack-hint {
+  flex: none;
+  font-size: var(--fs-i2);
+  line-height: 1.35;
+  text-align: center;
+  color: var(--v10-muted);
+}
+
+/* ── from 34-v0916.css ── */
+#shelf.shelf13 .rack-item-icon {
+  width: 30px;
+  height: 30px;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+}
+#shelf.shelf13 .rack-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+/* --- Hava durumu follows the width it really has (app window card, island panel) ----------- */
+#shelf.shelf13 .h13-weather,
+.ws-tools13 .h13-weather {
+  container: weather / inline-size;
+  min-width: 0;
+}
+.ws-tools13 .h13-weather .weather-top {
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+}
+.ws-tools13 .h13-weather .weather-days {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+@container weather (max-width: 620px) {
+  .ws-tools13 .h13-weather .weather-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ws-tools13 .h13-weather .weather-days {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+}
+@container weather (max-width: 470px) {
+  #shelf.shelf13 .h13-weather .weather-top,
+  .ws-tools13 .h13-weather .weather-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #shelf.shelf13 .h13-weather .weather-days,
+  .ws-tools13 .h13-weather .weather-days {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+}
+@container weather (max-width: 330px) {
+  #shelf.shelf13 .h13-weather .weather-hours,
+  .ws-tools13 .h13-weather .weather-hours {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding-bottom: 2px;
+  }
+  #shelf.shelf13 .h13-weather .weather-hour,
+  .ws-tools13 .h13-weather .weather-hour {
+    flex: 0 0 44px;
+  }
+  #shelf.shelf13 .h13-weather .weather-days,
+  .ws-tools13 .h13-weather .weather-days {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #shelf.shelf13 .h13-weather .weather-details,
+  .ws-tools13 .h13-weather .weather-details {
+    flex-wrap: wrap;
+  }
+
+}
+
+/* ── from 35-v0918.css ── */
+/* --- system monitor ------------------------------------------------------------------------ */
+.sm-root {
+  container: monitor / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.sm-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.sm-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-pill);
+}
+.h13-tools[data-sub='monitor'] .h13-tools-title {
+  white-space: nowrap;
+}
+.sm-seg-btn[aria-pressed='true'] {
+  background: var(--cream-strong);
+  color: var(--cream-ink);
+  font-weight: var(--fw-strong);
+}
+.sm-pill svg {
+  width: 12px;
+  height: 12px;
+}
+.sm-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.sm-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.sm-icon svg {
+  width: 16px;
+  height: 16px;
+}
+.sm-title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.sm-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.sm-reading {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.sm-value.sm-none {
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-regular);
+  line-height: 2;
+  color: rgba(245, 238, 229, 0.6);
+}
+.sm-chart {
+  display: block;
+  width: 100%;
+  height: 112px;
+}
+.sm-time {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sm-others b {
+  color: #f5eee5;
+  font-weight: var(--fw-strong);
+}
+.sm-pair {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.sm-pair b {
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  overflow-wrap: anywhere;
+}
+.sm-pair b.sm-none {
+  color: rgba(245, 238, 229, 0.45);
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-regular);
+}
+.sm-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 14px;
+}
+.sm-top b {
+  color: #f5eee5;
+  font-weight: var(--fw-strong);
+}
+@container monitor (max-width: 470px) {
+  .sm-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sm-chart {
+    height: 84px;
+  }
+
+}
+/* --- Bas-konuş settings ----------------------------------------------------------------------- */
+/* (a base rule, kept in this file for the cascade) */
+.ptt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-lg);
+}
+.sm-foot-end {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.sm-others span {
+  display: inline-flex;
+  gap: 4px;
+}
+.sm-others i {
+  font-style: normal;
+}
+.sm-details {
+  display: grid;
+  gap: 6px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+.sm-pair small {
+  color: rgba(245, 238, 229, 0.5);
+  font-size: var(--fs-i2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── from 42-v0926.css ── */
+/* --- Converter: PDF → PNG / JPG options ------------------------------------------------------- */
+.conv-pages-opt {
+  flex-wrap: wrap;
+}
+.conv-pages {
+  width: 9em;
+  min-width: 0;
+  max-width: 100%;
+}
+.conv-pages[hidden] {
+  display: none;
+}
+.conv-opts {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+.conv-text {
+  width: 11em;
+  min-width: 0;
+  max-width: 100%;
+}
+.conv-notes {
+  display: grid;
+  gap: 4px;
+  margin: 2px 0 6px;
+}
+.conv-notes[hidden] {
+  display: none;
+}
+.conv-order-opt {
+  flex-basis: 100%;
+}
+.conv-order {
+  display: grid;
+  gap: 3px;
+  max-height: 170px;
+  margin: 2px 0 0;
+  padding: 0 0 0 1.4em;
+  overflow: auto;
+}
+.conv-order li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.conv-mini {
+  min-width: 26px;
+  min-height: 24px;
+  padding: 0 6px;
+  border-radius: var(--r-sm);
+}
+.conv-mini:focus-visible,
+.conv-review :focus-visible {
+  outline: 2px solid var(--sb-accent, var(--cream));
+  outline-offset: 1px;
+}
+.conv13 {
+  position: relative;
+}
+.conv-review-grid {
+  flex: 1;
+  min-height: 120px;
+  overflow: auto;
+}
+.conv-review-table {
+  border-collapse: collapse;
+}
+.conv-review-table td {
+  padding: 0;
+  border: 1px solid #ffffff1c;
+}
+.conv-review-table input {
+  width: 9em;
+  min-width: 0;
+  margin: 0;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--fs-i3);
+}
+.conv-review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── from 44-v100-core.css ── */
+/* v1.0.0: voice bars on the island, the version line. */
+/* The sound bars of the voice chat card are one canvas (src/island/voice-bars.ts), drawn in whole
+   device pixels in the `color` set here. The box keeps the old 26 px line so the card's height is
+   the same; the canvas sets its own width. */
+#shelf.shelf13 .h13-voice-bars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  height: 26px;
+  flex: none;
+  color: rgba(255, 255, 255, 0.32);
+}
+#shelf.shelf13 .h13-voice-bars canvas {
+  display: block;
+  flex: none;
+}
+#shelf.shelf13 .h13-voice.on .h13-voice-bars {
+  color: var(--ok-strong);
+}
+#shelf.shelf13 .h13-voice.on.charles .h13-voice-bars {
+  color: var(--v10-cream);
+}
+
+/* ── from 51-v100-dshelf.css ── */
+/* v1.0.0: the island shelf, cards and tools (design pass). */
+/* T9 · the Small island (zoom 0.75 on top of the shelf's 0.88 = 0.66): the small texts had fallen to
+   6-8 px on screen. The floor is now in the type tokens: in the Small shelf the four small steps
+   (--fs-i1..i4) are 13.5 px, about 9 px on screen (0-tokens.css); 15 and 18 keep their size. Only
+   what has no size of its own needs a rule here: small and b (the browser makes small smaller). */
+body.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active)
+  #shelf.shelf13
+  :is(small, b) {
+  font-size: var(--fs-i4);
+}
+/* with larger words: the percentage stays inside its ring (12 px here = 7.9 px on screen, the one
+   exception), the card names keep their room (no chevron), the Spotify line stays one line */
+body.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active)
+  #shelf.shelf13
+  .h13-ring-pct {
+  font-size: 12px;
+}
+body.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active)
+  #shelf.shelf13
+  .h13-acc-chev {
+  display: none;
+}
+body.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active)
+  #shelf.shelf13
+  .h13-music
+  .music-label
+  > span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

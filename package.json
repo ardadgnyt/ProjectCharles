@@ -1,12 +1,18 @@
 {
   "name": "project-charles",
   "productName": "Charles",
-  "version": "0.9.27-rc.4",
+  "version": "1.0.0",
   "private": true,
   "description": "Charles — Windows desktop AI companion (Electron).",
   "author": "HzPederPan",
   "license": "GPL-3.0-or-later",
   "main": "app/main.cjs",
+  "charlesRuntime": {
+    "electron": "44.11.3",
+    "url": "https://github.com/electron/electron/releases/download/v44.11.3/electron-v44.11.3-win32-x64.zip",
+    "sha256": "97fca9b8e9b90cdc88c1efd44160ca4b89b15101721d93c8befcbeb35b93fb59",
+    "bytes": 158283059
+  },
   "scripts": {
     "build": "node scripts/build.mjs",
     "start": "npm run build && node scripts/start.cjs",
@@ -20,7 +26,7 @@
     "release:pack": "node scripts/release-pack.cjs"
   },
   "devDependencies": {
-    "electron": "44.5.1",
+    "electron": "44.11.3",
     "esbuild": "0.28.2"
   },
   "dependencies": {

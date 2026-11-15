@@ -43,7 +43,7 @@ function evrenError(status, body) {
       code: 'terms_not_accepted',
     });
   if (status === 401 || status === 403)
-    return Object.assign(Error('EVREN API anahtarı geçersiz veya eksik. Ayarlar → AI Modelleri bölümünden anahtarını kontrol et.'), {
+    return Object.assign(Error('EVREN API anahtarı geçersiz veya eksik. Ayarlar’daki AI Modelleri sayfasında EVREN kartından anahtarını kontrol et.'), {
       code: 'invalid_key',
     });
   if (status === 408 || status === 504)

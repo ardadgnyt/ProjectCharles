@@ -34,6 +34,20 @@ export function shortSeconds(seconds: number, lang?: Language) {
   return shortMinutes(Math.floor(seconds / 60), lang);
 }
 
+/**
+ * v1.0.0: a total of a week in hours and minutes, never days ("38sa 12dk", "38 h 12 min"): a day
+ * count reads as calendar days. Same rounding as shortSeconds (whole minutes, cut down).
+ */
+export function hoursMinutes(seconds: number, lang?: Language) {
+  const u = units(lang);
+  if (!seconds || seconds < 0 || seconds < 60) return shortSeconds(seconds, lang);
+  const total = Math.floor(seconds / 60);
+  if (total < 60) return shortMinutes(total, lang);
+  const hours = Math.floor(total / 60),
+    rest = total % 60;
+  return [u.h(hours), rest ? u.m(rest) : ''].filter(Boolean).join(u.join);
+}
+
 /** "%58" in Turkish, "58%" elsewhere (Chinese, French and German put it the same way as English here). */
 export function percent(n: number, lang?: Language) {
   return (lang || uiLanguage()) === 'tr' ? '%' + n : n + '%';

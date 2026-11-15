@@ -11,7 +11,7 @@ async function weatherReply(prompt, city, weather) {
   )
     return null;
   if (!city)
-    return 'Hava durumunu söyleyebilmem için Ayarlar → Hava durumu şehrini seç bölümünden konumunu seç. 🌤️';
+    return 'Hava durumunu söyleyebilmem için Ayarlar’daki Genel sayfasında Hava durumu şehrini seç’e basıp konumunu seç. 🌤️';
   try {
     const value = await weather.current(city);
     return `${value.text}\n\nSeçtiğin konumun güncel hava durumu.`;

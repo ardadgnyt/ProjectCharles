@@ -779,7 +779,7 @@ class Providers {
     this.auth[id] = true;
     this.authChecked = 0;
     await this.refreshKitModels(id).catch(() => {});
-    return { ok: true, message: `Bağlı · ${kit.name} yanıt verdi.` };
+    return { ok: true, message: `${kit.name} yanıt verdi.` };
   }
   saveAbacus() {
     try {
@@ -843,7 +843,7 @@ class Providers {
     this.auth.abacus = this.abacus.verified;
     this.authChecked = 0;
     return this.abacus.verified
-      ? { ok: true, message: 'Bağlı · Abacus AI yanıt verdi.' }
+      ? { ok: true, message: 'Abacus AI yanıt verdi.' }
       : {
           ok: false,
           message: /login|unauthori|api key/i.test(text)
@@ -961,7 +961,8 @@ class Providers {
       this.evren.saveState();
       this.auth.evren = true;
       this.authChecked = 0;
-      return { ok: true, message: 'Bağlı · Modeller kullanıma hazır' };
+      // v1.0.0: the card already says "connected"; the line says only what is new (connected-state READY)
+      return { ok: true, message: 'Modeller kullanıma hazır.' };
     } catch (e) {
       this.evren.verified = false;
       this.evren.saveState();
@@ -1280,7 +1281,7 @@ class Providers {
       KITS[id]?.loginHint
         ? KITS[id].loginHint
         : id === 'abacus'
-        ? "Write-Host 'Charles: Abacus AI acilinca /login yazip hesabinla giris yap. Bitince /exit yaz, pencereyi kapat ve Charles ayarlarinda Baglantiyi test et dugmesine bas. (Abacus AI: type /login, then /exit and press Test connection in Charles.)'"
+        ? "Write-Host 'Charles: Abacus AI acilinca /login yazip hesabinla giris yap. Bitince /exit yaz, pencereyi kapat ve Charles ayarlarinda Baglantiyi kontrol et dugmesine bas. (Abacus AI: type /login, then /exit and press Check connection in Charles.)'"
         : "Write-Host 'Charles: Abonelik hesabinizi secin. API / Console secmeyin.'",
       '& ' +
         quote(spec.exe) +
@@ -1357,9 +1358,9 @@ class Providers {
     if (!isHttp && (!spec.exe || !fs.existsSync(spec.exe)))
       throw Error(
         provider === 'abacus'
-          ? 'Abacus AI komut satırı aracı bulunamadı. Kurup Ayarlar → Hesap\'tan bağlantıyı yeniden test et.'
+          ? 'Abacus AI komut satırı aracı bulunamadı. Kurduktan sonra Ayarlar’daki AI Modelleri sayfasında Bağlantıyı kontrol et’e bas.'
           : KITS[provider]
-            ? `${KITS[provider].name} komut satırı aracı bulunamadı. Kurup Ayarlar → AI Modelleri’nden bağlantıyı yeniden test et.`
+            ? `${KITS[provider].name} komut satırı aracı bulunamadı. Kurduktan sonra Ayarlar’daki AI Modelleri sayfasında Bağlantıyı kontrol et’e bas.`
             : 'Sağlayıcının resmi aracı bulunamadı. Kurulum paketini yeniden çıkar.',
       );
     const isAbacus = provider === 'abacus';

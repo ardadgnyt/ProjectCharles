@@ -3,7 +3,6 @@
 export const english085: Record<string, string> = {
   "İndirme": "Download",
   "İnternetten video, ses ve dosya indirip İndirilenler klasörüne kaydeder; bunun için Charles’ın yt-dlp ve FFmpeg araçlarını çalıştırır, indirme kuyruğunu görebilir ve yönetebilir. İstersen panoya kopyaladığın bağlantıları da izler.": "Downloads videos, audio and files from the internet into your Downloads folder, using Charles’ yt-dlp and FFmpeg tools; it can see and manage the download queue. If you want, it also watches links you copy.",
-  "Bu API yalnızca etkin Charles Download modülüne açıktır.": "This API is only available to the enabled Charles Download module.",
   "Charles Download host eklentisi kurulu değil.": "The Charles Download host extension is not installed.",
   "Kaydedilen dosya bulunamadı.": "The saved file was not found.",
   "Eklerin metni bir mesaj için çok uzun (toplam en fazla 1.000.000 karakter). Daha az dosya ekle ya da belgeleri ayrı mesajlarda gönder.": "The attachments’ text is too long for one message (at most 1,000,000 characters in total). Attach fewer files or send the documents in separate messages.",

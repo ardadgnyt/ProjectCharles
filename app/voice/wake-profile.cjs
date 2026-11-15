@@ -20,10 +20,29 @@ function sample(text) {
     throw Error('Hey Charles net duyulmadı. Sessiz bir ortamda tekrar dene.');
   return value;
 }
+function distance(a, b) {
+  let row = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const next = [i];
+    for (let j = 1; j <= b.length; j++)
+      next[j] = Math.min(row[j] + 1, next[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    row = next;
+  }
+  return row[b.length];
+}
+// v1.0.0: how whisper (tiny, English) writes "Charles" from real voices: "chars", "charts", "charz".
+// Accepted: "char" plus 1-4 of the letters l, e, t, s, i, z, ending in s or z, at most two edits from
+// "charles" (a final z counts as s). Not: "chart", "charge", "chaps", "chairs", "cheers", "carl".
+function nearCharles(word) {
+  const w = word.replace(/z$/, 's');
+  return /^char[letsiz]{1,4}$/.test(w) && w.endsWith('s') && distance(w, 'charles') <= 2;
+}
 function match(text, profile) {
-  const value = normalize(text);
+  const value = normalize(text),
+    words = value.split(' ');
   return (
     /^(?:hey|okay|ok) (?:charles|charls|carles|charlz|carls|charlie)(?: |$)/.test(value) ||
+    (/^(?:hey|okay|ok)$/.test(words[0]) && !!words[1] && nearCharles(words[1])) ||
     (profile?.phrases || []).some((p) => value === p || value.startsWith(p + ' '))
   );
 }

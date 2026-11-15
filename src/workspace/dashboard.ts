@@ -1,7 +1,7 @@
 // v0.7.1 SpecialBeta: "Genel bakış" — the home page of the workspace window.
-// Spotify, reminders and a calendar in the first column; important mail, a message box,
-// Home Assistant and the remaining AI usage in the second. Every card reads data Charles
-// already has (no new accounts or servers).
+// v1.0.0: the message box across the top; Spotify, reminders and a calendar in the first column;
+// important mail, Home Assistant and the remaining AI usage in the second. Every card reads data
+// Charles already has (no new accounts or servers).
 import { el, icon, iconButton } from './icons';
 import { resetLabel } from '../island/usage';
 import { percent } from '../settings/time-units';
@@ -36,6 +36,11 @@ const PROVIDERS: [string, string, string][] = [
   ['evren', 'EVREN', '#E30A17'],
   ['copilot', 'GitHub Copilot', '#A3E635'],
 ];
+/** The page before the user changes it; the same as DEFAULT in app/core/dash-layout.cjs. */
+export const DEFAULT_LAYOUT = [
+  ['music', 'reminders', 'calendar'],
+  ['mail', 'ask', 'home', 'usage'],
+];
 const SOURCES: Record<string, string> = {
   gmail: 'Gmail',
   outlook: 'Outlook',
@@ -64,9 +69,11 @@ function cardShell(cls: string, ic: string, title: string, ...extra: (Node | nul
 export function workspaceDashboard(d: DashboardDeps) {
   const { api } = d;
   const root = el('div', 'ws-home');
+  // v1.0.0 (T19): the message box, the page's main action, sits across the top; the cards below it
+  const top = el('div', 'ws-home-top');
   const colA = el('div', 'ws-col');
   const colB = el('div', 'ws-col');
-  root.append(colA, colB);
+  root.append(top, colA, colB);
   const timers: number[] = [];
   let visible = false;
 
@@ -217,7 +224,8 @@ export function workspaceDashboard(d: DashboardDeps) {
       const when = sameDay(due, now)
         ? hm(due)
         : due.toLocaleDateString(loc(), { day: 'numeric', month: 'short' }) + ' ' + hm(due);
-      const title = el('span', 'ws-rem-title', (r.kind === 'focus' ? '⏱ ' : '') + r.title);
+      // v1.0.0: a focus reminder carries the timer icon of the icon set (it was a stopwatch character)
+      const title = el('span', 'ws-rem-title', r.kind === 'focus' && icon('timer', 'ws-rem-kind'), r.title);
       title.translate = false;
       remList.append(el('div', 'ws-rem', check, title, el('small', 'ws-time', when)));
     }
@@ -389,13 +397,13 @@ export function workspaceDashboard(d: DashboardDeps) {
     home: { element: home, load: () => void loadHome(true) },
   };
 
-  // ── Remaining usage: rings like the island (5 hours and week) ──────────────
+  // ── AI usage (remaining quota): rings like the island (5 hours and week) ──────────────
   const usageRefresh = iconButton('refresh', 'Yenile', () => void loadUsage(true));
   // v0.8.0: which AIs the card shows. By default every connected AI; the user can pick.
   const usagePick = iconButton('sliders', 'Gösterilecek yapay zekâlar', () => toggleUsageMenu());
   usagePick.setAttribute('aria-haspopup', 'true');
   usagePick.setAttribute('aria-expanded', 'false');
-  const usage = cardShell('ws-usage', 'chart', 'Kalan kullanım', usagePick, usageRefresh);
+  const usage = cardShell('ws-usage', 'chart', 'AI kullanımı',usagePick, usageRefresh);
   const usageMenu = el('div', 'ws-usage-menu');
   usageMenu.hidden = true;
   usageMenu.setAttribute('role', 'group');
@@ -683,6 +691,8 @@ export function workspaceDashboard(d: DashboardDeps) {
   const editor = dashEditor({
     root,
     cols: [colA, colB],
+    top: { element: top, ids: ['ask'] },
+    defaults: DEFAULT_LAYOUT,
     cards: [
       { id: 'music', title: 'Spotify', text: 'Çalan parça ve oynatma tuşları', icon: 'music', element: music },
       { id: 'reminders', title: 'Hatırlatıcılar', text: 'Yaklaşan hatırlatıcılar, hızlı ekleme', icon: 'checklist', element: reminders },
@@ -690,7 +700,7 @@ export function workspaceDashboard(d: DashboardDeps) {
       { id: 'mail', title: 'Önemli e-postalar', text: 'Charles’ın önemli bulduğu e-postalar', icon: 'mail', element: mail, placed: (v) => v && visible && void loadMail() },
       { id: 'ask', title: 'Mesaj kutusu', text: 'Charles’a buradan hızlıca yaz', icon: 'chat', element: askCard },
       { id: 'home', title: 'Akıllı ev', text: 'Home Assistant cihazları', icon: 'home', element: home, placed: (v) => v && visible && void loadHome() },
-      { id: 'usage', title: 'Kalan kullanım', text: 'Bağlı yapay zekâların kalan kullanım hakları', icon: 'chart', element: usage, placed: (v) => v && visible && void loadUsage() },
+      { id: 'usage', title: 'AI kullanımı',text: 'Bağlı yapay zekâların kalan kullanım hakları', icon: 'chart', element: usage, placed: (v) => v && visible && void loadUsage() },
       { id: 'commands', title: 'Hızlı komutlar', text: 'Tek tıkla Charles’a gönderilen hazır mesajlar', icon: 'bolt', element: commands.element },
       { id: 'notes', title: 'Notlar', text: 'Kendiliğinden kaydedilen not defteri', icon: 'pencil', element: notes.element },
       { id: 'sysusage', title: 'Sistem kullanımı', text: 'İşlemci, bellek ve disk doluluğu', icon: 'bolt', element: sysUsage.element, placed: (v) => (v && visible ? sysUsage.start() : sysUsage.stop()) },
@@ -711,10 +721,7 @@ export function workspaceDashboard(d: DashboardDeps) {
     editing: (v) => d.editing?.(v),
   });
   // until the saved layout is read: the classic page (new cards are not on it)
-  editor.set([
-    ['music', 'reminders', 'calendar'],
-    ['mail', 'ask', 'home', 'usage'],
-  ]);
+  editor.set(DEFAULT_LAYOUT);
   async function loadDash() {
     try {
       dash = await api.workspaceDash();

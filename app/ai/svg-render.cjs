@@ -3,7 +3,13 @@
 // network, and the SVG is shown as an <img>, where scripts never run and outside files never load.
 // One drawing at a time; each takes a fresh page.
 
-function createSvgRenderer({ BrowserWindow, session, timeoutMs = 20000 }) {
+// v1.0.0: the island and the app window are BaseWindows, which BrowserWindow.getAllWindows() leaves
+// out; counting only BrowserWindows kept every drawing's hidden page alive whenever no card window
+// was open. BaseWindow.getAllWindows() lists every top-level window (BrowserWindows included).
+const otherWindowsOpen = (All, win) => All.getAllWindows().some((w) => w !== win && !w.isDestroyed());
+
+function createSvgRenderer({ BrowserWindow, BaseWindow = require('electron').BaseWindow, session, timeoutMs = 20000 }) {
+  const All = BaseWindow || BrowserWindow;
   let queue = Promise.resolve();
   let ses = null;
   const sessionFor = () => {
@@ -58,11 +64,11 @@ function createSvgRenderer({ BrowserWindow, session, timeoutMs = 20000 }) {
       clearTimeout(timer);
       // closing the last window quits Charles (main.cjs window-all-closed): never this one alone
       if (!win.isDestroyed()) {
-        if (BrowserWindow.getAllWindows().length > 1) win.destroy();
+        if (otherWindowsOpen(All, win)) win.destroy();
         else {
           win.webContents.loadURL('about:blank').catch(() => {});
           setTimeout(() => {
-            if (!win.isDestroyed() && BrowserWindow.getAllWindows().length > 1) win.destroy();
+            if (!win.isDestroyed() && otherWindowsOpen(All, win)) win.destroy();
           }, 60000).unref?.();
         }
       }
@@ -75,4 +81,4 @@ function createSvgRenderer({ BrowserWindow, session, timeoutMs = 20000 }) {
   };
 }
 
-module.exports = { createSvgRenderer };
+module.exports = { createSvgRenderer, otherWindowsOpen };

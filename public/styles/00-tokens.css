@@ -1,0 +1,90 @@
+/* 00-tokens · v1.0.0 design tokens (T34-T36): the one accent colour and its steps, the colours that carry a
+   meaning, the corner radii and the type scale. Loaded first by every page (index.html and the small
+   windows: bubble, capture, dictation, drop target), so it is the one place these values are written.
+   The design-system variables (--sb-*, in 01-base.css) and the older families (--ws-*, --ac-*,
+   --ch-*, --v10-*, --h13-*) read these; stylesheets use the tokens, not colour literals. */
+:root {
+  /* the accent: one cream, a lighter step for hover / pressed, the text that sits on a cream fill */
+  --cream: #edc9a9;
+  --cream-strong: color-mix(in srgb, var(--cream), #fff 35%);
+  --cream-ink: #1b1712;
+  --cream-deep: color-mix(in srgb, var(--cream) 88%, #000);
+  /* cream over the dark surfaces: hairlines and tints (02-12), borders and fills (18-45), text (55-85) */
+  --cream-02: color-mix(in srgb, var(--cream) 2%, transparent);
+  --cream-04: color-mix(in srgb, var(--cream) 4%, transparent);
+  --cream-08: color-mix(in srgb, var(--cream) 8%, transparent);
+  --cream-12: color-mix(in srgb, var(--cream) 12%, transparent);
+  --cream-18: color-mix(in srgb, var(--cream) 18%, transparent);
+  --cream-25: color-mix(in srgb, var(--cream) 25%, transparent);
+  --cream-35: color-mix(in srgb, var(--cream) 35%, transparent);
+  --cream-45: color-mix(in srgb, var(--cream) 45%, transparent);
+  --cream-55: color-mix(in srgb, var(--cream) 55%, transparent);
+  --cream-70: color-mix(in srgb, var(--cream) 70%, transparent);
+  --cream-85: color-mix(in srgb, var(--cream) 85%, transparent);
+  /* meaning only: done / connected / live, error / failed / delete, a warning (low quota) */
+  --ok: #9ce3c0;
+  --ok-soft: color-mix(in srgb, var(--ok), #fff 45%);
+  --ok-strong: #3ddc84;
+  --danger: #ff8a7a;
+  --danger-soft: color-mix(in srgb, var(--danger), #fff 35%);
+  --danger-strong: #ff4d4d;
+  --warn: #f5b971;
+  --warn-soft: color-mix(in srgb, var(--warn), #fff 40%);
+
+  /* corner radii (T35): small controls, buttons and inputs, cards, panels and dialogs, true pills.
+     A box inside a box takes the step below its parent's. The island's own outline is not on this
+     scale: it follows the window mask (--sb-radius-island and the rules on .island itself). */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --r-pill: 999px;
+
+  /* type (T34): the island's scale (fine print, small, body, label, title, heading) and the app
+     window's; two weights. The island's shelf is drawn at zoom 0.88, so its 10 px is 8.8 px on screen,
+     the floor at the Large size. */
+  --fs-i1: 10px;
+  --fs-i2: 11px;
+  --fs-i3: 12px;
+  --fs-i4: 13px;
+  --fs-i5: 15px;
+  --fs-i6: 18px;
+  --fs-a1: 12px;
+  --fs-a2: 13px;
+  --fs-a3: 14px;
+  --fs-a4: 16px;
+  --fs-a5: 20px;
+  --fs-a6: 24px;
+  --fw-regular: 400;
+  --fw-strong: 600;
+}
+
+/* The app window shows parts written for the island too (Settings, the message box's model line, the
+   tool cards): there the island steps read the app scale, so nothing in the app window is below 12 px. */
+body.workspace {
+  --fs-i1: var(--fs-a1);
+  --fs-i2: var(--fs-a1);
+  --fs-i3: var(--fs-a1);
+  --fs-i4: var(--fs-a2);
+  --fs-i5: var(--fs-a4);
+  --fs-i6: var(--fs-a5);
+}
+
+/* The app window's cards borrowed by the shelf (tools: reminders, calendar, mail, usage, home, the
+   weekly summary) are drawn at zoom 0.86 inside the shelf's 0.88 (= 0.76): their small steps start at
+   12 px, 9.1 px on screen at the Large size. */
+#shelf.shelf13 .h13-wscard,
+#shelf.shelf13 .h13-weekly {
+  --fs-i1: 12px;
+  --fs-i2: 12px;
+  --fs-i3: 12px;
+}
+
+/* The Small island's shelf (zoom 0.75 on top of the shelf's 0.88 = 0.66): the four small steps share a
+   floor of 13.5 px, about 9 px on screen (T9); 15 and 18 keep their size. */
+body.island-small:not(.workspace):not(.desktop-pet):not(.hidden-island):not(.plugin-guide-active) #shelf.shelf13 {
+  --fs-i1: 13.5px;
+  --fs-i2: 13.5px;
+  --fs-i3: 13.5px;
+  --fs-i4: 13.5px;
+}

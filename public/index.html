@@ -4,51 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Charles · Kişisel</title>
-    <link rel="stylesheet" href="styles/1-base.css" />
-    <link rel="stylesheet" href="styles/2-panel-layout.css" />
-    <link rel="stylesheet" href="styles/3-island.css" />
-    <link rel="stylesheet" href="styles/4-polish.css" />
-    <link rel="stylesheet" href="styles/5-design-system.css" />
-    <link rel="stylesheet" href="styles/6-acrylic.css" />
-    <link rel="stylesheet" href="styles/7-settings-v070.css" />
-    <link rel="stylesheet" href="styles/8-v071.css" />
-    <link rel="stylesheet" href="styles/9-special.css" />
-    <link rel="stylesheet" href="styles/10-noir.css" />
-    <link rel="stylesheet" href="styles/11-fit.css" />
-    <link rel="stylesheet" href="styles/12-v077.css" />
-    <link rel="stylesheet" href="styles/13-modules.css" />
-    <link rel="stylesheet" href="styles/14-v080.css" />
-    <link rel="stylesheet" href="styles/15-v085.css" />
-    <link rel="stylesheet" href="styles/16-v087.css" />
-    <link rel="stylesheet" href="styles/17-v088.css" />
-    <link rel="stylesheet" href="styles/18-v0810.css" />
-    <link rel="stylesheet" href="styles/19-v0811.css" />
-    <link rel="stylesheet" href="styles/20-v0812.css" />
-    <link rel="stylesheet" href="styles/21-v0813.css" />
-    <link rel="stylesheet" href="styles/22-v0814.css" />
-    <link rel="stylesheet" href="styles/23-v0815.css" />
-    <link rel="stylesheet" href="styles/24-v091.css" />
-    <link rel="stylesheet" href="styles/25-v092.css" />
-    <link rel="stylesheet" href="styles/26-v096.css" />
-    <link rel="stylesheet" href="styles/27-v098.css" />
-    <link rel="stylesheet" href="styles/28-v099.css" />
-    <link rel="stylesheet" href="styles/29-v0913.css" />
-    <link rel="stylesheet" href="styles/32-v0914-island-cards.css" />
-    <link rel="stylesheet" href="styles/30-v0914.css" />
-    <link rel="stylesheet" href="styles/31-v0914-cards.css" />
-    <link rel="stylesheet" href="styles/33-v0915.css" />
-    <link rel="stylesheet" href="styles/34-v0916.css" />
-    <link rel="stylesheet" href="styles/35-v0918.css" />
-    <link rel="stylesheet" href="styles/36-v0919.css" />
-    <link rel="stylesheet" href="styles/37-v0920.css" />
-    <link rel="stylesheet" href="styles/38-v0922.css" />
-    <link rel="stylesheet" href="styles/39-v0923.css" />
-    <link rel="stylesheet" href="styles/40-v0924.css" />
-    <link rel="stylesheet" href="styles/41-v0925.css" />
-    <link rel="stylesheet" href="styles/42-v0926.css" />
-    <link rel="stylesheet" href="styles/43-v0927.css" />
+    <link rel="stylesheet" href="styles/00-tokens.css" />
+    <link rel="stylesheet" href="styles/01-base.css" />
+    <link rel="stylesheet" href="styles/02-island.css" />
+    <link rel="stylesheet" href="styles/03-chat.css" />
+    <link rel="stylesheet" href="styles/04-shelf.css" />
+    <link rel="stylesheet" href="styles/05-dialogs.css" />
+    <link rel="stylesheet" href="styles/06-settings.css" />
+    <link rel="stylesheet" href="styles/07-workspace.css" />
+    <link rel="stylesheet" href="styles/08-tour.css" />
+    <link rel="stylesheet" href="styles/09-notify.css" />
   </head>
   <body>
+    <button id="skip-to-prompt" class="skip-link" type="button">Mesaj kutusuna geç</button>
     <main class="island">
       <header>
         <button
@@ -82,7 +50,7 @@
         </button>
         <button id="toggle" class="identity" >
           <strong>Charles</strong
-          ><small class="version-label">v0.9.27 Release Candidate</small><small id="status">Senin küçük kod arkadaşın.</small>
+          ><small class="version-label">v1.0.0 Stable</small><small id="status">Senin küçük kod arkadaşın.</small>
         </button>
         <aside id="mini-music" aria-label="Spotify">
           <strong id="music-title">Spotify</strong
@@ -130,20 +98,19 @@
           <button id="sessions-close" aria-label="Oturumları kapat">×</button>
         </div>
         <div class="settings-body">
-          <div class="row">
+          <div class="row history-head">
             <select id="sessions" aria-label="Oturumlar"></select
-            ><button id="add-session" title="Ayrı bir iş başlat">
-              ＋ Yeni sohbet</button
+            ><input
+              id="history-search"
+              type="search"
+              placeholder="Sohbetlerde ara…"
+              aria-label="Sohbetlerde ara"
+            /><button id="add-session" class="history-icon" type="button" aria-label="Yeni sohbet">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v10H10l-4 3.5v-3.5H4zM12 8v5M9.5 10.5h5" /></svg></button
             ><button id="close-session" title="Seçili oturumu kapat">
               Oturumu kapat
             </button>
           </div>
-          <input
-            id="history-search"
-            type="search"
-            placeholder="Sohbetlerde ara…"
-            aria-label="Sohbetlerde ara"
-          />
           <div id="history-list" aria-label="Kayıtlı sohbetler"></div>
           <p class="hint">
             Konuşmalar bu bilgisayarda, Charles içinde saklanır.
@@ -194,62 +161,12 @@
               <option value="auto">Benim için onayla</option>
               <option value="full">Tam erişim</option>
             </select>
-            <p class="hint">
-              Onay iste: dosya ve komut izinlerini sorar. Benim için onayla:
-              proje klasöründe sormadan düzenleme yapar; proje dışına veya
-              ağa çıkan her istek için yine onayını sorar. Tam erişim: Charles'ın
-              dosya/komut onayları ve Codex sandbox sınırı kaldırılır; mevcut
-              Windows hesabının erişebildiği dosyalarda ve ağda işlem yapabilir.
-              Windows yönetici izinlerini aşmaz.
-            </p>
+            <p class="hint access-mode-note"><b>Onay iste</b> Dosya düzenlemeden ve komut çalıştırmadan önce izin ister.</p>
+            <p class="hint access-mode-note"><b>Benim için onayla</b> Proje klasöründe sormadan düzenler; proje dışına veya ağa çıkan her işlem için yine izin ister.</p>
+            <p class="hint access-mode-note"><b>Tam erişim</b> Charles’ın onayları ve Codex sandbox sınırı kalkar; Windows hesabının erişebildiği dosyalarda ve ağda işlem yapabilir. Windows yönetici izinlerini aşmaz.</p>
           </section>
-          <details class="setting-section">
-            <summary>Mimikleri dene</summary>
-            <div class="row">
-              <select id="reaction-choice" aria-label="Denenecek mimik">
-                <option value="state:dizzy">Baş dönmesi</option>
-                <optgroup label="Mimikler">
-                  <option value="emote:love">Kalpler</option>
-                  <option value="emote:surprised">Şaşkınlık</option>
-                  <option value="emote:proud">Gururlanma</option>
-                  <option value="emote:wink">Göz kırpma</option>
-                  <option value="emote:yawn">Esneme</option>
-                  <option value="emote:happy">Mutluluk</option>
-                  <option value="emote:annoyed">Huysuzlanma</option>
-                </optgroup>
-                <optgroup label="Hareketler">
-                  <option value="action:greet">Selamlama</option>
-                  <option value="action:gulp">Dosya alma</option>
-                </optgroup>
-                <optgroup label="İş başında">
-                  <option value="station:web">Büyüteçle araştırma</option>
-                  <option value="station:code">Bilgisayarda kod yazma</option>
-                  <option value="station:read">Belge okuma</option>
-                  <option value="station:terminal">Komut çalıştırma</option>
-                  <option value="station:image">Çizim yapma</option>
-                  <option value="station:eureka">Fikir bulma (ampul)</option>
-                </optgroup>
-                <optgroup label="Çalışma ifadeleri">
-                  <option value="state:idle">Bekleme</option>
-                  <option value="state:thinking">Düşünme</option>
-                  <option value="state:working">Çalışma</option>
-                  <option value="state:searching">Arama</option>
-                  <option value="state:approval">Onay bekleme</option>
-                  <option value="state:question">Soru sorma</option>
-                  <option value="state:error">Hata</option>
-                  <option value="state:finished">Tamamlandı</option>
-                  <option value="state:ratelimit">Limit doldu</option>
-                  <option value="state:sleeping">Uyuma</option>
-                </optgroup></select
-              ><button id="preview-reaction">Dene</button>
-            </div>
-            <p class="hint">
-              Yalnızca karakterin tepkisini gösterir. Yaklaşık 3 saniye sonra
-              normal ifadesine döner.
-            </p>
-          </details>
           <section id="appearance-section">
-            <h3>Görünüm</h3>
+            <h3>Boyutlar</h3>
             <div class="look-grid">
               <label
                 >Yazı
@@ -287,7 +204,7 @@
                 >Vurgu <input id="look-accent" type="color" value="#edc9a9"
               /></label
               ><label
-                >Charles adacık boyutu
+                >Adacık boyutu
                 <select id="look-island">
                   <option value="large">Büyük</option>
                   <option value="small">Küçük</option>
@@ -325,8 +242,7 @@
             </p>
             <div id="memories"></div>
           </section>
-          <h3>Bağlantılar</h3>
-          <section id="extra-settings" aria-label="Görünüm ve bağlantılar">
+          <section id="extra-settings">
             <div class="extra-scroll">
               <div class="row">
                 <label><input id="pref-sound" type="checkbox" /> Sesler</label
@@ -379,17 +295,6 @@
                   </select></label
                 ><button id="save-prefs">Ayarları kaydet</button>
               </div>
-              <div class="row">
-                <strong>Servisler</strong
-                ><label
-                  ><input id="pause-services" type="checkbox" /> Takibi
-                  duraklat</label
-                >
-              </div>
-              <p class="hint">
-                Anahtarların bu bilgisayarda şifrelenerek saklanır.
-              </p>
-              <div id="service-settings"></div>
             </div>
           </section>
         </div>
@@ -412,18 +317,15 @@
             Proje klasörünü aç ↗
           </button>
         </section>
-        <div id="service-pills"></div>
         <section id="requests" aria-label="Onay ve sorular"></section>
         <section class="conversation">
           <div class="row conversation-heading">
             <span class="eyebrow">SOHBET</span
-            ><button id="new-chat" class="text-button">Yeni konuşma</button>
+            ><button id="new-chat" class="text-button">Yeni sohbet</button>
           </div>
           <div id="feed" role="log" aria-label="Sohbet ve yapılan işlemler">
             <div id="welcome">
-              <span class="welcome-dot">✦</span>
               <h1>Aklında ne var?</h1>
-              <p>Bir fikir, küçük bir soru, yeni bir şey.</p>
               <div class="suggestions">
                 <button data-prompt="Merhaba Charles, biraz sohbet edelim.">
                   Sohbet edelim</button

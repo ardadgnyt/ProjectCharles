@@ -1,6 +1,7 @@
 // v0.7.1: Ayarlar → Hesap. Where Charles keeps your data, which accounts are connected, and
 // a reset with an "are you sure?" step. (AI accounts moved to the "AI Modelleri" tab.)
 import { t } from './i18n';
+import { icon } from '../workspace/icons';
 
 const PROVIDERS: [string, string][] = [
   ['gpt', 'ChatGPT'],
@@ -38,7 +39,8 @@ export function accountTab(api: any, notice: (s: string) => void) {
       const on = id === 'gpt' ? gpt : !!rows.find((r) => r.id === id)?.signedIn;
       const item = document.createElement('span');
       item.className = 'account-chip' + (on ? ' on' : '');
-      item.textContent = (on ? '✓ ' : '') + name;
+      // v1.0.0: a check icon instead of a ✓ glyph in the text
+      item.replaceChildren(...(on ? [icon('check', 'state-icon')] : []), document.createTextNode(name));
       item.title = t(on ? 'Bağlı' : 'Bağlı değil');
       list.append(item);
     }

@@ -17,8 +17,6 @@ export const english092: Record<string, string> = {
   'Aktarılıyor…': 'Transferring…',
   Cihaz: 'Device',
   'Dosya aktarımı': 'File transfer',
-  'Alım: Herkese açık': 'Receive: Everyone',
-  'Alım: Otomatik kabul': 'Receive: Auto-accept',
   'Alım: Kapalı': 'Receive: Off',
   'Kabul et': 'Accept',
   Reddet: 'Decline',

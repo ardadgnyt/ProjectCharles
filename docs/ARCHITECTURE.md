@@ -2,25 +2,27 @@
 
 Charles is an Electron app with three parts: the **main process** (Node.js, `app/`), the
 **interface** (TypeScript in `src/`, bundled into `dist/renderer.js`) and a few small
-**helper windows** (mail bubble, screen capture). For a file-by-file tour in Turkish, see
-[DEVELOPMENT.md](../DEVELOPMENT.md).
+**helper windows** (notification cards, screen capture, push-to-talk indicator). For a
+file-by-file tour, see [DEVELOPMENT.md](../DEVELOPMENT.md).
 
 ```text
  ┌──────────────────────────── Electron main process (app/) ───────────────────────────┐
  │ main.cjs        windows, island layout, tray, shortcuts, IPC handlers (safeHandler)  │
- │ ai/             Codex app-server (JSON-RPC), Claude Code, Antigravity, Cursor; chat rooms │
- │ plugins/        Gmail/Calendar/Drive, Outlook, POP3/IMAP, Home Assistant, services   │
+ │ ai/             Codex app-server (JSON-RPC), Claude Code, Antigravity, Cursor,       │
+ │                 Abacus AI, EVREN, GitHub Copilot; chat rooms                         │
+ │ plugins/        Gmail/Calendar/Drive, Outlook, POP3/IMAP, Home Assistant, cards      │
  │ voice/          Hey Charles wake word, Whisper dictation, Gemini Live                │
  │ system/         foreground app, media, performance, capture (charles-helper.exe)     │
  │ files/          converter, file shelf, Quick Share, picture save/copy/attach         │
  │ personal/       memory, reminders, weather, accessories, first-run profile           │
- │ core/           durable JSON store, preferences, policy, desktop-pet physics         │
+ │ core/           durable JSON store, preferences, policy, full-screen gate, pet physics│
  └──────────────────────────────▲────────────────────────────────────▲─────────────────┘
                                 │ preload.cjs (contextBridge, IPC)   │ events
  ┌──────────────────────────────┴──── Interface (src/ → dist/) ───────┴─────────────────┐
  │ renderer.ts     island, chat feed, composer, model picker, notices                  │
  │ island/         companion strip, desktop pet + jelly, Slime studio, welcome tour    │
- │ settings/       settings pages, plugins, shortcuts, i18n (English / Turkish)         │
+ │ settings/       settings pages, plugins, shortcuts, i18n (six languages)             │
+ │ ui/             tooltip, no native tooltips, design tokens                           │
  │ chat/ voice/    markdown, history folders, image card, proposals; mic and live voice │
  │ vendor/slime/   the Slime character: canvas engine, shape, accessories, wardrobe     │
  └──────────────────────────────────────────────────────────────────────────────────────┘
@@ -34,11 +36,17 @@ Charles is an Electron app with three parts: the **main process** (Node.js, `app
 - **Strict IPC.** Every request from the interface goes through `safeHandler`. It accepts calls
   only from the app's own page (`charles://app/`) and returns `{ ok, value | error }`.
 - **AI providers as local CLIs.** GPT runs through the Codex app-server over line-delimited
-  JSON-RPC (`ai/rpc.cjs`, `ai/agent.cjs`). Claude Code, Antigravity and Cursor run as
-  child processes (`ai/providers.cjs`). Sign-ins belong to those tools. Charles never sees
-  passwords.
+  JSON-RPC (`ai/rpc.cjs`, `ai/agent.cjs`). Claude Code, Antigravity, Cursor and Abacus AI run as
+  child processes (`ai/providers.cjs`); GitHub Copilot is a command line "kit" (`ai/cli-kits.cjs`);
+  EVREN is reached over its API with the user's key (`ai/evren.cjs`). Sign-ins belong to those
+  tools. Charles never sees passwords.
 - **Permissions.** `core/policy.cjs` turns the Access setting into Codex thread parameters and
-  approval answers. Content from mail or the web cannot run commands on its own.
+  approval answers. Content from mail or the web cannot run commands on its own: a turn that
+  carries it runs in chat mode without tools and with web search off (`core/untrusted.cjs`,
+  `core/task-mode.cjs`).
+- **Full screen.** The helper reports the window in front; `core/fullscreen-gate.cjs` decides
+  whether a full-screen program covers a display that holds Charles (the island steps back, cards
+  wait, Slime is not drawn) and keeps focus, flash and toast requests until it is left.
 - **Durable storage.** `core/store.cjs` writes JSON atomically (temp file, fsync, rename) and
   keeps a `.bak` copy for recovery. Everything lives in `%APPDATA%\Charles`. Plugin keys are
   encrypted with Electron `safeStorage` (Windows DPAPI).
@@ -47,8 +55,11 @@ Charles is an Electron app with three parts: the **main process** (Node.js, `app
   particles are driven by what the AI is doing (`chat/activity.ts`, `chat/reactions.ts`).
 - **Desktop pet physics.** `core/pet-physics.cjs` moves the window when Slime is thrown
   (friction and bouncing). `island/jelly.ts` draws the matching squash and wobble.
-- **Two languages.** The interface is written in Turkish and translated live into English by
-  `settings/i18n.ts`, which watches the page and swaps known texts and patterns.
+- **Six languages.** The interface is written in Turkish and translated live by `settings/i18n.ts`,
+  which watches the page and swaps known texts and patterns: Turkish to English from the
+  `settings/i18n*.ts` tables, then English to German, French, Spanish or Chinese from
+  `settings/lang/*.ts`. The build writes each of those four tables to `dist/lang/<code>.js`, and
+  the page loads only the one in use.
 
 ## The converter (v0.9.26)
 
@@ -64,11 +75,12 @@ the choices the sheet draws, is in `files/convert-ops.cjs`; the work itself is i
 | `files/office-com.cjs` | Word, Excel and PowerPoint over COM in a hidden PowerShell: read-only, macros off, the job in an environment variable, only its own instance closed |
 | FFmpeg (`tools/download`) | Sound, video, GIF, WebP and AVIF |
 | Whisper (`tools/whisper`) | Speech to text and subtitles (`files/transcribe.cjs`) |
-| `tar.exe` (Windows) | 7z, TAR and RAR (`files/archive.cjs`, every entry checked before extraction) |
-| Charles' own code | XLSX/ODS/CSV (`sheets.cjs`), ODT/RTF/EPUB (`docs.cjs`), PPTX writing, searchable PDF, SVG tracing, HTML rendering in a hidden window (`convert-host.cjs`) |
+| `tar.exe` (Windows) | ZIP, 7z, TAR, TAR.GZ, TAR.XZ and RAR (`files/archive.cjs`, every entry checked before extraction) |
+| Charles' own code | XLSX/ODS/CSV (`sheets.cjs`), ODT/RTF/EPUB (`docs.cjs`), PPTX writing, searchable PDF, SVG tracing, HTML rendering in a hidden window (`convert-host.cjs`); ZIP, TAR and TAR.GZ reading and writing when a name or path is outside what `tar.exe` can hold (`archive.cjs`) |
 
 Each engine is checked before a format is offered, so the sheet never lists a target the computer
-cannot make. Results are written to a temporary name and moved into place only when complete.
+cannot make. Results are written to a temporary name of their own and moved to a free name only
+when complete (`settle()` in `convert.cjs`); an existing file is never replaced.
 
 ## Build and test
 

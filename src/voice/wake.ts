@@ -1,3 +1,4 @@
+import { WakeGate, WAKE } from './wake-gate';
 export function wave(chunks: Float32Array[]) {
   const n = chunks.reduce((s, c) => s + c.length, 0),
     bytes = new Uint8Array(44 + n * 2),
@@ -46,7 +47,8 @@ export function wakeUI(api: any, busy: () => boolean, notice: (s: string) => voi
     checking = false,
     cooldown = 0;
   const mic = document.getElementById('voice-call') as HTMLButtonElement;
-  let threshold = 0.008;
+  let threshold = WAKE.threshold;
+  const gate = new WakeGate(threshold);
   const preferences = () =>
     api
       .companionRead()
@@ -113,29 +115,23 @@ export function wakeUI(api: any, busy: () => boolean, notice: (s: string) => voi
       processor = ctx.createScriptProcessor(4096, 1, 1);
       gain = ctx.createGain();
       gain.gain.value = 0;
-      let chunks: Float32Array[] = [],
-        silent = 0,
-        noise = 0.003;
-      processor.onaudioprocess = (e) => {
-        if (token !== epoch || checking || occupied()) return;
-        const a = e.inputBuffer.getChannelData(0),
-          rms = Math.sqrt(a.reduce((s, x) => s + x * x, 0) / a.length);
-        if (!chunks.length) {
-          noise = noise * 0.98 + Math.min(rms, 0.015) * 0.02;
-          if (rms < Math.max(threshold, noise * 2)) return;
+      // v1.0.0: the gate (wake-gate.ts) decides which clips are checked. Listening never pauses
+      // for a check: clips that close meanwhile wait their turn, so no stretch of sound is skipped.
+      const recent = new Map<number, Float32Array>(), // the last 64 frames, by gate index
+        waiting: Uint8Array[] = [];
+      gate.restart();
+      const send = (bytes: Uint8Array) => {
+        if (checking) {
+          waiting.push(bytes);
+          if (waiting.length > 3) waiting.shift(); // only when whisper falls far behind
+          return;
         }
-        chunks.push(a.slice());
-        silent = rms < Math.max(0.006, noise * 1.6) ? silent + 1 : 0;
-        if (silent < 3 && chunks.length < 16) return;
-        const clip = chunks;
-        chunks = [];
-        silent = 0;
-        if (clip.length < 2) return;
         checking = true;
         void api
-          .wakeCheck(wave(clip))
+          .wakeCheck(bytes)
           .then(async (hit: boolean) => {
             if (hit && token === epoch && !occupied()) {
+              waiting.length = 0;
               stop();
               cooldown = Date.now() + 5000;
               await api.expand(true);
@@ -147,7 +143,27 @@ export function wakeUI(api: any, busy: () => boolean, notice: (s: string) => voi
             }
           })
           .catch(() => {})
-          .finally(() => (checking = false));
+          .finally(() => {
+            checking = false;
+            const next = waiting.shift();
+            if (next && token === epoch) send(next);
+          });
+      };
+      processor.onaudioprocess = (e) => {
+        if (token !== epoch || occupied()) return;
+        const a = e.inputBuffer.getChannelData(0),
+          rms = Math.sqrt(a.reduce((s, x) => s + x * x, 0) / a.length);
+        gate.threshold = threshold;
+        const span = gate.push(rms);
+        recent.set(gate.i, a.slice());
+        recent.delete(gate.i - 64);
+        if (!span) return;
+        const clip: Float32Array[] = [];
+        for (let i = span[0]; i <= span[1]; i++) {
+          const frame = recent.get(i);
+          if (frame) clip.push(frame);
+        }
+        send(wave(clip));
       };
       source.connect(processor);
       processor.connect(gain);

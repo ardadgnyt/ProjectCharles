@@ -6,6 +6,7 @@
 // the account is connected by that answer alone. Only when EVREN itself refuses the account for
 // its usage terms (403 terms_not_accepted) does the card show EVREN's text and send the real
 // acceptance, with the version of the text that was read.
+import { READY, stateLine } from './connected-state';
 type Status = { id: string; signedIn: boolean; configured?: boolean };
 type TestResult = { ok?: boolean; message?: string; terms?: boolean };
 
@@ -33,20 +34,19 @@ export function evrenCard(
   const note = el(
     'p',
     'hint',
-    'EVREN API anahtarınla bağlan. Nasıl yapılacağını bilmiyorsan Charles ile kur’a bas; Slime adım adım anlatır. Anahtar Windows güvenli şifrelemesiyle %APPDATA%\\Charles klasöründe saklanır; proje klasöründe ve sürüm paketinde tutulmaz.',
+    'EVREN API anahtarınla bağlan. Anahtar bu bilgisayarda Windows şifrelemesiyle saklanır.',
   );
-  // v0.9.8: the same order as the other accounts: Charles ile kur · state · test · page
+  // v0.9.8: the same order as the other accounts: Charles ile kur · test · page
+  // v1.0.0: no sign-in button here (a key is pasted below, "Kaydet ve bağlan" is the cream one);
+  // "Charles ile kur" is neutral and the connected state is the status line ("Bağlı · …")
   const actions = el('div', 'row provider-actions');
-  const setup = btn('Charles ile kur', 'primary');
+  const setup = btn('Charles ile kur');
   setup.onclick = () => void guide('evren-login');
-  const state = btn('Anahtar eklenmedi', 'evren-state');
-  state.disabled = true;
-  const test = btn('Bağlantıyı test et');
+  const test = btn('Bağlantıyı kontrol et');
   const login = btn('EVREN sayfası');
   login.onclick = () => void api.openLink('https://evren.ssyz.org.tr/').catch((e: Error) => (result.textContent = e.message));
-  actions.append(setup, state, test, login);
-  const result = el('p', 'hint');
-  result.setAttribute('role', 'status');
+  actions.append(setup, test, login);
+  const result = stateLine();
   result.textContent = 'Hesap kontrol ediliyor…';
   // the key itself, folded like Gemini Live's "Anahtar ayarları"
   const keyBox = document.createElement('details');
@@ -76,7 +76,7 @@ export function evrenCard(
   const gateRow = el('div', 'button-row');
   gateRow.append(read, accept);
   gate.append(gateText, gateRow);
-  section.append(title, note, actions, result, keyBox, gate);
+  section.append(title, note, actions, result.el, keyBox, gate);
   let busy = false;
   let version: number | null = null;
   // what EVREN last answered when it was not "connected": it stays on the card until the state
@@ -88,17 +88,17 @@ export function evrenCard(
     if (s.signedIn || !has) refusal = '';
     if (!busy && gate.hidden && !refusal)
       result.textContent = s.signedIn
-        ? 'Bağlı · Modeller kullanıma hazır'
+        ? READY
         : has
-          ? 'Anahtar kayıtlı ama bağlantı doğrulanmadı. Bağlantıyı test et’e bas.'
+          ? 'Anahtar kayıtlı ama bağlantı doğrulanmadı. Bağlantıyı kontrol et’e bas.'
           : 'Anahtar eklenmedi';
     test.disabled = !has || busy;
     clear.hidden = !has;
     key.placeholder = has ? 'Kayıtlı anahtarı değiştirmek için yenisini gir' : 'EVREN API anahtarı';
     if (!has || s.signedIn) closeGate();
     section.classList.toggle('connected', !!s.signedIn);
-    state.classList.toggle('connected', !!s.signedIn);
-    state.textContent = s.signedIn ? '✓ EVREN bağlı' : has ? 'Anahtar kayıtlı' : 'Anahtar eklenmedi';
+    // v1.0.0: a refusal on the line is an error, never "Bağlı · …"
+    result.connected = !!s.signedIn && !refusal && gate.hidden;
   }
 
   function closeGate() {
@@ -111,8 +111,9 @@ export function evrenCard(
 
   /** What a real answer from EVREN says: the line, and EVREN's gate only when EVREN raised it. */
   function show(r: TestResult) {
-    result.textContent = String(r?.message || (r?.ok ? 'Bağlı · Modeller kullanıma hazır' : 'EVREN bağlantısı kurulamadı.'));
+    result.textContent = String(r?.message || (r?.ok ? READY : 'EVREN bağlantısı kurulamadı.'));
     refusal = r?.ok ? '' : result.textContent;
+    if (refusal) result.connected = false;
     if (r?.terms) gate.hidden = false;
     else closeGate();
   }
@@ -127,6 +128,7 @@ export function evrenCard(
     } catch (e) {
       result.textContent = (e as Error).message;
       refusal = result.textContent;
+      result.connected = false;
     } finally {
       busy = false;
       for (const b of [test, save, clear, read, accept]) b.disabled = false;

@@ -13,6 +13,7 @@ The build stops if a Windows program or library in the source is not a valid PE 
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 import zipfile
@@ -29,6 +30,36 @@ SKIP_FILES = {
     'docs/GITHUB.md',
     'docs/VERIFICATION-v0.4.4.md',
 }
+# v1.0.0: the never-ship rules of scripts/release-pack.cjs (SKIP), at any depth: secrets, keys,
+# personal data and logs. Keep the two lists the same.
+NEVER = re.compile(
+    r'(^|/)(\.git|_update|_setup|dist-setup|_to_delete|__pycache__|graphify-out|\.qa|\.DS_Store|Thumbs\.db)(/|$)'
+    r'|(^|/)(\.env(\..*)?|Charles-creator\.json|charles-install\.json|charles-manifest\.json|personal\.json'
+    r'|companion\.json|charles-history\.json|preferences\.json|[^/]*\.enc\.json|[^/]*\.key|[^/]*\.pem|[^/]*\.log)$',
+    re.I,
+)
+# v1.0.0: Electron's downloader and its own dependencies (development only: npm's postinstall of
+# the electron package uses them to fetch electron.exe). Nothing in app/, dist/, tools/ or the
+# shipped packages requires them (checked with a require trace; package-lock marks them "dev"),
+# and undici has advisories.
+DEV_ONLY = tuple('node_modules/' + p + '/' for p in (
+    '@electron/get', '@electron-internal/extract-zip', 'undici', 'env-paths', 'graceful-fs', 'progress',
+    'semver', 'sumchecker',
+    # The build tool (scripts/build.mjs, npm run build) and its platform programs (esbuild.exe):
+    # dist/ is built before packing and nothing on a user's machine compiles (checked with a
+    # require trace over the payload; package-lock marks them "dev"). The update zip carries no
+    # node_modules at all.
+    'esbuild', '@esbuild',
+)) + (
+    # npm's command shims (name, name.cmd, name.ps1) of the packages above: without their package
+    # they would point at nothing
+    'node_modules/.bin/esbuild', 'node_modules/.bin/semver', 'node_modules/.bin/install-electron',
+)
+# v1.0.0: developer folders. src/ is the TypeScript that npm run build turns into dist/, test/ the
+# unit tests, scripts/ the build, setup and packing tools; nothing in app/, dist/, public/, setup/,
+# tools/ or Charles.exe loads or starts a file in them (checked with a path trace). The repo's
+# package.json ships unchanged: its npm scripts are never run on a user's machine.
+DEV_ROOTS = ('src/', 'test/', 'scripts/')
 STORE = ('.zip', '.gz', '.png', '.jpg', '.ico', '.mp3', '.ogg', '.wav', '.bin', '.onnx', '.woff2', '.7z', '.asar')
 PE = ('.exe', '.dll', '.node', '.pyd')
 CHUNK = 256 * 1024  # bigger reads come back wrong through the VM folder share
@@ -77,7 +108,8 @@ def valid_pe(head):
     return 0 < off and off + 6 <= len(head) and head[off:off + 4] == b'PE\0\0'
 
 
-def main(src, out):
+def collect(src):
+    """The files that go into the payload (paths relative to src, with forward slashes)."""
     files = []
     for root, dirs, names in os.walk(src):
         dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS and os.path.relpath(os.path.join(root, d), src).replace(os.sep, '/') not in {'modules/download'})
@@ -89,7 +121,14 @@ def main(src, out):
                 continue
             if rel in SKIP_FILES or rel.endswith(('.tar', '.log', '.pyc')) or (rel.startswith('node_modules/electron/dist/charles-host-') and rel.endswith('.exe')):
                 continue
+            if NEVER.search(rel) or rel.startswith(DEV_ONLY + DEV_ROOTS):
+                continue
             files.append(rel)
+    return files
+
+
+def main(src, out):
+    files = collect(src)
     manifest, problems, full = {}, [], {}
     with zipfile.ZipFile(out, 'w', allowZip64=True) as z:
         for rel in files:
@@ -125,4 +164,9 @@ def main(src, out):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2])
+    # --list <folder>: print what would be packed, write nothing (used to check the rules)
+    if sys.argv[1] == '--list':
+        sys.stdout.reconfigure(encoding='utf-8')
+        print('\n'.join(collect(sys.argv[2])))
+    else:
+        main(sys.argv[1], sys.argv[2])

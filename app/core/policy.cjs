@@ -50,7 +50,6 @@ const GPT_EFFORT_LABELS = {
   max: 'Max',
   ultra: 'Ultra',
 };
-const GPT_EFFORTS = Object.entries(GPT_EFFORT_LABELS);
 const EFFORT_VALUE = /^[a-z][a-z0-9_-]{0,23}$/i;
 /** The label of one GPT level (its own spelling when it is not a known one). */
 function gptEffortLabel(value) {
@@ -120,7 +119,6 @@ function threadParams(cwd, model, mode = 'project', access = 'ask') {
 module.exports = {
   APPROVALS,
   QUESTIONS,
-  GPT_EFFORTS,
   approvalReply,
   questionReply,
   isLoginUrl,

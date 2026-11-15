@@ -110,7 +110,7 @@ export function modulesCard(d: ModulesDeps) {
       const b = el('button', '', 'Modül yükle');
       b.type = 'button';
       b.onclick = () => d.openSettings('modules');
-      grid.replaceChildren(el('p', 'ws-empty', 'Henüz modül yok. Ayarlar → Modüller’den bir .zip modül yükleyebilirsin.'), b);
+      grid.replaceChildren(el('p', 'ws-empty', 'Henüz modül yok. Ayarlar’daki Modüller sayfasından bir .zip modül yükleyebilirsin.'), b);
       count.textContent = '';
       return;
     }

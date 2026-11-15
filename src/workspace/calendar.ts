@@ -376,7 +376,7 @@ export function calendarCard(d: CalendarDeps) {
         : x?.kind === 'outlook-calendar'
           ? 'Outlook etkinlikleri şimdilik yalnızca görüntülenir.'
           : !writable
-            ? 'Google Takvim’e eklemek için Ayarlar → Eklentiler → Google Takvim’i bağla. Şimdilik Charles hatırlatıcısı olarak kaydedilir.'
+            ? 'Google Takvim’e eklemek için Ayarlar’daki Eklentiler sayfasında Google Takvim’i bağla. Şimdilik Charles hatırlatıcısı olarak kaydedilir.'
             : '';
     delB.hidden = !x || readOnly;
     saveB.disabled = readOnly;

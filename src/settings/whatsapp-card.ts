@@ -1,4 +1,7 @@
-// v0.7.2+: Ayarlar → Eklentiler → WhatsApp.
+// v0.7.2+: the WhatsApp card on the Eklentiler page.
+// v1.0.0: the connection state is said in one place, the state line under the description (it
+// was a pill in the header and a "✓ Bağlı" row inside a nested card); icons come from icons.ts.
+import { icon } from '../workspace/icons';
 function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   cls = '',
@@ -25,32 +28,28 @@ export function whatsappCard(api: any, notice: (s: string) => void) {
   if (!anchor) return;
   const card = h('section', 'setting-section plugin-card wa-card');
   card.dataset.plugin = 'whatsapp';
-  const pill = h('span', 'wa-pill', h('i'), h('span', '', 'Bağlı değil'));
-  const head = h('div', 'wa-card-head', h('h3', '', 'WhatsApp'), pill);
-  const live = h('div', 'wa-live');
-  const liveTitle = h(
-    'div',
-    'wa-live-title',
-    h('strong', '', 'Mesajlar Charles’ta'),
-    h('span', 'wa-tag', 'Deneysel'),
-  );
+  const head = h('h3', '', 'WhatsApp');
   const liveText = h(
     'p',
     'hint',
-    'WhatsApp’ı bir kez QR kodla bağla; sana gelen mesajlar adacığın altında görünür, oradan hızlı yanıt verebilir ya da yazıp gönderebilirsin. Mesajlar yalnızca bu bilgisayarda, bellekte tutulur.',
+    'WhatsApp’ı bir kez QR kodla bağla; gelen mesajlar adacığın altında görünür, oradan yanıt verebilirsin. Mesajlar yalnızca bu bilgisayarda, bellekte tutulur.',
   );
+  // the one place that says whether WhatsApp is connected
+  const stateText = h('span', 'wa-state-text', 'Bağlı değil');
+  const stateLine = h('p', 'wa-state', h('i', 'wa-dot'), stateText);
+  stateLine.dataset.state = 'off';
   const liveBody = h('div', 'wa-live-body');
   const status = h('p', 'hint wa-status');
   status.setAttribute('role', 'status');
-  live.append(liveTitle, liveText, liveBody, status);
+  const live = h('div', 'wa-live-plain', liveText, stateLine, liveBody, status);
   const people = h('div', 'wa-people');
   const peopleToggle = h('button', 'wa-people-toggle');
   peopleToggle.type = 'button';
   peopleToggle.setAttribute('aria-expanded', 'false');
   const peopleLabel = h('span', 'wa-people-label');
   const peopleCount = h('span', 'wa-count');
-  const chevron = h('span', 'wa-chevron', '›');
-  peopleToggle.append(h('span', 'wa-people-icon', '👥'), peopleLabel, peopleCount, chevron);
+  const chevron = h('span', 'wa-chevron', icon('chevronRight'));
+  peopleToggle.append(h('span', 'wa-people-icon', icon('user')), peopleLabel, peopleCount, chevron);
   const peopleBody = h('div', 'wa-people-body');
   peopleBody.hidden = true;
   const peopleHint = h(
@@ -68,7 +67,7 @@ export function whatsappCard(api: any, notice: (s: string) => void) {
   phone.inputMode = 'tel';
   phone.maxLength = 22;
   phone.setAttribute('aria-label', 'Telefon numarası');
-  const addBtn = button('Ekle', 'primary wa-add-btn');
+  const addBtn = button('Ekle', 'wa-add-btn');
   const add = h('div', 'wa-add', name, phone, addBtn);
   const autoBox = h('input');
   autoBox.type = 'checkbox';
@@ -192,7 +191,7 @@ export function whatsappCard(api: any, notice: (s: string) => void) {
     );
     box.append(
       sum,
-      h('p', 'hint', 'Her satıra bir yanıt (en fazla 8). Adacığın altındaki mesajda ↩ ile açılır.'),
+      h('p', 'hint', 'Her satıra bir yanıt (en fazla 8). Adacığın altındaki mesajın yanıt düğmesiyle açılır.'),
       area,
       h('div', 'wa-actions-row', saveB),
     );
@@ -200,18 +199,29 @@ export function whatsappCard(api: any, notice: (s: string) => void) {
   }
   function paintLive(s: any) {
     state = s;
-    const connected = s.link === 'connected';
-    pill.classList.toggle('on', connected);
-    pill.classList.toggle('wait', ['installing', 'starting', 'qr', 'connecting'].includes(s.link));
-    pill.lastChild!.textContent = connected
-      ? 'Bağlı'
-      : s.link === 'qr'
-        ? 'QR bekleniyor'
-        : ['installing', 'starting', 'connecting'].includes(s.link)
-          ? 'Bağlanıyor…'
-          : s.link === 'error'
-            ? 'Hata'
-            : 'Bağlı değil';
+    const waiting = s.link === 'installing' || s.link === 'starting' || (s.link === 'connecting' && !s.me);
+    const connected = s.link === 'connected' || (s.link === 'connecting' && !!s.me);
+    stateLine.dataset.state = connected ? 'on' : waiting || s.link === 'qr' ? 'wait' : s.link === 'error' ? 'error' : 'off';
+    stateText.replaceChildren();
+    if (!s.enabled && s.link !== 'installing') stateText.textContent = 'Bağlı değil';
+    else if (waiting)
+      stateText.textContent =
+        s.progress || (s.link === 'installing' ? 'Kuruluyor…' : 'WhatsApp köprüsü başlatılıyor…');
+    else if (s.link === 'qr') stateText.textContent = 'QR kodu bekleniyor';
+    else if (s.link === 'error') stateText.textContent = s.error || 'WhatsApp köprüsü çalışmıyor.';
+    else if (!connected) stateText.textContent = 'Bağlı değil';
+    else {
+      stateText.append('Bağlı');
+      if (s.me) {
+        const me = h('span', 'wa-me', ' · +' + s.me);
+        me.setAttribute('translate', 'no');
+        stateText.append(me);
+      }
+    }
+    stateLine.classList.toggle('busy', waiting);
+    // v1.0.0 (design pass T23): one cream button per card. Off: "WhatsApp’ı bağla"; error:
+    // "Yeniden dene"; waiting for the code: none; connected: adding a person ("Ekle")
+    addBtn.classList.toggle('primary', connected);
     liveBody.replaceChildren();
     if (!s.enabled && s.link !== 'installing') {
       const connect = button('WhatsApp’ı bağla', 'primary', () =>
@@ -231,22 +241,8 @@ export function whatsappCard(api: any, notice: (s: string) => void) {
       );
       return;
     }
-    if (s.link === 'installing' || s.link === 'starting' || (s.link === 'connecting' && !s.me)) {
-      liveBody.append(
-        h(
-          'div',
-          'wa-wait',
-          h('span', 'wa-spinner'),
-          h(
-            'span',
-            '',
-            s.progress ||
-              (s.link === 'installing' ? 'Kuruluyor…' : 'WhatsApp köprüsü başlatılıyor…'),
-          ),
-        ),
-      );
-      return;
-    }
+    // waiting: the state line shows the progress with its own spinner
+    if (waiting) return;
     if (s.link === 'qr') {
       const img = h('img', 'wa-qr');
       img.alt = 'WhatsApp bağlama QR kodu';
@@ -255,7 +251,7 @@ export function whatsappCard(api: any, notice: (s: string) => void) {
         'ol',
         'wa-steps',
         h('li', '', 'Telefonunda WhatsApp’ı aç.'),
-        h('li', '', 'Ayarlar → Bağlı cihazlar → Cihaz bağla.'),
+        h('li', '', 'WhatsApp’ın ayarlarında Bağlı cihazlar’ı açıp Cihaz bağla’ya dokun.'),
         h('li', '', 'Bu kodu okut. Kod birkaç saniyede bir yenilenir.'),
       );
       liveBody.append(
@@ -265,8 +261,8 @@ export function whatsappCard(api: any, notice: (s: string) => void) {
       return;
     }
     if (s.link === 'error') {
+      // the error itself is on the state line
       liveBody.append(
-        h('p', 'wa-error', s.error || 'WhatsApp köprüsü çalışmıyor.'),
         h(
           'div',
           'wa-actions-row',
@@ -276,7 +272,6 @@ export function whatsappCard(api: any, notice: (s: string) => void) {
       );
       return;
     }
-    const me = s.me ? '+' + s.me : '';
     const groups = h('input');
     groups.type = 'checkbox';
     groups.checked = s.groups;
@@ -303,16 +298,7 @@ export function whatsappCard(api: any, notice: (s: string) => void) {
         ),
       );
     });
-    const linked = h(
-      'div',
-      'wa-linked',
-      h('span', 'wa-check', '✓'),
-      h('span', '', 'Bağlı'),
-      me ? h('span', 'wa-me', me) : null,
-    );
-    linked.querySelector('.wa-me')?.setAttribute('translate', 'no');
     liveBody.append(
-      linked,
       h('label', 'toggle-row wa-toggle', groups, h('span', '', 'Grup mesajlarını da göster')),
       repliesEditor(s),
       h(

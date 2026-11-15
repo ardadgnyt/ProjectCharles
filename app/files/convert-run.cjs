@@ -46,13 +46,13 @@ async function ff(ctx, args) {
   await conv().runFFmpeg(ffmpeg, args, { signal: ctx.signal, onProgress: ctx.progress });
 }
 /** ffmpeg into a temporary name beside the result, renamed when it worked. */
+// v1.0.0: the temporary name is this job's own and the result's name is picked when it is done
+// (convert.cjs settle: nothing that appeared meanwhile is replaced)
 async function ffOut(ctx, ext, build) {
-  const out = place(ctx, ext);
-  const tmp = out + '.part.' + ext;
+  const tmp = conv().partPath(ctx.outDir, ctx.base, ext);
   try {
     await ff(ctx, build(tmp));
-    fs.renameSync(tmp, out);
-    return out;
+    return conv().settle(tmp, ctx.outDir, ctx.base, ext);
   } finally {
     fs.rmSync(tmp, { force: true });
   }
@@ -83,14 +83,12 @@ async function office(ctx, app, job) {
 }
 /** Office into a temporary file with the right extension, then renamed. */
 async function officeOut(ctx, app, file, format, ext, extra = {}) {
-  const out = place(ctx, ext);
-  const tmp = out + '.part.' + ext;
+  const tmp = conv().partPath(ctx.outDir, ctx.base, ext);
   try {
     ctx.progress(0.2);
     await office(ctx, app, { source: file, target: tmp, format, ...extra });
     if (!fs.existsSync(tmp)) throw Error('Dönüştürülemedi.');
-    fs.renameSync(tmp, out);
-    return out;
+    return conv().settle(tmp, ctx.outDir, ctx.base, ext);
   } finally {
     fs.rmSync(tmp, { force: true });
   }
@@ -675,17 +673,16 @@ async function gif(file, target, opts, ctx) {
   if (target === 'frames-png' || target === 'frames-jpg') {
     const list = media.frameList(opts.frames || '1');
     const ext = target === 'frames-png' ? 'png' : 'jpg';
-    const dir = folder(ctx, ext.toUpperCase());
-    const tmp = dir + '.part';
+    const label = `${ctx.base} (${ext.toUpperCase()})`;
+    const tmp = conv().partPath(ctx.outDir, label, '');
     fs.mkdirSync(tmp);
     try {
       await ff(ctx, media.gifFramesArgs(file, path.join(tmp, 'f_%05d.' + ext), list));
       const made = fs.readdirSync(tmp).sort();
       if (!made.length) throw Error('Seçilen kareler GIF’te yok.');
       if (made.length < list.length) ctx.note(`GIF’te ${made.length} kare bulundu; olmayan kareler atlandı.`);
-      fs.mkdirSync(dir);
-      made.forEach((n, i) => fs.renameSync(path.join(tmp, n), path.join(dir, `${ctx.base}_kare_${String(list[i] ?? i + 1).padStart(3, '0')}.${ext}`)));
-      return dir;
+      made.forEach((n, i) => fs.renameSync(path.join(tmp, n), path.join(tmp, `${ctx.base}_kare_${String(list[i] ?? i + 1).padStart(3, '0')}.${ext}`)));
+      return conv().settle(tmp, ctx.outDir, label, '');
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
@@ -720,8 +717,8 @@ async function video(file, target, opts, ctx) {
   }
   if (target === 'frames-png' || target === 'frames-jpg') {
     const ext = target === 'frames-png' ? 'png' : 'jpg';
-    const dir = folder(ctx, ext.toUpperCase());
-    const tmp = dir + '.part';
+    const label = `${ctx.base} (${ext.toUpperCase()})`;
+    const tmp = conv().partPath(ctx.outDir, label, '');
     fs.mkdirSync(tmp);
     try {
       if (opts.frameMode === 'every') {
@@ -736,8 +733,7 @@ async function video(file, target, opts, ctx) {
         }
       }
       if (!fs.readdirSync(tmp).length) throw Error('Seçilen anlarda kare bulunamadı (video daha kısa olabilir).');
-      fs.renameSync(tmp, dir);
-      return dir;
+      return conv().settle(tmp, ctx.outDir, label, '');
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
@@ -769,9 +765,9 @@ const RUNNERS = {
 // ── several files into one ──────────────────────────────────────────────────────────────────────
 /** files (in the user's order) → one animated GIF / WebP, or one 7z / TAR archive. */
 async function runJoined(files, target, opts, ctx) {
-  if (target === 'arc-7z' || target === 'arc-tar') {
+  if (target === 'arc-zip' || target === 'arc-7z' || target === 'arc-tar') {
     const a = require('./archive.cjs');
-    const fmt = target === 'arc-7z' ? '7z' : 'tar';
+    const fmt = target.slice(4);
     return a.create(files, conv().uniquePath(ctx.outDir, ctx.base, fmt), fmt, { signal: ctx.signal });
   }
   if (target === 'join-gif' || target === 'join-webp') {

@@ -61,6 +61,14 @@ export function animationLoop(
   observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   return {
     start: refresh,
+    /** v1.0.0 (perffix P7): draw now instead of at the next slow frame (waking from sleep) */
+    now: () => {
+      if (!active()) return;
+      cancel();
+      frame = 0;
+      last = 0;
+      schedule();
+    },
     stop: () => {
       stopped = true;
       cancel();

@@ -1,6 +1,5 @@
 // v0.8.14: English for the new texts (the weather sheet, Spotify). The other languages translate from this English (src/settings/lang/*).
 export const english0814: Record<string, string> = {
-  "5 günlük tahmin": "5-day forecast",
   "Şehri değiştir": "Change city",
   "Hissedilen": "Feels like",
   "Nem": "Humidity",

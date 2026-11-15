@@ -1,0 +1,3236 @@
+/* 06-settings · Settings: the panel, its pages and cards (AI models, plugins, WhatsApp, appearance and the
+   Slime studio, shortcuts, weekly summary, update card), in the island and in the app window.
+   Merged in v1.0.0 (T37) from the release files, every rule in its original order; the load order is
+   in RULES.md / DEVELOPMENT.md. Colours, radii and type come from 00-tokens.css. */
+
+/* ── from 1-base.css ── */
+#settings-panel {
+  position: fixed;
+  inset: 100px 20px 22px;
+  width: calc(100% - 40px);
+  max-width: 660px;
+  max-height: calc(100% - 122px);
+  margin: 0 auto;
+  padding: 0;
+  overflow: hidden;
+}
+#settings-panel::backdrop {
+  background: #0007;
+}
+.settings-heading h2 {
+  margin: 0;
+}
+#settings-panel #extra-settings {
+  padding: 0;
+  border: 0;
+}
+#settings-panel #model {
+  max-width: none;
+  min-width: 0;
+}
+#settings-panel #mode-hint {
+  margin-top: 10px;
+}
+#settings-panel #memory-text {
+  width: 100%;
+  background: #111318;
+  color: #eee;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+#settings-panel section {
+  margin-bottom: 20px;
+}
+.setting-section summary {
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  color: #ddd;
+}
+.setting-section .utility-item button {
+  margin-right: 6px;
+}
+
+/* ── from 2-panel-layout.css ── */
+#settings-panel,
+#sessions-panel,
+#setup-panel {
+  background: #0b0b0d;
+  color: #eee;
+  border: 1px solid #303034;
+  border-radius: var(--r-xl);
+  max-width: calc(100vw - 28px);
+  width: 510px;
+  max-height: calc(100vh - 26px);
+  padding: 18px;
+  overflow: auto;
+}
+.setting-section label {
+  display: block;
+  margin: 10px 0;
+}
+.setting-section input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+}
+#settings-panel,
+#sessions-panel {
+  inset: 14px auto auto 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  height: calc(100vh - 28px);
+  max-height: calc(100vh - 28px);
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ── from 3-island.css ── */
+.settings-page > h3:first-child {
+  margin-top: 4px;
+}
+.settings-page input[type="color"] {
+  width: 42px;
+  height: 29px;
+  padding: 2px;
+  margin: 0 0 0 auto;
+}
+.settings-page section:has(input[type="color"]) label {
+  display: flex;
+  align-items: center;
+  font-size: var(--fs-i3);
+}
+.settings-page #capture-button {
+  padding: 7px;
+}
+.settings-page #capture-button svg {
+  width: 20px;
+  height: 20px;
+}
+.settings-page .read-toggle {
+  margin: 0 15px 0 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: auto;
+  height: 32px;
+}
+.settings-page .read-toggle input {
+  position: static;
+  opacity: 1;
+  width: 16px;
+  height: 16px;
+  inset: auto;
+  margin: 0;
+}
+.settings-page .read-toggle svg {
+  display: none;
+}
+.settings-page > label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0;
+}
+.settings-page .setting-section .row {
+  margin: 10px 0;
+}
+.settings-page .setting-section .row input[type="number"] {
+  max-width: 64px;
+}
+.settings-page .setting-section .row input[type="range"] {
+  width: 100px;
+}
+.provider-card h3 {
+  margin-top: 0;
+}
+.provider-card [role="status"] {
+  margin-bottom: 0;
+}
+.shortcut-row input,
+.plugin-card input {
+  width: 100%;
+  min-width: 0;
+  margin: 5px 0;
+  padding: 9px 12px;
+  border: 1px solid #ffffff18;
+  border-radius: var(--r-md);
+  background: #101012;
+  color: #eee;
+}
+/* v3.2.1: guided setup and explicit shortcut recording */
+.shortcut-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(110px, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+.shortcut-row input {
+  min-width: 0;
+}
+.plugin-card details {
+  margin: 14px 0;
+}
+.plugin-card details summary {
+  cursor: pointer;
+  color: var(--accent, var(--cream-strong));
+}
+.plugin-card details label {
+  display: block;
+  font-size: var(--fs-i4);
+  margin: 12px 0;
+}
+.plugin-card details input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+}
+
+/* ── from 4-polish.css ── */
+#settings-panel,
+#sessions-panel {
+  border-radius: var(--r-xl);
+  box-shadow: 0 12px 35px #0005;
+}
+.settings-heading h2 {
+  font-size: var(--fs-i5);
+  font-weight: var(--fw-strong);
+}
+.plugin-card h3,
+.setting-section h3 {
+  margin-top: 0;
+  font-size: var(--fs-i4);
+}
+@keyframes v4-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+#settings-panel[open] {
+  animation: v4-fade-in 0.18s ease-out;
+}
+@keyframes v4-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+#sessions-panel .settings-heading {
+  padding: 12px 15px;
+}
+#sessions-panel .settings-body {
+  padding-top: 12px;
+  padding: 10px 14px 14px;
+  flex: initial;
+}
+#sessions-panel .settings-body > .hint {
+  display: none;
+}
+/* v1.0.0: one header row: search, two icon buttons and the "Düzenle" menu (52-v100-dchat.css) */
+#sessions-panel .settings-body > .row {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin: 0 0 6px;
+}
+#personal-panel,
+#setup-panel,
+#wardrobe-panel {
+  background: #151517f5;
+  backdrop-filter: blur(16px);
+  border: 1px solid #ffffff16;
+  border-radius: var(--r-xl);
+  box-shadow: 0 12px 35px #0005;
+}
+#settings-panel,
+#sessions-panel,
+#personal-panel,
+#setup-panel,
+#wardrobe-panel,
+#composer-menu,
+#model-menu {
+  background: var(--panel-surface);
+}
+/* Compact settings controls share the same quiet surface and keyboard focus. */
+#settings-panel .settings-page {
+  font-size: var(--fs-i3);
+}
+#settings-panel .settings-page .hint {
+  font-size: var(--fs-i2);
+  line-height: 1.65;
+  margin: 8px 0;
+  color: #898991;
+}
+#settings-panel input[type="checkbox"],
+#sessions-panel .folder-auto input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 28px;
+  height: 16px;
+  min-width: 28px;
+  padding: 0;
+  margin: 0 8px 0 0;
+  border: 1px solid #ffffff15;
+  border-radius: var(--r-md);
+  background: #37373d;
+  position: relative;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+#settings-panel input[type="checkbox"]::before,
+#sessions-panel .folder-auto input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #a9a9b1;
+  transition: transform 0.15s;
+}
+#settings-panel input[type="checkbox"]:focus-visible,
+#sessions-panel .folder-auto input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+#settings-panel #screen-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin: 8px 0;
+}
+#settings-panel .screen-card.selected {
+  background: var(--cream-04);
+  border-color: var(--cream-25);
+  color: var(--cream);
+}
+#settings-panel #screen-refresh {
+  background: transparent;
+  border-color: transparent;
+  color: #a7a7af;
+  font-size: var(--fs-i2);
+}
+#settings-panel #memory-section textarea {
+  min-height: 78px;
+  padding: 11px 12px;
+  font-size: var(--fs-i3);
+  border: 1px solid #ffffff0c;
+  border-radius: var(--r-md);
+  background: #ffffff03;
+  resize: vertical;
+}
+#settings-panel #memory-section .utility-actions {
+  display: flex;
+  gap: 5px;
+  margin: 8px 0;
+}
+#settings-panel #memory-save {
+  background: var(--cream-08);
+  color: var(--cream);
+  border: 1px solid var(--cream-12);
+}
+#settings-panel #memory-cancel,
+#settings-panel #import-memory {
+  background: transparent;
+  border-color: transparent;
+  color: #a7a7af;
+}
+#settings-panel .settings-body::-webkit-scrollbar {
+  width: 4px;
+}
+#settings-panel .settings-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+#settings-panel .settings-body::-webkit-scrollbar-thumb {
+  background: #ffffff24;
+  border-radius: var(--r-md);
+}
+#settings-panel .settings-body::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+}
+/* v0.4.2: clearer settings contrast, compact project selector. */
+#settings-panel .settings-page h3 {
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  margin: 18px 0 10px;
+  color: var(--cream-strong);
+}
+#settings-panel .settings-page .hint,
+#settings-panel .plugin-card p {
+  color: #aaaab5;
+}
+#settings-panel .settings-page button {
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-i3);
+  color: #e9e9ef;
+  background-color: #242429;
+  border-color: #ffffff1c;
+}
+#settings-panel .settings-page button:hover:enabled {
+  background-color: #303037;
+}
+#settings-panel .settings-page .primary,
+#settings-panel #memory-save {
+  background: var(--cream);
+  color: var(--cream-ink);
+  border-color: transparent;
+}
+#settings-panel .settings-page button[aria-pressed="true"],
+#settings-panel .screen-card.selected {
+  color: var(--cream-strong);
+  background: var(--cream-08);
+  border-color: var(--cream-35);
+}
+#settings-panel .screen-card small {
+  font-size: var(--fs-i1);
+  font-weight: var(--fw-regular);
+  color: #aaaab5;
+}
+#settings-panel input[type="checkbox"]:checked,
+#sessions-panel .folder-auto input[type="checkbox"]:checked {
+  background: var(--cream);
+}
+#settings-panel input[type="checkbox"]:checked::before,
+#sessions-panel .folder-auto input[type="checkbox"]:checked::before {
+  transform: translateX(12px);
+  background: #fff7ef;
+}
+#settings-panel .settings-page input[type="color"] {
+  padding: 3px;
+  width: 42px;
+  height: 29px;
+  background: #25252c;
+  border: 1px solid #ffffff30;
+  border-radius: var(--r-md);
+}
+#settings-panel input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+#settings-panel input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: var(--r-sm);
+}
+#settings-panel .settings-card > h3:first-child {
+  margin-top: 0;
+}
+#settings-panel .settings-card .plugin-card {
+  margin: 10px 0;
+}
+#settings-panel .shortcut-row button {
+  font-size: var(--fs-i1);
+  padding: 5px 7px;
+}
+#settings-panel #extra-settings .extra-scroll {
+  gap: 10px;
+  padding: 0;
+}
+#settings-panel .shortcut-conflict input {
+  border-color: var(--warn);
+  color: var(--cream-strong);
+}
+
+/* ── from 5-design-system.css ── */
+/* --- Dialogs and cards ---------------------------------------------------- */
+#settings-panel,
+#sessions-panel,
+#personal-panel,
+#setup-panel,
+#wardrobe-panel {
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-xl);
+  background: rgba(19, 19, 23, 0.98);
+}
+.settings-body button:not(.primary),
+.plugin-card button:not(.primary),
+.setting-section button:not(.primary) {
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+.settings-body button:not(.primary):hover,
+.plugin-card button:not(.primary):hover,
+.setting-section button:not(.primary):hover {
+  background: var(--sb-surface-hover);
+  border-color: var(--sb-line-strong);
+}
+/* --- Settings (v0.5.0) ------------------------------------------------------
+   Two-column dialog: a vertical category list on the left, the page on the
+   right. One button system: .primary = accent fill, everything else = quiet
+   surface. Cards get a clear title / description / control rhythm. */
+#settings-panel {
+  --accent: var(--sb-accent);
+  color: var(--sb-text);
+  background: rgba(17, 17, 21, 0.985);
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-xl);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+}
+#settings-panel .settings-heading h2,
+#release-notes .settings-heading h2 {
+  margin: 0;
+  font-family: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: var(--fs-i5);
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.2px;
+}
+#settings-panel .settings-heading button,
+#release-notes .settings-heading button {
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--sb-muted);
+  font-size: var(--fs-i6);
+}
+#settings-panel .settings-heading button:hover,
+#release-notes .settings-heading button:hover {
+  background: var(--sb-surface-hover);
+  color: var(--sb-text);
+}
+#settings-panel #settings-categories {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 2px;
+  padding: 12px 8px 12px 10px;
+  border: 0;
+  border-right: 1px solid var(--sb-line);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+#settings-panel #settings-categories button {
+  position: relative;
+  width: 100%;
+  min-height: 34px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: #b4b4bf;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-regular);
+  text-align: left;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+#settings-panel #settings-categories button:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--sb-text);
+}
+#settings-panel #settings-categories button[aria-pressed='true'] {
+  background: var(--sb-accent-soft);
+  color: var(--sb-accent);
+  font-weight: var(--fw-strong);
+}
+#settings-panel #settings-categories button[aria-pressed='true']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: var(--r-sm);
+  background: var(--sb-accent);
+}
+#settings-panel .setting-section h3,
+#settings-panel .plugin-card h3,
+#settings-panel .settings-page h3 {
+  margin: 0 0 6px;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.1px;
+  color: var(--sb-text);
+}
+#settings-panel .hint,
+#settings-panel .setting-section p {
+  font-size: var(--fs-i3);
+  line-height: 1.55;
+  color: var(--sb-muted);
+}
+#settings-panel .settings-page label {
+  color: #d2d2da;
+}
+/* Buttons: one system */
+#settings-panel .settings-body button {
+  min-height: 32px;
+  padding: 7px 13px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--sb-text);
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-regular);
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    transform 0.1s;
+}
+#settings-panel .settings-body button:hover:not(:disabled) {
+  background: var(--sb-surface-hover);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+#settings-panel .settings-body button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+#settings-panel .settings-body button.primary {
+  background: var(--sb-accent);
+  border-color: transparent;
+  color: var(--cream-ink);
+  font-weight: var(--fw-strong);
+}
+#settings-panel .settings-body button.primary:hover:not(:disabled) {
+  background: var(--sb-accent-strong);
+}
+#settings-panel .settings-body button:disabled {
+  opacity: 0.45;
+}
+/* Inputs */
+#settings-panel .settings-body input:not([type='checkbox']):not([type='range']):not([type='color']),
+#settings-panel .settings-body select {
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-md);
+  background: #0d0d10;
+  color: var(--sb-text);
+  font-size: var(--fs-i3);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+#settings-panel .settings-body input:focus-visible,
+#settings-panel .settings-body select:focus-visible {
+  outline: none;
+  border-color: var(--cream-45);
+  box-shadow: 0 0 0 3px var(--cream-12);
+}
+#settings-panel input[type='checkbox'],
+#settings-panel input[type='range'] {
+  accent-color: var(--sb-accent);
+}
+@media (max-width: 520px) {
+  #settings-panel #settings-categories {
+    grid-row: 2;
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--sb-line);
+  }
+  #settings-panel #settings-categories button {
+    width: auto;
+    white-space: nowrap;
+  }
+  #settings-panel .settings-body {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+}
+/* Narrow windows: categories back on top as a scrollable row. */
+/* --- v0.5.0 fixes -------------------------------------------------------------
+   Modal backdrop: the window is transparent and larger than the panel, so the
+   default dimming layer showed up as a black rectangle around Charles. */
+dialog::backdrop,
+#settings-panel::backdrop,
+#sessions-panel::backdrop,
+#setup-panel::backdrop,
+#personal-panel::backdrop,
+#wardrobe-panel::backdrop {
+  background: transparent;
+}
+/* --- v0.5.1: Slime studio (accessories) ----------------------------------------
+   Preview Slime on the left, choices on the right as a scrollable chip list. */
+#settings-panel .slime-studio .studio-body {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  margin-top: 10px;
+}
+#settings-panel .slime-preview canvas {
+  width: 100px;
+  height: 100px;
+}
+#settings-panel .studio-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 6px;
+  max-height: 196px;
+  overflow-y: auto;
+  padding: 2px 6px 2px 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cream-35) transparent;
+}
+#settings-panel .studio-options::-webkit-scrollbar {
+  width: 5px;
+}
+#settings-panel .studio-options::-webkit-scrollbar-thumb {
+  border-radius: var(--r-sm);
+  background: var(--cream-35);
+}
+#settings-panel .studio-group {
+  flex-basis: 100%;
+  margin: 6px 0 0;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  color: var(--sb-muted);
+}
+#settings-panel .studio-group:first-child {
+  margin-top: 0;
+}
+/* v1.0.0: a square tile (radius 10): the accessory's picture on top, its name below */
+#settings-panel .settings-body button.studio-option {
+  position: relative;
+  display: grid;
+  grid-template-rows: 34px auto;
+  justify-items: center;
+  align-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 8px 6px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-i3);
+  line-height: 1.25;
+  text-align: center;
+}
+#settings-panel .studio-icon {
+  font-size: var(--fs-i4);
+  line-height: 1;
+}
+#settings-panel .settings-body button.studio-option[aria-selected='true'] {
+  border-color: var(--sb-accent);
+  background: var(--sb-accent-soft);
+  color: var(--sb-accent);
+}
+#settings-panel .settings-body button.studio-option.saved::after {
+  font-size: var(--fs-i1);
+  color: var(--sb-ok);
+}
+#settings-panel .studio-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+#settings-panel .studio-status {
+  font-size: var(--fs-i2);
+  color: var(--sb-muted);
+}
+/* The old <details> marker triangle never shows on settings cards. */
+#settings-panel summary {
+  list-style: none;
+}
+#settings-panel summary::-webkit-details-marker {
+  display: none;
+}
+/* --- v0.5.1: Görünüm page fits its column --------------------------------------- */
+#settings-panel #appearance-section .look-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin: 8px 0 4px;
+}
+#settings-panel #appearance-section .look-grid label {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-size: var(--fs-i3);
+}
+#settings-panel #appearance-section input[type='range'] {
+  width: 100%;
+  min-width: 0;
+}
+#settings-panel #appearance-section input[type='number'] {
+  width: 76px;
+}
+#settings-panel #appearance-section input[type='color'] {
+  width: 46px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-md);
+  background: #0d0d10;
+  cursor: pointer;
+}
+#settings-panel #appearance-section .utility-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 18px;
+}
+#settings-panel #appearance-section .utility-actions button[hidden] {
+  display: none;
+}
+#settings-panel .shortcut-row > span {
+  grid-column: 1 / -1;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-regular);
+  color: var(--sb-text);
+}
+#settings-panel .shortcut-row input {
+  width: 100%;
+  min-width: 0;
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: var(--fs-i3);
+}
+#settings-panel .shortcut-row button {
+  white-space: nowrap;
+}
+#settings-panel .settings-page[data-category='shortcuts'] {
+  overflow-x: hidden;
+}
+#settings-panel .shortcut-row.shortcut-conflict input {
+  border-color: color-mix(in srgb, var(--danger) 60%, transparent);
+}
+#settings-panel #appearance-section .look-grid label[hidden] { display: none; }
+
+/* ── from 6-acrylic.css ── */
+/* Dialogs (settings, sessions): frosted sheet over the panel */
+#settings-panel,
+#sessions-panel {
+  background:
+    radial-gradient(80% 40% at 0% 0%, var(--ac-warm), transparent 60%),
+    linear-gradient(180deg, rgba(28, 28, 35, 0.92), rgba(16, 16, 20, 0.95));
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  border: 1px solid var(--ac-edge);
+}
+/* Scrollbars stay thin and light on glass */
+#feed,
+.settings-body {
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+/* Form fields: glass instead of black boxes */
+#settings-panel select,
+#settings-panel input[type='text'],
+#settings-panel input[type='number'],
+#settings-panel input[type='search'],
+#settings-panel input[type='password'],
+#settings-panel input[type='time'],
+#settings-panel input[type='datetime-local'],
+#settings-panel textarea,
+#sessions-panel input,
+#sessions-panel select {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--ac-edge);
+  border-top-color: var(--ac-edge-top);
+  color: var(--sb-text);
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+#settings-panel input:focus,
+#settings-panel select:focus,
+#settings-panel textarea:focus,
+#sessions-panel input:focus {
+  border-color: var(--cream-45);
+  background-color: rgba(255, 255, 255, 0.07);
+  outline: none;
+}
+#settings-panel .settings-body input:not([type='checkbox']):not([type='range']):not([type='color']),
+#settings-panel .settings-body select,
+#settings-panel .settings-body textarea,
+#sessions-panel input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--ac-edge);
+  border-top-color: var(--ac-edge-top);
+}
+#settings-panel .settings-body input:not([type='checkbox']):not([type='range']):not([type='color']):focus,
+#settings-panel .settings-body select:focus,
+#sessions-panel input:focus {
+  background: rgba(255, 255, 255, 0.075);
+}
+/* --- Slime stüdyosu ------------------------------------------------------- */
+.slime-studio .studio-controls {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.slime-studio .studio-group {
+  display: grid;
+  gap: 7px;
+}
+.slime-studio .studio-label {
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  color: var(--sb-muted);
+}
+#settings-panel .slime-studio .slime-swatch {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  min-height: 0;
+  border-radius: var(--r-md);
+  border: 2px solid var(--swatch-edge);
+  background:
+    radial-gradient(60% 40% at 32% 26%, rgba(255, 255, 255, 0.75), transparent 70%),
+    linear-gradient(180deg, var(--swatch-top), var(--swatch));
+  cursor: pointer;
+  transition:
+    transform 0.15s var(--sb-ease),
+    box-shadow 0.15s;
+}
+#settings-panel .slime-studio .slime-swatch:hover {
+  transform: translateY(-1px) scale(1.06);
+}
+#settings-panel .slime-studio .slime-swatch[aria-checked='true'] {
+  box-shadow:
+    0 0 0 2px var(--sb-surface, #121215),
+    0 0 0 4px rgba(255, 255, 255, 0.85);
+}
+.studio-segment {
+  display: inline-flex;
+  width: fit-content;
+  padding: 3px;
+  gap: 3px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--ac-edge);
+  background: rgba(255, 255, 255, 0.04);
+}
+#settings-panel .slime-studio .studio-segment button {
+  min-height: 0;
+  padding: 5px 14px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--sb-muted);
+  font: inherit;
+  font-size: var(--fs-i3);
+  cursor: pointer;
+}
+#settings-panel .slime-studio .studio-segment button[aria-checked='true'] {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--sb-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+/* v0.6.1: Slime stüdyosu categories (Şapka · Göz · Yüz · Diğer) */
+#settings-panel .slime-studio .studio-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--ac-edge);
+  background: rgba(255, 255, 255, 0.035);
+}
+#settings-panel .slime-studio .studio-tab {
+  display: grid;
+  gap: 1px;
+  min-height: 0;
+  padding: 6px 4px 5px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--sb-muted);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+#settings-panel .slime-studio .studio-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--sb-text);
+}
+#settings-panel .slime-studio .studio-tab[aria-selected='true'] {
+  background: rgba(255, 255, 255, 0.11);
+  color: var(--sb-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.slime-studio .studio-tab-name {
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+}
+.slime-studio .studio-tab-value {
+  overflow: hidden;
+  font-size: var(--fs-i1);
+  color: var(--sb-accent);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}
+.slime-studio .studio-panels {
+  min-height: 96px;
+}
+.slime-studio .studio-note {
+  min-height: 14px;
+  color: var(--sb-warn);
+  font-size: var(--fs-i2);
+}
+#settings-panel .slime-studio .studio-reset {
+  background: transparent;
+  border: 1px solid var(--ac-edge);
+}
+/* v0.6.1 layout: the accessory studio stacks in one column so it fits the settings panel —
+   preview on top, then colour, category tabs, choices and the buttons. */
+#settings-panel #wardrobe .studio-body {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+/* v1.0.0: no frame: Charles stands free on the card */
+#settings-panel #wardrobe .slime-preview {
+  position: static;
+  flex-direction: row;
+  justify-content: center;
+  height: 150px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+#settings-panel #wardrobe .slime-preview canvas {
+  width: 160px;
+  height: 160px;
+}
+#settings-panel #wardrobe .studio-controls {
+  gap: 12px;
+}
+#settings-panel #wardrobe .slime-swatches {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 30px));
+  justify-content: space-between;
+  gap: 6px;
+}
+#settings-panel #wardrobe .slime-swatch {
+  width: 30px;
+  height: 30px;
+}
+#settings-panel #wardrobe .studio-tab {
+  min-width: 0;
+}
+#settings-panel #wardrobe .studio-tab-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#settings-panel #wardrobe .studio-panels {
+  min-height: 0;
+}
+/* v1.0.0: a grid of square tiles: the picture on top, the name below */
+#settings-panel #wardrobe .studio-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 8px;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+}
+#settings-panel #wardrobe .settings-body button.studio-option,
+#settings-panel #wardrobe button.studio-option {
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1;
+  overflow: hidden;
+}
+/* a long name (German "Weihnachtsmütze") breaks onto a second line instead of being cut; the tiles of a
+   row stay one height (grid row) */
+#settings-panel #wardrobe .studio-option-name {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+#settings-panel #wardrobe .studio-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+#settings-panel #wardrobe .studio-actions .primary {
+  min-width: 96px;
+}
+#settings-panel #wardrobe .studio-reset {
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-i3);
+  white-space: nowrap;
+}
+#settings-panel #wardrobe .studio-status {
+  margin-left: auto;
+  color: var(--sb-muted);
+  font-size: var(--fs-i2);
+  white-space: nowrap;
+}
+
+/* ── from 7-settings-v070.css ── */
+/* ── Account cards ─────────────────────────────────────────────────────────────── */
+/* A card whose only content is hidden (it was an empty bubble under Cursor). */
+.settings-card:not(:has(> :not([hidden]))) {
+  display: none !important;
+}
+/* ── One look for every settings card ──────────────────────────────────────────── */
+#settings-panel .settings-page .settings-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+    rgba(18, 18, 22, 0.55);
+  border: 1px solid var(--sb-line);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+  margin: 0 0 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+#settings-panel .settings-page .settings-card > h3:first-child,
+#settings-panel .settings-page .settings-card h3 {
+  margin: 0 0 6px;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.005em;
+}
+#settings-panel .settings-page .settings-card h4 {
+  margin: 14px 0 6px;
+  font-size: var(--fs-i4);
+  color: var(--sb-text);
+}
+#settings-panel .settings-page .settings-card .hint {
+  margin: 4px 0 10px;
+  line-height: 1.55;
+}
+#settings-panel .settings-page .settings-card .hint:last-child {
+  margin-bottom: 0;
+}
+/* Buttons side by side: always a gap, wrap when narrow. */
+#settings-panel .button-row,
+#settings-panel .settings-page .utility-actions,
+#settings-panel .settings-page .provider-actions,
+#settings-panel .settings-page .settings-card > .row:has(> button) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+#settings-panel .button-row > button,
+#settings-panel .settings-page .utility-actions > button,
+#settings-panel .settings-page .provider-actions > button {
+  margin: 0 !important;
+}
+/* Switch rows and label + value rows */
+#settings-panel .settings-page .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 6px 0;
+}
+#settings-panel .settings-page .row > label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+#settings-panel .settings-page .row input[type='number'] {
+  width: 72px;
+  margin: 0;
+}
+#settings-panel .settings-page .row input[type='range'] {
+  min-width: 110px;
+}
+/* Language: globe symbol + select, with room between them */
+#settings-panel .language-row {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+#settings-panel .language-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-md);
+  background: var(--sb-accent-soft);
+  color: var(--sb-accent);
+  flex: none;
+}
+#settings-panel .language-icon svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+#settings-panel .language-row select {
+  min-width: 150px;
+  margin: 0;
+}
+#settings-panel .settings-page .row:has(input[type='number']),
+#settings-panel .settings-page .row:has(input[type='range']) {
+  flex-wrap: nowrap;
+  justify-content: space-between;
+}
+#settings-panel .settings-page .row:has(input[type='number']) > label:first-child {
+  flex: 1;
+  min-width: 0;
+}
+/* ── Memory page ───────────────────────────────────────────────────────────────── */
+#settings-panel #memories-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--sb-line);
+}
+#settings-panel #memories-heading:has(+ #memories:empty) {
+  display: none;
+}
+#settings-panel #memories {
+  display: grid;
+  gap: 8px;
+}
+#settings-panel #memories .utility-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: start;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--sb-line);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.02);
+}
+#settings-panel #memories .utility-item p {
+  margin: 0;
+  font-size: var(--fs-i4);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  max-height: 7.5em;
+  overflow: auto;
+}
+#settings-panel #memories .utility-item button {
+  margin: 0 !important;
+  padding: 4px 10px;
+  font-size: var(--fs-i3);
+}
+#settings-panel #profile-transfer {
+  margin-top: 12px;
+  padding: 2px 0 0;
+  border: 0;
+  background: none;
+}
+#settings-panel .ai-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 10px;
+}
+#settings-panel .ai-pick button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+#settings-panel .ai-pick button i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+#settings-panel .button-row > button,
+#settings-panel #profile-transfer-card #import-memory {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  flex: none;
+}
+#settings-panel #profile-transfer-card #import-memory {
+  margin: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--sb-text);
+}
+#settings-panel #profile-transfer summary {
+  margin: 4px 0 10px;
+  font-size: var(--fs-i3);
+  color: var(--sb-muted);
+  cursor: pointer;
+}
+#settings-panel #profile-transfer .button-row > button {
+  font-size: var(--fs-i3);
+}
+
+/* ── from 8-v071.css ── */
+/* ── Ayarlar → Hesap ───────────────────────────────────────────────────────────── */
+#settings-panel .account-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2px 0 6px;
+}
+#settings-panel .account-chip {
+  padding: 5px 11px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--sb-line-strong);
+  font-size: var(--fs-i3);
+  color: var(--sb-muted);
+}
+#settings-panel .account-chip.on {
+  color: var(--sb-ok);
+  border-color: color-mix(in srgb, var(--ok) 30%, transparent);
+  background: color-mix(in srgb, var(--ok) 8%, transparent);
+}
+#settings-panel button.danger {
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent) !important;
+  background: color-mix(in srgb, var(--danger) 10%, transparent) !important;
+  color: var(--sb-danger) !important;
+}
+#settings-panel button.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 18%, transparent) !important;
+}
+#settings-panel .reset-confirm {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--danger) 6%, transparent);
+}
+#settings-panel .reset-confirm strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: var(--fs-i4);
+  color: var(--sb-danger);
+}
+#settings-panel .reset-confirm p {
+  margin: 0 0 4px;
+  font-size: var(--fs-i4);
+  line-height: 1.5;
+}
+/* ── Gemini Live card ──────────────────────────────────────────────────────────── */
+#settings-panel #live-card .live-options {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 6px;
+}
+#settings-panel #live-card .live-voice-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#settings-panel #live-card .live-voice-row span {
+  font-size: var(--fs-i4);
+  color: var(--sb-muted);
+}
+#settings-panel #live-card .live-voice-row select {
+  flex: 1;
+  max-width: 260px;
+  margin: 0;
+}
+#settings-panel #live-card details {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--sb-line);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.015);
+}
+#settings-panel #live-card details[open] {
+  padding-bottom: 12px;
+}
+#settings-panel #live-card summary {
+  cursor: pointer;
+  font-size: var(--fs-i4);
+  color: var(--sb-muted);
+}
+#settings-panel #live-card details input[type='password'] {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 6px 0 8px;
+}
+#settings-panel #live-card details label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+/* ── Settings over the large island: no grey haze below it ─────────────────────── */
+/* The dialog's drop shadow (0 18px 50px) spilled past the island's bottom edge onto the
+   transparent window and showed as a grey shadow on the desktop. */
+#settings-panel,
+#settings-panel[open],
+#sessions-panel,
+#sessions-panel[open] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+/* ── from 9-special.css ── */
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-close:hover {
+  background: #c42b1c;
+  color: #fff;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+body.workspace .ws-pet-slot #slime {
+  width: 160px !important;
+  height: 160px !important;
+  margin: -14px 0 0 -5px !important;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+body.workspace .ws-chat-body #composer,
+body.workspace .ws-chat-body #requests,
+body.workspace .ws-chat-body #composer {
+  margin-bottom: 8px !important;
+}
+/* One line: everything on the same centre line. Longer text grows upwards and the buttons stay
+   on the last line (like Claude and Codex). */
+/* (a workspace rule, kept in this file for the cascade) */
+body.workspace .ws-chat-body #composer-bar {
+  display: flex !important;
+  align-items: flex-end !important;
+  gap: 6px !important;
+  min-height: 0 !important;
+  border-radius: var(--r-xl) !important;
+  padding: 11px 12px 11px 12px !important;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+body.workspace .ws-chat-body #composer-bar > * {
+  align-self: flex-end !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+body.workspace .ws-chat-body #composer-plus,
+body.workspace .ws-chat-body #voice-mic,
+body.workspace .ws-chat-body #voice-call,
+body.workspace .ws-chat-body #stop,
+body.workspace .ws-chat-body #send {
+  display: inline-grid !important;
+  place-items: center !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+body.workspace .ws-chat-body #send {
+  border-radius: 50% !important;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+body.workspace .ws-chat-body #prompt {
+  box-sizing: border-box !important;
+  min-height: 42px !important;
+  padding: 10px 6px !important;
+  font-size: var(--fs-a4) !important;
+  line-height: 22px !important;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+body.workspace #feed .message {
+  font-size: var(--fs-a4);
+  line-height: 1.6;
+}
+/* narrower windows */
+/* ── Slime studio: pictures of the accessories instead of emoji ───────────────── */
+/* v1.0.0: the picture tops a square tile (45 × 34) */
+#settings-panel .studio-icon.picture {
+  display: inline-grid;
+  place-items: center;
+  width: 45px;
+  height: 34px;
+  position: relative;
+}
+#settings-panel .studio-icon.picture img {
+  width: 45px;
+  height: 34px;
+  object-fit: contain;
+  /* a soft light edge so dark glasses and the eye patch show on the dark buttons */
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.55)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.18));
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-panel-actions .ws-icon {
+  width: 32px;
+  height: 32px;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-panel-actions .ws-icon svg {
+  width: 17px;
+  height: 17px;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-modal button.ws-primary,
+#workspace button.ws-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0 !important;
+  background: var(--ws-accent) !important;
+  color: var(--ws-accent-ink) !important;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-modal button.ws-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--danger);
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-seg button.on {
+  background: var(--ws-accent) !important;
+  color: var(--ws-accent-ink) !important;
+}
+/* v0.7.2: Ayarlar → Eklentiler → WhatsApp */
+.wa-card .wa-row span { opacity: .7; font-variant-numeric: tabular-nums; }
+.wa-card .wa-remove { width: 26px; height: 26px; padding: 0; border-radius: var(--r-md); }
+.wa-card .toggle-row { display: flex; gap: 8px; align-items: center; font-size: var(--fs-i4); }
+
+/* ── from 10-noir.css ── */
+#settings-panel,
+#sessions-panel,
+#setup-panel.city-picker {
+  background:
+    radial-gradient(90% 60% at 0% 0%, var(--cream-04), transparent 60%),
+    linear-gradient(180deg, rgba(11, 10, 9, 0.98), rgba(3, 3, 3, 0.98));
+}
+
+/* ── from 12-v077.css ── */
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-icon.spinning {
+  color: var(--ws-accent);
+  pointer-events: none;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-icon.on,
+#workspace .ws-edit-home.on {
+  color: var(--ws-accent);
+  background: var(--cream-12);
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-home-editbar button.ws-primary {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: var(--r-md);
+  font-weight: var(--fw-strong);
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-card-chrome .ws-card-x {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-md);
+  color: var(--danger);
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-home-empty button.ws-primary {
+  height: 42px;
+  margin-top: 8px;
+  padding: 0 18px;
+  border-radius: var(--r-md);
+  font-weight: var(--fw-strong);
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-modal .ws-seg button {
+  height: 32px !important;
+  padding: 0 14px !important;
+  border: 0 !important;
+  border-radius: var(--r-md) !important;
+  background: transparent !important;
+  color: var(--ws-muted) !important;
+  font-size: var(--fs-a2);
+  font-weight: var(--fw-strong);
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-modal button.ws-card-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 26px;
+  align-items: center;
+  gap: 12px;
+  height: auto !important;
+  min-height: 78px;
+  padding: 12px 12px 12px 12px !important;
+  border: 1px solid var(--ws-line) !important;
+  border-radius: var(--r-lg) !important;
+  background: var(--ws-card-2) !important;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-now-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ws-text);
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-now-btn.danger {
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+  color: var(--danger-soft);
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-now-files .ws-link,
+#workspace .ws-now-wait .ws-link {
+  width: auto;
+  margin: 0 0 0 4px;
+  padding: 0 !important;
+  border: 0 !important;
+  color: var(--ws-accent);
+  font-size: var(--fs-a2);
+  font-weight: var(--fw-strong);
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-now-steer button.ws-primary {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--r-md);
+  font-weight: var(--fw-strong);
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-q-form button.ws-primary {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: var(--r-md);
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-q-actions .ws-icon svg {
+  width: 15px;
+  height: 15px;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-modal button.ws-review-item {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  height: auto !important;
+  padding: 9px 10px !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--r-md) !important;
+  background: transparent !important;
+  text-align: left;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+#workspace .ws-modal button.ws-review-undo {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px !important;
+  padding: 0 14px !important;
+  border-radius: var(--r-md) !important;
+}
+
+/* ── from 13-modules.css ── */
+#settings-panel .settings-page > .modules-list {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* ── from 14-v080.css ── */
+/* v0.8.0: Ayarlar → Genel → Güncellemeler */
+#settings-panel .update-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+/* v1.0.0: no frame of its own inside the section: a head line, the notes as a list, the buttons */
+#settings-panel .update-card {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+#settings-panel .update-card[hidden] { display: none; }
+#settings-panel .update-head { margin: 0; }
+/* v1.0.0 (T34): date and size move to the next line together instead of leaving "MB" alone there */
+#settings-panel .update-meta {
+  color: var(--sb-muted);
+  display: inline-block;
+}
+#settings-panel .update-note { margin: 0; }
+#settings-panel .update-notes {
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-i4);
+  line-height: 1.5;
+}
+#settings-panel .update-progress { width: 100%; height: 8px; accent-color: var(--cream-strong); }
+#settings-panel .update-progress[hidden] { display: none; }
+#settings-panel .update-error { color: var(--danger); }
+
+/* ── from 17-v088.css ── */
+/* v0.8.8: Ayarlar → Eklentiler → WhatsApp */
+.plugin-card.wa-card {
+  --wa: #25d366;
+}
+.wa-card .wa-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.wa-card .wa-card-head h3 {
+  margin: 0 !important;
+}
+.wa-card .wa-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-pill);
+  color: #9a9aa6;
+  font-size: var(--fs-i2);
+  white-space: nowrap;
+}
+.wa-card .wa-pill i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6b6b75;
+}
+.wa-card .wa-pill.on {
+  color: var(--ok);
+}
+.wa-card .wa-pill.on i {
+  background: var(--wa);
+}
+.wa-card .wa-pill.wait i {
+  background: var(--cream);
+  animation: wa-pulse 1.2s ease-in-out infinite;
+}
+@keyframes wa-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+.wa-card .wa-live {
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.02);
+}
+.wa-card .wa-live-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-i4);
+}
+.wa-card .wa-tag {
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: var(--cream-12);
+  color: var(--cream);
+  font-size: var(--fs-i1);
+}
+.wa-card .wa-live > .hint {
+  margin: 6px 0 10px;
+}
+.wa-card .wa-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.wa-card .wa-note {
+  margin: 8px 0 0 !important;
+  font-size: var(--fs-i2) !important;
+}
+.wa-card .wa-wait {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-i3);
+  color: #c9c9d1;
+}
+.wa-card .wa-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(37, 211, 102, 0.25);
+  border-top-color: var(--wa);
+  border-radius: 50%;
+  animation: wa-turn 0.8s linear infinite;
+}
+@keyframes wa-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.wa-card .wa-qr-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.wa-card .wa-qr {
+  width: 176px;
+  height: 176px;
+  padding: 10px;
+  box-sizing: border-box;
+  border-radius: var(--r-lg);
+  background: #fff;
+  image-rendering: pixelated;
+}
+.wa-card .wa-qr-wait {
+  display: grid;
+  place-items: center;
+}
+.wa-card .wa-steps {
+  flex: 1;
+  min-width: 180px;
+  margin: 0;
+  padding-left: 18px;
+  color: #c9c9d1;
+  font-size: var(--fs-i3);
+  line-height: 1.8;
+}
+.wa-card .wa-error {
+  margin: 0 0 10px;
+  color: var(--danger);
+  font-size: var(--fs-i3);
+}
+.wa-card .wa-linked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: var(--fs-i4);
+}
+.wa-card .wa-check {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--wa);
+  color: #fff;
+  font-size: var(--fs-i3);
+}
+.wa-card .wa-me {
+  color: #9a9aa6;
+  font-variant-numeric: tabular-nums;
+}
+.wa-card .wa-toggle {
+  margin: 4px 0 10px;
+}
+.wa-card .wa-replies {
+  margin: 0 0 12px;
+}
+.wa-card .wa-replies summary {
+  cursor: pointer;
+  color: #d9d6d2;
+  font-size: var(--fs-i3);
+}
+.wa-card .wa-replies-text {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 6px 0 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--r-md);
+  background: #0c0c0f;
+  color: #ddd;
+  font: inherit;
+  font-size: var(--fs-i3);
+  line-height: 1.6;
+  resize: vertical;
+}
+.wa-card .wa-confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-i3);
+}
+/* the saved contacts, folded behind one row */
+.wa-card .wa-people {
+  margin-top: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.wa-card .wa-people-toggle {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px !important;
+  padding: 0 14px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #e6e3df !important;
+  font-size: var(--fs-i4) !important;
+  text-align: left;
+}
+.wa-card .wa-people-toggle:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+.wa-card .wa-people-label {
+  flex: 1;
+}
+.wa-card .wa-count {
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.07);
+  color: #b9b9c3;
+  font-size: var(--fs-i2);
+  text-align: center;
+}
+.wa-card .wa-chevron {
+  color: #8f8d8a;
+  font-size: var(--fs-i5);
+  transition: transform 0.15s;
+}
+.wa-card.wa-people-open .wa-chevron {
+  transform: rotate(90deg);
+}
+.wa-card .wa-people-body {
+  padding: 0 14px 12px;
+}
+.wa-card .wa-list {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+.wa-card .wa-row {
+  display: grid !important;
+  grid-template-columns: 28px minmax(0, 1fr) auto 28px !important;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 6px 6px 8px !important;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.04);
+}
+.wa-card .wa-initial {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(37, 211, 102, 0.14);
+  color: var(--ok);
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+}
+.wa-card .wa-person {
+  overflow: hidden;
+  font-size: var(--fs-i4);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.wa-card .wa-phone {
+  color: #9a9aa6;
+  font-size: var(--fs-i3);
+  font-variant-numeric: tabular-nums;
+}
+.wa-card button.wa-remove {
+  display: grid !important;
+  place-items: center;
+  width: 28px !important;
+  min-width: 0 !important;
+  height: 28px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: var(--r-sm) !important;
+  background: transparent !important;
+  color: #8f8d8a !important;
+  box-shadow: none !important;
+}
+.wa-card button.wa-remove:hover {
+  background: color-mix(in srgb, var(--danger) 12%, transparent) !important;
+  color: var(--danger) !important;
+}
+.wa-card button.wa-remove svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.wa-card .wa-add {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto !important;
+  gap: 8px;
+  margin: 0 0 10px !important;
+}
+.wa-card .wa-add input {
+  min-width: 0;
+}
+@media (max-width: 520px) {
+  .wa-card .wa-add {
+    grid-template-columns: 1fr !important;
+  }
+
+}
+
+/* ── from 19-v0811.css ── */
+/* ==========================================================================
+   19 · v0.8.11 — release notes as Markdown, smaller island, fixes
+   ========================================================================== */
+#settings-panel .update-notes.markdown {
+  white-space: normal;
+  max-height: 260px;
+}
+#settings-panel .update-notes.markdown > :first-child {
+  margin-top: 0;
+}
+#settings-panel .update-notes.markdown > :last-child {
+  margin-bottom: 0;
+}
+/* v1.0.0: the notes are a plain list under the head line: their headings are small labels */
+#settings-panel .update-notes.markdown h1,
+#settings-panel .update-notes.markdown h2,
+#settings-panel .update-notes.markdown h3 {
+  margin: 10px 0 4px;
+  font-size: var(--fs-i4);
+  line-height: 1.3;
+}
+#settings-panel .update-notes.markdown p {
+  margin: 0 0 8px;
+}
+#settings-panel .update-notes.markdown ul,
+#settings-panel .update-notes.markdown ol {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+#settings-panel .update-notes.markdown li + li {
+  margin-top: 4px;
+}
+#settings-panel .update-notes.markdown strong {
+  color: #f3eee7;
+}
+#settings-panel .update-notes.markdown code {
+  padding: 1px 5px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: var(--fs-i3);
+}
+#settings-panel .update-notes.markdown a {
+  color: var(--accent);
+}
+
+/* ── from 26-v096.css ── */
+/* (a chat rule, kept in this file for the cascade) */
+#effort-button:hover:not(:disabled) {
+  color: #e6e7eb;
+}
+/* (a workspace rule, kept in this file for the cascade) */
+body.workspace .ws-chat-body #effort-button {
+  height: 36px;
+  padding: 6px 24px 6px 6px !important;
+  font-size: var(--fs-a1) !important;
+  line-height: 1.2;
+}
+
+/* ── from 27-v098.css ── */
+/* narrower windows: a slimmer left column, then none (the sidebar button brings it back) */
+/* ── Settings → AI Modelleri → EVREN: the same layout as the other accounts ────── */
+#settings-panel .evren-card details {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--sb-line);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.015);
+}
+#settings-panel .evren-card details[open] {
+  padding-bottom: 12px;
+}
+#settings-panel .evren-card summary {
+  cursor: pointer;
+  font-size: var(--fs-i4);
+  color: var(--sb-muted);
+}
+#settings-panel .evren-card details input[type='password'] {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 6px 0 8px;
+}
+/* the EVREN step of "Charles ile kur": key box and buttons under the text */
+/* (a dialogs rule, kept in this file for the cascade) */
+#plugin-guide-bubble input[type='password'] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── from 28-v099.css ── */
+/* v0.9.9 — default model field, the app window at its smallest, reading without eyes. */
+/* Ayarlar → AI Modelleri → Varsayılan model: a long model name made the field as wide as the
+   name, so it ran out of its card and the arrow was cut off. */
+#settings-panel .setting-section > select {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+/* ── from 35-v0918.css ── */
+/* (a base rule, kept in this file for the cascade) */
+.ptt-row input[readonly] {
+  width: 150px;
+}
+
+/* ── from 38-v0922.css ── */
+/* cards */
+#settings-panel .settings-page .settings-card,
+#settings-panel .settings-page .setting-section,
+#settings-panel .ptt-card {
+  border-color: var(--sb-line);
+  background: var(--ch-card);
+  box-shadow: none;
+}
+#settings-panel .slime-preview,
+#settings-panel details.evren-key,
+#settings-panel details.evren-terms,
+#settings-panel #live-key-settings,
+#settings-panel .studio-tabs,
+#settings-panel .wa-live {
+  background: var(--ch-rail);
+}
+#settings-panel input:not([type='checkbox']):not([type='range']):not([type='color']):hover,
+#settings-panel select:hover,
+#settings-panel textarea:hover {
+  background: var(--ch-field-hover);
+}
+#settings-panel input::placeholder,
+#settings-panel textarea::placeholder {
+  color: var(--sb-muted);
+}
+#settings-panel input:disabled,
+#settings-panel select:disabled,
+#settings-panel textarea:disabled {
+  color: var(--sb-muted);
+  opacity: 0.6;
+}
+#settings-panel input[readonly] {
+  color: var(--sb-text);
+}
+#settings-panel option,
+#settings-panel optgroup {
+  background: var(--ch-field);
+  color: var(--sb-text);
+}
+#settings-panel input[type='checkbox']:not(:checked),
+#sessions-panel .folder-auto input[type='checkbox']:not(:checked) {
+  background: var(--ch-field-hover);
+  box-shadow: inset 0 0 0 1px var(--sb-line-strong);
+}
+#settings-panel input[type='range'] {
+  background: transparent;
+  accent-color: var(--sb-accent);
+}
+#settings-panel input[type='color'],
+#settings-panel #look-accent,
+#settings-panel #color-badge,
+#settings-panel #color-send,
+#settings-panel #color-user,
+#settings-panel #color-agent {
+  background: var(--ch-field);
+}
+/* buttons keep their own see-through fill, so colour swatches and cream buttons stay as they are */
+#settings-panel .settings-page button:disabled {
+  color: var(--sb-muted);
+  opacity: 0.55;
+}
+#settings-panel button:focus-visible,
+#settings-panel input:focus-visible,
+#settings-panel select:focus-visible,
+#settings-panel textarea:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 1px;
+}
+/* (a chat rule, kept in this file for the cascade) */
+#composer .attachment-remove:hover {
+  background: var(--sb-danger);
+  color: #1b0c09;
+}
+
+/* ── from 39-v0923.css ── */
+@media (max-height: 640px) {
+  /* (a workspace rule, kept in this file for the cascade) */
+  body.workspace .ws-chat-body #drop-actions {
+    display: none;
+  }
+
+}
+
+/* ── from 41-v0925.css ── */
+/* Keyboard users see where they are on Charles himself too (CH-532: the only button without a
+   visible focus ring) */
+/* (a island rule, kept in this file for the cascade) */
+body.keyboard-nav #pet:focus-visible {
+  outline: 2px solid var(--accent, var(--cream));
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+
+/* ── from 42-v0926.css ── */
+.shortcut-status[hidden] {
+  display: none;
+}
+.shortcut-status[data-kind='error'] {
+  color: var(--sb-danger, var(--danger));
+}
+.shortcut-status[data-kind='ok'] {
+  color: var(--sb-ok, var(--ok));
+}
+
+/* ── from 43-v0927.css ── */
+/* v0.9.27 RC */
+/* --- Settings → AI Modelleri → EVREN: EVREN's own terms, only after EVREN asked for them -------- */
+#settings-panel .evren-card .evren-gate {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--sb-line);
+  border-radius: var(--r-md);
+  background: var(--ch-rail);
+}
+#settings-panel .evren-card .evren-gate[hidden],
+#settings-panel .evren-card .evren-gate-text[hidden] {
+  display: none;
+}
+#settings-panel .evren-card .evren-gate-text {
+  max-height: 220px;
+  margin: 0;
+  padding-right: 6px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+/* --- Settings → Shortcuts: every key of a combination is on screen ----------------------------- */
+/* The keys were a read-only text field that cut "Ctrl + Alt + D" at its edge. They are labels now
+   and wrap to a second line in a narrow window; nothing is ever clipped. */
+#settings-panel .shortcut-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+}
+#settings-panel .shortcut-row > .shortcut-title {
+  grid-column: 1 / 2;
+  grid-row: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.shortcut-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 26px;
+}
+.shortcut-keys kbd {
+  flex: none;
+  min-width: 22px;
+  padding: 3px 7px;
+  border: 1px solid var(--sb-line-strong, #ffffff26);
+  border-bottom-width: 2px;
+  border-radius: var(--r-sm);
+  background: var(--ch-field, #151517);
+  color: var(--sb-text, #f2efe9);
+  font: 600 11px/1.3 'Cascadia Mono', Consolas, monospace;
+  text-align: center;
+  white-space: nowrap;
+}
+.shortcut-keys .shortcut-plus,
+.shortcut-keys .shortcut-none {
+  flex: none;
+  font-size: var(--fs-i2);
+  color: var(--sb-muted, #a9a39a);
+}
+.shortcut-keys.invalid kbd,
+#settings-panel .shortcut-conflict .shortcut-keys kbd {
+  border-color: color-mix(in srgb, var(--danger) 60%, transparent);
+}
+.ptt-row .shortcut-keys {
+  flex: 0 1 auto;
+}
+/* The answer line. Empty, it is still in the page for screen readers but takes no room. */
+.shortcut-status.is-empty,
+.ptt-status.is-empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+/* "Saved" sits at the end of the title line, so the rows under it do not move when it comes and
+   goes. An error or the recording hint is longer and stays on a line of its own. */
+#settings-panel .shortcut-row > .shortcut-status[data-kind='ok'] {
+  grid-column: 2 / -1;
+  grid-row: 1;
+  justify-self: end;
+  margin: 0;
+  text-align: right;
+  animation: shortcut-ok 0.18s ease-out;
+}
+@keyframes shortcut-ok {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #settings-panel .shortcut-row > .shortcut-status[data-kind='ok'] {
+    animation: none;
+  }
+
+}
+.shortcut-status-page.is-empty {
+  position: static;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  visibility: hidden;
+}
+
+/* ── from 45-v100-settings.css ── */
+/* v1.0.0: plainer settings pages, WhatsApp status, GitHub draft removed. */
+/* ── Connected state (connected-state.ts): a check icon before "<Ad> bağlı" ──────────── */
+#settings-panel svg.state-icon {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  margin-right: 5px;
+  vertical-align: -2px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#settings-panel .account-chip svg.state-icon {
+  width: 12px;
+  height: 12px;
+  margin-right: 5px;
+}
+#settings-panel .account-chip.on {
+  display: inline-flex;
+  align-items: center;
+}
+/* an empty status line takes no room */
+#settings-panel .plugin-card > p.hint[role='status']:empty {
+  display: none;
+}
+/* ── Erişim: one short line per mode, its name in bold ──────────────────────────────── */
+#settings-panel .access-mode-note {
+  margin: 8px 0 0 !important;
+}
+#settings-panel .access-mode-note b {
+  display: block;
+  margin-bottom: 1px;
+  color: var(--sb-text, #e9e6e2);
+  font-weight: var(--fw-strong);
+}
+/* ── WhatsApp: no card inside the card; one state line ──────────────────────────────── */
+#settings-panel .wa-card .wa-live-plain > .hint:first-child {
+  margin: 0 0 10px;
+}
+#settings-panel .wa-card .wa-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px !important;
+  color: var(--sb-muted, #9a9aa6);
+  font-size: var(--fs-i4);
+  line-height: 1.45;
+}
+#settings-panel .wa-card .wa-state .wa-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: #6b6b75;
+}
+#settings-panel .wa-card .wa-state[data-state='on'] {
+  color: var(--sb-text, #e9e6e2);
+}
+#settings-panel .wa-card .wa-state[data-state='on'] .wa-dot {
+  background: var(--wa, #25d366);
+}
+#settings-panel .wa-card .wa-state[data-state='wait'] .wa-dot {
+  background: var(--cream);
+  animation: wa-pulse 1.2s ease-in-out infinite;
+}
+#settings-panel .wa-card .wa-state[data-state='error'] {
+  color: var(--danger);
+}
+#settings-panel .wa-card .wa-state[data-state='error'] .wa-dot {
+  background: var(--danger);
+}
+#settings-panel .wa-card .wa-state-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+#settings-panel .wa-card .wa-state .wa-me {
+  color: var(--sb-muted, #9a9aa6);
+  font-variant-numeric: tabular-nums;
+}
+#settings-panel .wa-card .wa-status:empty {
+  display: none;
+}
+#settings-panel .wa-card .wa-people-icon,
+#settings-panel .wa-card .wa-chevron {
+  display: inline-grid;
+  place-items: center;
+  color: #8f8d8a;
+}
+#settings-panel .wa-card .wa-people-icon svg,
+#settings-panel .wa-card .wa-chevron svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* ── Slime stüdyosu: drawn marks instead of ○ and ✓ glyphs ─────────────────────────── */
+#settings-panel .studio-icon.none {
+  display: inline-block;
+  align-self: center;
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.55;
+}
+/* the saved choice: a small check in the tile's top right corner */
+#settings-panel .settings-body button.studio-option.saved::after {
+  content: '' !important;
+  position: absolute;
+  top: 7px;
+  right: 9px;
+  display: inline-block;
+  width: 4px;
+  height: 8px;
+  margin-left: 0;
+  border-right: 1.5px solid var(--sb-ok, var(--ok));
+  border-bottom: 1.5px solid var(--sb-ok, var(--ok));
+  transform: translateY(-1px) rotate(45deg);
+}
+
+/* ── from 47-v100-summary.css ── */
+:is(#settings-panel, #shelf) .wsum[aria-busy='true'] .wsum-body {
+  opacity: 0.72;
+  transition: opacity 0.2s;
+}
+/* ── header ── */
+:is(#settings-panel, #shelf) .wsum .wsum-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-head-text {
+  min-width: 0;
+  flex: 1 1 140px;
+}
+:is(#settings-panel, #shelf) .wsum h3.wsum-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin: 0;
+  font-size: var(--fs-i5);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--wsum-ink);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-title-range {
+  font-weight: var(--fw-regular);
+  color: var(--wsum-muted);
+  font-variant-numeric: tabular-nums;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-scope {
+  margin: 3px 0 0;
+  font-size: var(--fs-i2);
+  color: var(--wsum-faint);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-head-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* v1.0.0 (T34): with the larger fine print the German period switch and refresh did not fit the
+     Small island's settings: they may wrap instead of running out of the card */
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-period {
+  position: static;
+  display: inline-flex;
+  gap: 2px;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid var(--wsum-line);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.03);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-period button,
+:is(#settings-panel, #shelf) .wsum .wsum-refresh,
+:is(#settings-panel, #shelf) .wsum .wsum-retry {
+  height: 26px;
+  min-height: 0;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--wsum-muted);
+  font: inherit;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+  cursor: pointer;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-period button[aria-pressed='true'] {
+  background: var(--cream-12);
+  color: var(--wsum-accent);
+  border: 0;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-refresh,
+:is(#settings-panel, #shelf) .wsum .wsum-retry {
+  border: 1px solid var(--wsum-line);
+  border-radius: var(--r-md);
+  background: transparent;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-period button:hover:not([aria-pressed='true']),
+:is(#settings-panel, #shelf) .wsum .wsum-refresh:hover,
+:is(#settings-panel, #shelf) .wsum .wsum-retry:hover {
+  color: var(--wsum-ink);
+  background: rgba(255, 255, 255, 0.05);
+}
+/* ── states ── */
+:is(#settings-panel, #shelf) .wsum .wsum-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  color: var(--danger-soft);
+  font-size: var(--fs-i3);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-notify[hidden],
+:is(#settings-panel, #shelf) .wsum .wsum-status[hidden] {
+  display: none;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-status .wsum-retry {
+  margin-left: auto;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-empty,
+:is(#settings-panel, #shelf) .wsum .wsum-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 18px 0 8px;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-empty strong,
+:is(#settings-panel, #shelf) .wsum .wsum-error strong {
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-empty p,
+:is(#settings-panel, #shelf) .wsum .wsum-error p,
+:is(#settings-panel, #shelf) .wsum .wsum-quiet,
+:is(#settings-panel, #shelf) .wsum .wsum-note {
+  margin: 0;
+  font-size: var(--fs-i3);
+  line-height: 1.5;
+  color: var(--wsum-muted);
+  overflow-wrap: anywhere;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-error .wsum-retry {
+  margin-top: 6px;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-note {
+  padding: 0 0 10px;
+  color: var(--sb-warn, var(--warn));
+}
+:is(#settings-panel, #shelf) .wsum .wsum-skeleton {
+  display: grid;
+  gap: 8px;
+  padding: 10px 0;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-skeleton i {
+  display: block;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.04);
+}
+/* ── sections ── */
+:is(#settings-panel, #shelf) .wsum .wsum-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 14px 0;
+  border: 0;
+  border-top: 1px solid var(--wsum-line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-sec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-sec-head h4 {
+  margin: 0;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  color: var(--wsum-ink);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-sec-head small {
+  font-size: var(--fs-i2);
+  color: var(--wsum-faint);
+  text-align: right;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px 14px;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-metric-label {
+  font-size: var(--fs-i2);
+  color: var(--wsum-muted);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-metric-value {
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  color: #cfcfd7;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-metric.main .wsum-metric-value {
+  font-size: 19px;
+  color: var(--wsum-ink);
+  letter-spacing: -0.2px;
+}
+:is(#settings-panel, #shelf) .wsum .unknown {
+  color: var(--wsum-faint);
+}
+/* ── daily chart: axis on the left, seven columns ── */
+:is(#settings-panel, #shelf) .wsum .wsum-chart {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 84px;
+  margin-top: 14px;
+  font-size: var(--fs-i1);
+  line-height: 1;
+  color: var(--wsum-faint);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-axis span:nth-child(1) {
+  transform: translateY(-50%);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-axis span:nth-child(3) {
+  transform: translateY(50%);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-plot {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  min-width: 0;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-track {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  height: 98px;
+  padding-top: 14px;
+  box-sizing: border-box;
+  /* top, middle and base lines of the axis */
+  background:
+    linear-gradient(var(--wsum-line), var(--wsum-line)) 0 14px / 100% 1px no-repeat,
+    linear-gradient(var(--wsum-line), var(--wsum-line)) 0 56px / 100% 1px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.16)) 0 100% / 100% 1px no-repeat;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-val {
+  font-size: var(--fs-i1);
+  line-height: 12px;
+  color: var(--wsum-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-val.none {
+  color: var(--wsum-faint);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-bar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: min(22px, 70%);
+  max-height: 84px;
+  margin-top: 2px;
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  background: var(--wsum-accent-dim);
+  overflow: hidden;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-plot:not(:has(.wsum-bar-part)) .wsum-bar {
+  background: var(--wsum-accent);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-bar.some {
+  min-height: 2px;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-bar-part {
+  width: 100%;
+  background: var(--wsum-accent);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-col[data-state='none'] .wsum-track::after {
+  content: '';
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  bottom: 0;
+  border-bottom: 1px dashed var(--wsum-faint);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-day {
+  margin-top: 4px;
+  font-size: var(--fs-i1);
+  color: var(--wsum-muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-col[data-state='future'] .wsum-day {
+  color: var(--wsum-faint);
+  opacity: 0.6;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-col.today .wsum-day {
+  color: var(--wsum-accent);
+  font-weight: var(--fw-strong);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: var(--fs-i2);
+  color: var(--wsum-muted);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-key i {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-sm);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-key.active i {
+  background: var(--wsum-accent);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-key.idle i {
+  background: var(--wsum-accent-dim);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-key.none i {
+  height: 0;
+  width: 10px;
+  border-radius: 0;
+  border-bottom: 1px dashed var(--wsum-muted);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-key.unit {
+  margin-left: auto;
+  color: var(--wsum-faint);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-key.unit i {
+  display: none;
+}
+/* ── rows: models and apps ── */
+:is(#settings-panel, #shelf) .wsum .wsum-models {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+:is(#settings-panel, #shelf) .wsum h5 {
+  margin: 4px 0 2px;
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-strong);
+  color: var(--wsum-muted);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(32px, 20%) 88px;
+  align-items: center;
+  gap: 10px;
+  min-height: 24px;
+  padding: 3px 0;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-row-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #d6d6de;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-row.other .wsum-row-name {
+  color: var(--wsum-muted);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-row-bar {
+  height: 4px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-row-bar i {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-sm);
+  background: var(--wsum-accent-dim);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-row-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--wsum-ink);
+  text-align: right;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-row-value small {
+  font-size: var(--fs-i1);
+  color: var(--wsum-faint);
+}
+/* ── secondary facts: label left, value right, small ── */
+:is(#settings-panel, #shelf) .wsum .wsum-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0 18px;
+  margin: 2px 0 0;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-fact {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: var(--fs-i2);
+  min-width: 0;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-fact dd {
+  margin: 0;
+  color: #d6d6de;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* ── footer ── */
+:is(#settings-panel, #shelf) .wsum .wsum-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--wsum-line);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-notify {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--fs-i3);
+  color: #cfcfd7;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-how {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-how summary {
+  font-size: var(--fs-i3);
+  color: var(--wsum-muted);
+  cursor: pointer;
+  list-style: none;
+  text-decoration: underline dotted rgba(255, 255, 255, 0.25);
+  text-underline-offset: 3px;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-how summary::-webkit-details-marker {
+  display: none;
+}
+:is(#settings-panel, #shelf) .wsum .wsum-how[open] summary {
+  color: var(--wsum-ink);
+}
+:is(#settings-panel, #shelf) .wsum .wsum-how-list {
+  margin: 6px 0 0;
+  padding: 0 0 0 16px;
+  display: grid;
+  gap: 4px;
+  font-size: var(--fs-i2);
+  line-height: 1.5;
+  color: var(--wsum-muted);
+}
+/* the island's Araçlar → Kullanım özeti: the title is in the head bar already */
+#shelf.shelf13 .h13-weekly .wsum .wsum-head {
+  padding-top: 2px;
+}
+#shelf.shelf13 .h13-weekly .wsum h3.wsum-title {
+  display: flex;
+  font-size: var(--fs-i4);
+}
+
+/* ── from 48-v100-picker.css ── */
+/* v1.0.0: the default model list (src/settings/default-model.ts). The field looks like the other
+   settings fields; the open list uses the composer picker's surface, rows and selected colour. */
+#settings-panel .dm-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+#settings-panel .dm-trigger {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 7px 10px 7px 12px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-md);
+  background: #0d0d10;
+  color: var(--sb-text);
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s,
+    box-shadow 0.15s;
+}
+#settings-panel .dm-trigger:hover:not([aria-disabled='true']) {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: #121216;
+}
+#settings-panel .dm-trigger:focus-visible,
+#settings-panel .dm-trigger.dm-open {
+  border-color: var(--cream-45);
+  box-shadow: 0 0 0 3px var(--cream-12);
+}
+#settings-panel .dm-trigger[aria-disabled='true'] {
+  cursor: default;
+  color: var(--sb-muted);
+}
+#settings-panel .dm-trigger.dm-missing {
+  border-color: color-mix(in srgb, var(--warn) 42%, transparent);
+}
+#settings-panel .dm-value {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+/* a long model name wraps instead of being cut: the whole name is always readable */
+#settings-panel .dm-trigger .dm-name {
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+#settings-panel .dm-trigger.dm-loading .dm-value {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+#settings-panel .dm-trigger.dm-loading .dm-name {
+  font-weight: var(--fw-regular);
+}
+#settings-panel .dm-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  color: var(--sb-muted);
+  font-size: var(--fs-i3);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+#settings-panel .dm-dot {
+  opacity: 0.6;
+}
+#settings-panel .dm-badge {
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--warn) 13%, transparent);
+  color: var(--sb-warn);
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-strong);
+}
+#settings-panel .dm-chevron {
+  display: inline-flex;
+  flex: none;
+  color: var(--sb-muted);
+  transition: transform 0.15s var(--sb-ease);
+}
+#settings-panel .dm-trigger.dm-open .dm-chevron {
+  transform: rotate(180deg);
+  color: var(--sb-accent);
+}
+#settings-panel .dm-spinner {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  border-top-color: var(--sb-accent);
+  border-radius: 50%;
+  animation: dm-spin 0.8s linear infinite;
+}
+@keyframes dm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #settings-panel .dm-spinner {
+    animation-duration: 2.4s;
+  }
+
+}
+#settings-panel .dm-note {
+  margin: 0;
+  color: var(--sb-warn);
+  font-size: var(--fs-i3);
+  line-height: 1.4;
+}
+#settings-panel .dm-note[hidden] {
+  display: none;
+}
+/* The open list: a child of the dialog (the top layer), placed by place() in default-model.ts */
+#settings-panel .dm-popup {
+  position: fixed;
+  z-index: 40;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 4px;
+  border: 1px solid #ffffff1c;
+  border-radius: var(--r-lg);
+  background: #18181c;
+  box-shadow: 0 14px 36px #000a;
+  color: var(--sb-text);
+  font-size: var(--fs-i3);
+  animation: dm-in 0.12s ease-out;
+}
+#settings-panel .dm-popup[hidden] {
+  display: none;
+}
+@keyframes dm-in {
+  from {
+    opacity: 0;
+  }
+}
+#settings-panel .dm-search {
+  flex: none;
+  padding: 2px 2px 4px;
+}
+#settings-panel .dm-search[hidden] {
+  display: none;
+}
+#settings-panel .dm-search input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-md);
+  background: #0d0d10;
+  color: var(--sb-text);
+  font: inherit;
+  outline: none;
+}
+#settings-panel .dm-search input::placeholder {
+  color: #7d7d88;
+}
+#settings-panel .dm-search input:focus {
+  border-color: var(--cream-45);
+}
+#settings-panel .dm-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #ffffff26 transparent;
+}
+#settings-panel .dm-list[hidden] {
+  display: none;
+}
+#settings-panel .dm-group-label {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: block;
+  padding: 8px 10px 4px;
+  background: #18181c;
+  color: #8e8e9a;
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-strong);
+}
+#settings-panel .dm-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: var(--r-md);
+  color: #c6cbd4;
+  cursor: pointer;
+}
+#settings-panel .dm-option-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+#settings-panel .dm-option-name {
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+#settings-panel .dm-option-meta {
+  color: #85858f;
+  font-size: var(--fs-i2);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+#settings-panel .dm-check {
+  display: inline-flex;
+  flex: none;
+  width: 13px;
+  visibility: hidden;
+}
+#settings-panel .dm-option.dm-active {
+  background: #ffffff0f;
+  color: #e6e7eb;
+}
+body.keyboard-nav #settings-panel .dm-option.dm-active {
+  box-shadow: inset 0 0 0 1px var(--cream-45);
+}
+#settings-panel .dm-option[aria-selected='true'] {
+  background: var(--cream-08);
+  color: var(--accent);
+}
+#settings-panel .dm-option[aria-selected='true'].dm-active {
+  background: var(--cream-12);
+}
+#settings-panel .dm-option[aria-selected='true'] .dm-check {
+  visibility: visible;
+}
+#settings-panel .dm-option[aria-disabled='true'] {
+  cursor: default;
+  color: #8a8a94;
+}
+#settings-panel .dm-group-missing {
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--sb-line);
+}
+#settings-panel .dm-option-missing .dm-option-meta {
+  color: var(--sb-warn);
+}
+#settings-panel .dm-empty {
+  margin: 0;
+  padding: 10px 10px 8px;
+  color: var(--sb-muted);
+  font-size: var(--fs-i3);
+  line-height: 1.4;
+}
+#settings-panel .dm-empty[hidden] {
+  display: none;
+}
+
+/* ── from 52-v100-dchat.css ── */
+/* text fields whose focus rule removed the outline (6-acrylic.css) keep the ring for the keyboard */
+body.keyboard-nav #sessions-panel input:focus-visible,
+body.keyboard-nav #settings-panel input:focus-visible,
+body.keyboard-nav #shelf input:focus-visible,
+body.keyboard-nav #workspace input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── from 53-v100-dtour.css ── */
+/* v1.0.0: the welcome tour and Settings (design pass). */
+/* --- Account cards: the state is one plain line, not a button (src/settings/connected-state.ts) --- */
+#settings-panel .card-state .state-dot {
+  display: inline-block;
+  vertical-align: 1px;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--sb-ok, var(--ok));
+}
+#settings-panel .card-state .state-on {
+  color: var(--sb-text);
+  font-weight: var(--fw-strong);
+}
+#settings-panel .card-state .state-sep {
+  white-space: pre;
+}
+/* nothing to say: no empty line */
+#settings-panel .card-state:not(.connected):has(.state-text:empty) {
+  display: none;
+}

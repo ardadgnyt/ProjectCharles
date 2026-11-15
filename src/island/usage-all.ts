@@ -34,7 +34,7 @@ export function usageAll(api: any, onSummary: (text: string, low: boolean) => vo
   const pick = iconBtn('sliders', 'Gösterilecek yapay zekâlar', () => toggleMenu());
   pick.setAttribute('aria-haspopup', 'true');
   pick.setAttribute('aria-expanded', 'false');
-  const head = el('div', 'h13-sec-head', el('small', 'h13-sec-title', 'Kalan kullanım'), el('span', 'h13-sec-tools', pick, refresh));
+  const head = el('div', 'h13-sec-head', el('small', 'h13-sec-title', 'AI kullanımı'), el('span', 'h13-sec-tools', pick, refresh));
   const menu = el('div', 'h13-usage-menu');
   menu.hidden = true;
   menu.setAttribute('role', 'group');

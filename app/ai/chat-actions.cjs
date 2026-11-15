@@ -1,5 +1,6 @@
 const { normalize } = require('../system/desktop.cjs');
 // Only explicit local requests are handled here. Other messages go to the model.
+const MAX_REMEMBER = 300;
 function personalCommand(prompt, personal, now = Date.now()) {
   if (typeof prompt !== 'string' || prompt.length > 2500) return null;
   const s = normalize(prompt).replace(/[.!?]+$/, '');
@@ -9,8 +10,13 @@ function personalCommand(prompt, personal, now = Date.now()) {
     prompt.match(/^bunu (?:hatırla|aklında tut)\s*[:,–-]\s*(.+)$/is) ||
     prompt.match(/^\s*(.{3,1500}?)[\s.,!;]+bunu (?:hatırla|aklında tut|unutma)[.!]*\s*$/is);
   if (remember) {
-    personal.edit('memory-save', { text: remember[1].trim().replace(/[.,;!]+$/, '') });
-    return 'Hafızama kaydettim. Ayarlar → Hafıza bölümünden düzenleyebilir veya silebilirsin.';
+    const text = remember[1].trim().replace(/[.,;!]+$/, '');
+    // v1.0.0: one sentence the user typed, not a whole pasted text (a mail could carry orders
+    // into standing memory this way): more than one line or a long text is asked about instead
+    if (/[\r\n\u2028\u2029]/.test(text) || text.length > MAX_REMEMBER)
+      return 'Bu metnin tamamını hafızama kaydetmedim. Hangi cümleyi hatırlamamı istersin? Örneğin: “Bunu hatırla: …”';
+    personal.edit('memory-save', { text });
+    return 'Hafızama kaydettim. Ayarlar’daki Hafıza sayfasından düzenleyebilir veya silebilirsin.';
   }
   if (/^(?:hafizami|hatirladiklarini)(?: listele| goster)$/.test(s))
     return (

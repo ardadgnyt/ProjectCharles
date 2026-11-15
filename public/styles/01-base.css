@@ -1,0 +1,2021 @@
+/* 01-base · Base: the page, its elements and shared controls (buttons, inputs, scrollbars, focus), motion
+   settings, and rules that serve several areas at once.
+   Merged in v1.0.0 (T37) from the release files, every rule in its original order; the load order is
+   in RULES.md / DEVELOPMENT.md. Colours, radii and type come from 00-tokens.css. */
+
+/* ── from 1-base.css ── */
+:root {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #eee;
+}
+* {
+  box-sizing: border-box;
+}
+button,
+select,
+textarea {
+  font: inherit;
+}
+button:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+button:disabled,
+select:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+/* (a island rule, kept in this file for the cascade) */
+.island {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+/* (a island rule, kept in this file for the cascade) */
+.identity {
+  padding: 0;
+  background: none !important;
+  border: 0;
+  text-align: left;
+  flex: 1;
+  min-width: 0;
+}
+/* (a island rule, kept in this file for the cascade) */
+.window-actions {
+  display: flex;
+  gap: 4px;
+}
+/* (a island rule, kept in this file for the cascade) */
+.window-actions button {
+  font-size: 20px;
+  border: 0;
+  background: transparent;
+  padding: 4px 8px;
+  color: #96969c;
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  flex-shrink: 0;
+}
+.eyebrow {
+  font-weight: var(--fw-strong);
+}
+.tag {
+  font-size: var(--fs-i1);
+  border: 1px solid var(--line);
+  padding: 3px 8px;
+  border-radius: var(--r-xl);
+}
+.primary {
+  background: var(--accent);
+  color: var(--cream-ink);
+  border: 0;
+  font-weight: var(--fw-strong);
+}
+.folder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: #1b1c20;
+}
+.folder > span:first-child {
+  color: var(--accent);
+  font-size: var(--fs-i6);
+}
+#folder-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.folder > span:last-child {
+  font-size: var(--fs-i2);
+  color: var(--muted);
+}
+.hint {
+  font-size: var(--fs-i1);
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.text-button {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--muted);
+  font-size: var(--fs-i2);
+}
+h1 {
+  font-weight: var(--fw-strong);
+  color: #ededee;
+  font-size: var(--fs-i6);
+  letter-spacing: -0.6px;
+  margin: 8px 0;
+}
+/* (a chat rule, kept in this file for the cascade) */
+.message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.65;
+}
+/* (a chat rule, kept in this file for the cascade) */
+.message.error {
+  color: var(--danger);
+}
+/* (a chat rule, kept in this file for the cascade) */
+.activity {
+  margin: 6px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+  color: #b5b6bc;
+  font-size: var(--fs-i2);
+}
+#requests:empty {
+  display: none;
+}
+#requests {
+  max-height: 310px;
+  overflow: auto;
+  flex-shrink: 0;
+}
+.request {
+  border: 1px solid var(--cream-55);
+  background: #2a231d;
+  border-radius: var(--r-lg);
+  padding: 13px;
+  margin-bottom: 8px;
+}
+.request h2 {
+  font-size: var(--fs-i4);
+  color: var(--cream);
+  margin: 0 0 7px;
+}
+.request label {
+  display: block;
+  font-size: var(--fs-i3);
+  line-height: 1.5;
+  margin: 7px 0;
+}
+.request input {
+  width: 100%;
+  padding: 9px;
+  background: #17171b;
+  color: white;
+  border: 1px solid #777;
+  border-radius: var(--r-sm);
+}
+.request .options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 6px 0;
+}
+.request .options button {
+  font-size: var(--fs-i2);
+}
+.request .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+textarea {
+  width: 100%;
+  resize: vertical;
+  max-height: 120px;
+  min-height: 42px;
+  background: none;
+  border: 0;
+  outline: none;
+  color: #efeff0;
+  font-size: var(--fs-i3);
+  line-height: 1.5;
+}
+textarea::placeholder {
+  color: #777981;
+}
+#connection-light {
+  color: #939587;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+[hidden] {
+  display: none !important;
+}
+/* (a island rule, kept in this file for the cascade) */
+body.compact .island {
+  border-radius: 0 0 23px 23px;
+}
+#extra-settings {
+  font-size: var(--fs-i2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 8px;
+  flex-shrink: 0;
+}
+summary {
+  cursor: pointer;
+}
+.extra-scroll {
+  max-height: 235px;
+  overflow: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.extra-scroll input:not([type="checkbox"]):not([type="range"]) {
+  background: #23242a;
+  color: #eee;
+  border: 1px solid #555;
+  border-radius: var(--r-sm);
+  padding: 6px;
+  max-width: 100%;
+  margin: 5px 0;
+}
+#pref-seconds {
+  width: 60px;
+}
+#add-session,
+#close-session {
+  font-size: var(--fs-i1);
+}
+/* (a island rule, kept in this file for the cascade) */
+body.hidden-island .island {
+  border-radius: 0;
+  background: #1a1b1e;
+}
+#pref-close-seconds {
+  width: 60px;
+}
+#settings-toggle {
+  width: 32px;
+  height: 32px;
+  padding: 7px;
+  margin: 0 0 0 7px;
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  align-self: flex-start;
+  margin-top: 12px;
+}
+#settings-toggle:hover {
+  color: var(--accent);
+  background: #ffffff0c;
+}
+#settings-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+/* (a settings rule, kept in this file for the cascade) */
+.settings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+#settings-close {
+  background: transparent;
+  border: 0;
+  font-size: 24px;
+  padding: 0 7px;
+  color: var(--muted);
+}
+/* (a settings rule, kept in this file for the cascade) */
+.settings-body {
+  overflow: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+}
+/* (a settings rule, kept in this file for the cascade) */
+.settings-body > .hint {
+  display: block;
+  margin-top: 10px;
+}
+#sessions-toggle {
+  position: relative;
+}
+#sessions-toggle svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}
+#session-alert {
+  position: absolute;
+  color: var(--accent);
+  right: 0;
+  top: -5px;
+}
+#sessions-close {
+  background: transparent;
+  border: 0;
+  font-size: 24px;
+  padding: 0 7px;
+  color: var(--muted);
+}
+#voice-mic[aria-pressed="true"] {
+  background: #853c38;
+  color: #fff;
+}
+.voice-row button {
+  padding: 8px 12px;
+  font-size: var(--fs-i3);
+}
+/* Quiet rounded surfaces. */
+:root {
+  -webkit-font-smoothing: antialiased;
+}
+/* (a island rule, kept in this file for the cascade) */
+button,
+select {
+  border: 1px solid var(--line);
+  color: #eee;
+  padding: 9px 13px;
+  cursor: pointer;
+  border-radius: var(--r-md);
+  transition: background 0.15s,
+    border-color 0.15s;
+}
+button:hover:enabled {
+  border-color: #ffffff22;
+}
+.setup #mode {
+  font-size: var(--fs-i2);
+  border-radius: var(--r-xl);
+  padding: 7px 12px;
+  background: #1a1c21;
+}
+.tag {
+  color: #969ba3;
+  border-color: #ffffff0b;
+  background: #ffffff03;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.conversation-heading {
+  padding-bottom: 9px;
+  padding: 4px 2px 12px;
+}
+.eyebrow {
+  font-size: var(--fs-i1);
+  letter-spacing: 1.8px;
+  color: #737985;
+}
+.suggestions {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+.suggestions button {
+  min-height: 0;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  box-shadow: none;
+  color: var(--sb-muted);
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-regular);
+}
+.suggestions button:hover,
+.suggestions button:focus-visible {
+  background: transparent;
+  color: var(--sb-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+/* (a chat rule, kept in this file for the cascade) */
+.message {
+  padding: 14px 16px;
+  border-radius: var(--r-xl);
+  margin: 10px 0;
+  background: #191b20;
+}
+.voice-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 0;
+}
+.voice-row label {
+  display: flex;
+  align-items: center;
+  font-size: var(--fs-i1);
+  margin-left: auto;
+  gap: 5px;
+  color: #9499a2;
+}
+.voice-row input {
+  accent-color: var(--accent);
+  width: 12px;
+  height: 12px;
+}
+#voice-status:empty {
+  display: none;
+}
+#voice-status {
+  padding: 6px 3px 0;
+  margin: 0;
+  font-size: var(--fs-i1);
+}
+.primary:hover:enabled {
+  background: var(--cream-strong);
+}
+.text-button:hover:enabled {
+  background: transparent;
+  color: var(--accent);
+}
+footer {
+  display: flex;
+  color: #6b6c74;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  opacity: 0.8;
+}
+/* (a island rule, kept in this file for the cascade) */
+header > #sessions-toggle {
+  width: 32px;
+  height: 32px;
+  padding: 7px;
+  margin: 12px 0 0 0;
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+/* (a dialogs rule, kept in this file for the cascade) */
+.history-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+  padding: 12px 14px;
+  flex-shrink: 0;
+}
+#sessions {
+  flex: 1;
+  min-width: 80px;
+  max-width: 350px;
+  font-size: var(--fs-i2);
+  display: none;
+}
+/* Model and voice controls read as a small toolbar, not full-size buttons. */
+.model-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 270px;
+  min-width: 0;
+}
+.model-picker > svg {
+  position: absolute;
+  right: 5px;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: #777f8b;
+  stroke-width: 1.6;
+  pointer-events: none;
+}
+#voice-mic svg,
+.read-toggle svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#voice-mic .record-stop {
+  display: none;
+}
+#voice-mic[aria-pressed="true"] .record-stop {
+  fill: currentColor;
+  stroke: none;
+}
+.read-toggle input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+.read-toggle:has(input:checked) {
+  color: var(--accent);
+  background: var(--cream-04);
+}
+.read-toggle:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+}
+#personal-close {
+  background: transparent;
+  border: 0;
+  font-size: 24px;
+}
+#focus-minutes {
+  width: 65px;
+}
+.utility-actions button,
+.utility-item button {
+  font-size: var(--fs-i2);
+}
+.utility-item {
+  border: 1px solid var(--line);
+  padding: 10px;
+  border-radius: var(--r-md);
+  margin: 8px 0;
+}
+.utility-item p {
+  font-size: var(--fs-i3);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.utility-item small {
+  display: block;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+/* (a shelf rule, kept in this file for the cascade) */
+.music-card {
+  background: #ffffff04;
+  border-radius: var(--r-lg);
+  padding: 14px;
+}
+.look-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.look-grid label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-i3);
+}
+.look-grid input {
+  max-width: 115px;
+}
+#screen-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+.screen-card {
+  min-height: 65px;
+  white-space: normal;
+  font-size: var(--fs-i2);
+}
+/* (a chat rule, kept in this file for the cascade) */
+.message {
+  font-size: var(--chat-font, 13px);
+}
+.answer-tools {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+/* (a chat rule, kept in this file for the cascade) */
+/* (a chat rule, kept in this file for the cascade) */
+.code-copy {
+  display: block;
+  margin-left: auto;
+}
+#personal-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+.look-grid input[type="range"] {
+  accent-color: var(--accent);
+}
+.personal-nav {
+  display: flex;
+  gap: 5px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.personal-nav button {
+  font-size: var(--fs-i2);
+  background: transparent;
+  border: 0;
+  padding: 7px 11px;
+}
+.personal-nav button:hover {
+  color: var(--accent);
+}
+/* All pickers and settings use the app's dark palette. */
+select option,
+select optgroup {
+  background: #202227;
+  color: #eee;
+}
+/* (a chat rule, kept in this file for the cascade) */
+.answer-tools button,
+.code-copy {
+  background: transparent;
+  color: var(--muted);
+  border: 0;
+  padding: 4px;
+  font-size: var(--fs-i1);
+  width: 29px;
+  height: 29px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+}
+.copied {
+  color: var(--ok) !important;
+}
+.copied svg {
+  visibility: hidden;
+}
+.copied:after {
+  content: "✓";
+  position: absolute;
+  font-size: var(--fs-i5);
+}
+/* Keep the native window outside the rounded island fully transparent. */
+html {
+  background: transparent !important;
+  color-scheme: normal;
+}
+body {
+  margin: 0;
+  padding: 0 8px 8px;
+  height: 100vh;
+  background: transparent;
+  color-scheme: dark;
+}
+/* (a island rule, kept in this file for the cascade) */
+/* Charles 1.1: lighter spacing and quieter controls. */
+/* (a island rule, kept in this file for the cascade) */
+.island {
+  border-color: #ffffff15;
+}
+.content {
+  overflow-y: auto;
+}
+/* v1.0.0: outside the bubble, on its left; shown on hover and on keyboard focus. It stays in the
+   accessibility tree and in the tab order (opacity only). */
+.edit-message {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 4px);
+  display: flex;
+  margin: -12px 0 0;
+  padding: 4px;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.edit-message svg,
+#capture-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.edit-message:hover {
+  color: var(--accent);
+}
+/* (a settings rule, kept in this file for the cascade) */
+.setting-section {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 14px;
+  margin: 12px 0;
+}
+/* (a settings rule, kept in this file for the cascade) */
+.setting-section input {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: #101318;
+  color: #ddd;
+  margin: 8px 0;
+}
+#command-apps {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+}
+#command-apps option {
+  padding: 6px;
+}
+.file-result {
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+.file-result small {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  margin: 6px 0;
+}
+.file-result p {
+  font-size: var(--fs-i2);
+  overflow-wrap: anywhere;
+}
+.file-result button {
+  margin: 0 6px 0 0;
+  font-size: var(--fs-i2);
+}
+#drop-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  color: var(--muted);
+  font-size: var(--fs-i1);
+}
+/* (a island rule, kept in this file for the cascade) */
+.identity {
+  padding-left: 7px;
+}
+
+/* ── from 2-panel-layout.css ── */
+/* Project Charles 2.0 — surfaces, spacing and docking. */
+:root {
+  color-scheme: dark;
+}
+/* (a island rule, kept in this file for the cascade) */
+.island {
+  background: #080809;
+  border: 1px solid #222226;
+  box-shadow: none;
+  border-top: 0;
+  border-radius: 0 0 25px 25px;
+}
+.content {
+  padding: 12px 16px;
+  gap: 9px;
+  background: #080809;
+  min-height: 0;
+}
+button,
+select {
+  background: #151518;
+  border-color: #29292d;
+}
+button:hover:enabled {
+  background: #232327;
+}
+/* (a settings rule, kept in this file for the cascade) */
+.setting-section {
+  background: #101012;
+  border-color: #26262a;
+}
+#ambient-card {
+  padding: 9px 18px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: #0d0d0f;
+  border-bottom: 1px solid #202022;
+  font-size: var(--fs-i2);
+  min-height: 37px;
+  flex-shrink: 0;
+}
+#ambient-label {
+  color: var(--cream-deep);
+  white-space: nowrap;
+  font-size: var(--fs-i1);
+}
+#ambient-text {
+  color: #a7a7ae;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+footer {
+  padding: 5px 16px;
+  font-size: var(--fs-i1);
+}
+/* Compact transient feedback and one scroll container per dialog. */
+.mode-row {
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+.mode-row #mode,
+.mode-row #account {
+  flex-shrink: 0;
+}
+#profile-transfer {
+  border: 1px solid #303034;
+  border-radius: var(--r-lg);
+  padding: 12px;
+  margin-top: 12px;
+}
+#profile-transfer h4 {
+  font-size: var(--fs-i3);
+  margin: 18px 0 8px;
+}
+#profile-transfer button {
+  font-size: var(--fs-i2);
+  margin: 8px 5px 5px 0;
+}
+#profile-guide {
+  min-height: 190px !important;
+}
+#profile-transfer .profile-card {
+  padding: 12px 0;
+  border-bottom: 1px solid #333;
+}
+#profile-transfer input[type="checkbox"] {
+  width: auto;
+}
+#profile-result {
+  white-space: pre-wrap;
+  color: var(--accent);
+}
+
+/* ── from 3-island.css ── */
+/* Charles 2.2: centered character, compact composer, settings categories. */
+:root {
+  --color-badge: var(--cream);
+  --color-send: var(--cream);
+  --color-user: #241f1b;
+  --color-agent: #121214;
+}
+.character-center {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 180px;
+  cursor: pointer;
+}
+#status {
+  display: none !important;
+}
+#voice-mic svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+#voice-mic[aria-pressed="true"] .mic-symbol {
+  display: none;
+}
+#voice-mic[aria-pressed="true"] .record-stop {
+  display: block;
+}
+/* (a chat rule, kept in this file for the cascade) */
+.message-attachments {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.branch-switch {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  font-size: var(--fs-i1);
+  color: var(--muted);
+}
+.branch-switch button {
+  padding: 0 7px;
+  font-size: var(--fs-i6);
+  border: 0;
+  background: transparent;
+}
+#settings-categories {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+#settings-categories button {
+  font-size: var(--fs-i2);
+  padding: 7px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+body:not(.compact) .content {
+  animation: none;
+  transform: none;
+}
+/* (a settings rule, kept in this file for the cascade) */
+.settings-page > button {
+  font-size: var(--fs-i3);
+}
+/* v2.2.1 */
+/* (a shelf rule, kept in this file for the cascade) */
+.usage-title {
+  font-size: var(--fs-i1);
+  color: #94949d;
+  letter-spacing: 0.1px;
+}
+.gauge-track {
+  stroke: #252529;
+}
+.gauge-fill {
+  stroke: var(--accent);
+  stroke-dasharray: 0 100;
+  transition: stroke-dasharray 0.4s ease;
+}
+/* v2.2.2: stable screen anchor, full-width multiline input, centered label. */
+body {
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 100%;
+  transform: translateX(-50%);
+  transform-origin: 50% 0;
+}
+body.panel-transition {
+  backface-visibility: hidden;
+}
+/* v2.2.3: reveal the conversation only after its final layout is ready. */
+.content {
+  opacity: 1;
+  transition: opacity 0.12s ease-out;
+}
+body.panel-transition .content {
+  opacity: 0;
+  visibility: hidden;
+  transition: none;
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .content {
+    animation: none !important;
+    transition: none;
+  }
+
+}
+/* (a settings rule, kept in this file for the cascade) */
+.provider-card {
+  padding: 16px;
+  border: 1px solid #303030;
+  border-radius: var(--r-lg);
+  background: #191919;
+}
+.provider-actions button {
+  min-height: 38px;
+}
+.provider-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.setup {
+  position: relative;
+}
+#live-call-indicator {
+  justify-self: center;
+  max-width: 100%;
+  border: 1px solid color-mix(in srgb, var(--ok-strong) 21%, transparent);
+  border-radius: var(--r-xl);
+  background: #10251d;
+  color: var(--ok);
+  font-size: var(--fs-i2);
+  line-height: 1.3;
+  white-space: normal;
+  cursor: pointer;
+}
+#live-call-indicator[hidden] {
+  display: none !important;
+}
+body[data-live-voice="active"] .mode-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+body[data-live-voice="active"] #account {
+  grid-column: 3;
+  grid-row: 1;
+}
+body[data-live-voice="active"] #live-call-indicator {
+  grid-column: 2;
+  grid-row: 1;
+}
+/* v3.2 conversation, voice and preferences */
+#voice-call {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  padding: 4px !important;
+  border: 0;
+  background: #ededed;
+  color: #111;
+  border-radius: 50%;
+}
+#voice-call[aria-pressed="true"] {
+  background: var(--ok);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 10%, transparent);
+}
+#voice-mic {
+  width: 32px;
+  flex-shrink: 0;
+}
+/* (a settings rule, kept in this file for the cascade) */
+.shortcut-row {
+  display: grid !important;
+  grid-template-columns: minmax(120px, 1fr) minmax(150px, 1.4fr);
+  gap: 10px;
+  align-items: center;
+  margin: 8px 0;
+}
+.plugin-results {
+  max-height: 320px;
+  overflow: auto;
+}
+.plugin-results article {
+  border-bottom: 1px solid #ffffff12;
+  padding: 12px 0;
+  overflow-wrap: anywhere;
+}
+.plugin-results p {
+  font-size: var(--fs-i2);
+  color: #aaa;
+  white-space: pre-wrap;
+}
+.wake-training {
+  border-top: 1px solid #ffffff12;
+  margin-top: 15px;
+  padding-top: 10px;
+}
+.wake-training progress {
+  height: 5px;
+  width: 100%;
+  accent-color: var(--ok);
+}
+/* (a settings rule, kept in this file for the cascade) */
+.shortcut-row button {
+  font-size: var(--fs-i3);
+  padding: 9px;
+}
+.plugin-notify-toggle {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: var(--fs-i4);
+}
+.plugin-notify-toggle input {
+  width: auto;
+}
+.guide-nav {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+/* ── from 4-polish.css ── */
+/* v4 Beta — quiet dark surfaces; retain the stable native window geometry. */
+body {
+  font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+  color: #e9e9ed;
+}
+#panel-pin {
+  position: absolute;
+  left: 81px;
+  top: 13px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 7px;
+  border-radius: var(--r-md);
+}
+#panel-pin svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+#panel-pin[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--cream-08);
+  box-shadow: inset 0 0 0 1px var(--cream-12);
+}
+button:hover {
+  background-color: #ffffff09;
+}
+button:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--cream-55);
+  outline-offset: 2px;
+}
+/* (a settings rule, kept in this file for the cascade) */
+.settings-heading {
+  padding: 13px 17px;
+  border-bottom-color: #ffffff0c;
+}
+/* (a settings rule, kept in this file for the cascade) */
+.settings-body {
+  padding: 12px 16px 16px;
+}
+#settings-categories {
+  gap: 3px;
+  padding: 9px 12px;
+  border-bottom: 1px solid #ffffff08;
+}
+/* (a settings rule, kept in this file for the cascade) */
+.settings-body button,
+.plugin-card button,
+.setting-section button {
+  padding: 7px 11px;
+  font-size: var(--fs-i3);
+  min-height: 30px;
+  border-color: #ffffff13;
+  background-color: #ffffff04;
+}
+/* (a settings rule, kept in this file for the cascade) */
+.plugin-card,
+.setting-section {
+  background: #ffffff02;
+  border: 1px solid #ffffff0c;
+  border-radius: var(--r-lg);
+  padding: 15px;
+  margin: 12px 0;
+  box-shadow: none;
+}
+/* (a settings rule, kept in this file for the cascade) */
+.hint,
+.plugin-card p {
+  color: #878891;
+  font-size: var(--fs-i2);
+  line-height: 1.65;
+}
+.mode-row {
+  gap: 10px;
+}
+#mode {
+  background: #ffffff05;
+  border: 1px solid #ffffff10;
+  border-radius: var(--r-lg);
+  font-size: var(--fs-i3);
+}
+#account {
+  border-color: #ffffff0c;
+  color: #90919a;
+  font-size: var(--fs-i1);
+}
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-thumb {
+  background: #ffffff22;
+  border-radius: var(--r-md);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+.folder-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0 6px;
+}
+/* v1.0.0: the toolbar only holds the new folder's name field */
+.folder-toolbar:empty {
+  display: none;
+}
+.folder-auto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--sb-text);
+  font-size: var(--fs-i3);
+}
+.folder-path {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+  color: #666;
+}
+.folder-path button {
+  border: 0;
+  background: transparent;
+  color: #b5b5bd;
+  padding: 5px 7px;
+}
+/* (a dialogs rule, kept in this file for the cascade) */
+.folder-open,
+.history-open {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 7px !important;
+}
+.folder-open {
+  font-size: var(--fs-i3) !important;
+  color: #d8c8b8;
+}
+.utility-actions button {
+  background: transparent;
+  border: 0;
+  padding: 5px 8px;
+  font-size: var(--fs-i2);
+}
+.utility-actions input,
+.utility-actions select {
+  width: 150px;
+  min-width: 0;
+}
+.drop-target {
+  background: var(--cream-08) !important;
+  outline: 1px solid var(--cream-35);
+  outline-offset: -1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
+
+}
+.utility-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+  max-width: 65%;
+  margin: 0;
+}
+.folder-count {
+  float: right;
+  margin-left: 8px;
+  color: #64646e;
+  font-size: var(--fs-i1);
+}
+:root {
+  --surface: #141416;
+}
+/* Transitions remain interruptible and do not reflow a long chat on every frame. */
+#settings-categories button[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--cream-08);
+}
+#folder {
+  min-height: 34px;
+  padding: 7px 10px;
+  gap: 9px;
+  border: 1px solid #ffffff0d;
+  border-radius: var(--r-md);
+  background: #ffffff03;
+  font-size: var(--fs-i2);
+  line-height: 18px;
+  color: #c6c6cf;
+  box-shadow: none;
+}
+#folder:hover {
+  background: #ffffff08;
+  border-color: #ffffff20;
+}
+#folder-name {
+  min-width: 0;
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-regular);
+}
+#open-project {
+  align-self: flex-start;
+  font-size: var(--fs-i1);
+  padding: 0 2px;
+  color: #aaaab4;
+}
+body.panel-transition {
+  pointer-events: auto;
+  will-change: transform;
+}
+
+/* ── from 5-design-system.css ── */
+/* ==========================================================================
+   5 · Design system (v0.4.4 SpecialBeta → v0.5.0 Beta)
+   --------------------------------------------------------------------------
+   Loaded last. Earlier files (1-base … 4-polish) build the layout; this file
+   only refines surfaces, colour, focus and motion so the whole UI reads as one
+   system. Every colour comes from the tokens below — change them here.
+   ========================================================================== */
+:root {
+  --sb-accent: var(--cream);
+  --sb-accent-strong: var(--cream-strong);
+  --sb-accent-soft: var(--cream-12);
+  --sb-warn: var(--warn);
+  --sb-danger: var(--danger);
+  --sb-ok: var(--ok);
+  --sb-radius-island: 26px;
+  --sb-radius-card: var(--r-lg);
+  --sb-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --accent: var(--sb-accent);
+  --muted: var(--sb-muted);
+  --line: var(--sb-line);
+  --panel-surface: var(--sb-surface);
+}
+button.primary {
+  background: var(--sb-accent);
+  border-color: transparent;
+  color: var(--cream-ink);
+}
+:focus-visible {
+  outline: 2px solid var(--cream-70);
+  outline-offset: 2px;
+}
+.plugin-keywords {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: var(--fs-i3);
+  color: var(--sb-muted);
+}
+/* Text selection only where it is useful: chat messages, code, inputs. Labels, gauges,
+   buttons and the island behave like an app, not a web page. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* v0.5.1: the "ChatGPT · plus" badge in the chat header is removed. */
+#account,
+.mode-row #account {
+  display: none !important;
+}
+.proposal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.proposal-actions button {
+  padding: 6px 12px;
+  border: 1px solid var(--sb-line, rgba(255, 255, 255, 0.12));
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  font-size: var(--fs-i3);
+  cursor: pointer;
+}
+.proposal-actions button.primary {
+  border-color: transparent;
+  background: var(--sb-accent, var(--cream));
+  color: var(--cream-ink);
+  font-weight: var(--fw-strong);
+}
+.proposal-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.proposal-reply {
+  color: var(--sb-muted, #9a9aa6);
+  font-size: var(--fs-i4);
+}
+
+/* ── from 6-acrylic.css ── */
+/* ==========================================================================
+   6 · Hafif akrilik tema (v0.5.5)
+   --------------------------------------------------------------------------
+   Loaded last. Frosted, layered surfaces: a tinted base with two soft light
+   glows and a fine grain, and translucent "glass" cards (composer, messages,
+   menus, settings) that blur what is behind them inside the panel.
+   The desktop itself is not blurred (that needs a native window material);
+   the window-wide transparency is still Ayarlar → Görünüm → Saydamlık.
+   ========================================================================== */
+:root {
+  --ac-blur: blur(22px) saturate(1.35);
+  --ac-grain-soft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --ac-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.image-progress {
+  display: grid;
+  gap: 2px;
+}
+.image-label {
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  color: var(--sb-text);
+}
+.image-sub {
+  min-height: 1.4em;
+  font-size: var(--fs-i3);
+  color: var(--sb-muted);
+  font-variant-numeric: tabular-nums;
+}
+.image-frame img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 420px;
+  cursor: zoom-in;
+}
+.image-reveal .image-frame img {
+  animation: charles-reveal 0.85s var(--sb-ease);
+}
+@keyframes charles-reveal {
+  from {
+    filter: blur(18px) saturate(1.4);
+    transform: scale(1.04);
+    opacity: 0.4;
+  }
+  to {
+    filter: none;
+    transform: none;
+    opacity: 1;
+  }
+}
+.image-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.image-action:active {
+  transform: scale(0.97);
+}
+.image-action:first-child:hover {
+  background: var(--sb-accent-strong);
+}
+.image-action:first-child.done {
+  color: #1b1b1f;
+  background: var(--sb-ok);
+}
+.image-action svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.image-meta {
+  margin-left: auto;
+  color: var(--sb-muted);
+  font-size: var(--fs-i2);
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) {
+  .image-reveal .image-frame img {
+    animation: none;
+  }
+
+}
+select option {
+  background: #1b1b20;
+  color: var(--sb-text);
+}
+.slime-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.slime-swatch.saved::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--sb-ok);
+  border: 2px solid #18181d;
+}
+#sound svg path:first-child {
+  fill: currentColor;
+  fill-opacity: 0.25;
+}
+#sound.muted {
+  color: var(--sb-danger);
+  opacity: 0.85;
+}
+/* --- v0.6.5: voice call badge sits on the right and shows the microphone level ---- */
+body[data-live-voice="active"] #live-call-indicator {
+  justify-self: end;
+  margin-right: 2px;
+}
+#live-call-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 12px;
+}
+.live-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 16px;
+}
+.live-meter i {
+  display: block;
+  width: 3px;
+  height: 16px;
+  border-radius: var(--r-sm);
+  background: var(--ok);
+  opacity: 0.55;
+  transform: scaleY(0.12);
+  transform-origin: center;
+  transition: transform 70ms linear, opacity 120ms;
+}
+.live-meter.speaking i {
+  opacity: 1;
+}
+body[data-mic-off='true'] #voice-mic,
+body[data-mic-off='true'] #voice-call {
+  opacity: 0.45;
+}
+
+/* ── from 8-v071.css ── */
+#setup-close {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: var(--r-md);
+  border: 0;
+  background: transparent;
+  color: var(--sb-muted);
+  font-size: var(--fs-i6);
+}
+#setup-close:hover {
+  background: var(--sb-surface-hover);
+  color: var(--sb-text);
+}
+
+/* ── from 9-special.css ── */
+button.ws-tile {
+  cursor: pointer;
+}
+/* the chat itself (moved in from the island) */
+/* (a workspace rule, kept in this file for the cascade) */
+body.workspace .ws-chat-body > .content {
+  flex: 1;
+  min-height: 0;
+  display: flex !important;
+  flex-direction: column;
+  width: 100% !important;
+  max-width: none !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+/* v0.7.4: the focus frame only while moving with the keyboard. It used to stay on the gear and
+   other icon buttons when focus came back to them (a dialog closed, the window was focused). */
+body:not(.keyboard-nav) button:focus-visible,
+body:not(.keyboard-nav) select:focus-visible,
+body:not(.keyboard-nav) [role='button']:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* ── from 10-noir.css ── */
+/* v0.7.5 — black and cream theme. The grey-blue surfaces become warm black; text, lines and
+   accents become cream. The island keeps its light see-through acrylic. Loaded last, so it
+   only changes colours (no layout). */
+:root {
+  /* design system */
+  --sb-surface: #060606;
+  --sb-surface-raised: #0e0d0c;
+  --sb-surface-hover: var(--cream-08);
+  --sb-line: var(--cream-08);
+  --sb-line-strong: var(--cream-12);
+  --sb-text: #f5eee5;
+  --sb-muted: #a69b8e;
+  /* the accent: --sb-accent / -strong / -soft come from 5-design-system.css (tokens in 0-tokens.css) */
+  /* acrylic */
+  --ac-base: 5, 5, 5;
+  --ac-glass: var(--cream-04);
+  --ac-glass-strong: var(--cream-08);
+  --ac-glass-hover: var(--cream-08);
+  --ac-edge: var(--cream-08);
+  --ac-edge-top: var(--cream-12);
+  --ac-warm: var(--cream-04);
+  --ac-cool: var(--cream-02);
+  /* the user's bubble, in the island and the app window alike */
+  --ch-bubble: linear-gradient(180deg, var(--cream-12), var(--cream-08)), rgba(var(--ac-base), 0.45);
+  --ch-bubble-line: var(--cream-18);
+  --ch-bubble-top: var(--cream-25);
+  --ch-bubble-radius: var(--r-xl) var(--r-xl) var(--r-sm) var(--r-xl);
+  --ch-bubble-text: #e9e9ed;
+}
+
+/* ── from 13-modules.css ── */
+/* v0.8.0 — Ayarlar → Modüller */
+.modules-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.modules-list {
+  display: grid;
+  gap: 10px;
+}
+.modules-empty {
+  margin: 4px 2px;
+}
+.module-card,
+.module-confirm {
+  display: grid;
+  gap: 8px;
+}
+.module-card.off {
+  opacity: 0.6;
+}
+.module-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.module-icon-letter {
+  display: grid;
+  place-items: center;
+  color: var(--sb-accent);
+  font-size: 19px;
+  font-weight: var(--fw-strong);
+}
+.module-title {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.module-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.module-name strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-i5);
+}
+.module-meta,
+.module-path {
+  color: var(--sb-muted);
+  font-size: var(--fs-i3);
+}
+.module-path {
+  overflow-wrap: anywhere;
+}
+.module-desc {
+  margin: 0;
+  color: var(--sb-text);
+  font-size: var(--fs-i4);
+  line-height: 1.5;
+}
+.module-badges {
+  display: inline-flex;
+  gap: 5px;
+}
+.module-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.module-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+.module-actions button.danger {
+  margin-left: auto;
+}
+.module-remove label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-i4);
+}
+.module-confirm {
+  border-color: var(--cream-35) !important;
+  background: var(--cream-04) !important;
+}
+.module-confirm[hidden] {
+  display: none;
+}
+.module-update {
+  margin: 0;
+  font-size: var(--fs-i4);
+  color: var(--sb-accent);
+}
+.module-update.warn {
+  color: var(--warn);
+}
+.module-perms {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.module-perms li {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: var(--r-md);
+  background: var(--cream-08);
+  font-size: var(--fs-i4);
+}
+.module-perms li.default {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--sb-muted);
+}
+.module-perms li b {
+  color: var(--sb-text);
+  font-weight: var(--fw-strong);
+}
+.module-size {
+  margin: 0;
+}
+
+/* ── from 18-v0810.css ── */
+/* ==========================================================================
+   18 · v0.8.10 — Ada v2: notch, kart rafı, sohbet paneli
+   --------------------------------------------------------------------------
+   Kapalıyken küçük bir notch; açılınca ekranın üstünden sarkan kart rafı;
+   sohbette ada aşağı doğru uzayıp panele dönüşür. Akrilik yarı saydamlık
+   korunur: yarı saydam katmanlı zemin, ince gren ve buzlu cam kartlar.
+   Görünüm: body[data-view="notch" | "shelf" | "chat"] (src/island/shelf.ts).
+   ========================================================================== */
+:root {
+  --v10-ink: #f3eee7;
+  --v10-muted: #a29e98;
+  --v10-faint: #6f6c69;
+  --v10-edge: rgba(255, 255, 255, 0.075);
+  --v10-edge-top: rgba(255, 255, 255, 0.12);
+  --v10-glass: linear-gradient(180deg, rgba(255, 255, 255, 0.062), rgba(255, 255, 255, 0.028));
+  --v10-glass-hover: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.045));
+  --v10-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --v10-cream: var(--accent, var(--cream));
+}
+
+/* ── from 19-v0811.css ── */
+/* --- Black again, as in v0.8.9: warm black glass, still slightly see-through ------------- */
+:root {
+  --v10-panel-top: rgba(8, 8, 7, 0.95);
+  --v10-panel: rgba(3, 3, 3, 0.96);
+}
+
+/* ── from 26-v096.css ── */
+.effort-picker > svg {
+  position: absolute;
+  right: 6px;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: #777f8b;
+  stroke-width: 1.6;
+  pointer-events: none;
+}
+
+/* ── from 29-v0913.css ── */
+/* ==========================================================================
+   29 · v0.9.13 — Ada ana sayfası (yeniden tasarım)
+   --------------------------------------------------------------------------
+   Üstte Charles (kartsız: Slime, ad, sürüm, satır içi mesaj kutusu) ve Spotify
+   kartı; altta üç akordeon kart (Dosyalar · AI kullanımı · Hava durumu). Etkin
+   kartın paneli tam genişlikte altta açılır, çentiği karta bakar. Sayfa
+   yüksekliği içeriğe göre değişir (src/island/shelf.ts → shelf-height).
+   Kartlar ve paneller siyah zemin üzerinde; vurgu yalnızca kenar çizgisinde.
+   ========================================================================== */
+:root {
+  --h13-card: rgba(255, 255, 255, 0.022);
+  --h13-card-hover: rgba(255, 255, 255, 0.045);
+  --h13-edge: rgba(255, 255, 255, 0.075);
+  --h13-edge-top: rgba(255, 255, 255, 0.11);
+  --h13-well: rgba(255, 255, 255, 0.028);
+  --h13-panel: rgb(7, 7, 9);
+  --h13-on: var(--cream-55);
+  --h13-ink-dark: var(--cream-ink);
+}
+.mode-row .mode-seg-btn:hover:not(.on):not(:disabled) {
+  color: var(--v10-ink, #f3eee7);
+  background: rgba(255, 255, 255, 0.05);
+}
+.mode-row .mode-seg-btn.on {
+  background: var(--v10-cream, var(--cream));
+  color: var(--cream-ink);
+  box-shadow: 0 2px 8px -3px rgba(0, 0, 0, 0.6);
+}
+.mode-row .mode-seg-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.mode-row .mode-seg + #mode,
+.mode-row select#mode.seg-hidden {
+  display: none !important;
+}
+
+/* ── from 35-v0918.css ── */
+/* v0.9.18: right-click menu, release notes, system monitor, what Charles reads */
+/* --- text menu ---------------------------------------------------------------------------- */
+#text-menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  min-width: 168px;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--r-lg);
+  background: #1a1917;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  color: #f5eee5;
+}
+#text-menu button:hover:not(:disabled) {
+  background: var(--cream-12);
+}
+#text-menu button:disabled {
+  opacity: 0.4;
+}
+.release-notes-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 20px 16px;
+}
+/* --- what he read ---------------------------------------------------------------------------- */
+#content-context {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--cream-25);
+  border-radius: var(--r-md);
+  background: var(--cream-04);
+}
+#content-context strong {
+  overflow: hidden;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.cc-actions:empty,
+.cc-actions[hidden] {
+  display: none;
+}
+.cc-actions button {
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--r-pill);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: var(--fs-i3);
+}
+.cc-actions button:hover {
+  background: var(--cream-12);
+}
+.ptt-card h4 {
+  margin: 0;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+}
+.ptt-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── from 38-v0922.css ── */
+/* v0.9.22 */
+/* --- One black for Settings and the app window's large panels ---------------------------------
+   Both had stayed on the blue-grey of v0.7. These names come from the app window's own colours
+   (10-noir.css); Settings, the panels and their controls take them from here and from nowhere else. */
+:root {
+  --ch-surface: #060606;
+  --ch-rail: #030303;
+  --ch-card: #0c0b0a;
+  --ch-field: #131211;
+  --ch-field-hover: #1a1816;
+  --ch-control: var(--cream-04);
+  --ch-control-hover: var(--cream-12);
+  --ch-scroll: var(--cream-18);
+}
+.ptt-status[hidden] {
+  display: none;
+}
+.ptt-status[data-kind='error'] {
+  color: var(--sb-danger);
+}
+.ptt-status[data-kind='ok'] {
+  color: var(--sb-ok);
+}
+.sent-file[data-kind='pdf'] .sent-file-icon {
+  color: var(--sb-danger);
+}
+.sent-file-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.sent-file-text strong {
+  overflow: hidden;
+  color: var(--sb-text);
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sent-file-text small {
+  color: var(--sb-muted);
+  font-size: var(--fs-i3);
+}
+
+/* ── from 39-v0923.css ── */
+/* v0.9.23 */
+/* --- Links in the chat ---------------------------------------------------------------------------
+   Cream on a cream bubble could not be read. One light grey on every message background. */
+:root {
+  --ch-link: #dcdad6;
+  --ch-link-hover: #ffffff;
+}
+
+/* ── from 52-v100-dchat.css ── */
+.skip-link:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}

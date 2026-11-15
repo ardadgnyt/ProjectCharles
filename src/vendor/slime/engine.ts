@@ -89,7 +89,11 @@ interface Particle {
   life: number;
   rot: number;
   size: number;
+  /** v1.0.0: the age at which it is gone early (the sleep letters of a Slime that woke up). */
+  fade?: number;
 }
+/** How long a particle that is sent away early takes to go (seconds). */
+const FADE_OUT = 0.15;
 
 // ── Constants (engine constants) ─────────────────────────────────────
 
@@ -539,6 +543,7 @@ export class BotEngine {
   waveUntil = 0;
   waveStart = 0;
   private greetToken = 0;
+  private sleepToken = 0;
   private lastAmbient = 0;
   private slapTimes: number[] = [];
   private miniLookTarget = { x: 0, y: 0 };
@@ -558,8 +563,12 @@ export class BotEngine {
       this.eyeOverride = null; // the greeting's happy eyes would stay open in his sleep
       this.eyeOverrideUntil = 0;
     }
+    const slept = this.cfg.zz;
     this.state = next;
     this.cfg = BOT_STATES[next];
+    // v1.0.0: awake again: the "z" letters go with the sleep (they used to drift on for up to two
+    // seconds, over a Slime that was already waving)
+    if (slept && !this.cfg.zz) this.clearSleepLetters();
     this.colT = this.cfg.color;
     if (!this.locks.has('tint')) this.tint = this.cfg.tint;
     if (!this.locks.has('tilt')) this.tgTilt = this.cfg.tilt;
@@ -688,6 +697,8 @@ export class BotEngine {
     // v0.9.10: no waving in his sleep (the wave and the sleeping pose ran on top of each other);
     // whoever wants a greeting from a sleeping Charles wakes him first (renderer: touchCharacter)
     if (this.state === 'sleeping') return;
+    // a yawn's letters do not hang over the wave either
+    this.clearSleepLetters();
     const t = now();
     const tok = ++this.greetToken;
     this.waveStart = t + 0.45;
@@ -731,6 +742,16 @@ export class BotEngine {
       this.eyeOverride = 'happy';
       this.eyeOverrideUntil = now() + 0.3;
     }, 1750);
+  }
+
+  /**
+   * v1.0.0: sends the sleep letters away: those on screen fade in a moment, those still waiting for
+   * their turn never appear, and a yawn that has not let its letters go yet keeps them.
+   */
+  clearSleepLetters() {
+    this.sleepToken++;
+    this.particles = this.particles.filter((p) => p.type !== 'z' || p.age > 0);
+    for (const p of this.particles) if (p.type === 'z' && p.fade === undefined) p.fade = p.age + FADE_OUT;
   }
 
   interruptGreet() {
@@ -815,10 +836,15 @@ export class BotEngine {
           [0.94, 500, Ease.inOut],
           [1, 500, Ease.inOut],
         ]);
-        setTimeout(() => {
-          this.eyeOverride = 'closed';
-          this.emit('z', 2);
-        }, 700);
+        {
+          const token = this.sleepToken;
+          setTimeout(() => {
+            // woken or greeting since the yawn began: no closed eyes and no letters over that
+            if (token !== this.sleepToken) return;
+            this.eyeOverride = 'closed';
+            this.emit('z', 2);
+          }, 700);
+        }
         break;
       case 'happy':
         this.anim('blush', [
@@ -919,21 +945,42 @@ export class BotEngine {
   /** True while anything is still moving — lets the island stop its RAF loop. */
   get busy(): boolean {
     return (
-      this.tweens.size > 0 ||
-      this.particles.length > 0 ||
-      this.cfg.bounces ||
-      this.cfg.scans ||
+      this.motionBesidesLook ||
+      Math.abs(this.tgYaw - this.yaw) > 0.002 ||
+      Math.abs(this.tgPitch - this.pitch) > 0.002 ||
+      Math.abs(this.tgSy - this.sy) > 0.002 ||
+      Math.abs(this.tgSx - this.sx) > 0.002 ||
       this.cfg.breathes ||
       this.cfg.zz ||
       this.cfg.sweat ||
+      this.particles.length > 0 ||
+      (this.outfit !== 'none' && (Math.abs(this.physVx) > 0.01 || Math.abs(this.physVy) > 0.01))
+    );
+  }
+
+  /** v1.0.0 (perffix P1): `busy` without the head and eyes still turning toward their target and
+   *  without the outfit's soft-part spring, which a head turn sets swinging (a slow ~1.2 Hz sway
+   *  that 20-30 frames show smoothly), and without sleep's breathing and Zz and the sweat drops:
+   *  those move the body, and the outfit layer follows through the canvas transform with no redraw
+   *  (an outfitted Slime asleep on a pinned island ran at ~50 frames, 25 % of a core, for as long
+   *  as nobody touched him; the bare one sleeps at 12). An outfitted Slime keeps 60 frames for the
+   *  rest (costume motion); following the pointer alone runs at the bare Slime's rate. The dizzy
+   *  wobble is an expression, so it stays here. */
+  get motionBesidesLook(): boolean {
+    return (
+      this.state === 'dizzy' ||
+      this.tweens.size > 0 ||
+      // the sleep letters drift slowly over the body, not the costume
+      this.particles.some((p) => p.type !== 'z') ||
+      this.cfg.bounces ||
+      this.cfg.scans ||
       this.isMini ||
       this.isDancing ||
       this.dancingLevel > 0.001 ||
-      Math.abs(this.tgYaw - this.yaw) > 0.002 ||
-      Math.abs(this.tgPitch - this.pitch) > 0.002 ||
       Math.abs(this.tgTilt - this.tilt) > 0.002 ||
-      Math.abs(this.tgSy - this.sy) > 0.002 ||
-      Math.abs(this.tgSx - this.sx) > 0.002 ||
+      // sleep's breathing moves the squash targets all the time: body motion, no costume motion
+      (!this.cfg.breathes &&
+        (Math.abs(this.tgSy - this.sy) > 0.002 || Math.abs(this.tgSx - this.sx) > 0.002)) ||
       Math.abs(this.tgEs - this.es) > 0.002 ||
       this.slotH > 0.001 ||
       Math.abs(this.slotHVel) > 0.001 ||
@@ -950,8 +997,7 @@ export class BotEngine {
             ? 1
             : 0),
       ) > 0.001 ||
-      (this.slots.hand.shown === 'flag' && !this.isMini) ||
-      (this.outfit !== 'none' && (Math.abs(this.physVx) > 0.01 || Math.abs(this.physVy) > 0.01))
+      (this.slots.hand.shown === 'flag' && !this.isMini)
     );
   }
 
@@ -1103,7 +1149,7 @@ export class BotEngine {
     }
 
     for (const p of this.particles) p.age += dt;
-    this.particles = this.particles.filter((p) => p.age < p.life);
+    this.particles = this.particles.filter((p) => p.age < p.life && (p.fade === undefined || p.age < p.fade));
 
     // Mouth slot spring — ω₀ = 2π/0.25, ζ = 0.6
     const omega = (2 * Math.PI) / 0.25;
@@ -2124,7 +2170,8 @@ export class BotEngine {
     for (const p of this.particles) {
       if (p.age <= 0) continue;
       const k = p.age / p.life;
-      const a = k < 0.2 ? k / 0.2 : 1 - (k - 0.2) / 0.8;
+      let a = k < 0.2 ? k / 0.2 : 1 - (k - 0.2) / 0.8;
+      if (p.fade !== undefined) a *= Math.max(0, (p.fade - p.age) / FADE_OUT);
       const px = cx + (p.x + p.vx * p.age) * R * 1.3;
       const py = cy + (p.y + p.vy * p.age) * R * 1.3;
       const sz = R * p.size * (1 + k * 0.4);

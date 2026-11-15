@@ -1,6 +1,5 @@
 import { ISLAND_SMALL } from './island-size';
-import { hold as holdFeed } from '../chat/follow';
-export function companionUI(
+import { hold as holdFeed } from '../chat/follow';export function companionUI(
   api: any,
   notice: (s: string) => void,
   attempt: any,
@@ -27,7 +26,8 @@ export function companionUI(
     $('weather-location').textContent = p.city?.name || 'Şehir seçilmedi';
     const weather = document.getElementById('weather-idle');
     if (weather) {
-      // "Ankara · 16° · Parçalı bulutlu 🌤️" → "🌤️ 16° · Ankara" on the island; full text in title.
+      // "Ankara · 16° · Parçalı bulutlu 🌤️" → "🌤️ 16° · Ankara" on the island; the full line is the
+      // name (v1.0.0: no `title`, src/ui/no-native-tooltips.ts)
       const text = value.weather?.text || '';
       const parts = text.split(' · ');
       const icon =
@@ -37,7 +37,6 @@ export function companionUI(
         : p.city
           ? 'Hava durumu yükleniyor…'
           : 'Şehir seç';
-      weather.title = text || weather.textContent;
       weather.setAttribute('aria-label', (text || weather.textContent) + ' · konumu değiştir');
     }
   }

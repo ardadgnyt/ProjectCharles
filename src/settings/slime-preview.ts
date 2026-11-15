@@ -1,7 +1,6 @@
-// A small, independent Slime used inside the settings (accessory and expression previews).
+// A small, independent Slime used inside the settings (the Slime studio's preview).
 // It has its own engine, so trying things here never changes the real Charles.
 import { BotEngine } from '../vendor/slime/engine';
-import type { BotEmoteName, BotStateName } from '../vendor/core/layout';
 import {
   parseOutfit,
   resolveOutfit,
@@ -48,12 +47,10 @@ export function slimePreview(label: string) {
   canvas.height = 240;
   canvas.setAttribute('role', 'img');
   canvas.setAttribute('aria-label', label);
-  const caption = document.createElement('small');
-  box.append(canvas, caption);
+  box.append(canvas);
   const engine = new BotEngine();
   const ctx = canvas.getContext('2d')!;
   let last = performance.now();
-  let resetTimer: ReturnType<typeof setTimeout> | undefined;
 
   // Draw only while visible (settings page open); otherwise idle at no cost.
   // v0.9.19: truly none: its frame loop ran for ever, at every display refresh, to find that out.
@@ -83,7 +80,6 @@ export function slimePreview(label: string) {
 
   return {
     element: box,
-    caption,
     engine,
     setLook(value: string) {
       engine.look = parseLook(value);
@@ -94,41 +90,6 @@ export function slimePreview(label: string) {
     // v0.6.1: hat + eyes + other (Slime stüdyosu categories)
     setAccessories(a: Accessories) {
       engine.setAccessories(wearable(a));
-    },
-    // value: "state:thinking", "emote:love", "action:greet" (same values as the old select)
-    play(value: string, text = '') {
-      clearTimeout(resetTimer);
-      const [kind, name] = value.split(':');
-      engine.interruptGreet();
-      engine.eyeOverride = null;
-      engine.eyeOverrideUntil = 0;
-      engine.station = 'none';
-      engine.reading = 0;
-      engine.eureka = false;
-      // Work animations: station:web (magnifier), station:code (laptop), station:read (paper),
-      // station:terminal (keyboard), station:image (drawing board), station:eureka (light bulb).
-      if (kind === 'station') {
-        engine.setState(name === 'web' ? 'searching' : 'working', true);
-        if (name === 'read') engine.reading = 1;
-        else if (name === 'eureka') {
-          engine.station = 'code';
-          engine.eureka = true;
-        } else engine.station = name as any;
-      } else engine.setState(kind === 'state' ? (name as BotStateName) : 'idle', true);
-      if (kind === 'emote') engine.triggerEmote(name as BotEmoteName, 2.5);
-      if (name === 'greet') engine.greet();
-      if (name === 'gulp') engine.gulp();
-      caption.textContent = text;
-      resetTimer = setTimeout(
-        () => {
-          engine.station = 'none';
-          engine.reading = 0;
-          engine.eureka = false;
-          engine.setState('idle', true);
-          caption.textContent = '';
-        },
-        kind === 'station' ? 4500 : 3300,
-      );
     },
   };
 }

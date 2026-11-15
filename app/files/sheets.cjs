@@ -9,7 +9,6 @@ const MAX_CELLS = 5_000_000;
 const MAX_UNZIPPED = 512 * 1024 * 1024;
 
 // ── text and encodings ──────────────────────────────────────────────────────────────────────────
-const ENCODINGS = ['auto', 'utf-8', 'utf-8-bom', 'utf-16le', 'windows-1254', 'windows-1252', 'iso-8859-9'];
 /** Bytes → text. 'auto': a BOM, else UTF-8 when it is valid, else Turkish Windows (1254). */
 function decodeText(bytes, encoding = 'auto') {
   const b = Buffer.from(bytes);
@@ -390,18 +389,9 @@ function htmlTable(rows, { header = true } = {}) {
 function htmlPage(title, body) {
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>body{font:13px/1.45 "Segoe UI",Arial,sans-serif;margin:16px;color:#111;background:#fff}h1{font-size:18px}table{border-collapse:collapse;margin:0 0 18px}th,td{border:1px solid #c8c8c8;padding:4px 8px;vertical-align:top;text-align:left}th{background:#f1f1f1}td.n{text-align:right;font-variant-numeric:tabular-nums}</style></head><body>${body}</body></html>`;
 }
-/** <table> elements of an HTML page → [{ name, rows }] (for an HTML file given as a table). */
-function tablesFromHtml(html) {
-  const out = [];
-  for (const t of String(html).match(/<table\b[\s\S]*?<\/table>/gi) || []) {
-    const rows = (t.match(/<tr\b[\s\S]*?<\/tr>/gi) || []).map((r) => (r.match(/<t[hd]\b[^>]*>[\s\S]*?<\/t[hd]>/gi) || []).map((c) => unesc(c.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim())));
-    out.push({ name: 'Tablo ' + (out.length + 1), rows });
-  }
-  return out;
-}
 
 module.exports = {
-  ENCODINGS, SEPARATORS, decodeText, encodeText, detectSeparator, parseDelimited, writeDelimited, readDelimited, numberOf, typed,
-  tableFromJson, jsonFromTable, writeXlsx, readXlsx, writeOds, readOds, odfPackage, sliceRange, htmlTable, htmlPage, tablesFromHtml,
+  SEPARATORS, decodeText, encodeText, detectSeparator, parseDelimited, writeDelimited, readDelimited, numberOf, typed,
+  tableFromJson, jsonFromTable, writeXlsx, readXlsx, writeOds, readOds, odfPackage, sliceRange, htmlTable, htmlPage,
   colName, colIndex, esc, unesc, unzipChecked,
 };

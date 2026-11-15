@@ -11,9 +11,9 @@ body {
   box-sizing: border-box;
   position: relative;
   height: 100%;
-  border: 2px solid #edc9a9;
-  border-radius: 10px;
-  background: rgba(237, 201, 169, 0.07);
+  border: 2px solid var(--cream);
+  border-radius: var(--r-md);
+  background: var(--cream-08);
 }
 #frame.open {
   animation: frame-open 170ms ease-out both;
@@ -42,7 +42,7 @@ body {
   padding: 6px 12px;
   overflow: hidden;
   transform: translateX(-50%);
-  border-radius: 9px;
+  border-radius: var(--r-md);
   background: #161513;
   color: #f5eee5;
   text-overflow: ellipsis;

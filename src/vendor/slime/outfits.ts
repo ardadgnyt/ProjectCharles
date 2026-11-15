@@ -2274,6 +2274,12 @@ export function drawWardrobeIcon(
   ctx.restore();
 }
 
+/** v1.0.0 (perffix P1): steps per unit of the outfit layer's cache key. 250 redrew the 576 px layer
+ *  on nearly every frame of a slowly turning head; at 100 a yaw step is 0.01 rad, which moves a hat
+ *  edge (radius ~72 layer px) by at most ~0.36 px from where a fresh draw would put it. */
+export const OUTFIT_KEY_STEPS = 100;
+export const outfitKeyPart = (v: number) => Math.round(v * OUTFIT_KEY_STEPS);
+
 // Two reusable body-space layers per character. Breathing, movement and squash
 // still use the live canvas transform; stable accessories need no path rebuild.
 export class OutfitRenderer {
@@ -2283,9 +2289,7 @@ export class OutfitRenderer {
     const key = [
       outfit,
       H.R,
-      ...[H.yaw, H.pitch, H.physDx, H.physDy, st.presence, st.morph, st.lift || 0].map((v) =>
-        Math.round(v * 250),
-      ),
+      ...[H.yaw, H.pitch, H.physDx, H.physDy, st.presence, st.morph, st.lift || 0].map(outfitKeyPart),
       // the flag waves: a new frame ~20 times a second, and its paw follows the slime colour
       outfit === 'flag' ? Math.floor(performance.now() / 50) + PAW.dark : '',
     ].join(':');

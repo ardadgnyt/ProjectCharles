@@ -2,7 +2,6 @@
 export const english0915: Record<string, string> = {
   'Dosya Rafı': 'File shelf',
   'Dosyaları sakla, istediğin yere sürükle': 'Keep files here, drag them anywhere',
-  'Dosya Rafı · dosya bırak veya seç': 'File shelf · drop a file or choose',
   Raf: 'Shelf',
   'Raf boş': 'The shelf is empty',
   'Dosyaları buraya sürükle · Ctrl+V ile ekran görüntüsü ekle': 'Drag files here · Ctrl+V adds a screenshot',

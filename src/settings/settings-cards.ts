@@ -15,19 +15,6 @@ export function settingsCards() {
       group.append(node);
     }
   }
-  const services = document.getElementById('extra-settings');
-  if (services) {
-    const previous = services.previousElementSibling;
-    if (
-      previous?.classList.contains('settings-card') &&
-      previous.children.length === 1 &&
-      previous.firstElementChild?.matches('h3')
-    ) {
-      services.prepend(previous.firstElementChild);
-      previous.remove();
-    }
-    services.classList.add('service-card');
-  }
   const look = document.getElementById('screen-cards')?.parentElement;
   if (look) {
     const heading = document.getElementById('screen-cards')!.previousElementSibling!;
