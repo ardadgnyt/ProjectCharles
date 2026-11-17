@@ -1,9 +1,16 @@
 // Generated images in the chat (v0.5.5).
 //
-// While the image is being made: a flat card with a thin bar and "about N s left" (v1.0.0).
-// The image tool does not report real progress, so the bar is an estimate from how long the
-// last generations took on this computer (it never fills before the image arrives) and no
-// percentage is printed. When it is done: the image with İndir / Kopyala / Büyüt buttons.
+// While the image is being made: a soft animated canvas with an estimated percentage.
+// The image tool does not report real progress, so the percentage is an estimate from how
+// long the last generations took on this computer (it never shows 100 % before the image
+// arrives). When it is done: the image with İndir / Kopyala / Büyüt buttons.
+//
+// v1.0.1: the canvas of v0.5.5 – v0.9.27 is back (three slow colour blobs, grain, a light sweep,
+// the ring with the percentage, the step and the seconds, the thin bar). v1.0.0 had replaced it
+// with a flat card and "about N s left". Kept from the versions in between: the state is data
+// (data-image-state) and every text goes through t(); one tick a second, none while the page is
+// hidden; the CSS animations stop while the island is hidden, power is paused or another program is
+// full screen, and with reduced motion.
 
 // v0.9.26: the card's state is data (`data-image-state`: generating, done, failed, cancelled), never
 // a text, and every text in it goes through t(). A chat message is not translated by the page's
@@ -59,14 +66,14 @@ function stop(node: HTMLElement) {
   timers.delete(node);
 }
 
-/**
- * v1.0.0: the line under "Görsel oluşturuluyor". The tool reports no progress, so no percentage is
- * printed: only the time a picture usually still needs ("yaklaşık 20 sn kaldı"), and nothing once
- * that time has passed.
- */
-export function progressLine(elapsedMs: number, typical = DEFAULT_MS) {
-  const left = Math.round((typical - elapsedMs) / 5000) * 5;
-  return left >= 5 ? t('yaklaşık {n} sn kaldı').replace('{n}', String(left)) : '';
+/** "%42" in Turkish, "42%" elsewhere (the number format of the interface language). */
+export function percentText(p: number) {
+  return percent(p);
+}
+const PHRASES = ['Fırçalar hazırlanıyor…', 'Taslak çiziliyor…', 'Renkler ekleniyor…', 'Son rötuşlar…'];
+/** The line under the percentage: the step and the seconds, in the interface language. */
+export function progressLine(p: number, elapsedMs: number) {
+  return t(PHRASES[Math.min(PHRASES.length - 1, Math.floor(p / 25))]) + ' · ' + t('{n} sn').replace('{n}', String(Math.floor(elapsedMs / 1000)));
 }
 const relabel = new Set<() => void>();
 let listening = false;
@@ -86,17 +93,33 @@ export function showGenerating(node: HTMLElement) {
   started.set(node, Date.now());
   node.classList.add('image-card', 'image-generating');
   node.dataset.imageState = 'generating';
-  // v1.0.0: a flat card with one thin bar and one short line (no blobs, grain, sweep, ring or
-  // printed percentage). The bar follows the estimate; for assistive technology the progress is
-  // indeterminate (no aria-valuenow), with the line as its text.
+  // the canvas (decoration only) and the progress in front of it
+  const canvas = el('div', 'image-canvas');
+  canvas.setAttribute('aria-hidden', 'true');
+  canvas.append(el('i', 'blob b1'), el('i', 'blob b2'), el('i', 'blob b3'), el('i', 'grain'));
   const info = el('div', 'image-progress');
+  const ring = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  ring.setAttribute('viewBox', '0 0 44 44');
+  ring.setAttribute('aria-hidden', 'true');
+  ring.classList.add('image-ring');
+  ring.innerHTML =
+    '<circle class="track" cx="22" cy="22" r="19"/><circle class="fill" cx="22" cy="22" r="19" pathLength="100"/>';
+  const shown = el('strong', 'image-percent', percentText(0));
+  shown.setAttribute('aria-hidden', 'true');
   const label = el('span', 'image-label');
   const sub = el('small', 'image-sub');
   const bar = el('div', 'image-bar');
   bar.append(el('i'));
-  info.append(label, sub, bar);
+  info.append(ring, shown, label, sub, bar);
   info.setAttribute('role', 'progressbar');
-  node.replaceChildren(info);
+  info.setAttribute('aria-valuemin', '0');
+  info.setAttribute('aria-valuemax', '100');
+  // v1.0.1: the card is a box of its own inside the message: in the app window a message of
+  // Charles has his name and avatar around its content, and v0.9.27's canvas (the message itself)
+  // drew them inside the picture and cut off its bottom
+  const stage = el('div', 'image-stage');
+  stage.append(canvas, info);
+  node.replaceChildren(stage);
   const typical = typicalMs();
   const words = () => {
     label.textContent = t('Görsel oluşturuluyor');
@@ -104,14 +127,17 @@ export function showGenerating(node: HTMLElement) {
   };
   const tick = () => {
     if (!node.isConnected || node.dataset.imageState !== 'generating') return stop(node);
-    // nothing to draw while the island is hidden; the next tick catches up
+    // nothing to draw while the page is hidden; the next tick catches up
     if (document.hidden) return;
     const elapsed = Date.now() - (started.get(node) || Date.now());
-    node.style.setProperty('--progress', String(estimate(elapsed, typical)));
-    const line = progressLine(elapsed, typical);
+    const p = estimate(elapsed, typical);
+    const pct = percentText(p);
+    if (shown.textContent !== pct) shown.textContent = pct;
+    info.setAttribute('aria-valuenow', String(p));
+    node.style.setProperty('--progress', String(p));
+    const line = progressLine(p, elapsed);
     if (sub.textContent !== line) sub.textContent = line;
-    if (line) info.setAttribute('aria-valuetext', line);
-    else info.removeAttribute('aria-valuetext');
+    info.setAttribute('aria-valuetext', pct + ' · ' + line);
   };
   words();
   tick();

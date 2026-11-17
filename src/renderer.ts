@@ -20,7 +20,6 @@ import { Jelly } from './island/jelly';
 import { onboardingUI } from './island/onboarding';
 import { showGenerating, showImage, showFailed, lightbox, closeLightbox, setPreviewActions, setImageText } from './chat/image-card';
 import { sentFile } from './chat/attachment-card';
-import { modelNote } from './chat/model-note';
 import { panelMotion } from './island/panel-motion';
 import { settingsPages } from './settings/settings-pages';
 import { workspaceUI } from './settings/workspace';
@@ -1084,6 +1083,9 @@ function event(e: any) {
       $('account').textContent = 'Bağlı değil';
       $('connection-light').textContent = '● Bağlantı kapalı';
       for (const id of requests.keys()) removeRequest(id);
+      // v1.0.1: a turn cut off by the connection never reports its end; its steps list stops
+      // spinning and says the work was not finished (nothing happens when no list is open)
+      steps.finish('failed');
       notice(e.data);
       state('error', 'Bağlantı kapandı', 'Bağlantı kapandı');
       controls();
@@ -1417,9 +1419,8 @@ document.addEventListener('charles-startup-model', (e: any) => {
   startupModel = e.detail;
 });
 // v0.9.27: the models of the GitHub Copilot plan changed (read again every hour): rebuild the list.
-// Rebuilding ends in the model's "change" event, whose line is "Sonraki mesaj: …"; for this one
-// rebuild that line is replaced: by what happened to the plan, or by nothing when it is only the
-// first list of an account (null: the usual line, '': say nothing).
+// Rebuilding ends in the model's "change" event; for this one rebuild a notice says what happened to
+// the plan, or nothing when it is only the first list of an account (null and '': say nothing).
 let modelNotice: string | null = null;
 api.onProviderModels?.((v: any) => {
   const chosen = model.value;
@@ -1578,16 +1579,14 @@ $('new-chat').onclick = () =>
     activityState.reset();
     state('idle', 'Yeni sohbet hazır.');
   });
-// v1.0.0: the chosen model is one muted line above the model picker (chat/model-note.ts)
-const modelLine = modelNote();
+// v1.0.1: no "Sonraki mesaj: …" line about the next message's model any more (the owner's call):
+// the model picker below already shows the chosen model
 model.onchange = () =>
   attempt(async () => {
     defaultModel = await api.defaultModel(model.value);
     const said = modelNotice;
     modelNotice = null;
-    if (said === '') return;
     if (said) notice(said);
-    else modelLine.show(model.selectedOptions[0].textContent || '');
   });
 $('stop').onclick = () => attempt(() => api.interrupt());
 document.querySelectorAll<HTMLButtonElement>('[data-prompt]').forEach(
@@ -1681,7 +1680,6 @@ async function sendMessage(out?: Outgoing): Promise<boolean> {
     turnMode = mode.value;
     controls();
     notice('');
-    modelLine.clear();
     row(text, 'user', own || features.previews());
     if (!out) prompt.value = '';
     state('thinking', readingDocument ? 'Belgeyi okuyorum…' : 'Düşünüyorum…');

@@ -19,8 +19,8 @@ using System.Web.Script.Serialization;
 [assembly: AssemblyProduct("ProjectCharles")]
 [assembly: AssemblyDescription("Charles desktop assistant")]
 [assembly: AssemblyCompany("HzPederPan")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.1.0")]
+[assembly: AssemblyFileVersion("1.0.1.0")]
 static class CharlesLauncher {
   static string Quote(string value) {
     var b = new StringBuilder("\""); int slashes = 0;
@@ -134,7 +134,7 @@ static class CharlesLauncher {
     string key;
     using (var hash=SHA256.Create()) {
       // Runtime replacement and logo updates each get a new Shell cache identity.
-      string stamp="host-v4:"+info.Length+":"+info.LastWriteTimeUtc.Ticks+":"+Hex(hash.ComputeHash(ico));
+      string stamp="host-v5:"+info.Length+":"+info.LastWriteTimeUtc.Ticks+":"+Hex(hash.ComputeHash(ico));
       key=Hex(hash.ComputeHash(Encoding.UTF8.GetBytes(stamp))).Substring(0,24);
     }
     string target=Path.Combine(info.DirectoryName,"charles-host-"+key+".exe");
@@ -173,7 +173,7 @@ static class CharlesLauncher {
       };
       start.EnvironmentVariables.Remove("ELECTRON_RUN_AS_NODE");
       // app/main.cjs: a host started any other way (an older updater's restart) comes back through here
-      start.EnvironmentVariables["CHARLES_HOST"] = "4";
+      start.EnvironmentVariables["CHARLES_HOST"] = "5";
       // app/main.cjs hands a waiting runtime back here only when this launcher did not just leave it
       start.EnvironmentVariables.Remove("CHARLES_RUNTIME_WAIT");
       if (runtimeLeft) start.EnvironmentVariables["CHARLES_RUNTIME_TRIED"] = "1";

@@ -292,6 +292,35 @@ class ForegroundWorker : Worker {
   * counting it kept the island behind ordinary windows for as long as that video ran.
   */
  static bool WindowsSaysFull(int quns) { return quns == 3 || quns == 4; }
+ [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint f);
+ [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+ /**
+  * v1.0.1 (taskbar): "below <pid> <hwnd>,<hwnd>…": Charles' windows go right under the full-screen
+  * window in front. Charles steps out of the always-on-top band for a full-screen program with
+  * HWND_NOTOPMOST, which puts a window at the TOP of the normal band, so over the video that just went
+  * full screen; Windows then kept its taskbar over the video until something else changed the order
+  * (a few seconds, or as long as the video played). Only visible windows of process <pid> (Charles,
+  * which sends the line) on the same monitor as the front window move, and only while that window
+  * covers its monitor; nothing is activated, moved or resized.
+  */
+ void Below(string args) {
+  var parts = args.Split(' ');
+  uint owner; if (parts.Length != 2 || !uint.TryParse(parts[0], out owner) || owner == 0) return;
+  var fg = GetForegroundWindow();
+  bool readable; RECT mon;
+  if (!Front(fg, out readable, out mon)) return;
+  uint fgPid; GetWindowThreadProcessId(fg, out fgPid);
+  if (fgPid == owner) return;
+  var fgMon = MonitorFromWindow(fg, 2);
+  foreach (var item in parts[1].Split(',')) {
+   long v; if (!long.TryParse(item, out v) || v == 0) continue;
+   var h = new IntPtr(v);
+   uint pid; GetWindowThreadProcessId(h, out pid);
+   if (pid != owner || !IsWindowVisible(h) || MonitorFromWindow(h, 2) != fgMon) continue;
+   // SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER
+   SetWindowPos(h, fg, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0200);
+  }
+ }
  /** Size changes only of the program in front: entering full screen in a video moves no focus. */
  void Follow(uint pid) {
   if (pid == placedPid) return;
@@ -331,6 +360,7 @@ class ForegroundWorker : Worker {
     try {
      if (line == "read") Report(true);
      else if (line == "!refresh") { Hook(); Report(true); }
+     else if (line.StartsWith("below ")) Below(line.Substring(6));
     } catch { Emit("{\"app\":\"\"}"); }
    }
   }

@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v1.0.0%20stable-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v1.0.1%20stable-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -317,18 +317,19 @@ What each connection can do from the **+** menu (a choice the chosen AI cannot d
 In the chat:
 
 - **Models and effort:** switch the AI, the model and, where the model has them, the effort level
-  from the message box. After you change the model, one quiet line above the message box says which
-  model the next message will use (“Next message: …”).
+  from the message box; the chosen model is shown on the model button itself.
 - **Default model:** in **Settings → AI models**, a list of Charles’ own, grouped by AI, with a
   search field when there are many models and full keyboard use (arrows, Enter, Esc). “The model I
   used last” is one of the choices. A saved model that is no longer offered is shown as unavailable,
   with the reason.
 - **A new chat** shows one line, “What’s on your mind?”, and two suggestions.
 - **Attachments:** files and pictures by drag, paste or the **+** menu; a picture opens large on a click.
-- **Creating a picture:** while it is made, a plain card shows one thin bar and about how many
-  seconds are left.
+- **Creating a picture:** while it is made, an animated card (soft moving colours, a ring with an
+  estimated percentage, the step and the seconds) stands in for it; the finished picture replaces it.
 - **Steps of an answer:** “Thinking and steps” is one compact line that opens into what Charles did:
-  commands, files read, a published reasoning summary when the AI gives one.
+  commands, files read, a published reasoning summary when the AI gives one. Once the answer is over,
+  the line says how it ended: Done, Partly done (a failed step was never made up for), Not finished,
+  or Stopped. A failed step keeps its error when opened.
 - **While the AI works:** add an instruction to the running answer, or stop it.
 - **Editing:** your own message is as wide as its text, and its edit pencil shows beside it on hover
   or keyboard focus. Edit a message you sent; the chat branches and the older branch is kept.

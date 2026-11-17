@@ -1000,9 +1000,32 @@ select:hover,
   background: none;
   overflow: visible;
 }
-/* v1.0.0: generating, failed and cancelled are one flat card in the chat's own surface colour:
-   a short line, a thin bar while it works. No blobs, grain, sweep, ring or percentage. */
-.message.agent.image-card.image-generating,
+/* v1.0.1: while the picture is being made, the canvas card of v0.5.5 – v0.9.27 (01-base.css). The
+   card is .image-stage inside the message, so the app window's name and avatar stay around it. */
+.message.agent.image-card.image-generating {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.image-generating > .image-stage {
+  position: relative;
+  height: 248px;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  border: 1px solid var(--ac-edge);
+  border-top-color: var(--ac-edge-top);
+  box-shadow:
+    0 14px 40px -18px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+/* the app window: the 360 px card beside the avatar's 58 px column */
+body.workspace #feed .message.agent.image-card.image-generating {
+  width: min(100%, 418px);
+  max-width: 418px;
+}
+/* v1.0.0: failed and stopped stay one flat card in the chat's own surface colour */
 .message.agent.image-card.image-failed {
   padding: 14px 16px;
   border: 1px solid var(--sb-line);
@@ -1016,7 +1039,7 @@ select:hover,
   height: 100%;
   width: calc(var(--progress, 0) * 1%);
   border-radius: inherit;
-  background: var(--sb-accent);
+  background: linear-gradient(90deg, var(--cream), #fff);
   transition: width 0.9s linear;
 }
 .image-card.image-failed .image-label {
@@ -2367,6 +2390,31 @@ body #feed .message.user.editing > .branch-switch {
   height: 1.5px;
   background: var(--sb-muted, #a69b8e);
 }
+/* v1.0.1: a completed turn with a failed step that nothing after it made up for ("partly done") */
+#feed .steps[data-status='warning'] > .steps-head > .step-icon {
+  background: color-mix(in srgb, var(--warn) 16%, transparent);
+}
+#feed .steps[data-status='warning'] > .steps-head > .step-icon::after {
+  content: '!';
+  position: absolute;
+  inset: 0;
+  color: var(--sb-warn, var(--warn));
+  font: 700 10px/14px system-ui, sans-serif;
+  text-align: center;
+}
+#feed .steps[data-status='warning'] > .steps-head .steps-state {
+  color: var(--sb-warn, var(--warn));
+}
+/* a failed row that worked when it was run again: still marked, no longer in alarm red */
+#feed .step[data-status='failed'][data-retried] > .step-line > .step-icon {
+  background: rgba(255, 255, 255, 0.07);
+}
+#feed .step[data-status='failed'][data-retried] > .step-line > .step-icon::after {
+  color: var(--sb-muted, #a69b8e);
+}
+#feed .step[data-status='failed'][data-retried] > .step-line > .step-state {
+  color: var(--sb-muted, #a69b8e);
+}
 @keyframes step-turn {
   to {
     transform: rotate(360deg);
@@ -2507,7 +2555,4 @@ body.keyboard-nav #composer:has(#prompt:focus) {
 }
 #feed .message.user .user-text > :last-child {
   margin-bottom: 0;
-}
-.model-note[hidden] {
-  display: none;
 }

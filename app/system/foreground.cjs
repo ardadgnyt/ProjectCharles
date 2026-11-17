@@ -49,6 +49,22 @@ class Foreground {
     child.stdin.write('read\n');
     return promise;
   }
+  /**
+   * v1.0.1 (taskbar): asks the helper to put these windows of process `pid` right under the
+   * full-screen window in front (CharlesHelper.cs Below). Nothing happens when no helper runs, or
+   * when the window in front does not cover its monitor.
+   */
+  below(pid, handles) {
+    if (!this.child || !handles.length) return false;
+    const list = handles.map((h) => String(h)).filter((h) => /^\d+$/.test(h) && h !== '0');
+    if (!list.length) return false;
+    try {
+      this.child.stdin.write(`below ${Number(pid)} ${list.join(',')}\n`);
+      return true;
+    } catch {
+      return false;
+    }
+  }
   finish(value) {
     if (this.waiter) {
       clearTimeout(this.waiter.timer);

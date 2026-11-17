@@ -7850,25 +7850,6 @@ body:not(.workspace):not([data-view='chat']) .skip-link,
 body.workspace:has(#workspace[data-view='home']) .skip-link {
   display: none;
 }
-/* --- The model for the next message: one muted line above the model picker (chat/model-note.ts) --- */
-/* (a chat rule, kept in this file for the cascade) */
-.model-note {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 16px);
-  max-width: min(320px, 70vw);
-  overflow: hidden;
-  color: var(--sb-muted);
-  font-size: var(--fs-i2);
-  line-height: 1.4;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  pointer-events: none;
-}
-/* the app window's message box has more room above the picker */
-body.workspace .model-note {
-  bottom: calc(100% + 30px);
-}
 
 /* ── from 54-v100-tips.css ── */
 /* (a dialogs rule, kept in this file for the cascade) */

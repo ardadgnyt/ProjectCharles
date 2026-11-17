@@ -20,10 +20,5 @@ export const english100DChat: Record<string, string> = {
   // (bughunt) the push-to-talk key field's name (Settings, Shortcuts) had no row
   'Bas-konuş kısayolu': 'Push to talk',
 };
-export const patterns100DChat: [RegExp, (...m: string[]) => string][] = [
-  // the model chosen for the next message, above the composer's model picker (chat/model-note.ts)
-  [
-    /^Sonraki mesaj: (.+)$/,
-    (_, n) => `Next message: ${n.replace(/Otomatik/g, 'Auto').replace('Önce hesap bağla', 'Connect an account first')}`,
-  ],
-];
+// v1.0.1: the "Sonraki mesaj: …" line above the message box was removed, and its pattern with it
+export const patterns100DChat: [RegExp, (...m: string[]) => string][] = [];

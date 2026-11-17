@@ -771,10 +771,13 @@ select,
 }
 /* (a chat rule, kept in this file for the cascade) */
 .image-bar {
-  height: 2px;
-  margin-top: 10px;
-  border-radius: var(--r-sm);
-  background: var(--sb-line-strong);
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 16px;
+  height: 3px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.12);
   overflow: hidden;
 }
 /* Finished image */

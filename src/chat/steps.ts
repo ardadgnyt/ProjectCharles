@@ -17,6 +17,13 @@
 // (it does not open), a closing event only adds to what is known, and each turn has its own list.
 
 export type StepStatus = 'running' | 'done' | 'failed' | 'cancelled';
+/**
+ * v1.0.1: what a whole list came to (its header). 'warning': the turn completed, but a step that
+ * failed (or was declined) was never followed by a step that worked.
+ */
+export type ListStatus = StepStatus | 'warning';
+/** How the turn ended, as the connection reported it (turn/completed). */
+export type TurnEnd = 'completed' | 'interrupted' | 'failed';
 export type StepView = {
   type: string;
   status: StepStatus;
@@ -187,9 +194,71 @@ export function describe(item: any, completed = false): StepView | null {
 }
 
 const STATE_TEXT: Record<StepStatus, string> = { running: 'Çalışıyor', done: 'Tamamlandı', failed: 'Hata', cancelled: 'Durduruldu' };
+/** a failed row that was run again with the same command or tool, and worked the second time */
+const RETRIED_TEXT = 'Hata · yeniden denendi';
+
+type Line = { type: string; status: StepStatus; preview: string };
+
+/**
+ * v1.0.1: the failed rows that were tried again: a later row of the same kind about the same thing
+ * (command, path, query, tool) finished well. Indexes into `rows`.
+ */
+export function retriedRows(rows: Line[]): Set<number> {
+  const out = new Set<number>();
+  rows.forEach((r, i) => {
+    if (r.status !== 'failed' || !r.preview) return;
+    if (rows.some((later, j) => j > i && later.status === 'done' && later.type === r.type && later.preview === r.preview)) out.add(i);
+  });
+  return out;
+}
+
+/**
+ * v1.0.1: the header's state. It is decided by how the whole turn ended, not by its worst row: a
+ * step that failed along the way and was followed by one that worked (the same step again, or
+ * another way) does not make a finished answer read as an error. A text being written is not
+ * taken for success either: when the last thing that went wrong was never followed by a step that
+ * worked, a completed turn reads "partly done" ('warning'), never "done".
+ * Without a turn end (a list whose turn never reported one) the rows decide, as before v1.0.1.
+ */
+export function listStatus(rows: Line[], turn: TurnEnd | null): ListStatus {
+  if (!turn) {
+    if (rows.some((r) => r.status === 'running')) return 'running';
+    if (rows.some((r) => r.status === 'failed')) return 'failed';
+    return rows.some((r) => r.status === 'cancelled') ? 'cancelled' : 'done';
+  }
+  if (turn === 'interrupted') return 'cancelled';
+  if (turn === 'failed') return 'failed';
+  const unresolved = rows.some(
+    (r, i) => (r.status === 'failed' || r.status === 'cancelled') && !rows.some((later, j) => j > i && later.status === 'done' && later.type !== 'reasoning'),
+  );
+  return unresolved ? 'warning' : 'done';
+}
+
+/** The word after the step count; '' = no word (a list that is still running). */
+export function listStateText(status: ListStatus, turn: TurnEnd | null) {
+  if (status === 'running') return '';
+  if (status === 'warning') return 'Kısmen tamamlandı';
+  if (status === 'failed') return turn === 'failed' ? 'Tamamlanamadı' : 'Hata';
+  if (status === 'cancelled') return 'Durduruldu';
+  // a list whose turn never said how it ended keeps its tick alone, as before
+  return turn ? 'Tamamlandı' : '';
+}
 
 type Row = { item: any; view: StepView; el: HTMLElement; pre: HTMLElement | null; completed: boolean; group: Group };
-type Group = { el: HTMLDetailsElement; body: HTMLElement; title: HTMLElement; preview: HTMLElement; count: HTMLElement; state: HTMLElement; rows: Row[]; notes: number; over: StepStatus | null; listed: boolean };
+type Group = {
+  el: HTMLDetailsElement;
+  body: HTMLElement;
+  title: HTMLElement;
+  preview: HTMLElement;
+  count: HTMLElement;
+  state: HTMLElement;
+  rows: Row[];
+  notes: number;
+  over: StepStatus | null;
+  /** v1.0.1: how the turn ended (null while it runs, or when it never said) */
+  turn: TurnEnd | null;
+  listed: boolean;
+};
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, content = '') => {
   const n = document.createElement(tag);
@@ -207,6 +276,8 @@ const setText = (n: HTMLElement, value: string) => {
  */
 export function stepLists(deps: { append: (node: HTMLElement) => void; liveText: (box: HTMLElement, text: string) => void; changed: (pre?: HTMLElement | null) => void }) {
   let group: Group | null = null;
+  /** v1.0.1: the list whose turn ended last, until the next turn starts (late items go there) */
+  let last: Group | null = null;
   const rows = new Map<string, Row>();
   let serial = 0;
 
@@ -229,17 +300,26 @@ export function stepLists(deps: { append: (node: HTMLElement) => void; liveText:
     const body = el('div', 'steps-body');
     box.append(head, body);
     deps.append(box);
-    group = { el: box, body, title, preview, count, state, rows: [], notes: 0, over: null, listed: false };
+    group = { el: box, body, title, preview, count, state, rows: [], notes: 0, over: null, turn: null, listed: false };
     return group;
   }
 
   /** The collapsed line: the step that runs now, or what the whole list came to. */
   function paintHead(g: Group) {
     const n = g.rows.length;
+    const lines = g.rows.map((r) => r.view);
+    // a failed row that worked when it was run again says so; its error stays behind it
+    const retried = retriedRows(lines);
+    g.rows.forEach((r, i) => {
+      const again = retried.has(i);
+      if (again) r.el.dataset.retried = 'true';
+      else delete r.el.dataset.retried;
+      const word = r.el.querySelector<HTMLElement>(':scope > .step-line > .step-state');
+      if (word) setText(word, again ? RETRIED_TEXT : STATE_TEXT[r.view.status]);
+    });
     const running = [...g.rows].reverse().find((r) => r.view.status === 'running');
-    const failed = g.rows.filter((r) => r.view.status === 'failed').length;
-    const stopped = g.rows.some((r) => r.view.status === 'cancelled');
-    const status: StepStatus = running && !g.over ? 'running' : failed ? 'failed' : stopped || g.over === 'cancelled' ? 'cancelled' : 'done';
+    // a list over (or with nothing running) is decided by its turn's end (v1.0.1)
+    const status: ListStatus = running && !g.over ? 'running' : listStatus(lines, g.turn);
     g.el.dataset.status = status;
     // one step: the list is that step itself, with no header line above it
     g.el.classList.toggle('single', n === 1 && !g.notes);
@@ -258,8 +338,9 @@ export function stepLists(deps: { append: (node: HTMLElement) => void; liveText:
     g.preview.hidden = !shown || !shown.view.preview;
     setText(g.count, n > 1 ? n + ' adım' : '');
     g.count.hidden = n < 2;
-    setText(g.state, status === 'running' ? '' : status === 'failed' ? 'Hata' : status === 'cancelled' ? 'Durduruldu' : '');
-    g.state.hidden = status === 'running' || status === 'done';
+    const word = listStateText(status, g.turn);
+    setText(g.state, word);
+    g.state.hidden = !word;
     g.el.setAttribute('aria-busy', String(status === 'running'));
   }
 
@@ -318,20 +399,26 @@ export function stepLists(deps: { append: (node: HTMLElement) => void; liveText:
     const done = completed || !!known?.completed;
     const view = describe(merged, done);
     if (!view) return false;
-    // a list that is over stays as it was reported; only a row of its own may still close
+    // a list that is over stays as it was reported: a late event may add output or a detail, but no
+    // longer turns a row (and with it the list) back to running or to an error (v1.0.1)
     if (known) {
       known.item = merged;
-      known.view = known.group.over && view.status === 'running' ? { ...view, status: known.view.status } : view;
+      known.view = known.group.over ? { ...view, status: known.view.status } : view;
       known.completed = done;
       paint(known);
       paintHead(known.group);
       deps.changed(known.pre);
       return true;
     }
-    const g = open();
+    // v1.0.1: an item that arrives after its turn ended (and before the next one started) joins that
+    // turn's list as a finished row; it used to open a new list after the answer whose header,
+    // with no turn end of its own, could spin for good
+    const late = !group && last?.el.isConnected ? last : null;
+    const g = late || open();
+    if (late && late.over && view.status === 'running') view.status = late.over;
     const made = build(view);
     g.body.append(made.node);
-    const r: Row = { item: merged, view, el: made.node, pre: made.pre, completed: done, group: g };
+    const r: Row = { item: merged, view, el: made.node, pre: made.pre, completed: done || !!late, group: g };
     g.rows.push(r);
     rows.set(key, r);
     paint(r);
@@ -363,7 +450,9 @@ export function stepLists(deps: { append: (node: HTMLElement) => void; liveText:
     const g = group;
     group = null;
     if (!g || !g.el.isConnected) return;
-    const to: StepStatus = turn === 'completed' ? 'done' : 'cancelled';
+    // v1.0.1: the turn's own end is kept (a failed turn used to be stored as "cancelled")
+    const end: TurnEnd = turn === 'completed' ? 'completed' : turn === 'failed' ? 'failed' : 'interrupted';
+    const to: StepStatus = end === 'completed' ? 'done' : 'cancelled';
     for (const r of g.rows)
       if (r.view.status === 'running') {
         r.view = { ...r.view, status: to };
@@ -371,19 +460,26 @@ export function stepLists(deps: { append: (node: HTMLElement) => void; liveText:
         paint(r);
       }
     g.over = to;
+    g.turn = end;
+    last = g;
     paintHead(g);
   }
 
   /** The next step starts a list of its own (a new turn, a message in between). */
   function next() {
     group = null;
+    last = null;
   }
   function clear() {
     group = null;
+    last = null;
     rows.clear();
   }
   /** For code that fills the chat out of order (older messages drawn above): keep and put back. */
-  const hold = () => group;
-  const restore = (g: Group | null) => (group = g);
+  const hold = () => ({ group, last });
+  const restore = (kept: { group: Group | null; last: Group | null }) => {
+    group = kept.group;
+    last = kept.last;
+  };
   return { update, output, note, finish, next, clear, hold, restore, has: (id: string) => rows.has(String(id)) };
 }

@@ -3,6 +3,7 @@
 // v0.9.24: so does an older host (its file still says Electron): an update restarts the program it
 // was running, and only Charles.exe knows which host is current.
 // v1.0.0: host 4 carries the 1.0.0.0 version resource; a host 3 left by the Release Candidates is replaced the same way.
+// v1.0.1: host 5 carries 1.0.1.0; a host 4 left by v1.0.0 is replaced the same way.
 // v1.0.0: so does any host while a newer Electron waits in _update\runtime (app/core/runtime-update.cjs):
 // only Charles.exe can put it in place, before Electron runs. It sets CHARLES_RUNTIME_TRIED when it
 // left the runtime where it was, so this never loops.
@@ -19,7 +20,7 @@ const runtimeWaits = (() => {
   }
 })();
 if (process.platform === 'win32' && !process.argv.includes('--demo') &&
-    (startedAs === 'electron.exe' || (startedAs.startsWith('charles-host-') && process.env.CHARLES_HOST !== '4') || runtimeWaits)) {
+    (startedAs === 'electron.exe' || (startedAs.startsWith('charles-host-') && process.env.CHARLES_HOST !== '5') || runtimeWaits)) {
   const entry = require('node:path').resolve(__dirname, '..', 'Charles.exe');
   if (require('node:fs').existsSync(entry)) {
     const env = { ...process.env };
@@ -1093,6 +1094,25 @@ let sharedForeground = null;
 function foregroundReader() {
   return (sharedForeground ||= new (require('./system/foreground.cjs').Foreground)());
 }
+/**
+ * v1.0.1 (taskbar): Charles' visible windows on the full-screen program's display go right under
+ * it. Leaving the always-on-top band (setAlwaysOnTop(false), Windows' HWND_NOTOPMOST) puts a window
+ * at the top of the normal band, so the island (or desktop Slime) landed over the video that had
+ * just gone full screen, and Windows kept the taskbar up over the video until something else changed
+ * the order: a few seconds with a browser that raises itself again, the whole film with VLC. The
+ * helper moves only Charles' own windows, without activating them, and only while the window in
+ * front covers its monitor (CharlesHelper.cs Below).
+ */
+function lowerUnderFullscreen() {
+  if (!topForeground || !fullscreenOther) return;
+  const handles = [];
+  for (const w of require('electron').BaseWindow.getAllWindows()) {
+    try {
+      if (!w.isDestroyed() && w.isVisible()) handles.push(w.getNativeWindowHandle().readBigUInt64LE(0).toString());
+    } catch {}
+  }
+  topForeground.below(process.pid, handles);
+}
 function startTopGuard() {
   if (process.platform !== 'win32' || topGuard || demo) return;
   topForeground = foregroundReader();
@@ -1117,6 +1137,8 @@ function startTopGuard() {
     if (d.here !== fullscreenOther) {
       fullscreenOther = d.here;
       applyTopmost();
+      // v1.0.1 (taskbar): and not over the full-screen window, where leaving the band put them
+      lowerUnderFullscreen();
       // v0.9.25: cards hide for the full-screen app and come back when it is left
       mailBubble?.place();
       // v1.0.0 (perffix): Slime's frames wait behind it (an open, pinned island kept drawing); the
@@ -1138,6 +1160,9 @@ function startTopGuard() {
     // change: the island stayed off the topmost band until then. Ask the helper again instead.
     if ((fullscreenOther || fullscreenFront) && topForeground.latest && typeof topForeground.latest.full !== 'boolean') topForeground.latest = null;
     check(await topForeground.read().catch(() => null));
+    // v1.0.1 (taskbar): a Charles window shown again behind a full-screen program (a card, the island
+    // after a page reload) goes back under it; a window already there does not move
+    lowerUnderFullscreen();
   }, 5000);
   topGuard.unref?.();
 }

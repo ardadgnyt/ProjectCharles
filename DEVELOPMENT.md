@@ -145,7 +145,7 @@ compiler Windows ships).
 | Folder | What it does |
 | --- | --- |
 | `src/renderer.ts` | Entry point: chat flow, sending, approvals, character reactions |
-| `src/chat/` | Messages: `markdown.ts`, `math.ts` + `katex-lazy.ts` / `katex-source.ts` (formulas, section 7), `model-picker.ts` (`PROVIDERS`), `model-note.ts` (the "Next message: …" line), `capabilities.ts`, `image-card.ts`, `history-folders.ts`, `activity.ts`, `steps.ts` (the steps list of an answer), `follow.ts` (where the chat is), `reactions.ts`, `reading.ts`, `status-scroll.ts`, `ai-questions.ts`, `steer.ts`, `stop-text.ts`, `highlight.ts`, `release-notes.ts`, `content-context.ts` |
+| `src/chat/` | Messages: `markdown.ts`, `math.ts` + `katex-lazy.ts` / `katex-source.ts` (formulas, section 7), `model-picker.ts` (`PROVIDERS`), `capabilities.ts`, `image-card.ts`, `history-folders.ts`, `activity.ts`, `steps.ts` (the steps list of an answer), `follow.ts` (where the chat is), `reactions.ts`, `reading.ts`, `status-scroll.ts`, `ai-questions.ts`, `steer.ts`, `stop-text.ts`, `highlight.ts`, `release-notes.ts`, `content-context.ts` |
 | `src/island/` | The island and Slime: `shelf.ts`, `usage.ts` (the usage gauge and its read intervals), `usage-all.ts` (the AI usage panel), `weather-view.ts`, `timer.ts`, `system-monitor.ts`, `panel-motion.ts`, `companion.ts`, `onboarding.ts` (the welcome tour), `desktop-pet.ts`, `wardrobe.ts`, `animation-loop.ts` + `frame-rate.ts` (Slime's frame rate, section 7), `voice-bars.ts`, `file-rack.ts` |
 | `src/workspace/` | App window: `workspace.ts`, `sidebar.ts`, `dashboard.ts`, `side-panel.ts`, `calendar.ts` + `holidays.ts`, `home.ts`, `dash-edit.ts` + `extra-cards.ts` (the home page's edit mode and "Reset layout"), `work.ts`, `review.ts` + `diff.ts`, `drop-slime.ts`, `modal.ts`, `icons.ts`, `bridge.ts` |
 | `src/settings/` | Settings pages: `settings-pages.ts`, `settings-cards.ts`, `providers.ts`, `cli-card.ts`, `abacus-card.ts`, `evren-card.ts`, `connected-state.ts` (a card's connected state, section 7), `default-model.ts` + `default-model-data.ts` (the default model list), `plugins.ts`, `gcal-card.ts`, `whatsapp-card.ts`, `plugin-guide.ts`, `refresh-on-show.ts`, `shortcuts.ts`, `shortcut-view.ts` (key labels and the row's answer line), `push-to-talk.ts`, `weekly-summary.ts` + `weekly-model.ts`, `low-memory.ts`, `update-page.ts`, `personal.ts`, `extras.ts`, `workspace.ts`, `profile-transfer.ts`, `account-tab.ts`, `i18n*.ts` (Turkish → English), `lang/de.ts`, `fr.ts`, `es.ts`, `zh.ts` (English text → other languages; `{n}` is a number) |
@@ -451,7 +451,7 @@ Where translations live: the interface is written in Turkish. Turkish → Englis
 `src/settings/i18n*.ts` (a map and a patterns array per file, all merged in `i18n.ts`); English →
 German, French, Spanish and Chinese is in `src/settings/lang/{de,fr,es,zh}.ts`, keyed by the English
 text (`{n}` stands for a number). A new or changed visible text needs a row in all five. A pattern
-(a text with a name or number inside, such as `Sonraki mesaj: (.+)`) also works as a template for the
+(a text with a name or number inside, such as `Klasör: (.+)`) also works as a template for the
 other languages: `templateOf()` turns what it made into English with `{a}`, `{b}` … where the captured
 parts go, the language table translates that template, and each part is put back (translated too
 when it is an interface text). A template with a part missing is never shown; the English is.
@@ -756,9 +756,9 @@ running from a folder; releases use `CharlesSetup.exe`.
 Charles' icon and version resource into that copy; Task Manager takes the name from its
 `FileDescription`. The Electron file stays as it came. Charles.exe sets `CHARLES_HOST`; a host started
 any other way (the restart after an older updater) goes through Charles.exe first, so it never stays
-on an old copy. Changing the resource means raising `host-v4` in the launcher and the
+on an old copy. Changing the resource means raising `host-v5` in the launcher and the
 number `CHARLES_HOST` carries (the launcher sets it, the first lines of `app/main.cjs` compare it);
-v1.0.0 raised it from 3 so the host says 1.0.0.0.
+v1.0.0 raised it from 3 so the host says 1.0.0.0, v1.0.1 from 4 so it says 1.0.1.0.
 
 Before it makes the host, Charles.exe puts a newer Electron in place when `_update\runtime\pending.json`
 asks for one (`RuntimeApply` in the launcher; the new `dist` has no host yet, so the next one is made

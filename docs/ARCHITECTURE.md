@@ -46,7 +46,10 @@ file-by-file tour, see [DEVELOPMENT.md](../DEVELOPMENT.md).
   `core/task-mode.cjs`).
 - **Full screen.** The helper reports the window in front; `core/fullscreen-gate.cjs` decides
   whether a full-screen program covers a display that holds Charles (the island steps back, cards
-  wait, Slime is not drawn) and keeps focus, flash and toast requests until it is left.
+  wait, Slime is not drawn) and keeps focus, flash and toast requests until it is left. Stepping
+  out of the always-on-top band puts a window at the top of the normal band (Windows'
+  `HWND_NOTOPMOST`), so the helper then puts Charles' windows on that display right under the
+  full-screen window (`below` on the `fg` channel); otherwise Windows keeps its taskbar over the video.
 - **Durable storage.** `core/store.cjs` writes JSON atomically (temp file, fsync, rename) and
   keeps a `.bak` copy for recovery. Everything lives in `%APPDATA%\Charles`. Plugin keys are
   encrypted with Electron `safeStorage` (Windows DPAPI).

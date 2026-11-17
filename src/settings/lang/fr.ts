@@ -2221,7 +2221,6 @@ export const french: Record<string, string> = {
   "about {n} s left": "environ {n} s restantes",
   "Automatic with AI": "Automatique avec l’IA",
   "Shades": "Nuances",
-  "Next message: {a}": "Prochain message : {a}",
   // v1.0.0
   "Some file names contain characters that the Windows archive tool (tar.exe) cannot handle (for example Chinese, Japanese, Russian); they cannot be packed in this format. Choose ZIP or TAR.": "Certains noms de fichiers contiennent des caractères que l’outil d’archivage de Windows (tar.exe) ne sait pas traiter (par exemple chinois, japonais, russe) ; ils ne peuvent pas être compressés dans ce format. Choisis ZIP ou TAR.",
   "Some file names in the archive contain characters that the Windows archive tool (tar.exe) cannot read (for example Chinese, Japanese, Russian); an archive in this format cannot be opened. Such names can be opened in ZIP, TAR and TAR.GZ archives.": "Certains noms de fichiers de l’archive contiennent des caractères que l’outil d’archivage de Windows (tar.exe) ne sait pas lire (par exemple chinois, japonais, russe) ; une archive dans ce format ne peut pas être ouverte. De tels noms peuvent être ouverts dans des archives ZIP, TAR et TAR.GZ.",
@@ -2270,4 +2269,11 @@ export const french: Record<string, string> = {
   "Home Assistant connected": "Home Assistant connecté",
   "Mail connected": "E-mail connecté",
   "Google Calendar connected": "Google Agenda connecté",
+  // v1.0.1
+  "Getting the brushes ready…": "Préparation des pinceaux…",
+  "Sketching…": "Esquisse…",
+  "Adding colours…": "Ajout des couleurs…",
+  "Final touches…": "Dernières retouches…",
+  "Partly done": "Partiellement terminé",
+  "Error · retried": "Erreur · réessayé",
 };

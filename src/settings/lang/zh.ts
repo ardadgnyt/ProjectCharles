@@ -2221,7 +2221,6 @@ export const chinese: Record<string, string> = {
   "about {n} s left": "约剩 {n} 秒",
   "Automatic with AI": "由 AI 自动整理",
   "Shades": "色调",
-  "Next message: {a}": "下一条消息：{a}",
   // v1.0.0
   "Some file names contain characters that the Windows archive tool (tar.exe) cannot handle (for example Chinese, Japanese, Russian); they cannot be packed in this format. Choose ZIP or TAR.": "部分文件名包含 Windows 归档工具 (tar.exe) 无法处理的字符（例如中文、日文、俄文），无法打包为此格式。请选择 ZIP 或 TAR。",
   "Some file names in the archive contain characters that the Windows archive tool (tar.exe) cannot read (for example Chinese, Japanese, Russian); an archive in this format cannot be opened. Such names can be opened in ZIP, TAR and TAR.GZ archives.": "压缩包中部分文件名包含 Windows 归档工具 (tar.exe) 无法读取的字符（例如中文、日文、俄文），无法打开此格式的压缩包。此类文件名可以在 ZIP、TAR 和 TAR.GZ 压缩包中打开。",
@@ -2270,4 +2269,11 @@ export const chinese: Record<string, string> = {
   "Home Assistant connected": "Home Assistant 已连接",
   "Mail connected": "邮箱已连接",
   "Google Calendar connected": "Google 日历已连接",
+  // v1.0.1
+  "Getting the brushes ready…": "正在准备画笔…",
+  "Sketching…": "正在打草稿…",
+  "Adding colours…": "正在上色…",
+  "Final touches…": "最后润色…",
+  "Partly done": "部分完成",
+  "Error · retried": "出错 · 已重试",
 };

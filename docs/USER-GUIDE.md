@@ -1,6 +1,6 @@
 # Charles — User Guide
 
-This guide covers Charles **v1.0.0 Stable** on Windows 10/11. For installation, see the
+This guide covers Charles **v1.0.1 Stable** on Windows 10/11. For installation, see the
 [README](../README.md#install-and-update). For the full history of changes, see
 [CHANGELOG.md](../CHANGELOG.md) (in English from v0.9.18; older entries are in Turkish).
 
@@ -117,13 +117,13 @@ own **Copy** button, on the island and in the app window.
 
 Open the panel and type in the message box at the bottom. A new chat shows one line, *What’s on
 your mind?*, and two suggestions. The **model menu** next to the box
-lists every AI you have connected: GPT (through Codex), Claude, Antigravity, Cursor, Abacus AI, EVREN and GitHub Copilot. Choose an AI, then one of its models; **Auto** in a model list lets that AI pick the model itself. EVREN lists only its chat models (gemma-4-31b, glm-5.3, qwen3.8-flash-next and deepseek-v4.1-flash). If a model you chose earlier is no longer offered, Charles moves to that AI's Auto and tells you. After you choose another model, one quiet line above the message box says which model the next message will use (*Next message: …*); it goes when that message is sent or a new chat starts. Beside the model menu the **effort** menu lists only the levels the chosen model offers; models without levels stay on *Auto*. The **+**
+lists every AI you have connected: GPT (through Codex), Claude, Antigravity, Cursor, Abacus AI, EVREN and GitHub Copilot. Choose an AI, then one of its models; **Auto** in a model list lets that AI pick the model itself. EVREN lists only its chat models (gemma-4-31b, glm-5.3, qwen3.8-flash-next and deepseek-v4.1-flash). If a model you chose earlier is no longer offered, Charles moves to that AI's Auto and tells you. The chosen model stays on the model button. Beside the model menu the **effort** menu lists only the levels the chosen model offers; models without levels stay on *Auto*. The **+**
 menu has more tools:
 
 | Tool | What it does |
 | --- | --- |
 | Add photos and files | Attach images, PDFs, Word and PowerPoint files, documents or text files |
-| Create image | Ask the AI to draw an image. While it is made, a plain card shows one thin bar and *about N s left*; the finished image can be downloaded, copied or enlarged |
+| Create image | Ask the AI to draw an image. While it is made, an animated card shows a ring with an estimated percentage, the step and the seconds; the finished image can be downloaded, copied or enlarged |
 | Search the web | Answers from current web sources, with links |
 | Deep research | A longer, multi-source report |
 

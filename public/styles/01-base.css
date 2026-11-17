@@ -1453,19 +1453,156 @@ body {
   --ac-grain-soft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --ac-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-.image-progress {
-  display: grid;
-  gap: 2px;
+/* v1.0.1: the picture being made (image-card.ts showGenerating) is the canvas of v0.5.5 – v0.9.27
+   again, drawn as it was: three slow colour blobs, a fine grain, a light sweep, and the ring with the
+   percentage in front. It moves only while a picture is being made (measured: about 11-13 % of one
+   core more than v1.0.0's flat card during that time, nothing after it); the animations stop while
+   the island is hidden, power is paused or another program is full screen, and with reduced motion. */
+.image-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
 }
+.image-canvas .blob {
+  position: absolute;
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(34px);
+  opacity: 0.55;
+  animation: charles-blob 9s ease-in-out infinite;
+}
+.image-canvas .b1 {
+  left: -12%;
+  top: -18%;
+  background: var(--cream);
+}
+.image-canvas .b2 {
+  right: -16%;
+  top: 20%;
+  background: #8fa8ff;
+  animation-delay: -3s;
+  animation-duration: 11s;
+}
+.image-canvas .b3 {
+  left: 18%;
+  bottom: -30%;
+  background: #c79bff;
+  opacity: 0.38;
+  animation-delay: -6s;
+  animation-duration: 13s;
+}
+.image-canvas .grain {
+  position: absolute;
+  inset: 0;
+  background-image: var(--ac-grain);
+  opacity: 0.09;
+  mix-blend-mode: overlay;
+}
+/* the sweep of light that keeps passing over the canvas */
+.image-canvas::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.07) 45%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.07) 55%,
+    transparent 100%
+  );
+  background-size: 250% 100%;
+  animation: charles-sweep 2.6s linear infinite;
+}
+@keyframes charles-blob {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(18%, 12%) scale(1.12);
+  }
+  66% {
+    transform: translate(-10%, 16%) scale(0.92);
+  }
+}
+@keyframes charles-sweep {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -130% 0;
+  }
+}
+body.hidden-island .image-canvas *,
+body.hidden-island .image-canvas::after,
+body.power-paused .image-canvas *,
+body.power-paused .image-canvas::after,
+body.fullscreen-other .image-canvas *,
+body.fullscreen-other .image-canvas::after {
+  animation-play-state: paused;
+}
+.image-progress {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+  z-index: 1;
+}
+.image-progress > * {
+  background: none;
+  box-shadow: none;
+}
+.image-ring {
+  width: 74px;
+  height: 74px;
+  grid-area: 1 / 1;
+  transform: rotate(-90deg);
+}
+.image-ring circle {
+  fill: none;
+  stroke-width: 3;
+}
+.image-ring .track {
+  stroke: rgba(255, 255, 255, 0.12);
+}
+.image-ring .fill {
+  stroke: #fff;
+  stroke-linecap: round;
+  stroke-dasharray: calc(var(--progress, 0) * 1) 100;
+  transition: stroke-dasharray 0.9s linear;
+}
+.image-percent {
+  grid-area: 1 / 1;
+  align-self: center;
+  font-size: var(--fs-i6);
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+/* the failed / stopped card's line (and the base of the one below) */
 .image-label {
   font-size: var(--fs-i4);
   font-weight: var(--fw-strong);
   color: var(--sb-text);
 }
+.image-generating .image-progress .image-label {
+  margin-top: 8px;
+  padding: 0;
+  font-size: var(--fs-i4);
+  font-weight: var(--fw-strong);
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
 .image-sub {
-  min-height: 1.4em;
-  font-size: var(--fs-i3);
-  color: var(--sb-muted);
+  font-size: var(--fs-i2);
+  color: rgba(255, 255, 255, 0.72);
   font-variant-numeric: tabular-nums;
 }
 .image-frame img {
@@ -1522,7 +1659,9 @@ body {
   font-variant-numeric: tabular-nums;
 }
 @media (prefers-reduced-motion: reduce) {
-  .image-reveal .image-frame img {
+  .image-reveal .image-frame img,
+  .image-canvas .blob,
+  .image-canvas::after {
     animation: none;
   }
 
