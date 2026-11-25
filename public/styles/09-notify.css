@@ -84,6 +84,12 @@ body.notice-cards {
   --accent: var(--cream);
   --accent-soft: var(--cream-12);
 }
+:root[data-palette="blue"] body.notice-cards {
+  --surface: rgba(11, 14, 19, 0.98);
+  --text: #eef3fa;
+  --body: #c9d4e3;
+  --muted: #93a2b7;
+}
 body.notice-cards #stack {
   gap: 8px;
   padding: 12px 12px 8px;
@@ -277,6 +283,9 @@ body.notice-cards .wa-text {
   background: #0e0d0c;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
   animation: reminder-card-in 0.2s ease-out;
+}
+:root[data-palette="blue"] .reminder-alert {
+  background: #0b0e13;
 }
 @keyframes reminder-card-in {
   from {

@@ -10,7 +10,7 @@
  * Actions that wait: activate (focus, show, restore), flash, toast. (The 4 s ITaskbarList pass was
  * held too until a live run showed it never brought the taskbar up: it runs as before.)
  */
-const WAITS = new Set(['activate', 'flash', 'toast']);
+const WAITS = new Set(['activate', 'flash', 'toast', 'bubble']);
 const MAX_PENDING = 100;
 
 /** Pure: does `action` wait now? */
@@ -74,6 +74,7 @@ function createGate(fullscreen) {
       return fns.length;
     },
     size: () => pending.size,
+    active: () => !!fullscreen(),
   };
 }
 

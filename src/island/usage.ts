@@ -19,8 +19,15 @@ const NAMES: Record<Provider, string> = {
   copilot: 'GitHub Copilot',
 };
 // Codex quota is cheap to read from the running app-server; Claude is one HTTPS call.
-// Gemini starts the Antigravity CLI, so it is refreshed only on demand.
-const PERIODIC: Partial<Record<Provider, number>> = { gpt: 60000, claude: 300000, cursor: 300000, evren: 300000 };
+// Gemini, Claude, Cursor, EVREN and Copilot refresh periodically while visible (and slower when hidden).
+export const PERIODIC: Partial<Record<Provider, number>> = {
+  gpt: 60000,
+  gemini: 300000,
+  claude: 300000,
+  cursor: 300000,
+  evren: 300000,
+  copilot: 300000,
+};
 // v1.0.0 (perffix P6): while no gauge is on screen the periodic read waits this long (the installed
 // app made 633 slow Codex reads a day, one a minute, mostly with nothing showing them). A low-quota
 // notice can then come up to this much later; it still comes from that read.
@@ -36,7 +43,7 @@ export function quotaReadOnShow(base: number | undefined, sinceRead: number): nu
   if (!base) return undefined;
   return sinceRead >= base ? 0 : base - sinceRead;
 }
-const MANUAL_REFRESH: Provider[] = ['gemini', 'claude', 'cursor', 'evren'];
+const MANUAL_REFRESH: Provider[] = ['gemini', 'claude', 'cursor', 'evren', 'copilot'];
 
 const COLORS: Record<Provider, string> = {
   gpt: '#f2f2f5',
@@ -56,6 +63,26 @@ const REFRESH_ICON =
 export function resetLabel(resetsAt: number | null | undefined, now = Date.now()) {
   if (!resetsAt) return '';
   return shortMinutes((resetsAt * 1000 - now) / 60000);
+}
+
+/** Formats the `updatedAt` timestamp so stale or cached quota readings always show when they were measured. */
+export function updatedLabel(updatedAt: number | null | undefined, stale = false): string {
+  const hasTime = typeof updatedAt === 'number' && Number.isFinite(updatedAt) && updatedAt > 1e11;
+  let time = '';
+  if (hasTime) {
+    const lang =
+      typeof document !== 'undefined' && document.documentElement?.lang
+        ? document.documentElement.lang
+        : 'tr-TR';
+    try {
+      time = new Date(updatedAt).toLocaleTimeString(lang === 'tr' ? 'tr-TR' : lang, {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {}
+  }
+  if (stale) return time ? t('Son bilinen değer') + ' · ' + time : t('Son bilinen değer');
+  return time;
 }
 
 // Kota bekçisi (v0.5.3): called when less than 10 % is left.
@@ -212,9 +239,11 @@ export function usageUI(
     const extra = provider === 'gpt' && !v?.unavailable ? 'kredi ' + (v?.credits ?? '—') : '';
     plan.textContent = extra;
     plan.hidden = !extra;
+    panel.classList.toggle('stale', !!v?.stale);
+    panel.dataset.updatedAt = v?.updatedAt ? String(v.updatedAt) : '';
     renew.hidden = !MANUAL_REFRESH.includes(provider);
     renew.setAttribute('aria-label', name + ' kotasını yenile');
-    renew.title = name + ' kotasını yenile';
+    renew.dataset.tip = name + ' kotasını yenile';
     for (const key of ['fiveHour', 'weekly']) {
       const g = panel.querySelector<HTMLElement>('[data-window="' + key + '"]')!;
       g.hidden = !!v?.missingWindows?.includes(key);
@@ -239,7 +268,7 @@ export function usageUI(
           (typeof remaining === 'number' ? remaining + '%' : 'veri alınamadı'),
       );
     }
-    if (v && !v.unavailable) {
+    if (v && !v.unavailable && !v.stale) {
       const low = lowWindows(v, warned, provider);
       if (low.length) {
         saveWarned(warned);
@@ -247,8 +276,11 @@ export function usageUI(
       }
     }
     gauges.hidden = !!v?.unavailable;
-    panel.title = v?.note ? t(v.note) : '';
-    credit.textContent = v?.unavailable || '';
+    // v1.0.3: do not show a hover tooltip with the quota fetch timestamp on the usage panel
+    const tipText = v?.note ? t(v.note) : '';
+    if (tipText) panel.dataset.tip = tipText;
+    else delete panel.dataset.tip;
+    credit.textContent = v?.unavailable || (v?.stale ? updatedLabel(v?.updatedAt, true) : '');
     credit.hidden = !credit.textContent;
     judge(v, true);
   }
@@ -312,7 +344,8 @@ export function usageUI(
       // A temporary failure keeps the last good numbers on screen instead of blanking them.
       const previous = lastValue.get(target);
       // The numbers stay, but they are old now: they prove nothing about the limit (v0.9.16).
-      if (v?.unavailable && !v.fiveHour && !v.weekly && previous?.fiveHour) v = { ...previous, stale: true };
+      if (v?.unavailable && !v.fiveHour && !v.weekly && (previous?.fiveHour || previous?.weekly))
+        v = { ...previous, stale: true, updatedAt: previous.updatedAt };
       lastValue.set(target, v);
       paint(v);
       for (const w of [v?.fiveHour, v?.weekly])
@@ -359,17 +392,30 @@ export function usageUI(
 
   api.onEvent((e: any) => {
     if (e.type === 'account') {
-      lastValue.delete('gpt');
-      if (provider === 'gpt') void refresh(true);
+      if (e.provider && e.provider in NAMES) lastValue.delete(e.provider as Provider);
+      else lastValue.delete('gpt');
+      if (!e.provider ? provider === 'gpt' : provider === e.provider) void refresh(true);
     } else if (e.type === 'connected' || e.type === 'usage-changed') {
-      if (provider === 'gpt' || (provider === 'gemini' && e.provider === 'gemini'))
-        void refresh(false, true);
+      if (!e.provider || provider === 'gpt' || provider === e.provider)
+        void refresh(e.type === 'usage-changed', true);
     } else if (e.type === 'agent' && e.data?.method === 'turn/completed') {
       // A finished answer used quota: re-read the provider that answered.
       if (provider === 'gpt') void refresh(true);
-      else if (provider === 'evren') void refresh(true); // one cheap HTTP read: the allowance moved
+      else if (provider === 'evren' || provider === 'gemini' || provider === 'copilot') void refresh(true); // post-turn quota refresh
       else if (provider === 'claude' || provider === 'cursor') void refresh(false, true); // main process caches 60 s
-    } else if (e.type === 'disconnected' && provider === 'gpt') paint(null);
+    } else if (e.type === 'disconnected' && (!e.provider ? provider === 'gpt' : provider === e.provider)) paint(null);
+  });
+  document.addEventListener('visibilitychange', () => {
+    const now = gaugeShown();
+    if (now && !shownBefore) {
+      const wait = quotaReadOnShow(PERIODIC[provider], Date.now() - lastRead);
+      if (wait === 0) void refresh(false, true);
+      else if (wait !== undefined && Date.now() + wait < dueAt) schedule(wait);
+    }
+    shownBefore = now;
+  });
+  api.onPowerPaused?.((paused: boolean) => {
+    if (!paused && gaugeShown()) void refresh(false, true);
   });
   // Main AI changed in settings: switch to its quota right away.
   api.onPrimary((v: any) => show(providerOf(v?.model || '')));

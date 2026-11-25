@@ -256,6 +256,18 @@ when `mayCloseCards()` allows it (no card listed or held back, no WhatsApp reply
 card action running, not on screen); `ensureWindow()` opens it again for the next card. Cards wait
 (`place()` shows nothing) while `fullscreenOther` is true.
 
+**Focus rules of the card window (v1.0.4).** Never call `setFocusable(false)` (or `blur()`) on the card
+window while it is visible. On Windows Electron's `SetFocusable(false)` ends in `Focus(false)` →
+Chromium's `HWNDMessageHandler::Deactivate()`, which calls `SetForegroundWindow` on the next visible
+window below; that took the focus from the island and folded a chat the user had just opened (and could
+pull it from a full-screen video). Go through `setWindowFocusable()` / `settleFocusable()` in
+`mail-bubble.cjs`: while the card has the keyboard the change waits for its blur; otherwise the card is
+hidden, changed and shown again with `showInactive()`. `SetFocusable` also adds or removes the taskbar
+button (`SetSkipTaskbar`), so `offTaskbar()` runs after such a change. A card's click goes through
+`open()`, which runs the action once and counts it as a running action; a failed action comes back through
+`onOpenFailed` and becomes the `openFailed` card (`notice-cards.cjs`). Lifetime timers (`ttl`) live in
+`ttlTimers` and are cleared with the card. The `bubble-*` IPC listeners exist once per process.
+
 ### The full-screen guard and gate
 The helper's `fg` channel reports the window in front with `full`, `pid` and, from v1.0.0, `covers`
 (it covers its whole monitor), `readable` (its rectangle and monitor could be read), `quns` (Windows'
@@ -279,6 +291,9 @@ A report without a boolean `full` changes nothing (it used to count as "not full
 helper report without `mon` falls back to the old rule (here = front) and to the display under the
 pointer for drawing (`fullscreenCoversCharles()`). The 5 s guard timer asks the helper again while
 either state is on, so a closed full-screen program with nothing in front cannot leave them stuck.
+`offTaskbar()` (taking the island and the cards off the taskbar list, one ITaskbarList call per window)
+does nothing while `fullscreenFront` is true; it runs after a Charles window was shown, focused or
+restored, once a minute, and once when the full-screen program is left (v1.0.4; it used to run every 4 s).
 `CHARLES_QA_FG_UNREADABLE=1` makes the helper treat every front window as unreadable, for tests.
 
 ### Panel animation
@@ -386,6 +401,19 @@ keeps what is known when a closing event carries only an id and a state. Only th
 of a reasoning item is shown, never its `content`. `stepLists()` draws one list per turn; the user's
 message starts a new one (history keeps no "turn started"), and `finish(status)` closes steps that never
 reported their end.
+
+### Subagents and chats (`app/ai/subagents.cjs`, `src/chat/subagents-view.ts`)
+A subagent task belongs to the chat (room) it was started in: `parentId` is that room's id. Room ids come
+from `Sessions.counter` (`app/ai/sessions.cjs`), which is saved in `charles-history.json` and, at start,
+also starts above the highest numeric `parentId` in `subagents.json` (v1.0.4). Before that, a chat that never
+reached the history (shut down, closed, left or deleted while its subagents ran, because the subagent phase
+runs before the message becomes a history event) left its id free, the next new chat got the same id and
+showed its tasks. Rooms made in this run carry `newThisRun` (memory only), tasks read from disk carry
+`restored`; the tracker never shows restored tasks in a `newThisRun` room. At start every task that was
+not finished becomes `cancelled` (nothing is resumed). `send` turns that use subagents hold their room
+(`Sessions.hold()`) and finish in it (`agent.send({ roomId })`) even when another chat is opened meanwhile.
+Tasks with no room (`'default'`, older versions) are kept but shown in no chat. "Clear finished" clears
+only the open chat's tasks.
 
 ### What Slime wears and holds
 `outfitLayer()` in `src/vendor/slime/outfits.ts` says where an accessory lives: `body` (bow tie, scarf,
@@ -756,9 +784,10 @@ running from a folder; releases use `CharlesSetup.exe`.
 Charles' icon and version resource into that copy; Task Manager takes the name from its
 `FileDescription`. The Electron file stays as it came. Charles.exe sets `CHARLES_HOST`; a host started
 any other way (the restart after an older updater) goes through Charles.exe first, so it never stays
-on an old copy. Changing the resource means raising `host-v5` in the launcher and the
+on an old copy. Changing the resource means raising `host-v6` in the launcher and the
 number `CHARLES_HOST` carries (the launcher sets it, the first lines of `app/main.cjs` compare it);
-v1.0.0 raised it from 3 so the host says 1.0.0.0, v1.0.1 from 4 so it says 1.0.1.0.
+v1.0.0 raised it from 3 so the host says 1.0.0.0, v1.0.1 from 4 so it says 1.0.1.0, v1.0.4 from 5 so
+it says 1.0.4.0 (1.0.2 and 1.0.3 did not raise it, so an in-place update kept a 1.0.1.0 host).
 
 Before it makes the host, Charles.exe puts a newer Electron in place when `_update\runtime\pending.json`
 asks for one (`RuntimeApply` in the launcher; the new `dist` has no host yet, so the next one is made

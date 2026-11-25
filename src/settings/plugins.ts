@@ -55,7 +55,50 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
     loginButtons: Record<string, HTMLButtonElement> = {},
     wasConnected: Record<string, boolean> = {},
     toolRows: Record<string, { test: HTMLButtonElement; remove: HTMLButtonElement; config: HTMLDetailsElement }> = {};
-  const guide = pluginGuideUI(api, notice, paint);
+  let broadcasting = false;
+  const emitPluginsChanged = (v: any) => {
+    broadcasting = true;
+    try {
+      document.dispatchEvent(new CustomEvent('charles-plugins-changed', { detail: v }));
+    } finally {
+      broadcasting = false;
+    }
+  };
+  const formatCheckedAt = (ts: number | null | undefined) => {
+    if (typeof ts !== 'number' || !Number.isFinite(ts)) return '';
+    const d = new Date(ts);
+    return (
+      'Son kontrol: ' +
+      String(d.getHours()).padStart(2, '0') +
+      ':' +
+      String(d.getMinutes()).padStart(2, '0')
+    );
+  };
+  const serviceSummary = (id: string, services: Record<string, string> | undefined) => {
+    if (!services || typeof services !== 'object') return '';
+    const labels: Record<string, string> =
+      id === 'google'
+        ? { gmail: 'Gmail', calendar: 'Takvim', drive: 'Drive' }
+        : id === 'microsoft'
+          ? { mail: 'Outlook', calendar: 'Takvim' }
+          : {};
+    const statusText: Record<string, string> = {
+      ok: 'Hazır',
+      missing_scope: 'İzin eksik',
+      error: 'Hata',
+    };
+    const parts: string[] = [];
+    for (const [k, label] of Object.entries(labels)) {
+      const s = services[k];
+      if (s && statusText[s]) parts.push(label + ': ' + statusText[s]);
+    }
+    return parts.join(' · ');
+  };
+  const guide = pluginGuideUI(api, notice, (v: any) => {
+    if (!v) return;
+    paint(v);
+    emitPluginsChanged(v);
+  });
   const names: Record<string, string> = {
     google: 'Google · Gmail / Calendar / Drive',
     microsoft: 'Microsoft · Outlook / Calendar',
@@ -96,10 +139,14 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
           return;
         }
         connect.disabled = true;
+        status.connected = false;
         status.textContent = 'Tarayıcıda girişini tamamla…';
         try {
-          paint(await api.pluginsLogin(id));
+          const next = await api.pluginsLogin(id);
+          paint(next);
+          emitPluginsChanged(next);
         } catch (e) {
+          status.connected = false;
           status.textContent = (e as Error).message;
         } finally {
           connect.disabled = false;
@@ -127,9 +174,15 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
           void api
             .pluginsImportGoogle()
             .then((v: any) => {
-              if (v) paint(v);
+              if (!v) return;
+              paint(v);
+              emitPluginsChanged(v);
             })
-            .catch((e: Error) => notice(e.message));
+            .catch((e: Error) => {
+              status.connected = false;
+              status.textContent = e.message;
+              notice(e.message);
+            });
         config.append(load);
       }
     } else {
@@ -189,14 +242,17 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
     save.textContent = 'Bağlantı ayarlarını kaydet';
     save.onclick = async () => {
       try {
-        paint(
-          await api.pluginsConfigure(
-            id,
-            Object.fromEntries(Object.entries(fields[id]).map(([k, i]) => [k, i.value])),
-          ),
+        const next = await api.pluginsConfigure(
+          id,
+          Object.fromEntries(Object.entries(fields[id]).map(([k, i]) => [k, i.value])),
         );
-        status.textContent = 'Kaydedildi. Bağlantıyı kontrol et ile deneyebilirsin.';
+        paint(next);
+        emitPluginsChanged(next);
+        if (next?.details?.[id]?.canCheck) {
+          status.textContent = 'Kaydedildi. Bağlantıyı kontrol et ile deneyebilirsin.';
+        }
       } catch (e) {
+        status.connected = false;
         status.textContent = (e as Error).message;
       }
     };
@@ -205,22 +261,30 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
     test.textContent = 'Bağlantıyı kontrol et';
     test.onclick = async () => {
       test.disabled = true;
+      status.connected = false;
       status.textContent = 'Bağlantı kontrol ediliyor…';
       try {
-        const rows = await api.pluginsList(
-          ({ google: 'gmail', microsoft: 'outlook', home: 'home', school: 'school' } as any)[id],
-          '',
-        );
-        status.textContent =
-          id === 'home'
-            ? 'Bağlantı başarılı · ' +
-              rows.length +
-              ' cihaz/varlık bulundu. Örnek: ' +
-              rows
-                .slice(0, 3)
-                .map((r: any) => r.title)
-                .join(', ')
-            : 'Bağlantı başarılı. Posta kutusu okunabiliyor.';
+        if (typeof api.pluginsVerify === 'function') {
+          const next = await api.pluginsVerify(id);
+          paint(next, false);
+          emitPluginsChanged(next);
+        } else {
+          const rows = await api.pluginsList(
+            ({ google: 'gmail', microsoft: 'outlook', home: 'home', school: 'school' } as any)[id],
+            '',
+          );
+          status.connected = true;
+          status.textContent =
+            id === 'home'
+              ? 'Bağlantı başarılı · ' +
+                rows.length +
+                ' cihaz/varlık bulundu. Örnek: ' +
+                rows
+                  .slice(0, 3)
+                  .map((r: any) => r.title)
+                  .join(', ')
+              : 'Bağlantı başarılı. Posta kutusu okunabiliyor.';
+        }
       } catch (e) {
         status.connected = false;
         status.textContent = (e as Error).message;
@@ -233,7 +297,10 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
     remove.onclick = () =>
       void api
         .pluginsDisconnect(id)
-        .then(paint)
+        .then((next: any) => {
+          paint(next);
+          emitPluginsChanged(next);
+        })
         .catch((e: Error) => notice(e.message));
     // v0.7.1: a clear connected state like the AI account cards; test/remove only when
     // something is connected, the sign-in button comes back after "Bağlantıyı kaldır".
@@ -269,19 +336,65 @@ export function pluginsUI(api: any, notice: (s: string) => void) {
           );
       }
       const on = !!v.connected[id];
+      const detail = v.details?.[id];
+      const isOAuth = id === 'google' || id === 'microsoft';
+      const state =
+        detail?.state ||
+        (on ? 'connected' : isOAuth && config.clientId ? 'configured' : 'unconfigured');
+      const needsReauth = state === 'reauth_required' || state === 'scope_missing';
+      const canCheck = detail ? !!detail.canCheck : on;
       const login = loginButtons[id];
       if (login) {
-        login.disabled = on;
+        login.disabled = on && !needsReauth;
         showConnected(login, on, login.dataset.label || '');
+        if (needsReauth) {
+          login.hidden = false;
+          login.classList.add('primary');
+          login.textContent = 'Yeniden yetkilendir';
+        } else {
+          login.textContent = login.dataset.label || '';
+        }
       }
-      toolRows[id].test.hidden = !on;
-      toolRows[id].remove.hidden = !on;
-      if ((id === 'home' || id === 'school') && (full || wasConnected[id] !== on)) toolRows[id].config.open = !on;
+      toolRows[id].test.hidden = !canCheck;
+      toolRows[id].remove.hidden =
+        !on && !['reauth_required', 'scope_missing', 'network_error', 'error'].includes(state);
+      if ((id === 'home' || id === 'school') && (full || wasConnected[id] !== on))
+        toolRows[id].config.open = !on;
       wasConnected[id] = on;
-      notes[id].connected = on;
-      notes[id].textContent = on ? '' : 'Bağlı değil';
+      const isHealthyConnected = state === 'connected';
+      notes[id].connected = isHealthyConnected;
+      const summary = serviceSummary(id, detail?.services);
+      const checked = formatCheckedAt(detail?.checkedAt);
+      if (isHealthyConnected) {
+        const parts: string[] = [];
+        if (summary) parts.push(summary);
+        else if (detail?.message) parts.push(detail.message);
+        if (checked) parts.push(checked);
+        notes[id].textContent = parts.join(' · ');
+      } else if (state === 'configured') {
+        notes[id].textContent =
+          detail?.message ||
+          (id === 'google'
+            ? 'Yapılandırma kayıtlı · Google ile giriş yaparak yetkilendir.'
+            : 'Yapılandırma kayıtlı · Microsoft ile giriş yaparak yetkilendir.');
+      } else if (state === 'unconfigured') {
+        notes[id].textContent =
+          detail?.message || (isOAuth ? 'Yapılandırma yok · Önce uygulama kaydı ekle.' : 'Bağlı değil');
+      } else {
+        const parts: string[] = [];
+        if (detail?.message) parts.push(detail.message);
+        if (summary) parts.push(summary);
+        if (checked) parts.push(checked);
+        notes[id].textContent = parts.join(' · ') || 'Bağlı değil';
+      }
     }
   }
+  document.addEventListener('charles-plugins-changed', (ev: Event) => {
+    if (broadcasting) return;
+    const next = (ev as CustomEvent).detail;
+    if (next && next.connected) paint(next, false);
+    else void api.pluginsStatus().then((v: any) => paint(v, false)).catch(() => {});
+  });
   api.onPluginConfirm((v: any) => {
     const card = document.createElement('article');
     card.className = 'request';

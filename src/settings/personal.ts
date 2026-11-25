@@ -1,11 +1,48 @@
 import { reminderAlert } from '../island/reminder-alert';
-import { CREAM } from '../ui/tokens';
+import { CREAM, applyPalette, readStoredPalette } from '../ui/tokens';
+import { enhanceSelect, enhanceSettingsSelects } from '../ui/custom-select';
 export function personalUI(api: any, notice: (s: string) => void, attempt: any, react: () => void) {
   const $ = (id: string) => document.getElementById(id)!;
   const value = (id: string) => ($(id) as HTMLInputElement).value;
   let data: any;
   let editing: string | undefined;
   let mediaLoading = false;
+  applyPalette(readStoredPalette());
+  let paletteSelect = document.getElementById('look-palette') as HTMLSelectElement | null;
+  if (!paletteSelect) {
+    const grid = document.querySelector('#appearance-section .look-grid');
+    if (grid) {
+      const label = document.createElement('label');
+      const span = document.createElement('span');
+      span.textContent = 'Renk paleti';
+      paletteSelect = document.createElement('select');
+      paletteSelect.id = 'look-palette';
+      paletteSelect.setAttribute('aria-label', 'Renk paleti');
+      for (const [val, text] of [
+        ['cream', 'Krem'],
+        ['blue', 'Mavi'],
+      ] as const) {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = text;
+        paletteSelect.append(opt);
+      }
+      label.append(span, paletteSelect);
+      grid.append(label);
+    }
+  }
+  const islandSelect = document.getElementById('look-island');
+  if (islandSelect instanceof HTMLSelectElement) enhanceSelect(islandSelect);
+  if (paletteSelect) enhanceSelect(paletteSelect);
+  enhanceSettingsSelects();
+  const currentLookArgs = () => ({
+    ...(data?.appearance || {}),
+    ...Object.fromEntries(
+      ['font', 'scale', 'opacity', 'pet', 'accent', 'island'].map((k) => [k, value('look-' + k)]),
+    ),
+    palette:
+      (paletteSelect?.value || data?.appearance?.palette) === 'blue' ? 'blue' : 'cream',
+  });
   const btn = (text: string, fn: () => any) => {
     const b = document.createElement('button');
     b.type = 'button';
@@ -16,6 +53,8 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
   function paint(next: any) {
     data = next;
     const a = data.appearance;
+    const palette = a.palette === 'blue' ? 'blue' : 'cream';
+    applyPalette(palette);
     // v1.0.0: the default accent is the stylesheet token (--cream); only a colour of the person's own
     // (from before the picker was hidden in v0.5.2) is set on the page
     if (a.accent && String(a.accent).toLowerCase() !== CREAM) document.documentElement.style.setProperty('--accent', a.accent);
@@ -24,6 +63,7 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
     $('slime').style.transform = `scale(${a.pet})`;
     for (const k of ['font', 'scale', 'pet', 'accent', 'island'])
       ($('look-' + k) as HTMLInputElement).value = String(a[k]);
+    if (paletteSelect) paletteSelect.value = palette;
     document.body.classList.toggle('island-small', a.island === 'small');
     ($('look-opacity') as HTMLInputElement).value = '1';
     $('memories').replaceChildren();
@@ -57,9 +97,8 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
   };
   $('look-save').onclick = () =>
     attempt(async () => {
-      const args = Object.fromEntries(
-        ['font', 'scale', 'opacity', 'pet', 'accent', 'island'].map((k) => [k, value('look-' + k)]),
-      );
+      const args = currentLookArgs();
+      applyPalette(args.palette);
       paint(await api.personalEdit('appearance', args));
       notice('Görünüm kaydedildi.');
     });
@@ -71,22 +110,28 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
       lookTimer = setTimeout(
         () =>
           void attempt(async () =>
-            paint(
-              await api.personalEdit(
-                'appearance',
-                Object.fromEntries(
-                  ['font', 'scale', 'opacity', 'pet', 'accent', 'island'].map((n) => [n, value('look-' + n)]),
-                ),
-              ),
-            ),
+            paint(await api.personalEdit('appearance', currentLookArgs())),
           ),
         250,
       );
     });
+  paletteSelect?.addEventListener('change', () => {
+    const chosen = applyPalette(paletteSelect!.value);
+    clearTimeout(lookTimer);
+    void attempt(async () =>
+      paint(
+        await api.personalEdit('appearance', {
+          ...currentLookArgs(),
+          palette: chosen,
+        }),
+      ),
+    );
+  });
   $('look-save').hidden = true;
   $('look-reset').onclick = () =>
-    attempt(async () =>
-      paint(
+    attempt(async () => {
+      applyPalette('cream');
+      return paint(
         await api.personalEdit('appearance', {
           font: 13,
           scale: 1,
@@ -94,9 +139,10 @@ export function personalUI(api: any, notice: (s: string) => void, attempt: any, 
           pet: 1,
           accent: CREAM,
           island: 'large',
+          palette: 'cream',
         }),
-      ),
-    );
+      );
+    });
   async function screens() {
     const b = await api.boot();
     const list = $('screen-cards');

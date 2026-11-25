@@ -27,7 +27,15 @@ class Personal {
       commands: [],
       memories: [],
       reminders: [],
-      appearance: { font: 13, scale: 1, accent: '#edc9a9', opacity: 1, pet: 1, island: 'large' },
+      appearance: {
+        font: 13,
+        scale: 1,
+        accent: '#edc9a9',
+        opacity: 1,
+        pet: 1,
+        island: 'large',
+        palette: 'cream',
+      },
     };
     const loaded = readStore(
       this.file,
@@ -40,12 +48,14 @@ class Personal {
         ),
     );
     this.recoveryWarning = loaded.warning;
-    if (loaded.value)
+    if (loaded.value) {
       this.data = {
         ...this.data,
         ...loaded.value,
         appearance: { ...this.data.appearance, ...loaded.value.appearance },
       };
+      this.data.appearance.palette = this.data.appearance.palette === 'blue' ? 'blue' : 'cream';
+    }
     // v0.6.1: glasses, pumpkin and scarf used to share the single "outfit" value with the
     // hats; they now have their own slots so they can be worn together.
     const old = this.data.outfit;
@@ -193,15 +203,28 @@ class Personal {
     } else if (action === 'appearance') {
       const clamp = (n, a, b, d) =>
         Number.isFinite(Number(n)) ? Math.max(a, Math.min(b, Number(n))) : d;
+      const cur = this.data.appearance || {};
       this.data.appearance = {
-        font: clamp(args.font, 11, 18, 13),
-        scale: clamp(args.scale, 0.85, 1.15, 1),
-        pet: clamp(args.pet, 0.8, 1.2, 1),
+        font: clamp(args.font, 11, 18, cur.font ?? 13),
+        scale: clamp(args.scale, 0.85, 1.15, cur.scale ?? 1),
+        pet: clamp(args.pet, 0.8, 1.2, cur.pet ?? 1),
         // v0.7.0: the opacity setting was removed; Charles is always fully opaque
         opacity: 1,
-        accent: /^#[0-9a-f]{6}$/i.test(args.accent) ? args.accent : '#edc9a9',
+        accent:
+          /^#[0-9a-f]{6}$/i.test(args.accent)
+            ? args.accent
+            : args.accent === undefined && /^#[0-9a-f]{6}$/i.test(cur.accent)
+              ? cur.accent
+              : '#edc9a9',
         // v0.9.20: the closed island; a value that is not one of the two keeps what was chosen
-        island: ['large', 'small'].includes(args.island) ? args.island : this.data.appearance.island,
+        island: ['large', 'small'].includes(args.island) ? args.island : cur.island,
+        // v1.0.2: colour palette (Krem / Mavi)
+        palette:
+          args.palette === 'blue'
+            ? 'blue'
+            : args.palette === undefined && cur.palette === 'blue'
+              ? 'blue'
+              : 'cream',
       };
     } else throw Error('Geçersiz kişisel ayar.');
     this.save();

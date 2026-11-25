@@ -25,6 +25,7 @@ import { settingsPages } from './settings/settings-pages';
 import { workspaceUI } from './settings/workspace';
 import { noNativeTooltips } from './ui/no-native-tooltips';
 import { tooltips } from './ui/tooltip';
+import { enhanceSettingsSelects } from './ui/custom-select';
 import { profileTransferUI } from './settings/profile-transfer';
 import { statusScroll } from './chat/status-scroll';
 import { stepLists } from './chat/steps';
@@ -58,6 +59,8 @@ import { contentContext } from './chat/content-context';
 import { messageEditor } from './chat/message-editor';
 import { releaseNotes } from './chat/release-notes';
 import { showConnected } from './settings/connected-state';
+import { createSubagentsView } from './chat/subagents-view';
+import { applyPalette, readStoredPalette } from './ui/tokens';
 
 declare global {
   interface Window {
@@ -1305,6 +1308,9 @@ async function switchRoom(r: any) {
   splitAt.clear();
   steps.clear();
   roomBranches = r.branches || {};
+  try {
+    subagentsTracker?.setRoom(r.id || r.active || null, { newThisRun: !!r.newThisRun });
+  } catch {}
   documentContext = !!r.documentContext;
   readingDocument = false;
   cwd = r.cwd;
@@ -1457,8 +1463,41 @@ personalUI(api, notice, attempt, () => {
   bot.triggerEmote('happy', 3);
   Sound.play('finish');
 });
+// v1.0.3: enhance Language, Access & approvals, Island size, and Color palette selects
+enhanceSettingsSelects();
 
 const features = extraUI(api, bot, notice, attempt, switchRoom);
+// v1.0.2: apply palette immediately from storage to prevent FOUC
+applyPalette(readStoredPalette());
+// v1.0.2 / v1.0.3: In-Charles Subagent Tracker mounted at the TOP of island chat (above #feed,
+// never obstructing steps.ts or pushing #composer) and in workspace panel (shared state, zero dup)
+const subagentsTracker = createSubagentsView(api);
+{
+  const conversationEl = document.querySelector<HTMLElement>('main.island > .content > .conversation') || document.querySelector<HTMLElement>('.content > .conversation');
+  const islandSlot = document.createElement('div');
+  islandSlot.id = 'subagents-island';
+  if (conversationEl?.parentElement) {
+    conversationEl.parentElement.insertBefore(islandSlot, conversationEl);
+  } else {
+    const composerEl = document.getElementById('composer');
+    if (composerEl?.parentElement) composerEl.parentElement.insertBefore(islandSlot, composerEl);
+  }
+  subagentsTracker.mountIsland(islandSlot);
+  const mountWorkspaceSubagents = () => {
+    const wsWork = document.querySelector<HTMLElement>('.ws-work');
+    if (wsWork && !wsWork.querySelector('#subagents-panel')) {
+      const panelSlot = document.createElement('div');
+      panelSlot.id = 'subagents-panel';
+      wsWork.append(panelSlot);
+      subagentsTracker.mountPanel(panelSlot);
+    }
+  };
+  mountWorkspaceSubagents();
+  setTimeout(mountWorkspaceSubagents, 300);
+  api.onSubagents?.(() => {
+    mountWorkspaceSubagents();
+  });
+}
 // v0.9.26: the picture card and the big view speak the interface language
 setImageText(t, (n) => percent(n));
 // v0.9.26: the big picture view's Sohbete ekle / Görseli kopyala / Bir kopyasını indir
@@ -1672,6 +1711,10 @@ async function sendMessage(out?: Outgoing): Promise<boolean> {
       hasDocument ||
       (documentContext && /belge|pdf|word|metin|rapor|bunu|bu |sayfa|devam/i.test(text));
     documentContext = documentContext || hasDocument;
+    const sentPreviews = own || features.previews();
+    // v1.0.3: clear sent attachments from the composer immediately on submit (so long subagent or
+    // audio turns never leave already-sent files sitting in #attachments), restoring on send error.
+    const takenFiles = !own ? features.take([]) : [];
     voice.begin();
     busy = true;
     dispatching = true;
@@ -1680,7 +1723,7 @@ async function sendMessage(out?: Outgoing): Promise<boolean> {
     turnMode = mode.value;
     controls();
     notice('');
-    row(text, 'user', own || features.previews());
+    row(text, 'user', sentPreviews);
     if (!out) prompt.value = '';
     state('thinking', readingDocument ? 'Belgeyi okuyorum…' : 'Düşünüyorum…');
     reactToText(text);
@@ -1725,6 +1768,7 @@ async function sendMessage(out?: Outgoing): Promise<boolean> {
       busy = false;
       controls();
       if (!out) prompt.value = text;
+      if (takenFiles.length) features.putBack(takenFiles);
       // the row drawn for it above was not accepted; text and attachments are back in the box
       [...feed.querySelectorAll('.message.user')].at(-1)?.remove();
       userOrdinal--;
@@ -1934,6 +1978,11 @@ void attempt(async () => {
   $<HTMLInputElement>('auto-start').checked = b.autoStart;
   if (cwd) $('folder-name').textContent = cwd;
   controls();
+  // v1.0.3: always bind the subagent tracker to the active boot room (including a fresh empty
+  // chat after reboot) so previous chats' subagents never appear in a new chat.
+  // v1.0.4: the boot chat is made in this run, so tasks read back from disk are never its own
+  // (room ids are also no longer handed out twice: app/ai/sessions.cjs).
+  subagentsTracker.setRoom(b.room?.id || null, { newThisRun: !!b.room?.newThisRun });
   if (b.room?.events?.length) {
     await switchRoom(b.room);
   }

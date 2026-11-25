@@ -173,6 +173,24 @@ function firewall({ publicNet }) {
   });
 }
 
+/**
+ * v1.0.4: a card's action failed (the mail could not be read, the saved file is gone). The card that
+ * was clicked has already gone; this one says so. Its line under the title is the clicked card's own
+ * title (outside text: never translated, inserted as text). No lifetime, like the other error cards;
+ * a click opens Charles.
+ */
+function openFailed(item = {}) {
+  return card({
+    id: 'charles|open-failed|' + Date.now() + '|' + Math.random().toString(36).slice(2, 6),
+    icon: 'alert',
+    tone: 'error',
+    from: clip(item.title, 80),
+    title: 'Bildirim açılamadı',
+    reason: 'İçeriği şu an açılamadı. Charles’ı açıp ona sorabilirsin.',
+    t: ['title', 'reason'],
+  });
+}
+
 const protocol = (p) => PROTOCOLS[p] || 'Quick Share';
 
 module.exports = {
@@ -189,6 +207,7 @@ module.exports = {
   moduleNotice,
   saved,
   firewall,
+  openFailed,
   protocol,
   SOURCES,
   ICON_NAMES,

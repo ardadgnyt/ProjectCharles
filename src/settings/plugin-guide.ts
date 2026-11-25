@@ -525,8 +525,13 @@ export function pluginGuideUI(api: any, notice: (s: string) => void, saved: (v: 
               }),
             );
           p.textContent = 'Tarayıcıdaki giriş ve izin işlemini tamamla…';
-          saved(await api.pluginsLogin(id));
-          p.textContent = 'Hesap bağlandı. Kurulumu bitir düğmesine basabilirsin.';
+          const linked = await api.pluginsLogin(id);
+          saved(linked);
+          const detail = linked?.details?.[id];
+          p.textContent =
+            detail?.state === 'scope_missing' && detail?.message
+              ? detail.message
+              : 'Hesap bağlandı. Kurulumu bitir düğmesine basabilirsin.';
         } catch (e) {
           p.textContent = (e as Error).message;
         } finally {

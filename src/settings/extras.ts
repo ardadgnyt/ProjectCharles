@@ -62,6 +62,7 @@ export function extraUI(
   $('settings-close').onclick = closeSettings;
   settings.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      if (e.defaultPrevented) return;
       e.stopPropagation();
       e.preventDefault();
       closeSettings();

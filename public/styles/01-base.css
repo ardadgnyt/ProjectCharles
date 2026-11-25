@@ -160,7 +160,7 @@ h1 {
 }
 .request {
   border: 1px solid var(--cream-55);
-  background: #2a231d;
+  background: color-mix(in srgb, var(--cream) 14%, #141416);
   border-radius: var(--r-lg);
   padding: 13px;
   margin-bottom: 8px;
@@ -886,7 +886,7 @@ footer {
 :root {
   --color-badge: var(--cream);
   --color-send: var(--cream);
-  --color-user: #241f1b;
+  --color-user: color-mix(in srgb, var(--cream) 10%, #141416);
   --color-agent: #121214;
 }
 .character-center {
@@ -1275,7 +1275,7 @@ input:focus-visible {
 }
 .folder-open {
   font-size: var(--fs-i3) !important;
-  color: #d8c8b8;
+  color: var(--sb-text);
 }
 .utility-actions button {
   background: transparent;
@@ -2157,4 +2157,75 @@ body:not(.keyboard-nav) [role='button']:focus-visible {
 .skip-link:focus-visible {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* ── from 55-v102.css ── */
+/* v1.0.3: readable disabled buttons across Cream and Blue palettes */
+button:disabled:not(.primary):not(.ws-primary):not(.icon):not(.icon-btn):not(.slime-swatch):not([role='switch']):not(.share-switch):not(.tm13-switch),
+button[aria-disabled='true']:not(.primary):not(.ws-primary):not(.icon):not(.icon-btn):not(.slime-swatch):not([role='switch']):not(.share-switch):not(.tm13-switch) {
+  background: var(--btn-disabled-bg);
+  border-color: var(--btn-disabled-border);
+  color: var(--btn-disabled-text);
+  box-shadow: none;
+  opacity: 1;
+  cursor: default;
+}
+button.primary:disabled,
+button.primary[aria-disabled='true'],
+.primary:disabled,
+.primary[aria-disabled='true'] {
+  background: var(--btn-primary-disabled-bg);
+  border-color: var(--btn-primary-disabled-border);
+  color: var(--btn-primary-disabled-text);
+  box-shadow: none;
+  opacity: 1;
+  cursor: default;
+}
+
+/* v1.0.3: modules list and card grid overflow protection in narrow island settings */
+.modules-intro,
+.modules-list,
+.module-card,
+.module-confirm,
+.module-title,
+.module-perms {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+}
+.module-head,
+.module-name,
+.module-tags,
+.module-actions,
+.module-confirm-actions,
+.modules-toolbar {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+.module-head {
+  flex-wrap: wrap;
+}
+.module-title {
+  flex: 1 1 0;
+}
+.module-name {
+  flex-wrap: wrap;
+}
+.module-name strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.module-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.module-desc,
+.module-path,
+.module-perms li {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }

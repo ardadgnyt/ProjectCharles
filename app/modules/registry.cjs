@@ -14,6 +14,7 @@ function writeJson(file, value) {
 
 class ModuleRegistry {
   constructor({ userData, now = () => Date.now() }) {
+    this.userData = userData;
     this.base = path.join(userData, 'modules');
     this.dataBase = path.join(userData, 'module-data');
     this.file = path.join(userData, 'modules.json');
@@ -185,7 +186,13 @@ class ModuleRegistry {
     if (!this.data.modules[id]) throw Error('Bu modül yüklü değil.');
     const m = this.data.modules[id];
     if (!m.devPath) fs.rmSync(path.join(this.base, id), { recursive: true, force: true });
-    if (deleteData) fs.rmSync(path.join(this.dataBase, id), { recursive: true, force: true });
+    if (deleteData) {
+      fs.rmSync(path.join(this.dataBase, id), { recursive: true, force: true });
+      try {
+        const { ModuleFolders } = require('./folders.cjs');
+        new ModuleFolders({ userData: this.userData }).removeModule(id);
+      } catch {}
+    }
     delete this.data.modules[id];
     this.save();
     return true;

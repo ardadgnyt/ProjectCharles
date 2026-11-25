@@ -195,6 +195,12 @@ class Sessions extends EventEmitter {
         j.version === 1 &&
         Array.isArray(j.rooms) &&
         j.rooms.every((r) => r && typeof r.id === 'string' && Array.isArray(r.events));
+      // v1.0.4: chat ids are a counter, and it used to restart from the highest id written to
+      // the history. A chat that never got there (its subagents were still running at a
+      // shutdown, it was left or deleted) then gave its id to the next new chat, and that chat
+      // showed the old chat's subagents. Ids are now never handed out twice: the counter is
+      // saved, and it also starts above every chat id a stored subagent task names.
+      this.counter = Math.max(this.counter, require('./subagents.cjs').highestTaskRoomId(directory));
       const loaded = readStore(this.file, validateHistory);
       this.recoveryWarning = loaded.warning;
       let j = loaded.value;
@@ -207,6 +213,8 @@ class Sessions extends EventEmitter {
         if (recovered) j = recovered;
       }
       if (j) {
+        const saved = Number(j.counter);
+        if (Number.isSafeInteger(saved) && saved <= require('./subagents.cjs').MAX_ROOM_ID) this.counter = Math.max(this.counter, saved);
         this.folders = require('./chat-folders.cjs').restoreFolders(j.folders);
         this.projects = require('./chat-projects.cjs').restoreProjects(j.projects);
         this.autoFolders = j.autoFolders !== false;
@@ -356,8 +364,12 @@ class Sessions extends EventEmitter {
     );
   }
   create(data = {}) {
-    const id = data.id || String(++this.counter);
-    this.counter = Math.max(this.counter, Number(id) || 0);
+    // v1.0.4: a new id is never one a chat in memory already has; an id beyond MAX_ROOM_ID (a damaged
+    // or edited file) never moves the counter, so `++counter` always gives a new number
+    let id = data.id;
+    if (!id) do id = String(++this.counter); while (this.rooms.has(id));
+    const n = Number(id);
+    if (Number.isSafeInteger(n) && n <= require('./subagents.cjs').MAX_ROOM_ID) this.counter = Math.max(this.counter, n);
     const r = {
       id,
       name: String(data.name || 'Yeni sohbet').replace(/\n\nCharles[\s\S]*$/, '') || 'Yeni sohbet',
@@ -380,6 +392,8 @@ class Sessions extends EventEmitter {
       projectSeenAt: Number(data.projectSeenAt) || 0,
       manualFolder: !!data.manualFolder,
       classified: !!data.classified,
+      // v1.0.4: made in this run of Charles (not read from the history); never saved
+      newThisRun: !data.id,
       agent: new Agent(this.root),
     };
     this.rooms.set(id, r);
@@ -470,7 +484,7 @@ class Sessions extends EventEmitter {
     }
   }
   data() {
-    const rooms = [...this.rooms.values()].filter(hasContent).map(({ agent, searchCache, ...r }) => ({
+    const rooms = [...this.rooms.values()].filter(hasContent).map(({ agent, searchCache, newThisRun, held, ...r }) => ({
       ...r,
       events: savedEvents(r.events, { imageDir: this.imageDir }),
     }));
@@ -480,6 +494,8 @@ class Sessions extends EventEmitter {
     return {
       version: 1,
       active,
+      // v1.0.4: the last id handed out, so a chat that was never saved does not give it away again
+      counter: this.counter,
       rooms,
       folders: this.folders,
       projects: this.projects,
@@ -535,6 +551,8 @@ class Sessions extends EventEmitter {
       model: r.model,
       busy: r.agent.busy,
       documentContext: r.documentContext,
+      // v1.0.4: the subagent tracker shows no task from an earlier run in a chat made in this one
+      newThisRun: !!r.newThisRun,
       // v0.8.9: lighter replay (pictures as files); a running turn is sent as it is
       events: r.agent.busy ? r.events : savedEvents(r.events, { imageDir: this.imageDir }),
       requests: [...r.agent.requests.values()].map((q) => ({
@@ -562,7 +580,7 @@ class Sessions extends EventEmitter {
     if (!this.rooms.has(id)) throw Error('Sohbet bulunamadı.');
     // v0.8.8: leaving an empty chat drops it
     const previous = this.current;
-    if (previous && previous.id !== id && !hasContent(previous) && !previous.agent.busy) {
+    if (previous && previous.id !== id && !hasContent(previous) && !previous.agent.busy && !previous.held) {
       previous.agent.stop();
       this.rooms.delete(previous.id);
     }
@@ -578,9 +596,9 @@ class Sessions extends EventEmitter {
     if (this.busy) throw Error('Önce çalışan işi durdurun.');
     const r = this.current;
     r.agent.stop();
-    if (!hasContent(r)) this.rooms.delete(r.id);
+    if (!hasContent(r) && !r.held) this.rooms.delete(r.id);
     else r.closed = true;
-    const next = [...this.rooms.values()].find((x) => x.id !== r.id && !x.closed);
+    const next =[...this.rooms.values()].find((x) => x.id !== r.id && !x.closed);
     if (next) this.active = next.id;
     else return this.add();
     this.scheduleSave();
@@ -633,15 +651,33 @@ class Sessions extends EventEmitter {
       model = options.model === undefined ? previous.model : options.model,
       cwd = previous.cwd;
     previous.agent.stop();
-    if (!hasContent(previous)) this.rooms.delete(previous.id);
+    if (!hasContent(previous) && !previous.held) this.rooms.delete(previous.id);
     else previous.closed = true;
     this.add();
     Object.assign(this.current, { mode, model, cwd });
     this.scheduleSave();
     return this.snapshot();
   }
-  async send(args) {
-    const r = this.current;
+  /** v1.0.4: a chat whose first message is still being prepared (its subagents run before the
+   *  message reaches the history) is not dropped as "empty" when the user opens another chat.
+   *  → release function (calling it twice is harmless). */
+  hold(id) {
+    const r = this.rooms.get(String(id ?? ''));
+    if (!r) return () => {};
+    r.held = (r.held || 0) + 1;
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      r.held = Math.max(0, (r.held || 1) - 1);
+    };
+  }
+  async send(input) {
+    // v1.0.4: `roomId` sends into that chat even when another one is open now (a subagent turn
+    // started in chat A must not finish in chat B); without it, the open chat as before.
+    const { roomId, ...args } = input || {};
+    const r = roomId === undefined || roomId === null ? this.current : this.rooms.get(String(roomId));
+    if (!r) throw Error('Sohbet bulunamadı.');
     const external = /^(gemini|claude|cursor|abacus|evren|copilot):/.test(args.model || '');
     if (r.agent.providerModel !== external) {
       r.agent.threadId = null;
@@ -722,7 +758,7 @@ class Sessions extends EventEmitter {
     } else if (action === 'pin') {
       r.pinned = !r.pinned;
     } else if (action === 'delete') {
-      if (r.agent.busy || r.agent.requests.size) throw Error('Önce bu sohbetin işini durdur.');
+      if (r.agent.busy || r.agent.requests.size || r.held) throw Error('Önce bu sohbetin işini durdur.');
       r.agent.stop();
       this.rooms.delete(id);
       if (id === this.active) this.active = this.rooms.keys().next().value;

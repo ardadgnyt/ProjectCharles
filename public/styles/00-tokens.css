@@ -57,6 +57,64 @@
   --fs-a6: 24px;
   --fw-regular: 400;
   --fw-strong: 600;
+
+  /* switches (v1.0.2): off, on (rich warm amber-cream with clear track/knob contrast), hover, glow, disabled */
+  --switch-off-bg: #262320;
+  --switch-off-border: rgba(255, 255, 255, 0.18);
+  --switch-off-knob: #c9c2b8;
+  --switch-on-bg: #e09f67;
+  --switch-on-border: #f2be8f;
+  --switch-on-knob: #1a120b;
+  --switch-on-hover: #eaad76;
+  --switch-on-glow: rgba(224, 159, 103, 0.28);
+  --switch-disabled-opacity: 0.45;
+
+  /* disabled buttons (v1.0.3): high-contrast readable disabled states without compounded opacity */
+  --btn-disabled-bg: #171614;
+  --btn-disabled-border: rgba(237, 201, 169, 0.14);
+  --btn-disabled-text: #9e9488;
+  --btn-primary-disabled-bg: #2a231d;
+  --btn-primary-disabled-border: rgba(237, 201, 169, 0.24);
+  --btn-primary-disabled-text: #c2ad96;
+}
+
+/* v1.0.2: alternative Blue palette (Mavi). Replaces the cream accent family, user bubble tokens and
+   switch tokens with a readable sky/cobalt blue suited to Charles's dark surfaces; status colours
+   (--ok, --danger, --warn) keep their meaning. */
+:root[data-palette="blue"] {
+  --cream: #7cb8ff;
+  --cream-strong: color-mix(in srgb, var(--cream), #fff 35%);
+  --cream-ink: #0a1422;
+  --cream-deep: color-mix(in srgb, var(--cream) 88%, #000);
+  --cream-02: color-mix(in srgb, var(--cream) 2%, transparent);
+  --cream-04: color-mix(in srgb, var(--cream) 4%, transparent);
+  --cream-08: color-mix(in srgb, var(--cream) 8%, transparent);
+  --cream-12: color-mix(in srgb, var(--cream) 12%, transparent);
+  --cream-18: color-mix(in srgb, var(--cream) 18%, transparent);
+  --cream-25: color-mix(in srgb, var(--cream) 25%, transparent);
+  --cream-35: color-mix(in srgb, var(--cream) 35%, transparent);
+  --cream-45: color-mix(in srgb, var(--cream) 45%, transparent);
+  --cream-55: color-mix(in srgb, var(--cream) 55%, transparent);
+  --cream-70: color-mix(in srgb, var(--cream) 70%, transparent);
+  --cream-85: color-mix(in srgb, var(--cream) 85%, transparent);
+  --ch-bubble: linear-gradient(180deg, var(--cream-18), var(--cream-12)), rgba(10, 18, 30, 0.55);
+  --ch-bubble-line: var(--cream-25);
+  --ch-bubble-top: var(--cream-35);
+  --switch-off-bg: #1e242d;
+  --switch-off-border: rgba(190, 218, 255, 0.2);
+  --switch-off-knob: #bcc7d6;
+  --switch-on-bg: #5da4f5;
+  --switch-on-border: #8bc2ff;
+  --switch-on-knob: #0a1524;
+  --switch-on-hover: #74b3fa;
+  --switch-on-glow: rgba(93, 164, 245, 0.3);
+  --switch-disabled-opacity: 0.45;
+  --btn-disabled-bg: #151b24;
+  --btn-disabled-border: rgba(190, 218, 255, 0.16);
+  --btn-disabled-text: #8fa3bc;
+  --btn-primary-disabled-bg: #1d293a;
+  --btn-primary-disabled-border: rgba(124, 184, 255, 0.22);
+  --btn-primary-disabled-text: #9cb5d4;
 }
 
 /* The app window shows parts written for the island too (Settings, the message box's model line, the

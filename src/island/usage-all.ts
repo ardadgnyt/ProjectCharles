@@ -3,7 +3,7 @@
 // or Günlük token). Which AIs are shown is the workspace's choice (workspaceDash.usageShow);
 // the sliders button changes it here too.
 import { el, icon } from '../workspace/icons';
-import { resetLabel } from './usage';
+import { resetLabel, updatedLabel } from './usage';
 import { percent } from '../settings/time-units';
 
 export const USAGE_PROVIDERS: [string, string, string][] = [
@@ -25,7 +25,7 @@ export function usageAll(api: any, onSummary: (text: string, low: boolean) => vo
   const iconBtn = (name: string, label: string, onclick: () => void) => {
     const b = el('button', 'h13-icon-btn', icon(name));
     b.type = 'button';
-    b.title = label;
+    b.dataset.tip = label;
     b.setAttribute('aria-label', label);
     b.onclick = onclick;
     return b;
@@ -217,7 +217,12 @@ export function usageAll(api: any, onSummary: (text: string, low: boolean) => vo
           const a = setRing(c.a, u.fiveHour, u.labels?.fiveHour || '5 saatlik');
           const b = setRing(c.b, u.weekly, u.labels?.weekly || 'Haftalık');
           c.left = a ?? b;
-          c.note.textContent = !u.fiveHour && !u.weekly ? usageNote(u.unavailable) : u.stale ? 'Son bilinen değer' : u.note || '';
+          c.col.classList.toggle('stale', !!u.stale);
+          c.col.dataset.updatedAt = u.updatedAt ? String(u.updatedAt) : '';
+          const staleNote = u.stale ? updatedLabel(u.updatedAt, true) || 'Son bilinen değer' : '';
+          c.note.textContent = !u.fiveHour && !u.weekly ? usageNote(u.unavailable) : u.stale ? staleNote : u.note || '';
+          // v1.0.3: do not show a hover tooltip with the quota fetch timestamp
+          delete c.col.dataset.tip;
         } catch (err) {
           c.col.classList.add('off');
           c.left = null;
@@ -227,6 +232,19 @@ export function usageAll(api: any, onSummary: (text: string, low: boolean) => vo
     );
     summary();
   }
+  let eventTimer: ReturnType<typeof setTimeout> | undefined;
+  api.onEvent?.((e: any) => {
+    if (
+      e.type === 'account' ||
+      e.type === 'connected' ||
+      e.type === 'usage-changed' ||
+      (e.type === 'agent' && e.data?.method === 'turn/completed')
+    ) {
+      if (!root.getClientRects().length) return;
+      clearTimeout(eventTimer);
+      eventTimer = setTimeout(() => void read(e.type === 'usage-changed'), 400);
+    }
+  });
   return { root, load };
 }
 

@@ -1,6 +1,6 @@
 # Charles — User Guide
 
-This guide covers Charles **v1.0.1 Stable** on Windows 10/11. For installation, see the
+This guide covers Charles **v1.0.4 Stable** on Windows 10/11. For installation, see the
 [README](../README.md#install-and-update). For the full history of changes, see
 [CHANGELOG.md](../CHANGELOG.md) (in English from v0.9.18; older entries are in Turkish).
 
@@ -152,12 +152,26 @@ to remove it. You can add pictures and files to an extra instruction, even with 
 queue they wait with it, and clicking the row brings the text and the files back to the box.
 
 **Attachments.** Add files with **+**, drag them in, or paste a picture. A file has no size limit,
-and one message can carry 1000 files. A GIF can be up to 256 MB and a presentation up to 500 MB. An AI
-reads at most 1,000,000 characters of file text in one message. If a long file does not fit, Charles
+and one message can carry 1000 files. A GIF can be up to 256 MB and a presentation up to 500 MB.
+Audio files (`.mp3`, `.wav`, `.m4a`, `.aac`, `.ogg`, `.flac`, `.webm`, up to 100 MB) can also be
+attached and previewed; Charles transcribes them locally on your PC using bundled FFmpeg and Whisper
+(nothing is sent to an external transcription service) and passes the transcript as untrusted data.
+An AI reads at most 1,000,000 characters of file text in one message. If a long file does not fit, Charles
 sends the part that fits, tells the AI, and names the file for you. Claude takes up to 600 pictures
 in a message and Antigravity up to 1000. With many pictures, each one is sent smaller. The limits of
 your AI account still apply. Cursor, Abacus AI and GitHub Copilot take up to 20 pictures in a
 message and EVREN up to 8.
+
+**Subagents.** When you ask Charles to delegate work using subagents, Charles plans bounded subtasks
+(up to 6 per run, max 3 concurrent, depth 1), runs them under the same workspace and permission
+limits as your chat, and displays live status, activity logs, results, and cancel controls in both
+the island and the app window before combining their findings into one final response.
+
+**AI usage and quotas.** Antigravity usage refreshes automatically on startup, after Antigravity
+turns, and periodically while visible (every 5 minutes when shown, 10 minutes when hidden), showing
+its last update time. GitHub Copilot usage reads real remaining-quota data when the account’s data
+source exposes it; on plans or CLI versions where GitHub Copilot does not publish numeric quota
+balances, Charles states that clearly instead of showing estimated or zero values.
 
 **Creating pictures, web search and research.** The **+** menu shows what the chosen AI can do: a
 choice it cannot do is grey. GPT and Antigravity create pictures with their own image generators;
@@ -253,7 +267,7 @@ In the Turkish interface, Slime holds a Turkish flag on 19 May, 30 August, 29 Oc
 | --- | --- |
 | **General** | Language (Türkçe, English, Deutsch, Français, Español, 中文), start with Windows, sounds and volume, auto-hide and collapse, read aloud, Hey Charles, weather location (search a city or district and pick it from the list), welcome tour |
 | **AI models** | Sign in to ChatGPT/Codex, Claude, Antigravity and Cursor; connect Abacus AI through its own command line tool; connect GitHub Copilot through its own command line tool, which you install yourself or get with VS Code (**Set up with Charles** opens the setup page and walks through the sign-in; the model list is the one your Copilot plan has, and it follows the plan when the plan changes); add an EVREN API key (**Key settings → Save and connect** checks the key against EVREN at once; if EVREN asks an account to accept its own usage terms, the card shows EVREN’s text and an **Accept and connect** button). Every card has **Set up with Charles**, a sign-in button (EVREN: the key settings) and **Check connection**. While an account is connected, its sign-in button is hidden and one status line under the buttons shows a green dot, **Connected** and what the last check said (for example *Models are ready.*); not connected, checking and errors are that line’s text alone, and a sign-in error stays until you act. **Default model**: a list of Charles’ own, grouped by AI, with the chosen AI and model shown together, a search field when there are many models and full keyboard use (arrows, Enter, Esc); *The model I used last* is one of the choices, and a saved model that is no longer offered is shown as unavailable with the reason. Gemini Live has the same status line, and its voice and key settings |
-| **Appearance** | Text size, panel size, character size, **Island size** (Large is the usual size; Small shows the whole island at 3/4 of its width and height, for a laptop screen; the app window keeps its size), screen choice, Slime studio |
+| **Appearance** | **Colour palette** (**Cream** default or **Blue**, applied live across the island, app window, chat bubbles, controls and notification cards without restarting), text size, panel size, character size, **Island size** (Large is the usual size; Small shows the whole island at 3/4 of its width and height, for a laptop screen; the app window keeps its size), screen choice, Slime studio |
 | **Memory** | Things Charles should remember; **Get to know me from the AI I use**: pick ChatGPT, Claude or Antigravity, paste its answer and choose what to keep |
 | **Access** | How much the AI may do without asking, as three short lines (see [Project mode](#project-mode)) |
 | **Plugins** | **Notifications** (show important mail and calendar reminders on the island, words that are always important to you, and **Let the AI decide what is important**), Google (Gmail, Calendar, Drive), Microsoft (Outlook, Calendar), Home Assistant, POP3/IMAP mail, Google Calendar (add events), WhatsApp and its contacts. A connected account shows the same status line as the AI cards; **Check connection** and the button that removes the connection appear while it is connected, and the sign-in button comes back after you remove it. The WhatsApp card shows its connection state in one place: off, waiting, the QR code, an error, or connected with the number |

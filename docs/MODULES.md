@@ -57,7 +57,7 @@ npm run module:pack <folder> <out.zip>
 | `entry` | An `.html` file inside the package. |
 | `icon` | Optional `.png`, `.jpg`, `.svg` or `.webp` inside the package (shown in Settings). |
 | `window` | Optional. `width`/`height` (default 1100 × 760), `minWidth`/`minHeight` (default 480 × 360). |
-| `permissions` | Optional list of `ai`, `image`, `voice`, `download`, `appearance`, `files`. |
+| `permissions` | Optional list of `ai`, `image`, `voice`, `download`, `appearance`, `files`, `folders`. |
 
 Unknown fields, unknown permissions, missing fields or a bad id are refused with a clear message.
 
@@ -71,6 +71,7 @@ Unknown fields, unknown permissions, missing fields or a bad id are refused with
 | `download` | `download.*` — Charles' download engine (yt-dlp, FFmpeg, the download queue). |
 | `appearance` | `slime.wear` — accessories on the desktop Slime while the module is open (Charles 0.8.8+). |
 | `files` | `files.save` / `files.pick` — save a file to the user's computer and read files the user picks, always through Windows' own Save / Open window (Charles 0.9.12+). Shown to the user as: “Kaydet penceresiyle bilgisayarına dosya kaydedebilir, Aç penceresiyle seçtiğin dosyaları okuyabilir. Neyin ve nereye kaydedileceğini, hangi dosyanın açılacağını her seferinde sen seçersin; modül başka hiçbir dosyana erişemez.” |
+| `folders` | `folders.*` — read, scan, atomically write, move, and move to Recycle Bin inside user-chosen folders (Charles 1.0.2+, `features: folders`). Grants are stored per device by Charles and can be revoked in **Settings → Modules**. |
 | `storage` *(always)* | Files in the module's own data folder only. |
 | `slime` *(always)* | `slime.emote`, `slime.react`, `slime.look` — Slime's expressions and reactions, and reading his look. |
 | `notify` *(always)* | `notify` — a short message on one of Charles' notification cards (a click opens the module). |
@@ -149,6 +150,28 @@ const p = await C.files.pick({ filters: [{ name: 'Evren paketi', extensions: ['z
 // → { picked: true, files: [{ name, size, data }] }  data: Uint8Array ('binary'), text ('utf8') or base64
 // → { picked: false, files: [] }                    — cancelled
 
+// Charles 1.0.2+ (features: folders; "folders" permission). User-chosen folder grants stored by Charles
+// in %APPDATA%\Charles\module-folders.json (device-local; revocable in Settings → Modules).
+if ((await C.info()).features?.includes('folders')) {
+  const picked = await C.folders.pick({ title: 'Select folder' });
+  // → { picked: true, folder: { id: 'f_…', name, path } } | { picked: false }
+  await C.folders.relink(id, { title: 'Relink folder' });   // keeps grant id, updates path/name
+  await C.folders.granted();                                // → [{ id, name, path, addedAt, available }]
+  await C.folders.forget(id);                               // revokes grant without touching folder
+  await C.folders.stat(id, 'lore/a.md');                    // → { exists, dir, size, modified } | { exists: false }
+  await C.folders.scan(id, { path: '', hash: true, skip: [], maxFiles: 20000 });
+  // → { files: [{ path, size, modified, sha256? }], dirs, errors, truncated }
+  await C.folders.read(id, 'universe.json', { encoding: 'utf8' });     // 'utf8' | 'base64' | 'binary'; max 50 MB
+  await C.folders.readMany(id, ['a.md', 'b.md'], { encoding: 'utf8' }); // max 500 paths, 64 MB total
+  await C.folders.write(id, 'lore/a.md', text, { encoding: 'utf8', expectSha256, mkdirs: true });
+  // → { written: true, sha256, size } | { written: false, conflict: { exists, sha256 } }
+  await C.folders.mkdir(id, 'lore/sub');
+  await C.folders.move(id, 'a.md', 'b.md', { overwrite: false });
+  await C.folders.trash(id, 'lore/old.md');                 // Recycle Bin only (shell.trashItem); root refused
+}
+// Read-only files inside a granted folder can be displayed directly via:
+//   charles-module://<moduleId>/_folder/<grantId>/<relPath>
+
 const off = C.on('language', (lang) => { /* 'tr', 'en', 'de', … */ });
 ```
 
@@ -190,6 +213,7 @@ Files in the data folder can be shown directly in the page with
 | Installed files | `%APPDATA%\Charles\modules\<id>\` |
 | The module's data | `%APPDATA%\Charles\module-data\<id>\` — kept when the module is updated or removed, unless "Delete its data too" is ticked. Quota 500 MB. |
 | The list | `%APPDATA%\Charles\modules.json` — id, version, on/off, granted permissions, install date, window position |
+| Folder grants | `%APPDATA%\Charles\module-folders.json` — device-local folder grants for modules with `folders` permission (removed only if the module is removed with "Delete its data too" or revoked per folder; the granted folder itself is never touched) |
 
 ## Security limits
 
@@ -216,6 +240,19 @@ Files in the data folder can be shown directly in the page with
   checks as `storage`, no links). At most 200 MB per save, 5000 files in a zip, 20 files / 200 MB
   per pick. Files are written atomically (temporary file, then rename). The module never learns a
   full path: it gets only the name and the size (or the picked files' names and contents).
+* **Folders** (`folders.*`, Charles 1.0.2+): grants are stored by Charles in
+  `%APPDATA%\Charles\module-folders.json` (never inside module data) and can be revoked anytime in
+  **Settings → Modules**. `folders.pick` and `folders.relink` require `navigator.userActivation`,
+  one dialog at a time (6 / min), and refuse drive roots, Windows/Program Files/ProgramData,
+  `%APPDATA%\Charles`, the user profile root, symlinks, and UNC network paths. Every relative path
+  must use `/` (no `\`, `..`, absolute paths, drive letters, `:`, control chars, or Windows
+  reserved names). Every path segment is checked with `lstat` and `realpath` so symlinks and
+  junctions cannot escape the grant root; `scan` skips symlinks and `.tmp-` files. Executable
+  extensions (`FORBIDDEN`) are refused on `write` and `move`. Writes are atomic (`.tmp-*` +
+  `fsync` + `rename`) with optional `expectSha256` optimistic locking. Deletion uses only
+  `shell.trashItem` (Recycle Bin); permanent deletion and deleting the grant root are refused.
+  `/_folder/<grantId>/<rel>` serves read-only files only from that module's own grant with
+  `X-Content-Type-Options: nosniff`.
 * **API**: each call is matched to the window's module (webContents → module id) and its
   permissions; a turned-off module can't be opened or call anything.
 

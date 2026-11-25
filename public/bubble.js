@@ -134,13 +134,27 @@ function mailCard(item) {
     window.bubble.dismiss(item.id);
   });
   card.append(close);
-  card.onclick = () => {
-    if (quiet()) return;
+  let lastOpen = 0;
+  const openCard = () => {
+    const now = Date.now();
+    if (quiet() || now - lastOpen < 350) return;
+    lastOpen = now;
     window.bubble.open(item.id);
+  };
+  // v1.0.3: act on pointerdown as well as click so WS_EX_NOACTIVATE (focusable: false) cards
+  // on Windows never drop clicks when opening a notification.
+  card.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || e.target.closest('button')) return;
+    e.preventDefault();
+    openCard();
+  });
+  card.onclick = (e) => {
+    if (e.target.closest('button')) return;
+    openCard();
   };
   card.onkeydown = (e) => {
     if (e.target !== card) return;
-    if (e.key === 'Enter' || e.key === ' ') window.bubble.open(item.id);
+    if (e.key === 'Enter' || e.key === ' ') openCard();
   };
   return card;
 }
@@ -204,17 +218,22 @@ function actOnPress(button, fn) {
     if (e.key === 'Enter' || e.key === ' ') go(e);
   });
 }
+// v1.0.4: with no card drawn the stack is only its padding: 0 then, so an empty, see-through window
+// never stays on screen taking the clicks meant for what is under it
 const resize = () =>
   // setTimeout, not requestAnimationFrame: the window is still hidden on first render.
-  setTimeout(() => window.bubble.resize(Math.ceil(stack.getBoundingClientRect().height)), 0);
+  setTimeout(() => window.bubble.resize(!waHost.childElementCount && !mailHost.childElementCount ? 0 : Math.ceil(stack.getBoundingClientRect().height)), 0);
 const waHost = element('div', 'wa-host');
 const mailHost = element('div', 'mail-host');
 waHost.hidden = true;
 mailHost.hidden = true;
 stack.append(waHost, mailHost);
-window.bubble.onItems(({ items, more, wa, language, words }) => {
+window.bubble.onItems((data = {}) => {
+  let { items, more, wa, language, words } = data;
   if (typeof language === 'string') lang = language;
   if (words && typeof words === 'object') WORDS = words;
+  if (data.palette !== undefined)
+    document.documentElement.dataset.palette = data.palette === 'blue' ? 'blue' : 'cream';
   for (const i of [...(items || []), ...(Array.isArray(wa) ? wa : [])]) if (closed(i)) window.bubble.dismiss(i.id);
   items = (items || []).filter((i) => !closed(i));
   wa = Array.isArray(wa) ? wa.filter((i) => !closed(i)) : [];
@@ -423,9 +442,12 @@ function dismissButton(singleItem = null) {
       window.bubble.dismiss(singleItem.id);
       return;
     }
-    for (const i of waItems) forget(i);
+    const closing = [...waItems];
+    for (const i of closing) forget(i);
     waUpdate([]);
     resize();
+    // v1.0.3: dismiss directly on MailBubble as well as via bubble-wa so closing never stalls
+    for (const i of closing) window.bubble.dismiss(i.id);
     void window.bubble.wa('dismiss-all').catch(() => {});
   });
   return b;

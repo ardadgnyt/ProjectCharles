@@ -16,7 +16,7 @@ const { zipSync } = require('fflate');
 const ROOT = path.resolve(__dirname, '..');
 const BASE = ['Charles.exe', 'src', 'test', 'docs', 'DEVELOPMENT.md', 'LICENSE-ASSETS.md', 'app', 'dist', 'public', 'package.json', 'package-lock.json', 'LICENSE', 'README.md', 'CHANGELOG.md', 'setup', 'scripts', 'Start-Charles.cmd', 'licenses', 'THIRD-PARTY-NOTICES.md'];
 // never shipped, wherever they are
-const SKIP = /(^|\/)(\.git|node_modules|_update|_setup|dist-setup|_to_delete|__pycache__|graphify-out|\.qa|\.DS_Store|Thumbs\.db)(\/|$)|(^|\/)(\.env(\..*)?|Charles-creator\.json|charles-install\.json|charles-manifest\.json|personal\.json|companion\.json|charles-history\.json|preferences\.json|[^/]*\.enc\.json|[^/]*\.key|[^/]*\.pem|[^/]*\.log)$/i;
+const SKIP = /(^|\/)(\.git|node_modules|_update|_setup|dist-setup|_to_delete|__pycache__|graphify-out|\.qa|\.DS_Store|Thumbs\.db)(\/|$)|(^|\/)(\.env(\..*)?|Charles-creator\.json|charles-install\.json|charles-manifest\.json|personal\.json|companion\.json|charles-history\.json|preferences\.json|subagents\.json(\.bak|\.tmp(-a)?)?|[^/]*\.enc\.json|[^/]*\.key|[^/]*\.pem|[^/]*\.log)$/i;
 
 function collect(rel, out) {
   const abs = path.join(ROOT, rel);
@@ -34,6 +34,17 @@ function collect(rel, out) {
 function pack({ outDir = path.join(ROOT, 'release'), extra = [] } = {}) {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   if (!fs.existsSync(path.join(ROOT, 'Charles.exe'))) throw Error('Charles.exe missing: build the release on Windows.');
+  // v1.0.4: Charles.exe must be built from this setup/CharlesLauncher.cs: the host number it sets
+  // has to be the one app/main.cjs expects, or every start hands over to the launcher once more
+  {
+    const cs = fs.readFileSync(path.join(ROOT, 'setup', 'CharlesLauncher.cs'), 'utf8');
+    const stamp = /string stamp="(host-v\d+):"/.exec(cs)?.[1];
+    const host = /EnvironmentVariables\["CHARLES_HOST"\] = "(\d+)";/.exec(cs)?.[1];
+    const exe = fs.readFileSync(path.join(ROOT, 'Charles.exe'));
+    const has = (s) => exe.includes(Buffer.from(s, 'utf16le'));
+    if (!stamp || !host || !has(stamp + ':') || !has(host) || !fs.readFileSync(path.join(ROOT, 'app', 'main.cjs'), 'utf8').includes(`process.env.CHARLES_HOST !== '${host}'`))
+      throw Error('Charles.exe is older than setup/CharlesLauncher.cs (or app/main.cjs expects another host): run `npm run build` again.');
+  }
   if (!fs.existsSync(path.join(ROOT, 'app', 'system', 'charles-helper.exe'))) throw Error('charles-helper.exe missing: run scripts/build-helper.ps1.');
   if (!fs.existsSync(path.join(ROOT, 'dist', 'renderer.js')))
     throw Error('dist/ is missing: run `npm run build` first. / dist/ yok: önce `npm run build` çalıştır.');

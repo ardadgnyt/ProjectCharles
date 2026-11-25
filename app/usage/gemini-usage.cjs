@@ -12,9 +12,8 @@ function geminiUsage(text) {
     blocked: null,
     updatedAt: Date.now(),
   };
-  for (const line of String(text)
-    .replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, '')
-    .split(/\r?\n/)) {
+  const cleanText = String(text).replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, '');
+  for (const line of cleanText.split(/\r?\n/)) {
     const parts = line.trim().split(/\t+|\s*│\s*|\s*\|\s*| {2,}/).filter(Boolean);
     if (parts.length < 3 || !/^Gemini Models$/i.test(parts[0].trim())) continue;
     const key = /(?:five[ -]?hour|5[ -]?(?:hour|hr)|5h)\b/i.test(parts[1])
@@ -33,7 +32,18 @@ function geminiUsage(text) {
   if (windows.length) result.blocked = windows.some(w => w.remaining === 0);
   result.missingWindows = !result.fiveHour && result.weekly ? ['fiveHour'] : [];
   if (result.missingWindows.length) result.note = 'Antigravity bu hesap için 5 saatlik kota verisi paylaşmıyor.';
-  if (!result.fiveHour && !result.weekly) result.unavailable = 'Kota bilgisi okunamadı';
+  if (!result.fiveHour && !result.weekly) {
+    if (/not (?:logged|signed) in|authentication required|login required|unauthori[sz]ed|\b40[13]\b/i.test(cleanText)) {
+      result.unavailable = 'Antigravity oturumu açık değil';
+    } else if (/\b429\b|rate limit|too many requests/i.test(cleanText)) {
+      result.unavailable = 'Çok fazla istek yapıldı · birazdan yenilenecek';
+      result.rateLimited = true;
+    } else if (/network|enotfound|econn|etimedout|timed? ?out|offline|fetch failed/i.test(cleanText)) {
+      result.unavailable = 'Bağlantı yok · kota okunamadı';
+    } else {
+      result.unavailable = 'Kota bilgisi okunamadı';
+    }
+  }
   return result;
 }
 function geminiSummary(data) {

@@ -126,6 +126,10 @@
 .settings-page .read-toggle svg {
   display: none;
 }
+.settings-page .read-toggle:has(input:checked) {
+  background: transparent;
+  color: inherit;
+}
 .settings-page > label {
   display: flex;
   gap: 8px;
@@ -279,13 +283,16 @@
   min-width: 28px;
   padding: 0;
   margin: 0 8px 0 0;
-  border: 1px solid #ffffff15;
+  border: 1px solid var(--switch-off-border);
   border-radius: var(--r-md);
-  background: #37373d;
+  background: var(--switch-off-bg);
   position: relative;
   vertical-align: middle;
   cursor: pointer;
-  transition: background 0.15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 #settings-panel input[type="checkbox"]::before,
 #sessions-panel .folder-auto input[type="checkbox"]::before {
@@ -296,8 +303,11 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #a9a9b1;
-  transition: transform 0.15s;
+  background: var(--switch-off-knob);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  transition:
+    transform 0.15s,
+    background-color 0.15s;
 }
 #settings-panel input[type="checkbox"]:focus-visible,
 #sessions-panel .folder-auto input[type="checkbox"]:focus-visible {
@@ -402,12 +412,23 @@
 }
 #settings-panel input[type="checkbox"]:checked,
 #sessions-panel .folder-auto input[type="checkbox"]:checked {
-  background: var(--cream);
+  background: var(--switch-on-bg);
+  border-color: var(--switch-on-border);
+  box-shadow: 0 0 0 1px var(--switch-on-glow);
+}
+#settings-panel input[type="checkbox"]:checked:hover:not(:disabled),
+#sessions-panel .folder-auto input[type="checkbox"]:checked:hover:not(:disabled) {
+  background: var(--switch-on-hover);
 }
 #settings-panel input[type="checkbox"]:checked::before,
 #sessions-panel .folder-auto input[type="checkbox"]:checked::before {
   transform: translateX(12px);
-  background: #fff7ef;
+  background: var(--switch-on-knob);
+}
+#settings-panel input[type="checkbox"]:disabled,
+#sessions-panel .folder-auto input[type="checkbox"]:disabled {
+  opacity: var(--switch-disabled-opacity);
+  cursor: default;
 }
 #settings-panel .settings-page input[type="color"] {
   padding: 3px;
@@ -2130,8 +2151,9 @@ body.workspace .ws-chat-body #effort-button {
 }
 #settings-panel input[type='checkbox']:not(:checked),
 #sessions-panel .folder-auto input[type='checkbox']:not(:checked) {
-  background: var(--ch-field-hover);
-  box-shadow: inset 0 0 0 1px var(--sb-line-strong);
+  background: var(--switch-off-bg);
+  border-color: var(--switch-off-border);
+  box-shadow: inset 0 0 0 1px var(--switch-off-border);
 }
 #settings-panel input[type='range'] {
   background: transparent;
@@ -3233,4 +3255,329 @@ body.keyboard-nav #workspace input:focus-visible {
 /* nothing to say: no empty line */
 #settings-panel .card-state:not(.connected):has(.state-text:empty) {
   display: none;
+}
+
+/* ── from 55-v102.css ── */
+.module-folders {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--cream-12);
+}
+.module-folders-title {
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-strong);
+  color: var(--cream-70);
+}
+.module-folder-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 10px;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  background: var(--cream-04);
+  border: 1px solid var(--cream-12);
+}
+.module-folder-info {
+  display: flex;
+  flex: 1 1 140px;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+  gap: 2px;
+}
+.module-folder-path {
+  min-width: 0;
+  max-width: 100%;
+  font-size: var(--fs-i2);
+  color: var(--sb-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.module-folder-meta {
+  font-size: var(--fs-i1);
+  color: var(--cream-55);
+}
+.module-folder-row button {
+  flex: none;
+}
+
+/* v1.0.3: modules page layout containment in narrow island and workspace settings */
+#settings-panel .settings-page[data-category='modules'] {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+#settings-panel .modules-intro,
+#settings-panel .modules-list,
+#settings-panel .module-card,
+#settings-panel .module-confirm,
+#settings-panel .module-title,
+#settings-panel .module-perms {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+}
+#settings-panel .module-card,
+#settings-panel .module-confirm {
+  overflow: hidden;
+}
+#settings-panel .module-head,
+#settings-panel .module-name,
+#settings-panel .module-tags,
+#settings-panel .module-actions,
+#settings-panel .modules-actions {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+#settings-panel .module-title {
+  flex: 1 1 0;
+}
+#settings-panel .module-desc,
+#settings-panel .module-path,
+#settings-panel .module-perms li {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* v1.0.3: readable disabled buttons in settings (Cream and Blue palettes) */
+#settings-panel .settings-page button:disabled:not(.primary):not(.ws-primary):not(.icon):not(.icon-btn):not(.slime-swatch):not([role='switch']):not(.share-switch):not(.tm13-switch),
+#settings-panel .settings-page button[aria-disabled='true']:not(.primary):not(.ws-primary):not(.icon):not(.icon-btn):not(.slime-swatch):not([role='switch']):not(.share-switch):not(.tm13-switch) {
+  background: var(--btn-disabled-bg);
+  border-color: var(--btn-disabled-border);
+  color: var(--btn-disabled-text);
+  box-shadow: none;
+  opacity: 1;
+  cursor: default;
+}
+#settings-panel .settings-page button.primary:disabled,
+#settings-panel .settings-page .primary:disabled,
+#settings-panel .settings-page button.primary[aria-disabled='true'],
+#settings-panel .settings-page .primary[aria-disabled='true'] {
+  background: var(--btn-primary-disabled-bg);
+  border-color: var(--btn-primary-disabled-border);
+  color: var(--btn-primary-disabled-text);
+  box-shadow: none;
+  opacity: 1;
+  cursor: default;
+}
+#settings-panel .module-card.off {
+  opacity: 1;
+}
+#settings-panel .module-card.off .module-head,
+#settings-panel .module-card.off .module-desc,
+#settings-panel .module-card.off .module-tags {
+  opacity: 0.72;
+}
+
+/* v1.0.3: custom select dropdown (src/ui/custom-select.ts) */
+.cs-native-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  pointer-events: none !important;
+}
+#settings-panel .cs-field {
+  display: grid;
+  min-width: 0;
+  max-width: 100%;
+}
+#settings-panel .language-row .cs-field {
+  min-width: 164px;
+}
+#settings-panel .cs-trigger {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  margin: 0;
+  padding: 6px 10px 6px 12px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-md);
+  background: var(--ch-field);
+  color: var(--sb-text);
+  font: inherit;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s,
+    box-shadow 0.15s;
+}
+#settings-panel .cs-trigger:hover:not(:disabled):not([aria-disabled='true']) {
+  border-color: var(--cream-25);
+  background: var(--ch-field-hover);
+}
+#settings-panel .cs-trigger:focus-visible,
+#settings-panel .cs-trigger.cs-open {
+  border-color: var(--cream-45);
+  box-shadow: 0 0 0 3px var(--cream-12);
+}
+#settings-panel .cs-trigger:disabled,
+#settings-panel .cs-trigger[aria-disabled='true'] {
+  background: var(--btn-disabled-bg);
+  border-color: var(--btn-disabled-border);
+  color: var(--btn-disabled-text);
+  box-shadow: none;
+  opacity: 1;
+  cursor: default;
+}
+#settings-panel .cs-value {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  min-width: 0;
+}
+#settings-panel .cs-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  line-height: 1.3;
+}
+#settings-panel .cs-chevron {
+  display: inline-flex;
+  flex: none;
+  color: var(--sb-muted);
+  transition: transform 0.15s;
+}
+#settings-panel .cs-trigger.cs-open .cs-chevron {
+  transform: rotate(180deg);
+}
+.cs-popup,
+#settings-panel .cs-popup {
+  position: fixed;
+  z-index: 80;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+  border: 1px solid var(--sb-line-strong);
+  border-radius: var(--r-lg);
+  background: var(--ch-card);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.72);
+  overflow: hidden;
+}
+.cs-popup[hidden],
+#settings-panel .cs-popup[hidden] {
+  display: none !important;
+}
+.cs-list,
+#settings-panel .cs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  outline: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ch-scroll) transparent;
+}
+.cs-option,
+#settings-panel .cs-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: var(--r-md);
+  color: var(--sb-text);
+  font-size: var(--fs-i3);
+  line-height: 1.35;
+  cursor: pointer;
+  user-select: none;
+}
+.cs-option-text,
+#settings-panel .cs-option-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cs-option-name,
+#settings-panel .cs-option-name {
+  min-width: 0;
+  font-size: var(--fs-i3);
+  font-weight: var(--fw-strong);
+  overflow-wrap: anywhere;
+}
+.cs-option-meta,
+#settings-panel .cs-option-meta {
+  color: var(--sb-muted);
+  font-size: var(--fs-i2);
+  font-weight: var(--fw-regular);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.cs-check,
+#settings-panel .cs-check {
+  display: inline-flex;
+  flex: none;
+  width: 13px;
+  color: var(--sb-accent);
+  visibility: hidden;
+}
+.cs-option.cs-active,
+#settings-panel .cs-option.cs-active {
+  background: var(--ch-control-hover);
+  color: var(--sb-text);
+}
+body.keyboard-nav .cs-option.cs-active,
+body.keyboard-nav #settings-panel .cs-option.cs-active {
+  box-shadow: inset 0 0 0 1px var(--cream-45);
+}
+.cs-option[aria-selected='true'],
+#settings-panel .cs-option[aria-selected='true'] {
+  background: var(--cream-08);
+  color: var(--sb-accent);
+}
+.cs-option[aria-selected='true'].cs-active,
+#settings-panel .cs-option[aria-selected='true'].cs-active {
+  background: var(--cream-12);
+}
+.cs-option[aria-selected='true'] .cs-check,
+#settings-panel .cs-option[aria-selected='true'] .cs-check {
+  visibility: visible;
+}
+.cs-option[aria-disabled='true'],
+#settings-panel .cs-option[aria-disabled='true'] {
+  color: var(--btn-disabled-text);
+  cursor: default;
 }

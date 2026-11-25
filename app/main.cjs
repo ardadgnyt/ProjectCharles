@@ -4,6 +4,7 @@
 // was running, and only Charles.exe knows which host is current.
 // v1.0.0: host 4 carries the 1.0.0.0 version resource; a host 3 left by the Release Candidates is replaced the same way.
 // v1.0.1: host 5 carries 1.0.1.0; a host 4 left by v1.0.0 is replaced the same way.
+// v1.0.4: host 6 carries 1.0.4.0 (a host 5 made by 1.0.1–1.0.3 kept its old version after an in-place update).
 // v1.0.0: so does any host while a newer Electron waits in _update\runtime (app/core/runtime-update.cjs):
 // only Charles.exe can put it in place, before Electron runs. It sets CHARLES_RUNTIME_TRIED when it
 // left the runtime where it was, so this never loops.
@@ -19,11 +20,16 @@ const runtimeWaits = (() => {
     return false;
   }
 })();
-if (process.platform === 'win32' && !process.argv.includes('--demo') &&
-    (startedAs === 'electron.exe' || (startedAs.startsWith('charles-host-') && process.env.CHARLES_HOST !== '5') || runtimeWaits)) {
+// v1.0.4: a host that Charles.exe started right after this very hand-over (CHARLES_HANDED_OVER) never
+// hands over again: a Charles.exe that disagrees with this file about the host number (a launcher left
+// unbuilt) would otherwise start the host, be started again by it, and so on without end.
+const handedOver = process.env.CHARLES_HANDED_OVER === '1';
+delete process.env.CHARLES_HANDED_OVER;
+if (process.platform === 'win32' && !process.argv.includes('--demo') && !handedOver &&
+    (startedAs === 'electron.exe' || (startedAs.startsWith('charles-host-') && process.env.CHARLES_HOST !== '6') || runtimeWaits)) {
   const entry = require('node:path').resolve(__dirname, '..', 'Charles.exe');
   if (require('node:fs').existsSync(entry)) {
-    const env = { ...process.env };
+    const env = { ...process.env, CHARLES_HANDED_OVER: '1' };
     // the runtime hand-over: this host is about to exit, and a launcher that cannot apply it never
     // hands it back here again
     if (runtimeWaits) Object.assign(env, { CHARLES_RUNTIME_WAIT: '1', CHARLES_RUNTIME_TRIED: '1' });
@@ -169,7 +175,33 @@ let win,
   stripAsleep = false,
   chosenCwd = null;
 let dialogOpen = false,
-  dropHeldUntil = 0;
+  dialogOpenSeq = 0,
+  dropHeldUntil = 0,
+  expandGraceUntil = 0;
+// v1.0.3: sequence-guarded native dialog lifecycle so Island mode never collapses or closes
+// Settings when a Windows file picker opens/closes (modules-pick, plugins-import-google).
+const beginDialog = () => {
+  dialogOpenSeq += 1;
+  dialogOpen = true;
+  clearTimeout(blurTimer);
+  return dialogOpenSeq;
+};
+const endDialog = (seq, keepIsland = false) => {
+  lastInside = Date.now();
+  if (keepIsland) {
+    dropHeldUntil = Math.max(dropHeldUntil, Date.now() + 4000);
+    clearTimeout(blurTimer);
+    if (!workspace && expanded && win && !win.isDestroyed()) {
+      try {
+        win.show();
+        win.focus();
+      } catch {}
+    }
+  }
+  setTimeout(() => {
+    if (dialogOpenSeq === seq) dialogOpen = false;
+  }, keepIsland ? 450 : 0);
+};
 // v0.9.20: a shelf file is in the air. startDrag runs Windows' drag loop and Charles' timers go on
 // inside it; a timer that touches the window (click-through, topmost, taskbar, folding the panel)
 // could end the drag by itself, so they all wait. They cannot change anything the drag needs.
@@ -194,6 +226,7 @@ let petTopTimer = null;
 let extrasAttachment = null,
   dictation = null;
 let mailBubble = null,
+  subagents = null,
   mailAlerts = null,
   proposals = null,
   bubbleTimer = null;
@@ -552,14 +585,28 @@ function setWorkspace(on) {
   }
   return !!workspace;
 }
-/** v0.9.0: no taskbar button for the island and the notification cards (the app window keeps its). */
+/** v0.9.0: no taskbar button for the island and the notification cards (the app window keeps its).
+ *  v1.0.4: Electron's setSkipTaskbar asks ITaskbarList (CoCreateInstance, HrInit, DeleteTab) on
+ *  every call, and this ran every 4 s for every window. Now a window is asked again only after it
+ *  was shown, focused or restored (when Windows can give it its button back: `islandTaskbarDue`),
+ *  plus one full pass a minute (an Explorer restart forgets every DeleteTab), and nothing while a
+ *  full-screen program is in front (the pass runs when it is left; see startTopGuard). */
 let taskbarTimer = null;
+let islandTaskbarDue = true;
+let taskbarFullAt = Date.now();
 function offTaskbar() {
   if (rackDragging) return;
+  if (fullscreenFront) return;
+  const full = Date.now() - taskbarFullAt >= 60000;
+  if (full) taskbarFullAt = Date.now();
   try {
-    if (islandWin && !islandWin.isDestroyed()) islandWin.setSkipTaskbar(true);
-    if (!workspace && appWin && !appWin.isDestroyed() && !appWin.isVisible()) appWin.setSkipTaskbar(true);
-    mailBubble?.offTaskbar?.();
+    if (full || islandTaskbarDue) {
+      islandTaskbarDue = false;
+      if (islandWin && !islandWin.isDestroyed()) islandWin.setSkipTaskbar(true);
+    }
+    if (full && !workspace && appWin && !appWin.isDestroyed() && !appWin.isVisible()) appWin.setSkipTaskbar(true);
+    if (full) mailBubble?.offTaskbarAgain?.();
+    else mailBubble?.offTaskbar?.();
   } catch {}
 }
 function workspaceWindow(action) {
@@ -673,6 +720,10 @@ function whatsappLive() {
 }
 /** Actions of the WhatsApp card under the island (public/bubble.js). */
 async function whatsappBubbleAction(action, args) {
+  if (action === 'dismiss-all') {
+    for (const i of [...(mailBubble?.items || [])]) if (i.kind === 'whatsapp') mailBubble.dismiss(i.id);
+    return true;
+  }
   const live = whatsappLive();
   const chat = String(args.chat || '');
   if (action === 'conversation') return live.conversation(chat);
@@ -689,10 +740,6 @@ async function whatsappBubbleAction(action, args) {
   if (action === 'open') {
     const digits = /@s\.whatsapp\.net$/.test(chat) ? chat.split('@')[0].replace(/\D/g, '') : '';
     await shell.openExternal(digits ? `whatsapp://send?phone=${digits}` : 'whatsapp://');
-    return true;
-  }
-  if (action === 'dismiss-all') {
-    for (const i of [...(mailBubble?.items || [])]) if (i.kind === 'whatsapp') mailBubble.dismiss(i.id);
     return true;
   }
   throw Error('Bilinmeyen WhatsApp işlemi.');
@@ -1103,19 +1150,29 @@ function foregroundReader() {
  * helper moves only Charles' own windows, without activating them, and only while the window in
  * front covers its monitor (CharlesHelper.cs Below).
  */
-function lowerUnderFullscreen() {
-  if (!topForeground || !fullscreenOther) return;
+function visibleWindowHandles() {
   const handles = [];
   for (const w of require('electron').BaseWindow.getAllWindows()) {
     try {
       if (!w.isDestroyed() && w.isVisible()) handles.push(w.getNativeWindowHandle().readBigUInt64LE(0).toString());
     } catch {}
   }
+  return handles;
+}
+function registerCharlesWindows() {
+  if (!topForeground) return;
+  const handles = visibleWindowHandles();
+  if (handles.length) topForeground.register?.(process.pid, handles);
+}
+function lowerUnderFullscreen() {
+  if (!topForeground || !fullscreenOther) return;
+  const handles = visibleWindowHandles();
   topForeground.below(process.pid, handles);
 }
 function startTopGuard() {
   if (process.platform !== 'win32' || topGuard || demo) return;
   topForeground = foregroundReader();
+  registerCharlesWindows();
   const check = (fg) => {
     if (!fg || !win || win.isDestroyed() || rackDragging) return;
     // v1.0.0: a report that could not say (the helper failed on this window) changes nothing. It
@@ -1128,8 +1185,12 @@ function startTopGuard() {
       fullscreenFront = d.front;
       // v0.9.18: a game gets its Down Arrow at once, with no wait for a double press
       dictation?.pause(d.front || micBlocked());
+      // v1.0.2: keep cards deferred across all displays while a fullscreen game is in front
+      mailBubble?.place();
       // v1.0.0 (taskbar): what waited for its end (a flash, a toast, a window to open) runs now
       if (!d.front) fullscreenGate.flush();
+      // v1.0.4: and the taskbar pass that waited (offTaskbar does nothing while it is in front)
+      if (!d.front) setImmediate(offTaskbar);
     }
     // v1.0.0: also with the app window open. This used to stop here for `workspace`, so a game
     // started while the app window was open was never noticed: a WhatsApp or mail card then came up
@@ -1159,6 +1220,7 @@ function startTopGuard() {
     // took its place) says nothing about full screen, and the helper reports again only on the next
     // change: the island stayed off the topmost band until then. Ask the helper again instead.
     if ((fullscreenOther || fullscreenFront) && topForeground.latest && typeof topForeground.latest.full !== 'boolean') topForeground.latest = null;
+    registerCharlesWindows();
     check(await topForeground.read().catch(() => null));
     // v1.0.1 (taskbar): a Charles window shown again behind a full-screen program (a card, the island
     // after a page reload) goes back under it; a window already there does not move
@@ -1307,20 +1369,33 @@ function expand(value, focus = false, chat = true) {
   // strip under it counted as "resting on the island" and opened the shelf again 120 ms later.
   // It wakes only after the pointer has been away.
   if (!value) stripAsleep = true;
-  const overBubble = Boolean(mailBubble?.contains(screen.getCursorScreenPoint()));
-  win.setIgnoreMouseEvents(overBubble, overBubble ? { forward: true } : undefined);
-  ignoringPointer = overBubble;
   lastInside = Date.now();
   expanded = !!value;
   if (expanded) chatOpen = !!chat;
   else shelfHeld = false;
+  if (expanded && focus) {
+    // v1.0.3: protect an explicit user open from a transient Windows blur bounce caused by
+    // repositioning/raising the notification bubble window right as the Island expands.
+    expandGraceUntil = Date.now() + 700;
+  }
   if (win.isMinimized()) win.restore();
   position(true);
-  if (focus && !overBubble && !mailBubble?.active()) {
+  const overBubble = Boolean(mailBubble?.contains(screen.getCursorScreenPoint()));
+  win.setIgnoreMouseEvents(overBubble, overBubble ? { forward: true } : undefined);
+  ignoringPointer = overBubble;
+  // v1.0.4: an open the user asked for takes the keyboard even when the card window still has it
+  // (a reply was just written there): cancelCompose() ends the reply, and the card becomes
+  // non-activatable again after its blur, off screen (mail-bubble.cjs setWindowFocusable). It used
+  // to skip win.focus() here because mailBubble.active() still saw the focused card.
+  const userOpen = expanded && focus && !overBubble;
+  if (userOpen) {
+    mailBubble?.cancelCompose?.();
+  }
+  if (focus && !overBubble && (userOpen || !mailBubble?.active())) {
     win.show();
     win.focus();
   }
-  mailBubble?.raise();
+  if (mailBubble?.items?.length) mailBubble.raise();
 
   return expanded;
 }
@@ -1380,7 +1455,12 @@ function saveFolder() {
 // v0.7.7: before / after copies of the files Charles changes (app/core/change-review.cjs)
 const changeReview = new (require('./core/change-review.cjs').ChangeReview)();
 // v0.9.16: the taskbar (app/core/attention.cjs)
-const attentionNow = require('./core/attention.cjs').createAttention(() => (workspace && appWin && !appWin.isDestroyed() ? appWin : null));
+// v1.0.2: never flash while a full-screen program is in front
+const attentionNow = require('./core/attention.cjs').createAttention(
+  () => (workspace && appWin && !appWin.isDestroyed() ? appWin : null),
+  Date.now,
+  { fullscreen: () => fullscreenFront },
+);
 // v1.0.0 (taskbar): a flashing button brings the taskbar up over a full-screen film or game; it
 // flashes once that program is left, unless the request was answered meanwhile
 const attention = {
@@ -1685,6 +1765,16 @@ else {
       agent.freshStart();
       if (agent.current.cwd) chosenCwd = agent.current.cwd;
       agent.on('event', eventToUi);
+      // v1.0.2 / v1.0.3: In-Charles Subagent Execution Engine
+      const { SubagentManager, parseSubagentPlan, formatSubagentSummary, shouldUseSubagents } = require('./ai/subagents.cjs');
+      subagents = new SubagentManager({
+        root,
+        userData: app.getPath('userData'),
+        providers: agent.providers,
+        onUpdate: (tasks, changed) => {
+          if (win && !win.isDestroyed()) win.webContents.send('subagents-updated', { tasks, changed });
+        },
+      });
       plugins = new (require('./plugins/plugins.cjs').Plugins)(
         app.getPath('userData'),
         safeStorage,
@@ -1700,9 +1790,10 @@ else {
         // v1.0.0 (bughunt): a reminder's card closed before a full-screen program was left
         onDismiss: (id) => dropReminderAlert(/^charles\|reminder\|(.+)$/.exec(String(id))?.[1]),
         language: () => v2?.data?.language || 'tr',
-        // v0.9.25: the cards wait while a full-screen app is in front (user report: taskbar over
-        // YouTube/Netflix, Battlefield 6 dropped to the desktop)
+        palette: () => personal?.data?.appearance?.palette || 'cream',
+        // v0.9.25 / v1.0.2: cards wait while a full-screen app is in front (same or other display)
         fullscreen: () => fullscreenOther,
+        fullscreenFront: () => fullscreenFront,
       });
       // v0.8.8: WhatsApp in Charles starts with Charles once it was turned on
       if (!demo && whatsappLive().settings.enabled) setTimeout(() => void waLive.start().catch(() => {}), 4000);
@@ -1759,8 +1850,10 @@ else {
             return;
           }
           // v0.9.12: a module's "Kaydedildi" notice shows the saved file in its folder
+          // v1.0.4: a file that is gone says so (mailBubble.onOpenFailed) instead of doing nothing
           if (item?.reveal && typeof item.reveal === 'string') {
-            if (fs.existsSync(item.reveal)) shell.showItemInFolder(item.reveal);
+            if (!fs.existsSync(item.reveal)) throw Error('Dosya bulunamadı.');
+            shell.showItemInFolder(item.reveal);
             return;
           }
           if (item?.module && moduleHost)
@@ -1771,6 +1864,13 @@ else {
           expand(true, true);
         },
       });
+      // v1.0.4: a card's action that fails (the mail could not be read into an attachment, a saved
+      // file is gone) is no longer swallowed: a card says so, and nothing waits for it
+      mailBubble.onOpen = (item) => mailAlerts.open(item);
+      mailBubble.onOpenFailed = (item, error) => {
+        perfLog?.('card action failed', String(item?.kind || '-'), String(error?.code || error?.name || 'error'));
+        mailBubble.add(noticeCards.openFailed(item));
+      };
       // Charles' own questions in the chat (calendar suggestions). When the panel is small
       // the question also appears as a bubble under the island; a click opens the panel.
       proposals = new (require('./core/proposals.cjs').Proposals)({
@@ -1834,6 +1934,7 @@ else {
       safeHandler('plugins-settings', (v) => plugins.settings(v));
       safeHandler('plugins-list', (kind, q) => plugins.list(kind, q));
       safeHandler('plugins-home', (entity, action) => plugins.homeAction(entity, action));
+      safeHandler('plugins-verify', (id) => plugins.verify(String(id || '')));
       weekly = new (require('./system/weekly.cjs').Weekly)(app.getPath('userData'));
       computerTime = new (require('./system/computer-time.cjs').ComputerTime)(
         app.getPath('userData'),
@@ -1930,6 +2031,11 @@ else {
       // v0.9.0: the island (and Slime on the desktop) never has a taskbar button; only the app
       // window (Çalışma alanı) does. Windows can bring the button back when a window is shown
       // again, raised or given the focus, so it is taken off again each time.
+      // v1.0.4: only then (and once a minute) is ITaskbarList asked for the island (offTaskbar)
+      for (const event of ['show', 'focus', 'restore'])
+        islandWin.on(event, () => {
+          islandTaskbarDue = true;
+        });
       for (const event of ['show', 'focus', 'restore'])
         islandWin.on(event, () => setImmediate(offTaskbar));
       taskbarTimer = setInterval(offTaskbar, 4000);
@@ -1938,7 +2044,7 @@ else {
       islandWin.on('focus', () => {
         if (activeWindow() === islandWin && !view.webContents.isDestroyed()) view.webContents.focus();
         // v0.9.18: Windows puts the window it activates first on the topmost band
-        setImmediate(() => mailBubble?.raise());
+        if (mailBubble?.items?.length) setImmediate(() => mailBubble?.raise());
       });
       // v0.9.18: the only window the page may open is Charles' own (src/island/desktop-pet.ts)
       win.webContents.setWindowOpenHandler(({ url }) =>
@@ -1994,6 +2100,7 @@ else {
             !mailBubble?.contains(screen.getCursorScreenPoint()) &&
             !petDrag &&
             Date.now() > dropHeldUntil &&
+            Date.now() > expandGraceUntil &&
             !capture?.busy &&
             !colorPick?.busy &&
             !voiceHeld &&
@@ -2206,7 +2313,7 @@ else {
         return true;
       });
       safeHandler('plugins-import-google', async () => {
-        dialogOpen = true;
+        const seq = beginDialog();
         try {
           const picked = await dialog.showOpenDialog(win.native, {
             title: 'Google Desktop OAuth JSON dosyasını seç',
@@ -2221,7 +2328,7 @@ else {
             require('./plugins/oauth-setup.cjs').googleConfig(fs.readFileSync(file, 'utf8')),
           );
         } finally {
-          dialogOpen = false;
+          endDialog(seq, true);
         }
       });
       safeHandler('pet-detach', (value) => detachPet(value));
@@ -2318,9 +2425,10 @@ else {
           : agent.providers?.enabled.primary || 'gpt';
         if (demo) return { provider, fiveHour: null, weekly: null, credits: null, updatedAt: null };
         // v0.8.0: the Abacus AI command line tool reports no usage limits
-        // v0.9.27: the GitHub Copilot tool reports none either
-        if (['abacus', 'copilot'].includes(provider))
+        if (provider === 'abacus')
           return { provider, fiveHour: null, weekly: null, credits: null, updatedAt: Date.now(), unavailable: 'Bilgi yok' };
+        // v1.0.2: GitHub Copilot usage reader (returns real quota if exposed by source, never fabricates)
+        if (provider === 'copilot') return agent.providers.copilotUsage(force === true);
         if (provider === 'gemini') return agent.providers.usage(force === true);
         if (provider === 'claude') return agent.providers.claudeUsage.read(force === true);
         // v0.9.6: EVREN reports its daily token quota (60 s cache in the provider)
@@ -2354,6 +2462,7 @@ else {
         const value = personal.edit(action, args);
         // v1.0.0 (bughunt): a reminder done (deleted) or a focus timer paused / resumed meanwhile
         if (action === 'reminder-delete' || action === 'timer-toggle') dropReminderAlert(args?.id);
+        if (action === 'appearance' && mailBubble?.items.length) void mailBubble.render();
         position();
         win.setOpacity(1);
         win.webContents.send('personal-changed', value);
@@ -2759,7 +2868,15 @@ else {
               } catch {}
             }
           }
-          out.push({ id, name: a.name, kind: a.kind, thumbnail, preview });
+          out.push({
+            id,
+            name: a.name,
+            kind: a.kind,
+            size: a.size,
+            ...(a.kind === 'audio' ? { duration: a.duration, transcribed: true } : {}),
+            thumbnail,
+            preview,
+          });
           await new Promise((resolve) => setImmediate(resolve));
         }
         return out;
@@ -2768,7 +2885,23 @@ else {
       async function ingestMany(paths) {
         const items = [];
         for (const p of paths) {
-          items.push(attachment(await extras.ingestFile(p)));
+          const item = attachment(await extras.ingestFile(p));
+          if (item.kind === 'audio' && !item.duration) {
+            const stored = extras.attachments.get(item.id);
+            if (stored) {
+              try {
+                const probed = await require('./files/audio-attach.cjs').probeAudio(stored.path, {
+                  root,
+                  userData: app.getPath('userData'),
+                });
+                if (typeof probed?.duration === 'number' && Number.isFinite(probed.duration)) {
+                  stored.duration = probed.duration;
+                  item.duration = probed.duration;
+                }
+              } catch {}
+            }
+          }
+          items.push(item);
           await new Promise((resolve) => setImmediate(resolve));
         }
         return items;
@@ -3079,6 +3212,18 @@ else {
           const r = await dialog.showOpenDialog(win.native, {
             properties: ['openFile', 'multiSelections'],
             title: 'Charles’a dosya ekle',
+            filters: [
+              {
+                name: 'Desteklenen dosyalar',
+                extensions: [
+                  'pdf', 'docx', 'pptx', 'ppt', 'png', 'jpg', 'jpeg', 'webp', 'gif',
+                  'mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'webm',
+                  'txt', 'md', 'csv', 'json', 'js', 'ts', 'tsx', 'jsx', 'py', 'rs', 'html', 'css', 'xml', 'yaml', 'yml', 'log', 'sql', 'toml',
+                ],
+              },
+              { name: 'Ses dosyaları', extensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'webm'] },
+              { name: 'Tüm dosyalar', extensions: ['*'] },
+            ],
           });
           if (r.canceled) return [];
           if (r.filePaths.length > 1000) throw Error('En fazla 1000 dosya seçin.');
@@ -3086,6 +3231,25 @@ else {
         } finally {
           dialogOpen = false;
         }
+      });
+      // v1.0.2: safe audio preview data URL only for attached inbox audio files (<= 25 MB)
+      safeHandler('audio-preview', async (id) => {
+        const item = extras.attachments.get(String(id || ''));
+        if (!item || item.kind !== 'audio' || !fs.existsSync(item.path)) throw Error('Ses eki bulunamadı.');
+        const st = fs.statSync(item.path);
+        if (st.size > 25 * 1024 * 1024) throw Error('Önizleme için ses dosyası çok büyük (en fazla 25 MB).');
+        const ext = path.extname(item.path).toLowerCase();
+        const mime = {
+          '.mp3': 'audio/mpeg',
+          '.wav': 'audio/wav',
+          '.m4a': 'audio/mp4',
+          '.aac': 'audio/aac',
+          '.ogg': 'audio/ogg',
+          '.flac': 'audio/flac',
+          '.webm': 'audio/webm',
+        }[ext] || 'audio/mpeg';
+        const buf = await fs.promises.readFile(item.path);
+        return `data:${mime};base64,${buf.toString('base64')}`;
       });
       safeHandler('drop-text', (text) => {
         if (typeof text !== 'string' || !text.trim()) throw Error('Seçili metin boş.');
@@ -3543,7 +3707,19 @@ else {
         } catch {}
         return [...(await agent.models().catch(() => [])), ...extra];
       });
-      safeHandler('send', async (args) => {
+      // v1.0.4: a message's turn belongs to the chat it was sent in, from its first moment: that chat
+      // is held (never dropped as empty while the turn prepares, e.g. while attachments are read or
+      // its subagents run) and the turn finishes in it even when another chat is opened meanwhile.
+      const heldTurn = async (fn) => {
+        const turnRoom = agent.active;
+        const release = agent.hold?.(turnRoom) || (() => {});
+        try {
+          return await fn(turnRoom);
+        } finally {
+          release();
+        }
+      };
+      safeHandler('send', (args) => heldTurn(async (turnRoom) => {
         if (liveRoom) throw Error('Önce sesli görüşmeyi bitir.');
         if (!args || typeof args !== 'object') throw new Error('Geçersiz istek.');
         // v0.9.25: files alone are a message too (CH-109): the AI gets a short request, the chat
@@ -3855,11 +4031,60 @@ else {
           );
         const chatDir = path.join(app.getPath('userData'), 'chat-workspace');
         if (mode === 'chat') fs.mkdirSync(chatDir, { recursive: true });
-        // v0.9.25: every connection takes pictures now (app/ai/provider-images.cjs)
-        const inputs = await extras.inputs(args.attachments || [], { textOnly: /^(gemini|claude|cursor|abacus|evren|copilot):/.test(args.model || ''), images: true });
+        // v0.9.25 / v1.0.2: every connection takes pictures; audio attachments are transcribed locally via FFmpeg + Whisper
+        const inputs = await extras.inputs(args.attachments || [], {
+          textOnly: /^(gemini|claude|cursor|abacus|evren|copilot):/.test(args.model || ''),
+          images: true,
+          root,
+          userData: app.getPath('userData'),
+        });
+        // v1.0.2 / v1.0.3: real subagent delegation ONLY when the user explicitly requests
+        // delegating work to subagents (never on simple prompts, negations, or questions about subagents)
+        let finalPrompt = args.prompt;
+        let finalDisplayPrompt = args.displayPrompt;
+        const wantsSubagents =
+          !untrusted &&
+          !args.task &&
+          subagents &&
+          shouldUseSubagents(args.prompt);
+        if (wantsSubagents) {
+          try {
+            const planPrompt =
+              'Kullanıcı aşağıdaki isteği alt ajanlar atayarak çözmeni istedi. Eğer istek basit, tek adımlı veya gerçekten alt ajan gerektirmiyorsa YALNIZCA boş JSON dizisi [] döndür. ' +
+              'Alt ajan gerçekten gerekiyorsa isteği en fazla 3 bağımsız, somut alt göreve böl ve YALNIZCA geçerli bir JSON dizisi döndür: ' +
+              '[{"role":"Araştırmacı","title":"Kısa görev başlığı","prompt":"Net görev talimatı"}]. Başka açıklama yazma.\n\nKullanıcı isteği:\n' +
+              String(args.prompt).slice(0, 6000);
+            const planText = await require('./ai/ask-once.cjs').askOnce({
+              root,
+              providers: agent.providers,
+              prompt: planPrompt,
+              model: args.model || null,
+              cwd: mode === 'chat' ? chatDir : chosenCwd,
+              timeoutMs: 60000,
+            });
+            const planned = parseSubagentPlan(planText);
+            if (planned.length) {
+              const settled = await subagents.run({
+                parentId: turnRoom,
+                tasks: planned,
+                model: args.model || null,
+                workspaceDir: mode === 'chat' ? chatDir : chosenCwd,
+                mode,
+                access: personal.data.access,
+              });
+              const summaryBlock = formatSubagentSummary(settled);
+              finalDisplayPrompt = finalDisplayPrompt ?? args.prompt;
+              finalPrompt =
+                args.prompt +
+                '\n\nCharles bu istek için gerçek alt ajan görevleri çalıştırdı. Aşağıdaki alt ajan bulgularını incele, doğrula ve kullanıcıya tek bir birleşik yanıt sun:\n' +
+                summaryBlock;
+            }
+          } catch {}
+        }
         const turn = await agent.send({
-          prompt: args.prompt,
-          displayPrompt: args.displayPrompt,
+          roomId: turnRoom,
+          prompt: finalPrompt,
+          displayPrompt: finalDisplayPrompt,
           task: turnTask.task,
           model: args.model,
           // v0.9.6: the effort panel's level ('' = Otomatik); each provider checks it again
@@ -3878,7 +4103,7 @@ else {
         // v0.9.24: what did not fit in one message is said, not left out in silence
         const shown = turnTask.dropped ? { ...turn, webOff: true } : turn;
         return inputs.cut?.length ? { ...shown, cut: inputs.cut } : shown;
-      });
+      }));
       // v0.7.1: Ayarlar → Hesap → "Tüm verileri sıfırla" / "Hesap bağlantılarını kaldır"
       safeHandler('reset-all', async (scope) => {
         if (demo) throw Error('Önizleme modunda sıfırlanmaz.');
@@ -3902,7 +4127,39 @@ else {
         return true;
       });
       safeHandler('open-data-folder', () => shell.openPath(app.getPath('userData')));
-      safeHandler('interrupt', () => agent.interrupt());
+      safeHandler('interrupt', () => {
+        subagents?.cancelParent(agent.active);
+        return agent.interrupt();
+      });
+      // v1.0.2: In-Charles Subagents IPC
+      safeHandler('subagents-list', (parentId = null) => subagents?.list(parentId ? String(parentId) : null) || []);
+      safeHandler('subagents-run', (opts = {}) => {
+        if (!opts || typeof opts !== 'object') throw Error('Geçersiz alt ajan isteği.');
+        const tasks = Array.isArray(opts.tasks) ? opts.tasks : [];
+        if (!tasks.length) throw Error('En az bir alt ajan görevi belirtilmelidir.');
+        const chatDir = path.join(app.getPath('userData'), 'chat-workspace');
+        fs.mkdirSync(chatDir, { recursive: true });
+        const mode = opts.mode === 'project' && chosenCwd ? 'project' : 'chat';
+        const p = subagents.run({
+          parentId: String(opts.parentId || agent.active || 'default'),
+          tasks,
+          provider: opts.provider || null,
+          model: opts.model || null,
+          workspaceDir: mode === 'project' ? chosenCwd : chatDir,
+          mode,
+          access: personal.data.access,
+          untrusted: opts.untrusted === true,
+        });
+        p.catch(() => {});
+        return p.tasks;
+      });
+      safeHandler('subagents-cancel', (id) => subagents?.cancel(String(id || '')) || false);
+      safeHandler('subagents-clear', (parentId = null) => {
+        const id = parentId ? String(parentId) : null;
+        // v1.0.4: in a chat made in this run only what the tracker showed is cleared (src/chat/subagents-view.ts)
+        const fresh = !!(id && agent.rooms?.get?.(id)?.newThisRun);
+        return subagents?.clearFinished(id, { keepRestored: fresh }) || [];
+      });
       // v0.7.7: change review screen, system cards and the home page layout of the app window
       safeHandler('review-list', () => changeReview.list());
       safeHandler('review-get', (id) => changeReview.get(String(id)));
@@ -4153,12 +4410,19 @@ else {
       });
       safeHandler('runtime-restart', () => restartForRuntime());
       trayMenu();
-      const modulesState = () => ({ modules: moduleRegistry.list(), dev: moduleRegistry.data.dev, open: moduleHost.openIds() });
+      const modulesState = () => ({
+        modules: moduleRegistry.list().map((m) => ({
+          ...m,
+          folders: moduleHost?.folders ? moduleHost.folders.granted(m.id) : [],
+        })),
+        dev: moduleRegistry.data.dev,
+        open: moduleHost.openIds(),
+      });
       safeHandler('modules-list', () => modulesState());
       safeHandler('modules-pick', async (kind) => {
         if (kind !== 'zip' && kind !== 'folder') throw Error('Geçersiz seçim.');
         if (kind === 'folder' && !moduleRegistry.data.dev) throw Error('Klasörden yüklemek için önce Geliştirici modunu aç.');
-        dialogOpen = true;
+        const seq = beginDialog();
         let picked;
         try {
           picked = await dialog.showOpenDialog(win.native, {
@@ -4167,7 +4431,7 @@ else {
             ...(kind === 'zip' ? { filters: [{ name: 'Charles modülü', extensions: ['zip'] }] } : {}),
           });
         } finally {
-          dialogOpen = false;
+          endDialog(seq, true);
         }
         if (picked.canceled || !picked.filePaths[0]) return null;
         const file = picked.filePaths[0];
@@ -4198,8 +4462,14 @@ else {
       });
       safeHandler('modules-remove', (id, deleteData) => {
         moduleHost.close(String(id));
+        if (deleteData === true) moduleHost.folders?.removeModule(String(id));
         moduleRegistry.remove(String(id), deleteData === true);
         trayMenu();
+        return modulesState();
+      });
+      safeHandler('modules-folder-revoke', (moduleId, grantId) => {
+        moduleHost.folders?.forget(String(moduleId), String(grantId));
+        win.webContents.send('modules-changed');
         return modulesState();
       });
       // v0.8.8: the renderer saw a new Slime look → tell the open module windows
@@ -4334,7 +4604,11 @@ else {
             preview: String(recent.preview || '').slice(0, 2000),
           };
         if (!item) throw Error('Bu e-posta artık listede değil.');
-        mailBubble.onOpen?.(item);
+        // v1.0.4: onOpen gives a promise now (mailAlerts.open); a failure becomes a card, never an
+        // unhandled rejection
+        void Promise.resolve()
+          .then(() => mailBubble.onOpen?.(item))
+          .catch((e) => mailBubble.onOpenFailed?.(item, e));
         return true;
       });
       safeHandler('workspace-calendar', (force, range) => {
@@ -4630,6 +4904,9 @@ else {
     // v0.8.9: history is written asynchronously; write what is pending now
     try {
       agent?.flush?.();
+    } catch {}
+    try {
+      subagents?.shutdown();
     } catch {}
     try {
       moduleHost?.closeAll();

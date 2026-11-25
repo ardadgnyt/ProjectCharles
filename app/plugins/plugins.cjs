@@ -45,6 +45,126 @@ function important(item, rules) {
     .filter(Boolean)
     .some((s) => text.includes(s));
 }
+const PLUGIN_IDS = ['google', 'gcal', 'microsoft', 'home', 'school'];
+const NETWORK_CODES = new Set([
+  'ENOTFOUND',
+  'ETIMEDOUT',
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'EAI_AGAIN',
+  'ENETUNREACH',
+  'EHOSTUNREACH',
+  'EPIPE',
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_HEADERS_TIMEOUT',
+  'UND_ERR_BODY_TIMEOUT',
+  'UND_ERR_SOCKET',
+]);
+function defaultServices(id) {
+  if (id === 'google') return { gmail: 'unknown', calendar: 'unknown', drive: 'unknown' };
+  if (id === 'gcal') return { calendarWrite: 'unknown' };
+  if (id === 'microsoft') return { mail: 'unknown', calendar: 'unknown' };
+  return {};
+}
+function parseScopes(scopeStr) {
+  if (typeof scopeStr !== 'string' || !scopeStr.trim()) return null;
+  return new Set(scopeStr.trim().split(/\s+/));
+}
+function hasGoogleServiceScope(scopes, service) {
+  if (!scopes) return true;
+  if (service === 'gmail')
+    return (
+      scopes.has('https://www.googleapis.com/auth/gmail.readonly') ||
+      scopes.has('https://www.googleapis.com/auth/gmail.modify') ||
+      scopes.has('https://mail.google.com/')
+    );
+  if (service === 'calendar')
+    return (
+      scopes.has('https://www.googleapis.com/auth/calendar.readonly') ||
+      scopes.has('https://www.googleapis.com/auth/calendar') ||
+      scopes.has('https://www.googleapis.com/auth/calendar.events')
+    );
+  if (service === 'drive')
+    return (
+      scopes.has('https://www.googleapis.com/auth/drive.readonly') ||
+      scopes.has('https://www.googleapis.com/auth/drive')
+    );
+  return true;
+}
+function hasGcalWriteScope(scopes) {
+  if (!scopes) return true;
+  return (
+    scopes.has('https://www.googleapis.com/auth/calendar.events') ||
+    scopes.has('https://www.googleapis.com/auth/calendar')
+  );
+}
+function isNetworkError(e) {
+  if (!e) return false;
+  if (e.status === 429 || e.status === 500 || e.status === 502 || e.status === 503 || e.status === 504)
+    return true;
+  if (e.name === 'TimeoutError' || e.name === 'AbortError') return true;
+  const code = e.code || e.cause?.code || '';
+  if (NETWORK_CODES.has(code)) return true;
+  if (!e.status) {
+    const msg = String(e.message || '');
+    if (
+      /\b(ENOTFOUND|ETIMEDOUT|ECONNREFUSED|ECONNRESET|EAI_AGAIN|ENETUNREACH|EHOSTUNREACH|fetch failed|network error|timed out|timeout|aborted)\b/i.test(
+        msg,
+      )
+    )
+      return true;
+  }
+  return false;
+}
+function isApiDisabledError(e) {
+  if (e?.status !== 403) return false;
+  const reasons = Array.isArray(e.errorReasons) ? e.errorReasons : [];
+  if (reasons.some((r) => /accessNotConfigured|SERVICE_DISABLED/i.test(String(r)))) return true;
+  return /has not been used|is disabled|not enabled/i.test(String(e.apiMessage || ''));
+}
+function isScopeError(e) {
+  return e?.status === 403 && !isApiDisabledError(e);
+}
+function isAuthError(e) {
+  if (!e) return false;
+  if (e.authState === 'reauth_required' || e.status === 401) return true;
+  if (['invalid_grant', 'invalid_client', 'unauthorized_client', 'no_refresh_token'].includes(e.reason))
+    return true;
+  return /Reconnect account|authentication failed|invalid credentials|AUTH/i.test(String(e.message || ''));
+}
+function networkErrorMessage(e) {
+  if (e?.status === 429)
+    return 'Sağlayıcı şu an çok fazla istek aldığını söylüyor (429). Biraz sonra tekrar dene.';
+  if (e?.status >= 500) return 'Sunucu geçici olarak yanıt vermiyor. Biraz sonra tekrar dene.';
+  return 'Ağ veya zaman aşımı hatası oluştu. İnternet bağlantını kontrol edip tekrar dene.';
+}
+function scopeMissingMessage(id, services) {
+  if (id === 'gcal') return 'Takvim yazma izni eksik. Yeniden yetkilendir.';
+  const labels =
+    id === 'google'
+      ? { gmail: 'Gmail', calendar: 'Takvim', drive: 'Drive' }
+      : { mail: 'Outlook', calendar: 'Takvim' };
+  const missing = Object.entries(labels)
+    .filter(([k]) => services[k] === 'missing_scope')
+    .map(([, label]) => label);
+  if (!missing.length) return 'Eksik hesap izni var. Yeniden yetkilendir.';
+  return (
+    missing.join(', ') +
+    (id === 'google'
+      ? ' izni eksik. Tüm servisler için yeniden yetkilendir.'
+      : ' izni eksik. Yeniden yetkilendir.')
+  );
+}
+function sanitizeMessage(text) {
+  const s = String(text || '')
+    .replace(/Bearer\s+\S+/gi, 'Bearer [redacted]')
+    .replace(/ya29\.[A-Za-z0-9._-]+/g, '[redacted]')
+    .replace(/GOCSPX-[A-Za-z0-9._-]+/g, '[redacted]')
+    .replace(/\{[\s\S]*\}/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return s.slice(0, 240) || 'Bağlantı kontrol edilirken hata oluştu.';
+}
 class Plugins {
   constructor(dir, encryption, open, notify, fetcher = fetch) {
     this.file = path.join(dir, 'plugins.enc.json');
@@ -63,6 +183,7 @@ class Plugins {
     };
     this.cache = {};
     this.errors = {};
+    this.health = {};
     this.epoch = {};
     this.pending = new Map();
     try {
@@ -82,6 +203,102 @@ class Plugins {
       secret: this.encryption.encryptString(JSON.stringify(this.data)).toString('base64'),
     });
   }
+  detailFor(id) {
+    const h = this.health?.[id];
+    const isOAuth = !!OAUTH[id];
+    const cfg = isOAuth ? this.oauthConfig(id) : this.data?.configs?.[id];
+    const hasConfig = isOAuth
+      ? Boolean(cfg?.clientId)
+      : id === 'home'
+        ? Boolean(cfg?.url && cfg?.token)
+        : Boolean(cfg?.host && cfg?.user && cfg?.password);
+    const token = isOAuth ? this.data?.tokens?.[id] : null;
+    const hasToken = isOAuth ? Boolean(token) : hasConfig;
+    const canCheck = hasToken;
+    if (!hasConfig) {
+      return {
+        state: 'unconfigured',
+        checkedAt: null,
+        services: defaultServices(id),
+        message:
+          id === 'gcal'
+            ? 'Önce Google hesabını bağla; Google Takvim aynı uygulama kaydını kullanır.'
+            : isOAuth
+              ? 'Yapılandırma yok · Önce uygulama kaydı ekle.'
+              : 'Bağlı değil',
+        canCheck: false,
+      };
+    }
+    if (isOAuth && !hasToken) {
+      if (h?.state === 'reauth_required') {
+        return {
+          state: 'reauth_required',
+          checkedAt: typeof h.checkedAt === 'number' ? h.checkedAt : null,
+          services: { ...defaultServices(id), ...(h.services || {}) },
+          message:
+            h.message ||
+            'Oturumun süresi doldu ya da izin geri alındı. Yeniden yetkilendir.',
+          canCheck: false,
+        };
+      }
+      return {
+        state: 'configured',
+        checkedAt: null,
+        services: defaultServices(id),
+        message:
+          id === 'google'
+            ? 'Yapılandırma kayıtlı · Google ile giriş yaparak yetkilendir.'
+            : id === 'gcal'
+              ? 'Yapılandırma kayıtlı · Bağlanınca Google, Charles’ın takvimine etkinlik ekleyip düzenleyebilmesi için izin ister.'
+              : 'Yapılandırma kayıtlı · Microsoft ile giriş yaparak yetkilendir.',
+        canCheck: false,
+      };
+    }
+    if (h) {
+      return {
+        state: h.state,
+        checkedAt: typeof h.checkedAt === 'number' ? h.checkedAt : null,
+        services: { ...defaultServices(id), ...(h.services || {}) },
+        message: h.message || '',
+        canCheck,
+      };
+    }
+    if (isOAuth && token?.scope) {
+      const scopes = parseScopes(token.scope);
+      if (id === 'gcal' && !hasGcalWriteScope(scopes)) {
+        return {
+          state: 'scope_missing',
+          checkedAt: null,
+          services: { calendarWrite: 'missing_scope' },
+          message: scopeMissingMessage('gcal', { calendarWrite: 'missing_scope' }),
+          canCheck,
+        };
+      }
+      if (id === 'google') {
+        const services = {
+          gmail: hasGoogleServiceScope(scopes, 'gmail') ? 'unknown' : 'missing_scope',
+          calendar: hasGoogleServiceScope(scopes, 'calendar') ? 'unknown' : 'missing_scope',
+          drive: hasGoogleServiceScope(scopes, 'drive') ? 'unknown' : 'missing_scope',
+        };
+        if (Object.values(services).includes('missing_scope')) {
+          return {
+            state: 'scope_missing',
+            checkedAt: null,
+            services,
+            message: scopeMissingMessage('google', services),
+            canCheck,
+          };
+        }
+      }
+    }
+    return {
+      state: 'connected',
+      checkedAt: null,
+      services: defaultServices(id),
+      message: '',
+      canCheck,
+    };
+  }
   status() {
     return {
       configs: Object.fromEntries(
@@ -99,13 +316,14 @@ class Plugins {
         ]),
       ),
       connected: Object.fromEntries(
-        ['google', 'gcal', 'microsoft', 'home', 'school'].map((id) => [
+        PLUGIN_IDS.map((id) => [
           id,
           id === 'google' || id === 'microsoft' || id === 'gcal'
             ? !!this.data.tokens[id]
             : !!this.data.configs[id]?.[id === 'home' ? 'token' : 'password'],
         ]),
       ),
+      details: Object.fromEntries(PLUGIN_IDS.map((id) => [id, this.detailFor(id)])),
       monitor: this.data.monitor,
       rules: this.data.rules,
       aiTriage: this.data.aiTriage === true,
@@ -119,6 +337,7 @@ class Plugins {
       typeof value !== 'object'
     )
       throw Error('Invalid plugin');
+    this.health = this.health || {};
     const old = this.data.configs[id] || {},
       c = {};
     if (OAUTH[id]) {
@@ -133,6 +352,18 @@ class Plugins {
       if (c.clientId !== old.clientId) {
         delete this.data.tokens[id];
         this.epoch[id] = (this.epoch[id] || 0) + 1;
+        this.queues?.clear?.();
+        if (id === 'google') {
+          delete this.data.tokens.gcal;
+          this.epoch.gcal = (this.epoch.gcal || 0) + 1;
+          delete this.health.gcal;
+          delete this.errors.gcal;
+        }
+      } else if (id === 'google' && c.secret !== old.secret) {
+        this.epoch.google = (this.epoch.google || 0) + 1;
+        this.epoch.gcal = (this.epoch.gcal || 0) + 1;
+        delete this.health.gcal;
+        delete this.errors.gcal;
       }
     } else if (id === 'home') {
       c.url = serverURL(value.url);
@@ -156,6 +387,8 @@ class Plugins {
     )
       delete this.data.seen.school;
     this.data.configs[id] = c;
+    delete this.health[id];
+    delete this.errors[id];
     this.cache = {};
     this.save();
     return this.status();
@@ -168,10 +401,14 @@ class Plugins {
     return this.status();
   }
   disconnect(id) {
-    if (!['google', 'gcal', 'microsoft', 'home', 'school'].includes(id)) throw Error('Invalid plugin');
+    if (!PLUGIN_IDS.includes(id)) throw Error('Invalid plugin');
+    this.health = this.health || {};
     this.epoch[id] = (this.epoch[id] || 0) + 1;
+    this.queues?.clear?.();
     this.pending.get(id)?.();
     delete this.data.tokens[id];
+    delete this.health[id];
+    delete this.errors[id];
     if (id === 'gcal') {
       this.cache = {};
       this.save();
@@ -180,7 +417,10 @@ class Plugins {
     // Google Takvim uses the Google client: removing Google removes it too
     if (id === 'google') {
       this.epoch.gcal = (this.epoch.gcal || 0) + 1;
+      this.pending.get('gcal')?.();
       delete this.data.tokens.gcal;
+      delete this.health.gcal;
+      delete this.errors.gcal;
     }
     delete this.data.configs[id];
     for (const kind of id === 'google'
@@ -221,10 +461,19 @@ class Plugins {
         // v0.9.9: OAuth token endpoints answer 400 with a reason ("invalid_grant": the sign-in
         // expired or was revoked; "invalid_client": the client secret is wrong or was replaced).
         // The reason is kept so the caller can say what to do instead of a bare "HTTP 400".
-        let reason = '';
+        let reason = '',
+          errorReasons = [],
+          apiMessage = '';
         try {
           const body = await r.json();
           reason = typeof body?.error === 'string' ? body.error : String(body?.error?.status || '');
+          if (typeof body?.error === 'string') errorReasons.push(body.error);
+          if (typeof body?.error?.status === 'string') errorReasons.push(body.error.status);
+          for (const item of body?.error?.errors || [])
+            if (typeof item?.reason === 'string') errorReasons.push(item.reason);
+          for (const item of body?.error?.details || [])
+            if (typeof item?.reason === 'string') errorReasons.push(item.reason);
+          if (typeof body?.error?.message === 'string') apiMessage = body.error.message.slice(0, 200);
         } catch {}
         const error = Error(
           r.status === 401
@@ -240,6 +489,8 @@ class Plugins {
         );
         error.status = r.status;
         error.reason = reason;
+        error.errorReasons = errorReasons;
+        error.apiMessage = apiMessage;
         throw error;
       }
       return r.json();
@@ -301,17 +552,20 @@ class Plugins {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams(params),
           }).catch((e) => {
-            throw this.oauthFailure(id, e);
+            throw this.oauthFailure(id, e, epoch);
           });
           if (epoch !== (this.epoch[id] || 0)) throw Error('Login cancelled');
           if (typeof token.access_token !== 'string' || !token.access_token)
             throw Error('No access token returned');
+          this.health = this.health || {};
+          this.epoch[id] = (this.epoch[id] || 0) + 1;
           this.data.tokens[id] = {
             ...token,
             expires: Date.now() + (token.expires_in || 3600) * 1000,
           };
-          this.save();
+          delete this.health[id];
           delete this.errors[id];
+          this.save();
           res.end('Connected. You can close this page and return to Charles.');
           finish();
         } catch (e) {
@@ -338,13 +592,18 @@ class Plugins {
       timer = setTimeout(() => finish(Error('Login timed out')), 180000);
     });
   }
-  async token(id) {
+  async token(id, { forceRefresh = false } = {}) {
     let t = this.data.tokens[id];
     if (!t) throw Error('Hesap bağlı değil. Ayarlar’daki Eklentiler sayfasında ilgili hesabı bağla.');
-    if (t.expires > Date.now() + 60000) return t.access_token;
+    if (!forceRefresh && t.expires > Date.now() + 60000) return t.access_token;
     const c = this.oauthConfig(id),
       epoch = this.epoch[id] || 0;
-    if (!t.refresh_token) throw Error('Reconnect account');
+    if (!t.refresh_token) {
+      const err = Error('Reconnect account');
+      err.authState = 'reauth_required';
+      err.reason = 'no_refresh_token';
+      throw err;
+    }
     let next;
     try {
       next = await this.json(OAUTH[id].token, {
@@ -361,11 +620,17 @@ class Plugins {
       throw this.oauthFailure(id, e, epoch);
     }
     if (epoch !== (this.epoch[id] || 0)) throw Error('Account disconnected');
-    if (typeof next.access_token !== 'string' || !next.access_token)
-      throw Error('Reconnect account');
+    if (typeof next.access_token !== 'string' || !next.access_token) {
+      const err = Error('Reconnect account');
+      err.authState = 'reauth_required';
+      err.reason = 'invalid_grant';
+      throw err;
+    }
     t = this.data.tokens[id] = {
       ...t,
       ...next,
+      refresh_token: next.refresh_token || t.refresh_token,
+      scope: next.scope || t.scope,
       expires: Date.now() + (next.expires_in || 3600) * 1000,
     };
     this.save();
@@ -379,21 +644,273 @@ class Plugins {
    */
   oauthFailure(id, e, epoch = this.epoch[id] || 0) {
     const name = id === 'microsoft' ? 'Microsoft' : 'Google';
-    if (!['invalid_grant', 'invalid_client', 'unauthorized_client'].includes(e?.reason)) return e;
-    const message =
-      e.reason === 'invalid_grant'
-        ? name +
-          ' oturumunun süresi doldu ya da izin geri alındı. Ayarlar’daki Eklentiler sayfasında ' +
-          name +
-          ' ile giriş yap’a bas. (Google projesi “Testing / Test” durumundaysa oturum 7 günde bir sona erer; Charles ile kur’un son adımı bunu kalıcı yapmayı anlatıyor.)'
-        : name +
-          ' istemci kimliği veya gizli anahtarı artık geçerli değil. Charles ile kur’dan yeni bir gizli anahtar (Add secret) oluşturup kimlikle birlikte yapıştır.';
+    if (!['invalid_grant', 'invalid_client', 'unauthorized_client'].includes(e?.reason) && e?.status !== 401)
+      return e;
+    const isClientError = ['invalid_client', 'unauthorized_client'].includes(e?.reason);
+    const message = !isClientError
+      ? name +
+        ' oturumunun süresi doldu ya da izin geri alındı. Ayarlar’daki Eklentiler sayfasında Yeniden yetkilendir’e bas. (Google projesi “Testing / Test” durumundaysa oturum 7 günde bir sona erer; Charles ile kur’un son adımı bunu kalıcı yapmayı anlatıyor.)'
+      : name +
+        ' istemci kimliği veya gizli anahtarı artık geçerli değil. Charles ile kur’dan yeni bir gizli anahtar (Add secret) oluşturup kimlikle birlikte yapıştır.';
     if (epoch === (this.epoch[id] || 0)) {
+      this.health = this.health || {};
+      const prevCheckedAt = this.health[id]?.checkedAt ?? null;
       delete this.data.tokens[id];
       this.errors[id] = message;
+      this.health[id] = {
+        state: 'reauth_required',
+        checkedAt: prevCheckedAt,
+        services: defaultServices(id),
+        message,
+      };
       this.save();
     }
-    return Error(message);
+    const err = Error(message);
+    err.authState = 'reauth_required';
+    err.reason = e?.reason || 'unauthorized';
+    err.status = e?.status || 401;
+    return err;
+  }
+  async verify(id) {
+    if (!PLUGIN_IDS.includes(id)) throw Error('Invalid plugin');
+    this.health = this.health || {};
+    const epoch = this.epoch[id] || 0;
+    const prevCheckedAt = this.health[id]?.checkedAt ?? null;
+    const isStale = () => epoch !== (this.epoch[id] || 0);
+    const commit = (entry) => {
+      if (isStale()) return this.status();
+      this.health[id] = entry;
+      if (entry.state === 'connected') delete this.errors[id];
+      else if (entry.message) this.errors[id] = entry.message;
+      return this.status();
+    };
+    if (OAUTH[id]) {
+      const cfg = this.oauthConfig(id);
+      if (!cfg?.clientId) {
+        if (!isStale()) delete this.health[id];
+        return this.status();
+      }
+      if (!this.data.tokens[id]) {
+        if (!isStale() && this.health[id]?.state !== 'reauth_required') delete this.health[id];
+        return this.status();
+      }
+      let accessToken;
+      let refreshed = false;
+      try {
+        const hadExpired = (this.data.tokens[id]?.expires || 0) <= Date.now() + 60000;
+        accessToken = await this.token(id);
+        refreshed = hadExpired;
+      } catch (e) {
+        if (isStale()) return this.status();
+        if (isNetworkError(e)) {
+          return commit({
+            state: 'network_error',
+            checkedAt: prevCheckedAt,
+            services: defaultServices(id),
+            message: networkErrorMessage(e),
+          });
+        }
+        if (isAuthError(e)) {
+          if (this.data.tokens[id]) this.oauthFailure(id, { status: 401, reason: e.reason || 'invalid_grant' }, epoch);
+          return this.status();
+        }
+        return commit({
+          state: 'error',
+          checkedAt: prevCheckedAt,
+          services: defaultServices(id),
+          message: sanitizeMessage(e?.message),
+        });
+      }
+      if (isStale()) return this.status();
+      const probeSpecs =
+        id === 'google'
+          ? [
+              ['gmail', 'Gmail', 'https://gmail.googleapis.com/gmail/v1/users/me/profile'],
+              ['calendar', 'Takvim', 'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=1'],
+              ['drive', 'Drive', 'https://www.googleapis.com/drive/v3/about?fields=user'],
+            ]
+          : id === 'gcal'
+            ? [
+                [
+                  'calendarWrite',
+                  'Google Takvim',
+                  'https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=1&fields=items(id)',
+                ],
+              ]
+            : [
+                ['mail', 'Outlook', 'https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$top=1&$select=id'],
+                ['calendar', 'Takvim', 'https://graph.microsoft.com/v1.0/me/events?$top=1&$select=id'],
+              ];
+      const runProbes = async (bearer) => {
+        const services = defaultServices(id);
+        const disabled = [];
+        const failed = [];
+        let networkErr = null;
+        for (const [key, label, url] of probeSpecs) {
+          if (isStale()) return { stale: true };
+          try {
+            await this.json(url, { headers: { Authorization: 'Bearer ' + bearer } });
+            services[key] = 'ok';
+          } catch (e) {
+            if (isStale()) return { stale: true };
+            if (e?.status === 401) return { unauthorized: true, error: e };
+            if (isNetworkError(e)) {
+              networkErr = e;
+              break;
+            }
+            if (isApiDisabledError(e)) {
+              services[key] = 'error';
+              disabled.push(label);
+            } else if (isScopeError(e)) {
+              services[key] = 'missing_scope';
+            } else {
+              services[key] = 'error';
+              failed.push(label);
+            }
+          }
+        }
+        return { services, disabled, failed, networkErr };
+      };
+      let result = await runProbes(accessToken);
+      if (result.stale || isStale()) return this.status();
+      if (result.unauthorized && !refreshed && this.data.tokens[id]?.refresh_token) {
+        try {
+          accessToken = await this.token(id, { forceRefresh: true });
+          refreshed = true;
+        } catch (e) {
+          if (isStale()) return this.status();
+          if (isNetworkError(e)) {
+            return commit({
+              state: 'network_error',
+              checkedAt: prevCheckedAt,
+              services: defaultServices(id),
+              message: networkErrorMessage(e),
+            });
+          }
+          if (this.data.tokens[id]) this.oauthFailure(id, { status: 401, reason: e.reason || 'invalid_grant' }, epoch);
+          return this.status();
+        }
+        if (isStale()) return this.status();
+        result = await runProbes(accessToken);
+        if (result.stale || isStale()) return this.status();
+      }
+      if (result.unauthorized) {
+        this.oauthFailure(id, { status: 401, reason: 'invalid_grant' }, epoch);
+        return this.status();
+      }
+      if (result.networkErr) {
+        return commit({
+          state: 'network_error',
+          checkedAt: prevCheckedAt,
+          services: result.services,
+          message: networkErrorMessage(result.networkErr),
+        });
+      }
+      const scopes = parseScopes(this.data.tokens[id]?.scope);
+      if (id === 'gcal' && scopes && !hasGcalWriteScope(scopes) && result.services.calendarWrite === 'ok') {
+        result.services.calendarWrite = 'missing_scope';
+      }
+      if (id === 'google' && scopes) {
+        for (const key of ['gmail', 'calendar', 'drive']) {
+          if (result.services[key] === 'ok' && !hasGoogleServiceScope(scopes, key))
+            result.services[key] = 'missing_scope';
+        }
+      }
+      if (Object.values(result.services).includes('missing_scope')) {
+        return commit({
+          state: 'scope_missing',
+          checkedAt: Date.now(),
+          services: result.services,
+          message: scopeMissingMessage(id, result.services),
+        });
+      }
+      if (result.disabled.length) {
+        return commit({
+          state: 'error',
+          checkedAt: prevCheckedAt,
+          services: result.services,
+          message:
+            result.disabled.join(', ') +
+            ' API etkin değil. Google Cloud projesinde ilgili API’yi etkinleştir.',
+        });
+      }
+      if (result.failed.length) {
+        return commit({
+          state: 'error',
+          checkedAt: prevCheckedAt,
+          services: result.services,
+          message: result.failed.join(', ') + ' bağlantısında hata oluştu. Tekrar dene.',
+        });
+      }
+      return commit({
+        state: 'connected',
+        checkedAt: Date.now(),
+        services: result.services,
+        message:
+          id === 'google'
+            ? 'Gmail, Takvim ve Drive doğrulandı.'
+            : id === 'gcal'
+              ? 'Google Takvim yazma bağlantısı doğrulandı.'
+              : 'Outlook ve Takvim doğrulandı.',
+      });
+    }
+    const cfg = this.data.configs[id];
+    const hasConfig =
+      id === 'home' ? Boolean(cfg?.url && cfg?.token) : Boolean(cfg?.host && cfg?.user && cfg?.password);
+    if (!hasConfig) {
+      if (!isStale()) delete this.health[id];
+      return this.status();
+    }
+    try {
+      const rows = await this.list(id, '');
+      if (isStale()) return this.status();
+      const message =
+        id === 'home'
+          ? 'Bağlantı başarılı · ' +
+            rows.length +
+            ' cihaz/varlık bulundu.' +
+            (rows.length
+              ? ' Örnek: ' +
+                rows
+                  .slice(0, 3)
+                  .map((r) => r.title)
+                  .join(', ')
+              : '')
+          : 'Bağlantı başarılı. Posta kutusu okunabiliyor.';
+      return commit({
+        state: 'connected',
+        checkedAt: Date.now(),
+        services: {},
+        message,
+      });
+    } catch (e) {
+      if (isStale()) return this.status();
+      if (isNetworkError(e)) {
+        return commit({
+          state: 'network_error',
+          checkedAt: prevCheckedAt,
+          services: {},
+          message: networkErrorMessage(e),
+        });
+      }
+      if (isAuthError(e) || e?.status === 403) {
+        return commit({
+          state: 'reauth_required',
+          checkedAt: prevCheckedAt,
+          services: {},
+          message:
+            id === 'home'
+              ? 'Home Assistant token’ı reddedildi. Yeni uzun ömürlü erişim token’ı kaydet.'
+              : 'E-posta kullanıcı adı veya şifresi reddedildi. Bilgileri kontrol edip tekrar kaydet.',
+        });
+      }
+      return commit({
+        state: 'error',
+        checkedAt: prevCheckedAt,
+        services: {},
+        message: sanitizeMessage(e?.message),
+      });
+    }
   }
   async get(id, url) {
     return this.json(url, { headers: { Authorization: 'Bearer ' + (await this.token(id)) } });

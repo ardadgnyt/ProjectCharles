@@ -112,16 +112,17 @@ function parseAcpModels(result) {
   }
   return rows;
 }
-function copilotAccountModels(exe, args, { cwd, env, timeoutMs = 25000, spawnFn = spawn } = {}) {
+function copilotAcpSession(exe, args, { cwd, env, timeoutMs = 25000, spawnFn = spawn } = {}) {
   return new Promise((resolve) => {
     let child;
     try {
       child = spawnFn(exe, [...args, '--acp', '--no-custom-instructions'], { cwd, env, windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] });
     } catch {
-      return resolve(null);
+      return resolve({ ok: false, reason: 'missing', error: 'GitHub Copilot aracı başlatılamadı.' });
     }
     let buf = '';
     let done = false;
+    let initResult = null;
     const end = (value) => {
       if (done) return;
       done = true;
@@ -131,21 +132,21 @@ function copilotAccountModels(exe, args, { cwd, env, timeoutMs = 25000, spawnFn 
       } catch {}
       resolve(value);
     };
-    const timer = setTimeout(() => end(null), timeoutMs);
+    const timer = setTimeout(() => end({ ok: false, reason: 'timeout', error: 'GitHub Copilot zamanında yanıt vermedi.' }), timeoutMs);
     const send = (id, method, params) => {
       try {
         child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
       } catch {
-        end(null);
+        end({ ok: false, reason: 'error', error: 'GitHub Copilot bağlantısı kesildi.' });
       }
     };
-    child.on('error', () => end(null));
-    child.on('close', () => end(null));
+    child.on('error', () => end({ ok: false, reason: 'missing', error: 'GitHub Copilot aracı başlatılamadı.' }));
+    child.on('close', () => end({ ok: false, reason: 'error', error: 'GitHub Copilot yanıt vermeden kapandı.' }));
     child.stdin.on('error', () => {});
     child.stdout.setEncoding('utf8');
     child.stdout.on('data', (chunk) => {
       buf += chunk;
-      if (buf.length > 4e6) return end(null);
+      if (buf.length > 4e6) return end({ ok: false, reason: 'error', error: 'GitHub Copilot yanıtı çok büyük.' });
       let i;
       while ((i = buf.indexOf('\n')) >= 0) {
         const line = buf.slice(0, i).trim();
@@ -155,12 +156,29 @@ function copilotAccountModels(exe, args, { cwd, env, timeoutMs = 25000, spawnFn 
           m = line ? JSON.parse(line) : null;
         } catch {}
         if (!m || typeof m !== 'object') continue;
-        if (m.id === 1) m.result ? send(2, 'session/new', { cwd, mcpServers: [] }) : end(null);
-        else if (m.id === 2) end(m.result ? parseAcpModels(m.result) : null);
+        if (m.id === 1) {
+          if (m.result) {
+            initResult = m.result;
+            send(2, 'session/new', { cwd, mcpServers: [] });
+          } else {
+            const msg = String(m.error?.message || '');
+            end({ ok: false, reason: NEEDS_LOGIN.test(msg) ? 'login' : 'error', error: msg });
+          }
+        } else if (m.id === 2) {
+          if (m.result) end({ ok: true, init: initResult, session: m.result });
+          else {
+            const msg = String(m.error?.message || '');
+            end({ ok: false, reason: NEEDS_LOGIN.test(msg) ? 'login' : NEEDS_PLAN.test(msg) ? 'quota' : 'error', error: msg });
+          }
+        }
       }
     });
     send(1, 'initialize', { protocolVersion: 1, clientCapabilities: {} });
   });
+}
+async function copilotAccountModels(exe, args, options = {}) {
+  const res = await copilotAcpSession(exe, args, options);
+  return res?.ok && res.session ? parseAcpModels(res.session) : null;
 }
 /** "claude-sonnet-5.5" → "Claude Sonnet 5.5", "gpt-6.1-sol" → "GPT 6.1 Sol". */
 function copilotName(id) {
@@ -250,4 +268,4 @@ const VARIANT_LABELS = { none: 'None', minimal: 'Minimal', low: 'Low', medium: '
 
 const KITS = { copilot };
 
-module.exports = { KITS, findTool, textAnswer, parseAcpModels, copilotAccountModels, MAX_PROMPT, COPILOT_MODEL };
+module.exports = { KITS, findTool, textAnswer, parseAcpModels, copilotAccountModels, copilotAcpSession, MAX_PROMPT, COPILOT_MODEL };

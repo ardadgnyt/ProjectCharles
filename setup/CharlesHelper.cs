@@ -219,7 +219,25 @@ class ForegroundWorker : Worker {
  const uint EVENT_SYSTEM_FOREGROUND = 3, EVENT_OBJECT_LOCATIONCHANGE = 0x800B, OUTOFCONTEXT = 0, SKIPOWN = 2;
  readonly ConcurrentQueue<string> queue = new ConcurrentQueue<string>();
  readonly ManualResetEvent ready = new ManualResetEvent(false);
- uint thread, placedPid; IntPtr hookForeground, hookPlace, lastWindow; bool lastFull, live; Proc keep;
+ uint thread, placedPid, ownerPid; string ownerHandles = ""; Timer followTimer;
+ IntPtr hookForeground, hookPlace, lastWindow; bool lastFull, live; Proc keep;
+
+ [StructLayout(LayoutKind.Sequential)] struct PROCESS_BASIC_INFORMATION { public IntPtr ExitStatus, PebBaseAddress, AffinityMask, BasePriority, UniqueProcessId, InheritedFromUniqueProcessId; }
+ [DllImport("ntdll.dll")] static extern int NtQueryInformationProcess(IntPtr hProcess, int pic, ref PROCESS_BASIC_INFORMATION pbi, int cb, out int len);
+ static uint ParentPid() {
+  try {
+   var pbi = new PROCESS_BASIC_INFORMATION(); int len;
+   if (NtQueryInformationProcess(Process.GetCurrentProcess().Handle, 0, ref pbi, Marshal.SizeOf(pbi), out len) == 0)
+    return (uint)pbi.InheritedFromUniqueProcessId.ToInt64();
+  } catch {}
+  return 0;
+ }
+ void ScheduleFollowUp(int ms) {
+  try {
+   if (followTimer == null) followTimer = new Timer(_ => { if (!Closed) Post("!check"); }, null, ms, Timeout.Infinite);
+   else followTimer.Change(ms, Timeout.Infinite);
+  } catch {}
+ }
 
  public ForegroundWorker() {
   Name = "fg";
@@ -261,13 +279,16 @@ class ForegroundWorker : Worker {
   // program has the screen (its own answer to "may a notification show now?"). A window laid over
   // such a program drops it to the desktop.
   var h = GetForegroundWindow();
+  if (h == IntPtr.Zero && !always) { ScheduleFollowUp(60); return; }
   bool readable; RECT mon; var covers = Front(h, out readable, out mon);
   var quns = Quns();
   var full = covers || (!readable && WindowsSaysFull(quns));
+  if (covers && ownerPid != 0) Below(ownerPid + " " + (string.IsNullOrEmpty(ownerHandles) ? "0" : ownerHandles));
+  else if (!full && !always && h != IntPtr.Zero) ScheduleFollowUp(120);
   if (!always && h == lastWindow && full == lastFull) return;
   lastWindow = h; lastFull = full;
   uint pid; GetWindowThreadProcessId(h, out pid);
-  Follow(pid);
+  if (pid != 0) Follow(pid);
   if (h == IntPtr.Zero || pid == 0) { Emit("{\"app\":\"\",\"live\":" + Json.B(live) + "}"); return; }
   // v1.0.0: a program whose name cannot be read (a game behind an anti-cheat driver refuses the
   // question) is still reported with its window and "full". It used to be reported as nothing at
@@ -294,6 +315,41 @@ class ForegroundWorker : Worker {
  static bool WindowsSaysFull(int quns) { return quns == 3 || quns == 4; }
  [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint f);
  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+ [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] static extern IntPtr GetWindowLongPtr(IntPtr h, int n);
+ [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr h, uint cmd);
+ [DllImport("user32.dll")] static extern void NotifyWinEvent(uint ev, IntPtr h, int obj, int child);
+ delegate bool EnumWindowsProc(IntPtr h, IntPtr l);
+ [DllImport("user32.dll")] static extern bool EnumWindows(EnumWindowsProc fn, IntPtr l);
+ static bool IsTopmostOrAbove(IntPtr h, IntPtr fg) {
+  if ((GetWindowLongPtr(h, -20).ToInt64() & 0x0008L) != 0) return true;
+  for (var cur = GetWindow(fg, 3); cur != IntPtr.Zero; cur = GetWindow(cur, 3)) if (cur == h) return true;
+  return false;
+ }
+ static void DropTopmost(IntPtr h) {
+  if ((GetWindowLongPtr(h, -20).ToInt64() & 0x0008L) != 0)
+   SetWindowPos(h, new IntPtr(-2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0200 | 0x0400);
+ }
+ bool LowerProcessWindows(uint owner, IntPtr fg, IntPtr fgMon) {
+  var moved = false;
+  try {
+   EnumWindows((h, _) => {
+    uint pid; GetWindowThreadProcessId(h, out pid);
+    if (pid != owner || !IsWindowVisible(h) || MonitorFromWindow(h, 2) != fgMon) return true;
+    if (!IsTopmostOrAbove(h, fg)) return true;
+    DropTopmost(h);
+    SetWindowPos(h, fg, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0200);
+    moved = true;
+    return true;
+   }, IntPtr.Zero);
+  } catch {}
+  return moved;
+ }
+ static void RefreshFullscreenZOrder(IntPtr fg) {
+  try {
+   NotifyWinEvent(EVENT_OBJECT_LOCATIONCHANGE, fg, 0, 0);
+   SetWindowPos(fg, IntPtr.Zero, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0004 | 0x0010 | 0x0200 | 0x4000);
+  } catch {}
+ }
  /**
   * v1.0.1 (taskbar): "below <pid> <hwnd>,<hwnd>…": Charles' windows go right under the full-screen
   * window in front. Charles steps out of the always-on-top band for a full-screen program with
@@ -306,20 +362,27 @@ class ForegroundWorker : Worker {
  void Below(string args) {
   var parts = args.Split(' ');
   uint owner; if (parts.Length != 2 || !uint.TryParse(parts[0], out owner) || owner == 0) return;
+  ownerPid = owner; if (parts[1] != "0") ownerHandles = parts[1];
   var fg = GetForegroundWindow();
   bool readable; RECT mon;
   if (!Front(fg, out readable, out mon)) return;
   uint fgPid; GetWindowThreadProcessId(fg, out fgPid);
   if (fgPid == owner) return;
   var fgMon = MonitorFromWindow(fg, 2);
+  var moved = false;
   foreach (var item in parts[1].Split(',')) {
    long v; if (!long.TryParse(item, out v) || v == 0) continue;
    var h = new IntPtr(v);
    uint pid; GetWindowThreadProcessId(h, out pid);
    if (pid != owner || !IsWindowVisible(h) || MonitorFromWindow(h, 2) != fgMon) continue;
+   var needed = IsTopmostOrAbove(h, fg);
+   DropTopmost(h);
    // SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER
    SetWindowPos(h, fg, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0200);
+   if (needed) moved = true;
   }
+  if (LowerProcessWindows(owner, fg, fgMon)) moved = true;
+  if (moved) RefreshFullscreenZOrder(fg);
  }
  /** Size changes only of the program in front: entering full screen in a video moves no focus. */
  void Follow(uint pid) {
@@ -339,11 +402,12 @@ class ForegroundWorker : Worker {
   hookForeground = hookPlace = IntPtr.Zero; placedPid = 0;
  }
  void Event(IntPtr hook, uint ev, IntPtr hwnd, int obj, int child, uint t, uint time) {
-  if (ev == EVENT_OBJECT_LOCATIONCHANGE && (obj != 0 || child != 0 || hwnd != lastWindow)) return;
+  if (ev == EVENT_OBJECT_LOCATIONCHANGE && (obj != 0 || child != 0 || (hwnd != lastWindow && hwnd != GetForegroundWindow()))) return;
   try { Report(false); } catch {}
  }
  void Loop() {
   keep = Event;
+  ownerPid = ParentPid();
   Native.MSG m;
   Native.PeekMessage(out m, IntPtr.Zero, 0, 0, 0); // the thread's message queue exists from here on
   thread = Native.GetCurrentThreadId();
@@ -359,11 +423,14 @@ class ForegroundWorker : Worker {
    while (queue.TryDequeue(out line)) {
     try {
      if (line == "read") Report(true);
+     else if (line == "!check") Report(false);
      else if (line == "!refresh") { Hook(); Report(true); }
      else if (line.StartsWith("below ")) Below(line.Substring(6));
+     else if (line.StartsWith("register ")) Below(line.Substring(9));
     } catch { Emit("{\"app\":\"\"}"); }
    }
   }
+  if (followTimer != null) try { followTimer.Dispose(); } catch {}
   Unhook();
  }
  public override void Post(string text) { queue.Enqueue(text); Native.PostThreadMessage(thread, Native.WM_APP, IntPtr.Zero, IntPtr.Zero); }

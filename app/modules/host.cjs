@@ -7,13 +7,32 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { resolveRequest, headers } = require('./protocol.cjs');
 const { ModuleStorage } = require('./storage.cjs');
+const { ModuleFolders } = require('./folders.cjs');
 const { readFolder } = require('./package.cjs');
 const { DEFAULT_PERMISSIONS } = require('./manifest.cjs');
 
 const EMOTES = ['love', 'surprised', 'proud', 'wink', 'yawn', 'happy', 'annoyed'];
 const MODEL = /^[a-z0-9][a-z0-9:._/-]{0,80}$/i;
 // calls per window of time, per module
-const RATES = { default: [60, 10000], 'ai.chat': [12, 60000], 'ai.image': [4, 60000], 'voice.speak': [20, 60000], notify: [10, 60000], 'files.save': [6, 60000], 'files.pick': [6, 60000] };
+const RATES = {
+  default: [60, 10000],
+  'ai.chat': [12, 60000],
+  'ai.image': [4, 60000],
+  'voice.speak': [20, 60000],
+  notify: [10, 60000],
+  'files.save': [6, 60000],
+  'files.pick': [6, 60000],
+  'folders.pick': [6, 60000],
+  'folders.relink': [6, 60000],
+  'folders.scan': [10, 60000],
+  'folders.read': [600, 10000],
+  'folders.stat': [600, 10000],
+  'folders.readMany': [30, 60000],
+  'folders.write': [300, 10000],
+  'folders.move': [300, 10000],
+  'folders.mkdir': [300, 10000],
+  'folders.trash': [300, 10000],
+};
 
 /** A simple sliding-window limit: true when the call may run. */
 function rateLimiter(rates = RATES, now = () => Date.now()) {
@@ -41,6 +60,7 @@ function needs(method) {
   if (method.startsWith('download.')) return 'download';
   if (method === 'slime.wear') return 'appearance';
   if (method === 'files.save' || method === 'files.pick') return 'files'; // v0.9.12
+  if (method.startsWith('folders.')) return 'folders'; // v1.0.2
   return null;
 }
 
@@ -54,7 +74,7 @@ const str = (v, name, max) => {
 const IMAGE_EXT = /\.(png|jpe?g|webp)$/i;
 const MAX_CHAT_IMAGES = 10;
 const MAX_CHAT_IMAGE_BYTES = 20 * 1024 * 1024;
-const FEATURES = ['ai.images', 'slime.look', 'slime.react', 'slime.wear', 'slime.kit', 'files.save', 'files.pick'];
+const FEATURES = ['ai.images', 'slime.look', 'slime.react', 'slime.wear', 'slime.kit', 'files.save', 'files.pick', 'folders'];
 // v0.8.8: what the desktop Slime can do for a module (src/renderer.ts → onModuleReact)
 const REACTIONS = ['greet', 'blink', 'squash', 'slap', 'dizzy', 'gulp'];
 // the accessories a module may put on the desktop Slime (src/vendor/slime/wardrobe.ts SLOT_ITEMS)
@@ -144,6 +164,8 @@ function createModuleHost(o) {
     }
 
   const changed = () => deps.onChange?.();
+  const folderBase = registry.userData || (registry.file ? path.dirname(registry.file) : require('node:os').tmpdir());
+  const folders = new ModuleFolders({ userData: folderBase });
   const storage = (id) => {
     if (!storages.has(id)) storages.set(id, new ModuleStorage(registry.dataDir(id)));
     return storages.get(id);
@@ -155,7 +177,14 @@ function createModuleHost(o) {
     try {
       entry = registry.manifest(id).entry;
     } catch {}
-    return { files: registry.root(id), data: registry.dataDir(id), entry, kit: deps.kitDir || null };
+    const hasFolders = (m.permissions || []).includes('folders');
+    return {
+      files: registry.root(id),
+      data: registry.dataDir(id),
+      entry,
+      kit: deps.kitDir || null,
+      folderRoot: hasFolders ? (grantId) => folders.grantRoot(id, grantId) : null,
+    };
   }
   function sessionFor(id) {
     if (sessions.has(id)) return sessions.get(id);
@@ -442,6 +471,63 @@ function createModuleHost(o) {
           busy.delete(key);
         }
       }
+      // v1.0.2: user-granted folders API ("folders" permission)
+      case 'folders.pick':
+      case 'folders.relink': {
+        const key = id + ' folders.pick';
+        if (busy.has(key)) throw Error('Klasör seçme penceresi zaten açık.');
+        busy.add(key);
+        try {
+          let moduleName = id;
+          try {
+            moduleName = registry.manifest(id).name;
+          } catch {}
+          const win = windows.get(id);
+          const r =
+            method === 'folders.pick'
+              ? await folders.pick(id, args || {}, { dialog, win, moduleName })
+              : await folders.relink(id, args?.id, args || {}, { dialog, win, moduleName });
+          if (r.picked) changed();
+          return r;
+        } finally {
+          busy.delete(key);
+        }
+      }
+      case 'folders.granted':
+        return folders.granted(id);
+      case 'folders.forget': {
+        const ok = folders.forget(id, args?.id);
+        changed();
+        return ok;
+      }
+      case 'folders.stat':
+        return folders.stat(id, args?.id, args?.path ?? '');
+      case 'folders.scan': {
+        const key = id + ' folders.scan';
+        if (busy.has(key)) throw Error('Önceki klasör taraması hâlâ sürüyor.');
+        busy.add(key);
+        try {
+          return await folders.scan(id, args?.id, args || {});
+        } finally {
+          busy.delete(key);
+        }
+      }
+      case 'folders.read':
+        return folders.read(id, args?.id, args?.path, { encoding: args?.encoding || 'utf8' });
+      case 'folders.readMany':
+        return folders.readMany(id, args?.id, args?.paths, { encoding: args?.encoding || 'utf8' });
+      case 'folders.write': {
+        const opts = { encoding: args?.encoding || 'utf8', mkdirs: args?.mkdirs !== false };
+        if (args && Object.prototype.hasOwnProperty.call(args, 'expectSha256') && args.expectSha256 !== undefined)
+          opts.expectSha256 = args.expectSha256;
+        return folders.write(id, args?.id, args?.path, args?.data, opts);
+      }
+      case 'folders.mkdir':
+        return folders.mkdir(id, args?.id, args?.path);
+      case 'folders.move':
+        return folders.move(id, args?.id, args?.from, args?.to, { overwrite: args?.overwrite === true });
+      case 'folders.trash':
+        return await folders.trash(id, args?.id, args?.path, { shell });
       case 'notify': {
         let name = id;
         try {
@@ -462,7 +548,7 @@ function createModuleHost(o) {
     try {
       return { ok: true, value: await call(id, String(method), args) };
     } catch (e) {
-      return { ok: false, error: e.message };
+      return { ok: false, error: e.message, ...(e?.code ? { code: e.code } : {}) };
     }
   });
 
@@ -471,6 +557,8 @@ function createModuleHost(o) {
     close,
     reload,
     call,
+    folders,
+    roots,
     openIds: () => [...windows.keys()].filter((id) => !windows.get(id).isDestroyed()),
     /** v0.8.8: the user's Slime look changed (colour / accessories) → every module window. */
     look(value) {

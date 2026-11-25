@@ -71,7 +71,9 @@ const TEXTS = {
   "Güncellemenin ikinci bölümü hazır": {"en":"The second part of the update is ready","de":"Der zweite Teil des Updates ist bereit","fr":"La deuxième partie de la mise à jour est prête","es":"La segunda parte de la actualización está lista","zh":"更新的第二部分已就绪"},
   "Charles yeniden başlayınca birkaç saniyede kurulur.": {"en":"It installs in a few seconds when Charles restarts.","de":"Er wird beim Neustart von Charles in wenigen Sekunden installiert.","fr":"Elle s’installe en quelques secondes au redémarrage de Charles.","es":"Se instala en unos segundos cuando Charles se reinicia.","zh":"Charles 重启时几秒内即可装好。"},
   "Şimdi yeniden başlat": {"en":"Restart now","de":"Jetzt neu starten","fr":"Redémarrer maintenant","es":"Reiniciar ahora","zh":"立即重启"},
-  "Charles güncellemenin ikinci bölümünü kuruyor…": {"en":"Charles is installing the second part of the update…","de":"Charles installiert den zweiten Teil des Updates…","fr":"Charles installe la deuxième partie de la mise à jour…","es":"Charles está instalando la segunda parte de la actualización…","zh":"Charles 正在安装更新的第二部分…"},
+  "Bildirim açılamadı": {"en":"The notification could not be opened","de":"Die Benachrichtigung konnte nicht geöffnet werden","fr":"La notification n’a pas pu être ouverte","es":"No se pudo abrir la notificación","zh":"无法打开通知"},
+  "İçeriği şu an açılamadı. Charles’ı açıp ona sorabilirsin.": {"en":"Its content could not be opened right now. You can open Charles and ask him.","de":"Der Inhalt konnte gerade nicht geöffnet werden. Du kannst Charles öffnen und ihn fragen.","fr":"Son contenu n’a pas pu être ouvert pour l’instant. Tu peux ouvrir Charles et lui demander.","es":"Ahora no se pudo abrir su contenido. Puedes abrir Charles y preguntarle.","zh":"暂时无法打开其内容。可以打开 Charles 问问他。"},
+  "Charles güncellemenin ikinci bölümünü kuruyor…":{"en":"Charles is installing the second part of the update…","de":"Charles installiert den zweiten Teil des Updates…","fr":"Charles installe la deuxième partie de la mise à jour…","es":"Charles está instalando la segunda parte de la actualización…","zh":"Charles 正在安装更新的第二部分…"},
 };
 const LANGS = ['en', 'de', 'fr', 'es', 'zh'];
 

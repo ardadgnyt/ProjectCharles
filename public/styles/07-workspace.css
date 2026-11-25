@@ -1101,11 +1101,18 @@ body.workspace #mini-music {
   font-weight: var(--fw-strong);
 }
 .ws-tile.on .ws-switch {
-  background: var(--ws-accent);
+  background: var(--switch-on-bg);
+  box-shadow:
+    inset 0 0 0 1px var(--switch-on-border),
+    0 0 0 1px var(--switch-on-glow);
+}
+.ws-tile.toggle.on:hover .ws-switch {
+  background: var(--switch-on-hover);
 }
 .ws-tile.on .ws-switch::after {
   transform: translateX(18px);
-  background: #fff;
+  background: var(--switch-on-knob);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 .ws-scenes {
   display: grid;
@@ -1707,8 +1714,11 @@ body.workspace #sessions-panel[open] {
   width: 40px;
   height: 22px;
   border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.15);
-  transition: background-color 0.18s ease;
+  background: var(--switch-off-bg);
+  box-shadow: inset 0 0 0 1px var(--switch-off-border);
+  transition:
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 .ws-switch::after {
   content: '';
@@ -1718,8 +1728,11 @@ body.workspace #sessions-panel[open] {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #d8d8dc;
-  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  background: var(--switch-off-knob);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  transition:
+    transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 0.18s ease;
   will-change: transform;
 }
 .ws-tile-icon {
@@ -2910,11 +2923,18 @@ body.workspace #sessions-panel[open] {
   height: 18px;
 }
 .ws-ht.on .ws-switch {
-  background: var(--ws-accent);
+  background: var(--switch-on-bg);
+  box-shadow:
+    inset 0 0 0 1px var(--switch-on-border),
+    0 0 0 1px var(--switch-on-glow);
+}
+.ws-ht.toggle.on:hover .ws-switch {
+  background: var(--switch-on-hover);
 }
 .ws-ht.on .ws-switch::after {
   transform: translateX(20px);
-  background: #fff;
+  background: var(--switch-on-knob);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 .ws-run {
   display: grid;
@@ -3184,7 +3204,7 @@ body.workspace #sessions-panel[open] {
   --ws-text: #f6efe6;
   --ws-body: #ddd4c9;
   --ws-muted: #978c80;
-  background: radial-gradient(120% 90% at 0% 0%, #0a0806 0%, var(--ws-bg) 55%) var(--ws-bg);
+  background: radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--cream) 4%, #010101) 0%, var(--ws-bg) 55%) var(--ws-bg);
 }
 .ws-panel {
   background: #070707;
@@ -4336,8 +4356,11 @@ body.workspace #sessions-panel[open] {
   width: 30px;
   height: 18px;
   border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.14);
-  transition: background 0.2s;
+  background: var(--switch-off-bg);
+  box-shadow: inset 0 0 0 1px var(--switch-off-border);
+  transition:
+    background-color 0.2s,
+    box-shadow 0.2s;
 }
 .ws-q-auto i::after {
   content: '';
@@ -4347,14 +4370,24 @@ body.workspace #sessions-panel[open] {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #fff;
-  transition: transform 0.2s;
+  background: var(--switch-off-knob);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  transition:
+    transform 0.2s,
+    background-color 0.2s;
 }
 .ws-q-auto.on i {
-  background: var(--ws-accent);
+  background: var(--switch-on-bg);
+  box-shadow:
+    inset 0 0 0 1px var(--switch-on-border),
+    0 0 0 1px var(--switch-on-glow);
+}
+.ws-q-auto.on:hover:not(:disabled) i {
+  background: var(--switch-on-hover);
 }
 .ws-q-auto.on i::after {
   transform: translateX(12px);
+  background: var(--switch-on-knob);
 }
 /* ── change review ─────────────────────────────────────────────────────── */
 .ws-review-modal .ws-modal {
@@ -5453,9 +5486,12 @@ body.workspace #workspace .ws-chat-body > .content {
   padding: 0;
   border: 0;
   border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--switch-off-bg);
+  box-shadow: inset 0 0 0 1px var(--switch-off-border);
   cursor: pointer;
-  transition: background-color 0.18s;
+  transition:
+    background-color 0.18s,
+    box-shadow 0.18s;
 }
 /* (a shelf rule, kept in this file for the cascade) */
 /* the app window's narrower card */
@@ -5652,8 +5688,8 @@ body.workspace #workspace .ws-chat-body > .content {
 /* (a shelf rule, kept in this file for the cascade) */
 .tm13-switch.on i {
   transform: translateX(14px);
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  background: var(--switch-on-knob);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 /* app window, Dosyalar card: Dönüştür / Gönder always at the right; "Dosya alımı" sits to their left */
 .ws-tools13.ws-files .ws-card-head .ws-tool-slot {
@@ -6552,8 +6588,12 @@ body.workspace .ws-chat-body #feed,
 .ws-tools13 .share-switch:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.05);
 }
+.ws-tools13 .share-switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .ws-tools13 .share-switch:disabled {
-  opacity: 0.6;
+  opacity: var(--switch-disabled-opacity);
   cursor: progress;
 }
 .ws-tools13 .share-switch-track {
@@ -6561,8 +6601,11 @@ body.workspace .ws-chat-body #feed,
   width: 32px;
   height: 18px;
   border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.14);
-  transition: background-color 0.18s;
+  background: var(--switch-off-bg);
+  box-shadow: inset 0 0 0 1px var(--switch-off-border);
+  transition:
+    background-color 0.18s,
+    box-shadow 0.18s;
 }
 .ws-tools13 .share-switch-track i {
   position: absolute;
@@ -6571,16 +6614,24 @@ body.workspace .ws-chat-body #feed,
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #e9e5df;
+  background: var(--switch-off-knob);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  transition: transform 0.2s var(--v10-ease);
+  transition:
+    transform 0.2s var(--v10-ease),
+    background-color 0.18s;
 }
 .ws-tools13 .share-switch.on .share-switch-track {
-  background: var(--v10-cream);
+  background: var(--switch-on-bg);
+  box-shadow:
+    inset 0 0 0 1px var(--switch-on-border),
+    0 0 0 1px var(--switch-on-glow);
+}
+.ws-tools13 .share-switch.on:hover:not(:disabled) .share-switch-track {
+  background: var(--switch-on-hover);
 }
 .ws-tools13 .share-switch.on .share-switch-track i {
   transform: translateX(14px);
-  background: #1b1712;
+  background: var(--switch-on-knob);
 }
 
 /* ── from 34-v0916.css ── */
@@ -6911,21 +6962,37 @@ body.workspace #settings-panel[open] #settings-categories button[aria-pressed='t
   letter-spacing: 0.03em;
 }
 /* (a chat rule, kept in this file for the cascade) */
+#composer #attachments .attachment-remove,
 #composer .attachment-remove {
   position: absolute;
   top: 4px;
   right: 4px;
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   width: 20px;
   height: 20px;
+  min-width: 20px;
+  min-height: 20px;
   padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.74);
   color: #f5eee5;
-  font-size: var(--fs-i4);
-  line-height: 1;
+  font-size: 0;
+  line-height: 0;
+}
+#composer #attachments .attachment-remove svg,
+#composer .attachment-remove svg {
+  display: block;
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  flex-shrink: 0;
 }
 /* (a chat rule, kept in this file for the cascade) */
 .attachment-tip {
@@ -7633,13 +7700,20 @@ body.workspace .ws-chat-body {
     width: 18px;
     height: 18px;
   }
+  body.workspace .ws-chat-body #composer #attachments .attachment-remove,
   body.workspace .ws-chat-body #composer .attachment-remove {
     top: -4px;
     right: auto;
     left: 42px;
     width: 18px;
     height: 18px;
-    font-size: var(--fs-a1);
+    min-width: 18px;
+    min-height: 18px;
+    padding: 0;
+  }
+  body.workspace .ws-chat-body #composer .attachment-remove svg {
+    width: 9px;
+    height: 9px;
   }
   body.workspace .ws-chat-body #drop-actions:not([hidden]) {
     margin-bottom: 0;
@@ -7855,4 +7929,146 @@ body.workspace:has(#workspace[data-view='home']) .skip-link {
 /* (a dialogs rule, kept in this file for the cascade) */
 #charles-tip.on {
   opacity: 1;
+}
+
+/* ── from 55-v102.css ── */
+/* v1.0.2 / v1.0.3: workspace subagent tracker compact top bar + bounded overlay drawer,
+   disabled button tokens, custom select typography, and narrow-chat audio attachment card. */
+body.workspace #subagents-island,
+body:not(.workspace) #subagents-panel {
+  display: none !important;
+}
+body.workspace #workspace .ws-chat-view .ws-work {
+  flex-wrap: wrap;
+}
+body.workspace #workspace .ws-chat-view .ws-work:has(> #subagents-panel > .sa-view:not([hidden])) {
+  display: flex;
+}
+body.workspace #workspace #subagents-panel {
+  position: relative;
+  z-index: 25;
+  order: -1;
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+body.workspace #workspace #subagents-panel:has(> .sa-view[hidden]) {
+  display: none !important;
+}
+body.workspace #workspace .sa-panel {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 32px;
+  margin: 0;
+  padding: 3px 10px;
+  border-color: var(--ws-line);
+  border-radius: var(--pn-radius-ctl);
+  background: var(--ws-card-2);
+}
+body.workspace #workspace .sa-panel .sa-panel-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: min(35vh, 260px);
+  padding: 10px;
+  border: 1px solid var(--ws-line);
+  border-radius: var(--pn-radius);
+  background: var(--ws-card-2);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.72);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+body.workspace #workspace .sa-panel .sa-panel-list[hidden] {
+  display: none !important;
+}
+body.workspace #workspace .sa-card-panel {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding: 8px 10px;
+  border-color: var(--ws-line);
+  border-radius: var(--pn-radius-ctl);
+  background: var(--ws-field);
+  overflow: hidden;
+}
+body.workspace #workspace .sa-card-panel .sa-card-top {
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+body.workspace #workspace .sa-card-panel .sa-title {
+  flex: 1 1 120px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-a2);
+}
+body.workspace #workspace .sa-card-panel .sa-model-pill {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.workspace #workspace .sa-card-panel .sa-last-action {
+  font-size: var(--fs-a1);
+}
+body.workspace #workspace button:disabled:not(.primary):not(.ws-primary):not(.icon):not(.icon-btn):not(.ws-icon):not(.slime-swatch):not([role='switch']):not(.share-switch):not(.tm13-switch),
+body.workspace #workspace button[aria-disabled='true']:not(.primary):not(.ws-primary):not(.icon):not(.icon-btn):not(.ws-icon):not(.slime-swatch):not([role='switch']):not(.share-switch):not(.tm13-switch) {
+  background: var(--btn-disabled-bg) !important;
+  border-color: var(--btn-disabled-border) !important;
+  color: var(--btn-disabled-text) !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  cursor: default;
+}
+body.workspace #workspace button.primary:disabled,
+body.workspace #workspace button.ws-primary:disabled,
+body.workspace #workspace .primary:disabled,
+body.workspace #workspace .ws-primary:disabled,
+body.workspace #workspace button.primary[aria-disabled='true'],
+body.workspace #workspace button.ws-primary[aria-disabled='true'] {
+  background: var(--btn-primary-disabled-bg) !important;
+  border-color: var(--btn-primary-disabled-border) !important;
+  color: var(--btn-primary-disabled-text) !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  cursor: default;
+}
+body.workspace #settings-panel .cs-trigger,
+body.workspace #settings-panel .cs-name,
+body.workspace .cs-option,
+body.workspace .cs-option-name {
+  font-size: var(--fs-a2);
+}
+body.workspace .cs-option-meta {
+  font-size: var(--fs-a1);
+}
+@container pn-chat (max-width: 600px) {
+  body.workspace .ws-chat-body .attachment-card.attachment-card-audio {
+    flex: 0 0 216px;
+    width: 216px;
+    grid-template-columns: 112px minmax(0, 1fr);
+    grid-template-rows: 46px;
+  }
+  body.workspace .ws-chat-body #composer .attachment-card-audio .attachment-preview.attachment-audio {
+    width: 112px;
+    height: 46px;
+    padding: 4px 6px;
+  }
+  body.workspace .ws-chat-body #composer #attachments .attachment-card-audio .attachment-remove,
+  body.workspace .ws-chat-body #composer .attachment-card-audio .attachment-remove {
+    left: 96px;
+  }
 }

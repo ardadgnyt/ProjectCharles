@@ -376,6 +376,12 @@ class Providers {
     this.evren = new Evren(dir);
     this.evrenQuotaCache = null;
     this.evrenQuotaPending = null;
+    const { CopilotUsage } = require('../usage/copilot-usage.cjs');
+    this.copilotUsageReader = new CopilotUsage({
+      cacheFile: path.join(this.dir, 'copilot-usage.json'),
+      env: this.env,
+      log: require('../core/log.cjs').createLog(dir, 'usage'),
+    });
     // v0.9.27: the CLI kits. What a connection test proved and the account's model list are kept in
     // providers/<id>.json (names and ids only; the tools keep their own sign-in).
     this.kits = {};
@@ -531,9 +537,23 @@ class Providers {
   }
   async usage(force = false) {
     if (this.quotaPending) return this.quotaPending;
-    // Gemini is fetched only by manual refresh or opening the workspace window.
-    if (!force) return this.quotaCache || {provider:'gemini',fiveHour:null,weekly:null,blocked:null,updatedAt:null,unavailable:'Kotayı okumak için yenile'};
-    if (this.quotaCache && Date.now()-this.quotaCache.updatedAt<5000) return this.quotaCache;
+    // Uninitialized prototype instances in unit tests (no this.dir) never spawn a process on !force.
+    if (!force && !this.dir)
+      return this.quotaCache || {provider:'gemini',fiveHour:null,weekly:null,blocked:null,updatedAt:null,unavailable:'Kotayı okumak için yenile'};
+    if (this.quotaBackoffUntil && Date.now() < this.quotaBackoffUntil) {
+      if (this.quotaCache?.fiveHour || this.quotaCache?.weekly)
+        return { ...this.quotaCache, stale: true, staleReason: 'Çok fazla istek yapıldı · birazdan yenilenecek' };
+      return { provider: 'gemini', fiveHour: null, weekly: null, blocked: null, updatedAt: Date.now(), unavailable: 'Çok fazla istek yapıldı · birazdan yenilenecek' };
+    }
+    const ttl = force ? 5000 : 300000;
+    if (
+      this.quotaCache &&
+      !this.quotaCache.unavailable &&
+      !( !force && this.quotaNeedsRefresh ) &&
+      Date.now() - this.quotaCache.updatedAt < ttl
+    )
+      return this.quotaCache;
+    const reqSeq = (this.quotaSeq = (this.quotaSeq || 0) + 1);
     this.quotaPending=(async()=>{
       const spec=this.spec('gemini');
       const cli=await runOffThread(spec.exe,[...spec.args,'--output-format','json','-p','/usage'],{
@@ -542,11 +562,28 @@ class Providers {
       const {geminiUsage}=require('../usage/gemini-usage.cjs');
       // v0.8.5: only what the official CLI reports. (0.8.4 also read Antigravity's Google sign-in
       // token from Windows Credential Manager and called Google's internal quota service; removed.)
-      const value=geminiUsage(cli.out || '');
-      if(value.unavailable && (this.quotaCache?.fiveHour || this.quotaCache?.weekly)) return {...this.quotaCache,stale:true};
+      const rawOut = (cli.out || '') + (cli.out ? '' : '\n' + (cli.err || ''));
+      const value=geminiUsage(rawOut);
+      if (value.rateLimited) this.quotaBackoffUntil = Date.now() + 60000;
+      if (reqSeq < (this.quotaSeq || 0) && this.quotaCache) return this.quotaCache;
+      if(value.unavailable && (this.quotaCache?.fiveHour || this.quotaCache?.weekly)) {
+        if (value.unavailable === 'Antigravity oturumu açık değil') return value;
+        return {...this.quotaCache,stale:true,staleReason:value.unavailable};
+      }
+      if (!value.unavailable && this.quotaCache && !this.quotaCache.unavailable && this.quotaCache.updatedAt > value.updatedAt)
+        return this.quotaCache;
+      this.quotaNeedsRefresh = false;
       this.quotaCache=value;return value;
     })();
     try{return await this.quotaPending;}finally{this.quotaPending=null;}
+  }
+  async copilotUsage(force = false) {
+    const spec = this.spec('copilot');
+    return this.copilotUsageReader.read(force, {
+      signedIn: !!this.auth.copilot || !!this.kits.copilot?.verified,
+      spec,
+      cwd: path.join(this.dir, 'workspace'),
+    });
   }
 
   status() {
@@ -1618,6 +1655,8 @@ class Providers {
       // v0.7.3: the Claude CLI renews its session while answering, so the quota can be read
       // again with the fresh token right away
       if (provider === 'claude') this.claudeUsage.invalidate();
+      if (provider === 'gemini') this.quotaNeedsRefresh = true;
+      if (provider === 'copilot') this.copilotUsageReader?.invalidate?.();
       let text = '';
       if (!error) {
         try {

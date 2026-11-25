@@ -1,5 +1,12 @@
 // v0.8.0: Ayarlar → Modüller. Load a .zip module (or a folder in developer mode), confirm
 // what it may do, then open it in its own window. app/modules/* does the checking.
+type FolderGrant = {
+  id: string;
+  name: string;
+  path: string;
+  addedAt: number;
+  available: boolean;
+};
 type Mod = {
   id: string;
   name: string;
@@ -7,6 +14,7 @@ type Mod = {
   author: string;
   description: string;
   permissions: string[];
+  folders?: FolderGrant[];
   enabled: boolean;
   dev: boolean;
   devPath: string;
@@ -29,6 +37,8 @@ const PERMISSION_LABEL: Record<string, string> = {
   voice: 'Ses',
   download: 'İndirme',
   appearance: 'Görünüm',
+  files: 'Dosyalar',
+  folders: 'Klasörler',
   storage: 'Kendi verisi',
   slime: 'Slime',
   notify: 'Bildirim',
@@ -63,7 +73,7 @@ export function modulesPage(api: any, notice: (s: string) => void) {
   devBox.type = 'checkbox';
   devBox.id = 'modules-dev';
   const dev = h('label', 'toggle-row modules-dev', devBox, h('span', '', 'Geliştirici modu'));
-  dev.title = 'Klasörden modül yükleme ve dosyalar değişince pencereyi kendiliğinden yenileme';
+  dev.setAttribute('data-tip', 'Klasörden modül yükleme ve dosyalar değişince pencereyi kendiliğinden yenileme');
   intro.append(
     h('h3', '', 'Modüller'),
     h('p', 'hint', 'Modüller, Charles’a kendi penceresinde çalışan yeni araçlar ekler. Bir modül yalnızca Charles’ın izin verdiği şeyleri yapabilir: bilgisayarındaki dosyalara, programlara ve internete doğrudan erişemez.'),
@@ -123,11 +133,19 @@ export function modulesPage(api: any, notice: (s: string) => void) {
     if (state.open.includes(m.id)) badges.append(h('span', 'module-badge on', 'Açık'));
     if (m.dev) badges.append(h('span', 'module-badge dev', 'Geliştirici'));
     const head = h('div', 'module-head', iconOf(m), h('div', 'module-title', h('div', 'module-name', name, badges), meta));
-    const openB = button('Aç', 'primary', () =>
-      void api.modulesOpen(m.id).then(refresh).catch((e: Error) => notice(e.message)),
-    );
+    const openB = button('Aç', 'primary', () => {
+      if (openB.disabled) return;
+      openB.disabled = true;
+      void api
+        .modulesOpen(m.id)
+        .then(refresh)
+        .catch((e: Error) => {
+          openB.disabled = !m.enabled || !!m.error;
+          notice(e.message);
+        });
+    });
     openB.disabled = !m.enabled || !!m.error;
-    openB.title = m.enabled ? 'Modülü kendi penceresinde aç' : 'Kapalı modüller açılamaz';
+    openB.setAttribute('data-tip', m.enabled ? 'Modülü kendi penceresinde aç' : 'Kapalı modüller açılamaz');
     const sw = h('input');
     sw.type = 'checkbox';
     sw.checked = m.enabled;
@@ -149,20 +167,63 @@ export function modulesPage(api: any, notice: (s: string) => void) {
       p.setAttribute('translate', 'no');
       box.insertBefore(p, actions);
     }
+    if (Array.isArray(m.folders) && m.folders.length) {
+      const fList = h('div', 'module-folders');
+      fList.append(h('small', 'module-folders-title', 'Klasör izinleri'));
+      const loc = document.documentElement.lang === 'tr' ? 'tr-TR' : 'en-GB';
+      for (const g of m.folders) {
+        const pathEl = h('span', 'module-folder-path', g.path);
+        pathEl.setAttribute('translate', 'no');
+        const dateText = g.addedAt ? new Date(g.addedAt).toLocaleDateString(loc) : '';
+        const metaEl = h(
+          'small',
+          'module-folder-meta',
+          dateText ? h('span', '', dateText) : null,
+          !g.available && dateText ? ' · ' : null,
+          !g.available ? h('span', '', 'Ulaşılamıyor') : null,
+        );
+        const revokeB = button('Kaldır', '', () => {
+          if (revokeB.disabled) return;
+          revokeB.disabled = true;
+          void api
+            .modulesFolderRevoke?.(m.id, g.id)
+            .then(() => {
+              notice('Klasör izni kaldırıldı.');
+              return refresh();
+            })
+            .catch((e: Error) => {
+              revokeB.disabled = false;
+              notice(e.message);
+            });
+        });
+        fList.append(h('div', 'module-folder-row', h('div', 'module-folder-info', pathEl, metaEl), revokeB));
+      }
+      box.insertBefore(fList, actions);
+    }
     if (m.error) box.insertBefore(h('p', 'module-error', m.error), actions);
     function askRemove() {
       const del = h('input');
       del.type = 'checkbox';
-      const yes = button('Kaldır', 'danger', () =>
+      const yes = button('Kaldır', 'danger', () => {
+        if (yes.disabled) return;
+        yes.disabled = true;
+        no.disabled = true;
         void api
           .modulesRemove(m.id, del.checked)
           .then(() => {
             notice(del.checked ? 'Modül ve verileri kaldırıldı.' : 'Modül kaldırıldı; verileri saklandı.');
             return refresh();
           })
-          .catch((e: Error) => notice(e.message)),
-      );
-      const no = button('Vazgeç', '', () => actions.replaceWith(fresh));
+          .catch((e: Error) => {
+            yes.disabled = false;
+            no.disabled = false;
+            notice(e.message);
+          });
+      });
+      const no = button('Vazgeç', '', () => {
+        ask.replaceWith(fresh);
+        removeB.focus();
+      });
       const fresh = actions;
       const ask = h(
         'div',
@@ -173,22 +234,32 @@ export function modulesPage(api: any, notice: (s: string) => void) {
         no,
       );
       actions.replaceWith(ask);
-      no.onclick = () => ask.replaceWith(fresh);
     }
     return box;
   }
 
   // ── load → confirm → install ─────────────────────────────────────────────────
+  let activePreviewToken: string | null = null;
   async function pick(kind: 'zip' | 'folder') {
     if (busy) return;
     busy = true;
+    load.disabled = true;
+    fromFolder.disabled = true;
     try {
       const p: Preview | null = await api.modulesPick(kind);
-      if (p) showConfirm(p);
+      if (p) {
+        if (activePreviewToken && activePreviewToken !== p.token) {
+          void api.modulesCancel(activePreviewToken).catch(() => {});
+        }
+        activePreviewToken = p.token;
+        showConfirm(p);
+      }
     } catch (e) {
       notice((e as Error).message);
     } finally {
       busy = false;
+      load.disabled = false;
+      fromFolder.disabled = false;
     }
   }
   function showConfirm(p: Preview) {
@@ -207,23 +278,44 @@ export function modulesPage(api: any, notice: (s: string) => void) {
       const li = h('li', x.default ? 'default' : '', h('b', '', PERMISSION_LABEL[x.id] || x.id), h('span', '', x.text));
       perms.append(li);
     }
+    let installing = false;
     const install = button(p.update ? 'Güncelle' : 'Kur', 'primary', () =>
       void (async () => {
+        if (installing) return;
+        installing = true;
         install.disabled = true;
+        cancel.disabled = true;
+        load.disabled = true;
+        fromFolder.disabled = true;
         try {
           const r = await api.modulesInstall(p.token);
+          if (activePreviewToken === p.token) activePreviewToken = null;
           confirmBox.hidden = true;
+          confirmBox.replaceChildren();
           notice(r.updated ? 'Modül güncellendi.' : 'Modül kuruldu. Aç ile başlatabilirsin.');
           await refresh();
         } catch (e) {
+          installing = false;
           install.disabled = false;
+          cancel.disabled = false;
+          install.focus();
           notice((e as Error).message);
+        } finally {
+          if (!busy) {
+            load.disabled = false;
+            fromFolder.disabled = false;
+          }
         }
       })(),
     );
     const cancel = button('Vazgeç', '', () => {
+      if (installing) return;
+      if (activePreviewToken === p.token) activePreviewToken = null;
       void api.modulesCancel(p.token).catch(() => {});
       confirmBox.hidden = true;
+      confirmBox.replaceChildren();
+      const triggerBtn = p.source === 'folder' && !fromFolder.hidden ? fromFolder : load;
+      triggerBtn.focus();
     });
     confirmBox.replaceChildren(
       h('h3', '', p.update ? 'Modülü güncelle' : 'Modülü kur'),
@@ -237,6 +329,7 @@ export function modulesPage(api: any, notice: (s: string) => void) {
     );
     confirmBox.hidden = false;
     confirmBox.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    install.focus({ preventScroll: true });
   }
   devBox.onchange = () =>
     void api

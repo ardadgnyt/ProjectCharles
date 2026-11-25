@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-v1.0.1%20stable-edc9a9?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-v1.0.4%20stable-edc9a9?style=flat-square">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011%20x64-2b2f3a?style=flat-square">
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square"></a>
   <img alt="Electron" src="https://img.shields.io/badge/Electron-44-47848f?style=flat-square">
@@ -665,11 +665,11 @@ display they would appear on, and come up when you leave it.
 | --- | --- |
 | **General** | Language, start with Windows, sounds, auto-hide and collapse, read aloud, Hey Charles, weather location, updates, welcome tour |
 | **AI models** | The default model list, the account cards (each with one status line while connected), Gemini Live with its voice and key settings |
-| **Appearance** | Text, panel, character and island size, the screen to use, Slime studio |
+| **Appearance** | Colour palette (Cream or Blue), text, panel, character and island size, the screen to use, Slime studio |
 | **Memory** | Things Charles should remember; “Get to know me from the AI I use” |
 | **Access** | How much the AI may do without asking, in three short lines |
 | **Plugins** | Notifications and keywords, Google, Microsoft, Home Assistant, POP3/IMAP mail, Google Calendar, WhatsApp and its contacts |
-| **Modules** | Install, permissions, remove |
+| **Modules** | Install, permissions, granted folder permissions (revoke anytime), remove |
 | **Shortcuts** | Every global shortcut, and push to talk |
 | **Weekly summary** | This week or last week, as described above |
 | **Performance** | Optional CPU, RAM and GPU history kept on this computer; **Low memory mode**, which turns graphics acceleration off so Charles uses less memory and a little more processor time during animations (off unless you turn it on; it takes effect when Charles restarts) |

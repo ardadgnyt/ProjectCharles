@@ -8,13 +8,15 @@
 // and is not in front, flashes. One event flashes once.
 const REPEAT = 60000;
 
-function createAttention(appWindow, now = Date.now) {
+function createAttention(appWindow, now = Date.now, { fullscreen = () => false } = {}) {
   const seen = new Map();
   return {
     /** `key`: the event; → true when the taskbar was asked. */
     ask(key) {
+      if (fullscreen?.()) return false;
       const w = appWindow();
       if (!w || w.isDestroyed?.() || w.isFocused()) return false;
+      if (typeof w.isVisible === 'function' && !w.isVisible() && !w.isMinimized?.()) return false;
       const t = now();
       for (const [k, at] of seen) if (t - at > REPEAT) seen.delete(k);
       if (seen.has(key)) return false;

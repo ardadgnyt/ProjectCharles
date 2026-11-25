@@ -34,21 +34,31 @@ function setupURL(id, step = 0) {
   return pages[step];
 }
 function googleConfig(text) {
-  if (typeof text !== 'string' || text.length > 50000)
+  if (typeof text !== 'string' || !text.trim() || text.length > 50000)
     throw Error('Google yapılandırma dosyası geçersiz.');
-  let value;
+  let parsed;
   try {
-    value = JSON.parse(text).installed;
-  } catch {}
+    parsed = JSON.parse(text);
+  } catch {
+    throw Error(
+      'Seçilen dosya geçerli bir JSON değil. Google Cloud’dan aldığın masaüstü OAuth JSON dosyasını seç.',
+    );
+  }
+  const value = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed.installed : null;
+  const clientId = typeof value?.client_id === 'string' ? value.client_id.trim() : '';
+  const secret = typeof value?.client_secret === 'string' ? value.client_secret.trim() : '';
   if (
-    !value ||
-    typeof value.client_id !== 'string' ||
-    !value.client_id.endsWith('.apps.googleusercontent.com') ||
-    typeof value.client_secret !== 'string'
+    !clientId ||
+    clientId.length > 250 ||
+    /\s/.test(clientId) ||
+    !clientId.endsWith('.apps.googleusercontent.com') ||
+    !secret ||
+    secret.length > 4000 ||
+    /\s/.test(secret)
   )
     throw Error(
       'Google Cloud’dan Desktop app / Masaüstü uygulaması türündeki OAuth JSON dosyasını indir. API anahtarı veya servis hesabı dosyası kullanma.',
     );
-  return { clientId: value.client_id, secret: value.client_secret };
+  return { clientId, secret };
 }
 module.exports = { setupURL, googleConfig };

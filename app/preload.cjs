@@ -323,6 +323,7 @@ contextBridge.exposeInMainWorld('charles', {
     if (typeof cb === 'function') rackDropCallbacks.add(cb);
   },
   pluginsLogin: (id) => invoke('plugins-login', id),
+  pluginsVerify: (id) => invoke('plugins-verify', id),
   pluginsDisconnect: (id) => invoke('plugins-disconnect', id),
   pluginsSettings: (v) => invoke('plugins-settings', v),
   pluginsList: (kind, q) => invoke('plugins-list', kind, q),
@@ -408,6 +409,7 @@ contextBridge.exposeInMainWorld('charles', {
   modulesOpen: (id) => invoke('modules-open', id),
   modulesEnable: (id, value) => invoke('modules-enable', id, value),
   modulesRemove: (id, deleteData) => invoke('modules-remove', id, deleteData),
+  modulesFolderRevoke: (moduleId, grantId) => invoke('modules-folder-revoke', moduleId, grantId),
   modulesDev: (value) => invoke('modules-dev', value),
   // v0.8.8: Slime for modules
   modulesLook: () => invoke('modules-look'),
@@ -441,6 +443,17 @@ contextBridge.exposeInMainWorld('charles', {
   openProject: () => invoke('open-project'),
   pasteImage: (bytes, name) => invoke('paste-image', bytes, name),
   chooseFiles: () => invoke('choose-files'),
+  audioPreview: (id) => invoke('audio-preview', id),
+  // v1.0.2: In-Charles Subagents
+  subagentsList: (parentId) => invoke('subagents-list', parentId),
+  subagentsRun: (opts) => invoke('subagents-run', opts),
+  subagentsCancel: (id) => invoke('subagents-cancel', id),
+  subagentsClear: (parentId) => invoke('subagents-clear', parentId),
+  onSubagents: (callback) => {
+    const fn = (_e, value) => callback(value);
+    ipcRenderer.on('subagents-updated', fn);
+    return () => ipcRenderer.removeListener('subagents-updated', fn);
+  },
   onExtras: (callback) => {
     const fn = (_e, value) => callback(value);
     ipcRenderer.on('extras-changed', fn);

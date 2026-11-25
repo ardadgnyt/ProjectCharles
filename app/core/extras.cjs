@@ -2,6 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { AUDIO_TYPES, validateAudioFile, prepareAudioInput } = require('../files/audio-attach.cjs');
 const DEFAULTS = {
   defaultModel: '',
   // Model chosen in Ayarlar → AI Modelleri → Varsayılan model; used at start and for new chats.
@@ -120,6 +121,7 @@ class Extras {
     if (!stat.isFile()) throw Error('Yalnızca dosya eklenebilir.');
     const ext = path.extname(source).toLowerCase();
     const deckFile = ext === '.pptx' || ext === '.ppt';
+    const audioFile = AUDIO_TYPES.includes(ext);
     if (ext === '.gif' && stat.size > MAX_GIF_BYTES) throw Error('GIF en fazla 256 MB olabilir.');
     const images = IMAGE_TYPES;
     const text = [
@@ -148,13 +150,15 @@ class Extras {
       ext !== '.pdf' &&
       ext !== '.docx' &&
       ext !== '.gif' &&
-      !deckFile
+      !deckFile &&
+      !audioFile
     )
       throw Error(
-        'Desteklenenler: PDF, Word (DOCX), PowerPoint (PPTX, PPT), PNG/JPG/WebP/GIF, metin ve yaygın kod dosyaları.',
+        'Desteklenenler: PDF, Word (DOCX), PowerPoint (PPTX, PPT), PNG/JPG/WebP/GIF, ses (MP3, WAV, M4A, AAC, OGG, FLAC, WebM), metin ve yaygın kod dosyaları.',
       );
     // v0.9.16: an unreadable presentation is told about now, not when the message goes out
     if (deckFile) require('../files/slides.cjs').loadDeck(source);
+    const audioInfo = audioFile ? validateAudioFile(source) : null;
     const dir = path.join(this.directory, 'inbox');
     fs.mkdirSync(dir, { recursive: true });
     // once a minute is enough: a thousand files at once would walk the folder a thousand times
@@ -167,12 +171,21 @@ class Extras {
       }
     }
     const id = crypto.randomUUID();
-    return { id, dest: path.join(dir, id + ext), ext, deckFile, stat };
+    return {
+      id,
+      dest: path.join(dir, id + ext),
+      ext,
+      deckFile,
+      audioFile,
+      audioDuration: audioInfo?.duration ?? null,
+      stat,
+    };
   }
   /** The copied file becomes an attachment. */
-  received(source, { id, dest, ext, deckFile, stat }, untrusted) {
+  received(source, { id, dest, ext, deckFile, audioFile, audioDuration, stat }, untrusted) {
     const images = IMAGE_TYPES;
     fs.utimesSync(dest, new Date(), new Date());
+    const effectiveUntrusted = audioFile ? untrusted || 'audio' : untrusted;
     const item = {
       id,
       name: path.basename(source),
@@ -189,11 +202,20 @@ class Extras {
                 ? 'docx'
                 : deckFile
                   ? 'presentation'
-                  : 'text',
-      ...(untrusted ? { untrusted } : {}),
+                  : audioFile
+                    ? 'audio'
+                    : 'text',
+      ...(audioFile && audioDuration !== null && audioDuration !== undefined ? { duration: audioDuration } : {}),
+      ...(effectiveUntrusted ? { untrusted: effectiveUntrusted } : {}),
     };
     this.attachments.set(id, item);
-    return { id, name: item.name, size: item.size, kind: item.kind };
+    return {
+      id,
+      name: item.name,
+      size: item.size,
+      kind: item.kind,
+      ...(item.duration !== undefined ? { duration: item.duration } : {}),
+    };
   }
   /**
    * v0.9.19: an attachment of a sent message, for sending it again after an edit. The inbox keeps
@@ -208,7 +230,8 @@ class Extras {
     const file = fs.existsSync(dir) ? fs.readdirSync(dir).find((f) => f.startsWith(id + '.')) : null;
     if (!file) return null;
     const stat = fs.statSync(path.join(dir, file));
-    const item = { id, name: String(attachment.name || file), path: path.join(dir, file), size: stat.size, kind: String(attachment.kind || 'text'), untrusted: 'content' };
+    const kind = String(attachment.kind || 'text');
+    const item = { id, name: String(attachment.name || file), path: path.join(dir, file), size: stat.size, kind, untrusted: kind === 'audio' ? 'audio' : 'content' };
     this.attachments.set(id, item);
     return item;
   }
@@ -216,7 +239,7 @@ class Extras {
   untrusted(ids) {
     return Array.isArray(ids) && ids.some((id) => !!this.attachments.get(id)?.untrusted);
   }
-  async inputs(ids, { textOnly = false, images = true } = {}) {
+  async inputs(ids, { textOnly = false, images = true, signal = null, timeoutMs = 180000, root = undefined, userData = undefined } = {}) {
     if (!Array.isArray(ids) || ids.length > MAX_ATTACHMENTS) throw Error('En fazla 1000 dosya eklenebilir.');
     const result = [];
     // v0.8.5: the text sent with one message stays bounded, or it would fit no model.
@@ -233,13 +256,13 @@ class Extras {
       // many files: the app keeps breathing while they are read
       if (++turn % 16 === 0) await new Promise((resolve) => setImmediate(resolve));
       const found = this.attachments?.get(id);
-      const reads = found && (found.kind === 'text' || found.kind === 'docx' || found.kind === 'presentation' || (found.kind === 'pdf' && textOnly));
+      const reads = found && (found.kind === 'text' || found.kind === 'docx' || found.kind === 'presentation' || found.kind === 'audio' || (found.kind === 'pdf' && textOnly));
       if (reads && left < 4000) {
         result.push(outOfRoom(found.name));
         continue;
       }
       const room = Math.max(0, left - 2000);
-      const items = found?.kind === 'presentation' ? await this.presentationInput(found, images, room) : [await this.input(id, textOnly, room)];
+      const items = found?.kind === 'presentation' ? await this.presentationInput(found, images, room) : [await this.input(id, textOnly, room, { signal, timeoutMs, root, userData })];
       for (const item of items) {
         if (item.cut) {
           cut.push(item.cut);
@@ -310,12 +333,24 @@ class Extras {
       ...pictures.map((file) => ({ type: 'localImage', path: file })),
     ];
   }
-  async input(id, textOnly, room = MAX_ATTACHMENT_TEXT) {
+  async input(id, textOnly, room = MAX_ATTACHMENT_TEXT, options = {}) {
       const a = this.attachments.get(id);
       if (!a || !fs.existsSync(a.path)) throw Error('Ek artık bulunamıyor; yeniden ekleyin.');
       if (a.kind === 'gif')
         throw Error('GIF önizlemesinin hazırlanmasını bekleyip tekrar ekleyin.');
       if (a.kind === 'image') return { type: 'localImage', path: a.path };
+      if (a.kind === 'audio') {
+        return prepareAudioInput(a, {
+          root: this.root || path.resolve(__dirname, '..', '..'),
+          userData: this.directory,
+          ffmpeg: this.ffmpeg || options.ffmpeg || null,
+          language: options.language || 'auto',
+          signal: options.signal || null,
+          timeoutMs: options.timeoutMs || 180000,
+          room,
+          transcribeFn: this.transcribeAudio || options.transcribeFn || null,
+        });
+      }
       // v0.9.9: file contents go to the model fenced as outside data (core/untrusted.cjs); a
       // mail Charles opened says that its sender wrote it, not the user.
       const { fence } = require('./untrusted.cjs');
@@ -346,4 +381,4 @@ class Extras {
       };
   }
 }
-module.exports = { Extras, DEFAULTS, MAX_ATTACHMENT_TEXT, MAX_ATTACHMENTS };
+module.exports = { Extras, DEFAULTS, MAX_ATTACHMENT_TEXT, MAX_ATTACHMENTS, AUDIO_TYPES };

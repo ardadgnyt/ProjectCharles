@@ -13,6 +13,9 @@ const PERMISSIONS = {
   // v0.9.12: files.save / files.pick
   files:
     'Kaydet penceresiyle bilgisayarına dosya kaydedebilir, Aç penceresiyle seçtiğin dosyaları okuyabilir. Neyin ve nereye kaydedileceğini, hangi dosyanın açılacağını her seferinde sen seçersin; modül başka hiçbir dosyana erişemez.',
+  // v1.0.2: folders permission (user-chosen folders, Recycle Bin only)
+  folders:
+    'Seçtiğin klasörlerde dosyaları okuyup yazabilir. Klasörü her seferinde Windows’un Klasör seç penceresiyle sen seçersin; modül yalnızca izin verdiğin klasörlere erişir. Silinen dosyalar Geri Dönüşüm Kutusu’na gider. İzinleri Ayarlar → Modüller’den geri alabilirsin.',
 };
 // every module has these
 const DEFAULT_PERMISSIONS = {

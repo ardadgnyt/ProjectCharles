@@ -5,7 +5,11 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 const call = async (method, args) => {
   const r = await ipcRenderer.invoke('charles-module', method, args);
-  if (!r || !r.ok) throw new Error((r && r.error) || 'Modül çağrısı başarısız.');
+  if (!r || !r.ok) {
+    const err = new Error((r && r.error) || 'Modül çağrısı başarısız.');
+    if (r && r.code) err.code = r.code;
+    throw err;
+  }
   return r.value;
 };
 const listeners = { language: new Set(), 'slime-look': new Set() };
@@ -84,6 +88,34 @@ contextBridge.exposeInMainWorld('charlesModule', {
         return Promise.reject(new Error('Dosya seçme yalnızca bir düğmeye basınca yapılabilir.'));
       return call('files.pick', options || {});
     },
+  },
+  // v1.0.2 ("folders" permission): user-granted folders with atomic writes, SHA-256 optimistic lock, Recycle Bin only.
+  folders: {
+    pick: (options = {}) => {
+      if (!navigator.userActivation?.isActive)
+        return Promise.reject(new Error('Klasör seçme yalnızca bir düğmeye basınca yapılabilir.'));
+      return call('folders.pick', options || {});
+    },
+    relink: (id, options = {}) => {
+      if (!navigator.userActivation?.isActive)
+        return Promise.reject(new Error('Klasör seçme yalnızca bir düğmeye basınca yapılabilir.'));
+      return call('folders.relink', { id, ...(options || {}) });
+    },
+    granted: () => call('folders.granted'),
+    forget: (id) => call('folders.forget', { id }),
+    stat: (id, path = '') => call('folders.stat', { id, path }),
+    scan: (id, options = {}) => call('folders.scan', { id, ...(options || {}) }),
+    read: (id, path, options = {}) => call('folders.read', { id, path, encoding: options && options.encoding }),
+    readMany: (id, paths, options = {}) => call('folders.readMany', { id, paths, encoding: options && options.encoding }),
+    write: (id, path, data, options = {}) => {
+      const payload = { id, path, data, encoding: options && options.encoding, mkdirs: options && options.mkdirs };
+      if (options && Object.prototype.hasOwnProperty.call(options, 'expectSha256') && options.expectSha256 !== undefined)
+        payload.expectSha256 = options.expectSha256;
+      return call('folders.write', payload);
+    },
+    mkdir: (id, path) => call('folders.mkdir', { id, path }),
+    move: (id, from, to, options = {}) => call('folders.move', { id, from, to, overwrite: !!(options && options.overwrite === true) }),
+    trash: (id, path) => call('folders.trash', { id, path }),
   },
   notify: (text) => call('notify', { text }),
   on: (event, cb) => {

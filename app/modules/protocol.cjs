@@ -70,6 +70,7 @@ function resolveRequest(url, roots) {
     return { status: 400 };
   }
   if (rel.includes('\0') || rel.includes('\\')) return { status: 403 };
+  if (/(^|\/)\.\.(\/|$)/.test(rel) || /(^|\/)(\.\.|%2e%2e)(\/|$)/i.test(String(url))) return { status: 403 };
   let base = r.files;
   // v0.8.8: Charles' own module kit (the Slime) and its sounds, read-only, for every module
   const kit = rel.match(/^\/_charles\/(slime\.js|sounds\/[a-z]{2,20}\.wav)$/);
@@ -86,6 +87,18 @@ function resolveRequest(url, roots) {
   if (rel === '/_data' || rel.startsWith('/_data/')) {
     base = r.data;
     rel = rel.slice('/_data'.length);
+  } else if (rel.startsWith('/_folder/')) {
+    // v1.0.2: /_folder/<grantId>/<rel> — read-only files from one of this module's granted folders
+    const rest = rel.slice('/_folder/'.length);
+    const slash = rest.indexOf('/');
+    if (slash <= 0) return { status: 404 };
+    const grantId = rest.slice(0, slash);
+    const sub = rest.slice(slash);
+    if (!sub || sub === '/' || !r.folderRoot) return { status: 404 };
+    const granted = r.folderRoot(grantId);
+    if (!granted) return { status: 403 };
+    base = granted;
+    rel = sub;
   }
   if (rel === '/' || rel === '') rel = '/' + (r.entry || 'index.html');
   const file = path.resolve(base, '.' + rel);

@@ -11,6 +11,8 @@ import { english100DShelf, patterns100DShelf } from './i18n-100-dshelf';
 import { english100DChat, patterns100DChat } from './i18n-100-dchat';
 import { english100DTour, patterns100DTour } from './i18n-100-dtour';
 import { english101, patterns101 } from './i18n-101';
+import { english102, patterns102 } from './i18n-102';
+import { english103, patterns103 } from './i18n-103';
 import { english063, englishPatterns } from './i18n-063';
 import { english070 } from './i18n-070';
 import { english071 } from './i18n-071';
@@ -325,13 +327,13 @@ Object.assign(english, {
   'Kaydet düğmesine tıkla, ardından kısayol tuşlarına birlikte bas. Esc ile vazgeç.':
     'Click Record keys, then press the shortcut together. Press Esc to cancel.',
 });
-Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089, english0810, english0811, english0814, english0815, english092, english096, english0913, english0914, english0915, english0916, english0918, english0919, english0922, english0925, english0926, english0927, english100Core, english100Settings, english100Summary, english100Picker, english100Panel, english100DShelf, english100DChat, english100DTour, english101);
+Object.assign(english, english063, english070, english071, englishSpecial, english072, english077, english080, english085, english087, english088, english089, english0810, english0811, english0814, english0815, english092, english096, english0913, english0914, english0915, english0916, english0918, english0919, english0922, english0925, english0926, english0927, english100Core, english100Settings, english100Summary, english100Picker, english100Panel, english100DShelf, english100DChat, english100DTour, english101, english102, english103);
 
 // v0.6.3: look-up that ignores line breaks/indentation from the HTML, then the patterns
 // (texts with numbers or names inside).
 const collapsed = new Map<string, string>();
 for (const [k, v] of Object.entries(english)) collapsed.set(k.replace(/\s+/g, ' ').trim(), v);
-const allPatterns = [...englishPatterns, ...specialPatterns, ...patterns072, ...patterns077, ...patterns080, ...patterns085, ...patterns087, ...patterns088, ...patterns0810, ...patterns092, ...patterns096, ...patterns0913, ...patterns0914, ...patterns0922, ...patterns0925, ...patterns0926, ...patterns0927, ...patterns100Core, ...patterns100Settings, ...patterns100Summary, ...patterns100Picker, ...patterns100Panel, ...patterns100DShelf, ...patterns100DChat, ...patterns100DTour, ...patterns101];
+const allPatterns = [...englishPatterns, ...specialPatterns, ...patterns072, ...patterns077, ...patterns080, ...patterns085, ...patterns087, ...patterns088, ...patterns0810, ...patterns092, ...patterns096, ...patterns0913, ...patterns0914, ...patterns0922, ...patterns0925, ...patterns0926, ...patterns0927, ...patterns100Core, ...patterns100Settings, ...patterns100Summary, ...patterns100Picker, ...patterns100Panel, ...patterns100DShelf, ...patterns100DChat, ...patterns100DTour, ...patterns101, ...patterns102, ...patterns103];
 // v0.9.22: a pattern is a short interface text with a number or a name in it. Without this limit
 // every line of a command's output went through all of them.
 const PATTERN_MAX = 600;

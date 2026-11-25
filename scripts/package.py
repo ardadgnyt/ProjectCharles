@@ -35,7 +35,7 @@ SKIP_FILES = {
 NEVER = re.compile(
     r'(^|/)(\.git|_update|_setup|dist-setup|_to_delete|__pycache__|graphify-out|\.qa|\.DS_Store|Thumbs\.db)(/|$)'
     r'|(^|/)(\.env(\..*)?|Charles-creator\.json|charles-install\.json|charles-manifest\.json|personal\.json'
-    r'|companion\.json|charles-history\.json|preferences\.json|[^/]*\.enc\.json|[^/]*\.key|[^/]*\.pem|[^/]*\.log)$',
+    r'|companion\.json|charles-history\.json|preferences\.json|subagents\.json(\.bak|\.tmp(-a)?)?|[^/]*\.enc\.json|[^/]*\.key|[^/]*\.pem|[^/]*\.log)$',
     re.I,
 )
 # v1.0.0: Electron's downloader and its own dependencies (development only: npm's postinstall of
